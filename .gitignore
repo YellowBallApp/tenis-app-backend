@@ -1,0 +1,42 @@
+# Node.js bağımlılıkları
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Derlenmiş TypeScript dosyaları
+dist/
+build/
+*.js
+*.js.map
+*.d.ts
+
+# Çalışma sırasında oluşturulan dosyalar
+.nyc_output/
+coverage/
+*.log
+logs/
+*.pid
+*.seed
+*.env
+.env.local
+.env.development
+.env.production
+.env.test
+ormconfig.json
+ormconfig.js
+ormconfig.ts
+
+# IDE ve Editör dosyaları
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# MacOS sistem dosyaları
+.DS_Store
+
+# Diğer
+tmp/
+temp/
+migrations/
