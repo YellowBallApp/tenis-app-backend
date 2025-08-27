@@ -1,4 +1,4 @@
-import { compare } from "bcryptjs";
+import { compare, hash } from "bcryptjs";
 import { sign, verify } from "jsonwebtoken";
 import { AppError } from "../utils/error/app.error";
 import dayjs from "dayjs";
@@ -8,7 +8,54 @@ import { refreshTokenRepo } from "../repositories/refreshToken.repository";
 
 const authService = {
   
-login: async (
+  register: async (
+    name: string,
+    email: string,
+    password: string
+  ): Promise<{ accessToken: string; refreshToken: string }> => {
+    // Check if user already exists
+    const existingUser = await userService.findByEmail(email).catch(() => null);
+    if (existingUser) {
+      throw new AppError("USER_ALREADY_EXISTS");
+    }
+
+    // Hash password
+    const hashedPassword = await hash(password, 12);
+
+    // Create new user
+    const newUser = await userService.create({
+      name,
+      email,
+      password: hashedPassword,
+    });
+
+    // Generate tokens
+    const jwtSecret = process.env.JWT_SECRET!;
+    const refreshSecret = process.env.REFRESH_TOKEN_SECRET!;
+    const sessionId = uuidv4();
+
+    const payload = {
+      id: newUser.id,
+      sessionId,
+    };
+
+    const accessToken = sign(payload, jwtSecret, { expiresIn: "1h" });
+    const refreshToken = sign(payload, refreshSecret, { expiresIn: "1d" });
+
+    // Save refresh token
+    await refreshTokenRepo.save({
+      token: refreshToken,
+      userId: newUser.id,
+      sessionId,
+      ipAddress: 'unknown',
+      userAgent: 'unknown',
+      expiresAt: dayjs().add(1, "day").toDate(),
+    });
+
+    return { accessToken, refreshToken };
+  },
+
+  login: async (
   email: string,
   password: string,
   ipAddress: string,
@@ -45,7 +92,7 @@ login: async (
   return { accessToken, refreshToken };
 },
 
- refreshToken: async (
+  refreshToken: async (
   token: string
 ): Promise<{ accessToken: string; refreshToken: string }> => {
   const refreshSecret = process.env.REFRESH_TOKEN_SECRET!;

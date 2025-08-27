@@ -36,6 +36,16 @@ const rawErrors = {
         code: 1007,
         key: "INVALID_CREDENTIALS",
         message: "Invalid credentials" 
+    },
+    REGISTRATION_FAILED: {
+        code: 1008,
+        key: "REGISTRATION_FAILED",
+        message: "Registration failed"
+    },
+    USER_ALREADY_EXISTS: {
+        code: 1009,
+        key: "USER_ALREADY_EXISTS",
+        message: "User already exists with this email"
     }
 } as const;
 

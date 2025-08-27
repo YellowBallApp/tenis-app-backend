@@ -1,9 +1,40 @@
 import { Request, Response } from "express";
 import { AppError } from "../utils/error/app.error";
-import { loginSchema, refreshTokenSchema } from "../validations/authJoi.schema";
+import { loginSchema, refreshTokenSchema, registerSchema } from "../validations/authJoi.schema";
 import authService from "../services/auth.service";
 
 const authController = {
+  register: async (req: Request, res: Response) => {
+    try {
+      const { error, value } = registerSchema.validate(req.body);
+      if (error) {
+        throw new AppError("VALIDATION_ERROR");
+      }
+
+      const { name, email, password } = value;
+
+      const tokens = await authService.register(name, email, password);
+
+      return res.status(201).json({
+        data: {
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+        },
+      });
+    } catch (err) {
+      const error = err instanceof AppError
+        ? err
+        : new AppError("REGISTRATION_FAILED");
+
+      console.error(err);
+      return res.status(error.status).json({
+        errorKey: error.errorKey,
+        errorCode: error.errorCode,
+        message: error.message,
+      });
+    }
+  },
+
   login: async (req: Request, res: Response) => {
     try {
       const { error, value } = loginSchema.validate(req.body);

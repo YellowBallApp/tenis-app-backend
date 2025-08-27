@@ -3,15 +3,20 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { AppDataSource } from "./config/data-source";
 import authRoutes from "./routes/auth.routes";
+import userRoutes from "./routes/user.routes";
 
 const app = express();
 
 dotenv.config();
 
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:8081', 'http://localhost:3000', 'http://192.168.1.108:3000', 'http://192.168.1.108:8081'],
+  credentials: true
+}));
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
+app.use("/api/user", userRoutes);
 
 const authMiddleware = express.Router();
 

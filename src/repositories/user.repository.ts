@@ -5,6 +5,11 @@ import { User } from "../entities/user.entity";
 const repository = AppDataSource.getRepository(User);
 
 const userRepository = {
+  create: async (userData: { name: string; email: string; password: string }): Promise<User> => {
+    const user = repository.create(userData);
+    return await repository.save(user);
+  },
+
   findByEmail: async (email: string,relations?: string[]): Promise<User> => {
     const user = await repository.findOne({
       where: { email },
