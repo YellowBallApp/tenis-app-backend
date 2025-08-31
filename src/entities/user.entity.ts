@@ -1,9 +1,10 @@
 import { 
     Entity, PrimaryGeneratedColumn, Column,
-    UpdateDateColumn, CreateDateColumn, DeleteDateColumn, 
+    UpdateDateColumn, CreateDateColumn, DeleteDateColumn, OneToMany
   } from "typeorm";
+  import { MatchHistory } from './matchHistory.entity';
   
-  @Entity("Users")
+  @Entity("user")
   export class User {
     @PrimaryGeneratedColumn("uuid")
     id: string;
@@ -34,6 +35,16 @@ import {
       
     @DeleteDateColumn()
     deletedAt: Date;
+
+    @Column({ type: 'int', nullable: false })
+    leagueRanking: number;
+    
+    //TODO: Temporarly will be used as Role, later need to implement role.entity
+    @Column({ type: 'varchar', length: 100, nullable: true })
+    title: string;
+    
+    @OneToMany(() => MatchHistory, matchHistory => matchHistory.user)
+    matchHistories?: MatchHistory[];
     
   }
   

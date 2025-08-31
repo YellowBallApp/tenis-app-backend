@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from "typeorm";
 
-@Entity("RefreshTokens")
+@Entity("refresh_token")
 export class RefreshToken {
   @PrimaryGeneratedColumn()
   id: number;
