@@ -26,6 +26,15 @@ const MembersScreen = () => {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
+  // İsim ve soyisimin ilk harflerini almak için fonksiyon
+  const getInitials = (name: string) => {
+    const nameParts = name.split(' ');
+    if (nameParts.length >= 2) {
+      return (nameParts[0].charAt(0) + nameParts[1].charAt(0)).toUpperCase();
+    }
+    return nameParts[0].charAt(0).toUpperCase();
+  };
+
   const members = [
     {
       id: 1,
@@ -155,7 +164,7 @@ const MembersScreen = () => {
     <Card key={member.id} style={styles.memberCard}>
       <Card.Content>
         <View style={styles.memberHeader}>
-          <Avatar.Image size={60} source={{ uri: member.image }} />
+          <Avatar.Text size={60} label={getInitials(member.name)} />
           <View style={styles.memberInfo}>
             <Title style={styles.memberName}>{member.name}</Title>
             <View style={styles.memberBadges}>
@@ -231,7 +240,7 @@ const MembersScreen = () => {
   const renderMemberGrid = (member: any) => (
     <Card key={member.id} style={styles.memberGridCard}>
       <Card.Content style={styles.memberGridContent}>
-        <Avatar.Image size={80} source={{ uri: member.image }} />
+        <Avatar.Text size={80} label={getInitials(member.name)} />
         <Title style={styles.memberGridName}>{member.name}</Title>
         <Chip 
           mode="outlined" 

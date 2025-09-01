@@ -20,36 +20,9 @@ const GameModesScreen = () => {
   const gameModes = [
     {
       id: 1,
-      title: 'Tekler',
-      subtitle: '1 vs 1 Maç',
-      description: 'Tek kişilik oyuncular için klasik tenis maçı',
-      icon: 'account',
-      color: '#2E7D32',
-      rules: ['En iyi 2 set', 'Tie-break 6-6\'da', 'Servis sırası'],
-    },
-    {
-      id: 2,
-      title: 'Çiftler',
-      subtitle: '2 vs 2 Maç',
-      description: 'Takım oyunu için çiftler maçı',
-      icon: 'account-group',
-      color: '#4CAF50',
-      rules: ['En iyi 2 set', 'Servis sırası değişir', 'Takım koordinasyonu'],
-    },
-    {
-      id: 3,
-      title: 'Hızlı Maç',
-      subtitle: 'Hızlı Format',
-      description: 'Zaman sınırlı hızlı maç formatı',
-      icon: 'timer',
-      color: '#81C784',
-      rules: ['30 dakika süre', 'Hızlı servis', 'Kısa mola'],
-    },
-    {
-      id: 4,
-      title: 'Turnuva',
+      title: 'Defi Lig',
       subtitle: 'Çoklu Maç',
-      description: 'Turnuva formatında çoklu maç sistemi',
+      description: 'Defi Lig formatında çoklu maç sistemi',
       icon: 'trophy',
       color: '#28A745',
       rules: ['Eleme sistemi', 'Final maçı', 'Ödül sistemi'],
@@ -60,9 +33,9 @@ const GameModesScreen = () => {
     <ScrollView style={styles.container}>
       {/* Header Section */}
       <View style={styles.headerSection}>
-        <Title style={styles.headerTitle}>🎾 Oyun Modları</Title>
+        <Title style={styles.headerTitle}>🏆 Defi Lig</Title>
         <Text style={styles.headerSubtitle}>
-          Farklı tenis oyun modlarını keşfedin ve size en uygun olanı seçin
+          Defi Lig formatında rekabetçi maçlara katılın ve lig sıralamasında yükselin
         </Text>
       </View>
 
@@ -109,17 +82,17 @@ const GameModesScreen = () => {
       <View style={styles.additionalInfo}>
         <Card style={styles.infoCard}>
           <Card.Content>
-            <Title style={styles.infoTitle}>Oyun Modu Seçimi</Title>
+            <Title style={styles.infoTitle}>Defi Lig Hakkında</Title>
             <Text style={styles.infoText}>
-              Her oyun modunun kendine özgü kuralları ve avantajları vardır. 
-              Seviyenize ve tercihlerinize göre en uygun modu seçin.
+              Defi Lig'de rekabetçi oyuncularla karşılaşarak yeteneklerinizi test edin. 
+              Eleme sistemi ile ilerleyerek lig sıralamasında zirveyi hedefleyin.
             </Text>
             <View style={styles.tipsContainer}>
               <Text style={styles.tipsTitle}>İpuçları:</Text>
-              <Text style={styles.tipText}>• Yeni başlayanlar için Tekler modu önerilir</Text>
-              <Text style={styles.tipText}>• Çiftler için partner bulmanız gerekir</Text>
-              <Text style={styles.tipText}>• Hızlı maç zaman kısıtlaması olanlar için idealdir</Text>
-              <Text style={styles.tipText}>• Turnuva modu rekabetçi oyuncular içindir</Text>
+              <Text style={styles.tipText}>• Defi Lig rekabetçi oyuncular için tasarlanmıştır</Text>
+              <Text style={styles.tipText}>• Eleme sistemi ile ilerleyerek final maçına ulaşın</Text>
+              <Text style={styles.tipText}>• Her maçta puan kazanarak lig sıralamasında yükselin</Text>
+              <Text style={styles.tipText}>• Ödül sistemi ile başarılarınızı ödüllendirin</Text>
             </View>
           </Card.Content>
         </Card>

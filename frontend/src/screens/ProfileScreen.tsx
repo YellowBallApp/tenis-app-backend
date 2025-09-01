@@ -4,6 +4,7 @@ import {
   StyleSheet,
   ScrollView,
   Dimensions,
+  TouchableOpacity,
 } from 'react-native';
 import {
   Card,
@@ -14,6 +15,10 @@ import {
   Chip,
   Switch,
   Divider,
+  Portal,
+  Modal,
+  TextInput,
+  List,
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 
@@ -22,6 +27,19 @@ const { width } = Dimensions.get('window');
 const ProfileScreen = () => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
+  
+  // Modal states
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [showAccountSettingsModal, setShowAccountSettingsModal] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
+  
+  // Form states
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const user = {
     name: 'Ahmet Yılmaz',
@@ -49,11 +67,17 @@ const ProfileScreen = () => {
     { id: 3, title: 'Konum Paylaşımı', icon: 'map-marker', enabled: true, onToggle: () => {} },
   ];
 
+  const openEditProfile = () => {
+    setEditName(user.name);
+    setEditEmail(user.email);
+    setShowEditProfileModal(true);
+  };
+
   const quickActions = [
-    { title: 'Profil Düzenle', icon: 'account-edit', action: () => {} },
-    { title: 'Şifre Değiştir', icon: 'lock-reset', action: () => {} },
-    { title: 'Hesap Ayarları', icon: 'cog', action: () => {} },
-    { title: 'Yardım', icon: 'help-circle', action: () => {} },
+    { title: 'Profil Düzenle', icon: 'account-edit', action: openEditProfile },
+    { title: 'Şifre Değiştir', icon: 'lock-reset', action: () => setShowChangePasswordModal(true) },
+    { title: 'Hesap Ayarları', icon: 'cog', action: () => setShowAccountSettingsModal(true) },
+    { title: 'Yardım', icon: 'help-circle', action: () => setShowHelpModal(true) },
   ];
 
   const getLevelColor = (level: string) => {
@@ -77,6 +101,7 @@ const ProfileScreen = () => {
   };
 
   return (
+    <>
     <ScrollView style={styles.container}>
       {/* Profile Header */}
       <View style={styles.profileHeader}>
@@ -231,6 +256,311 @@ const ProfileScreen = () => {
         </View>
       </View>
     </ScrollView>
+
+    {/* Profil Düzenle Modal */}
+    <Portal>
+      <Modal
+        visible={showEditProfileModal}
+        onDismiss={() => setShowEditProfileModal(false)}
+        contentContainerStyle={styles.modalContainer}
+      >
+        <Card style={styles.modalCard}>
+          <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScrollView}>
+            <Card.Content style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <MaterialCommunityIcons name="account-edit" size={32} color="#2E7D32" />
+                <Title style={styles.modalTitle}>Profil Düzenle</Title>
+                <TouchableOpacity onPress={() => setShowEditProfileModal(false)}>
+                  <MaterialCommunityIcons name="close" size={24} color="#757575" />
+                </TouchableOpacity>
+              </View>
+              
+              <Text style={styles.modalSubtitle}>Profil bilgilerinizi güncelleyin</Text>
+              
+              <TextInput
+                mode="outlined"
+                label="Ad Soyad"
+                value={editName}
+                onChangeText={setEditName}
+                style={styles.textInput}
+                left={<TextInput.Icon icon="account" />}
+                outlineColor="#E0E0E0"
+                activeOutlineColor="#2E7D32"
+              />
+              
+              <TextInput
+                mode="outlined"
+                label="E-posta"
+                value={editEmail}
+                onChangeText={setEditEmail}
+                style={styles.textInput}
+                left={<TextInput.Icon icon="email" />}
+                outlineColor="#E0E0E0"
+                activeOutlineColor="#2E7D32"
+                keyboardType="email-address"
+              />
+
+              <View style={styles.modalButtons}>
+                <Button
+                  mode="outlined"
+                  onPress={() => setShowEditProfileModal(false)}
+                  style={[styles.modalButton, styles.cancelButton]}
+                  contentStyle={{ paddingVertical: 12 }}
+                >
+                  İptal
+                </Button>
+                <Button
+                  mode="contained"
+                  onPress={() => {
+                    console.log('Profil güncellendi:', { name: editName, email: editEmail });
+                    setShowEditProfileModal(false);
+                  }}
+                  style={[styles.modalButton, styles.saveButton]}
+                  buttonColor="#2E7D32"
+                  contentStyle={{ paddingVertical: 12 }}
+                >
+                  Kaydet
+                </Button>
+              </View>
+            </Card.Content>
+          </ScrollView>
+        </Card>
+      </Modal>
+    </Portal>
+
+    {/* Şifre Değiştir Modal */}
+    <Portal>
+      <Modal
+        visible={showChangePasswordModal}
+        onDismiss={() => setShowChangePasswordModal(false)}
+        contentContainerStyle={styles.modalContainer}
+      >
+        <Card style={styles.modalCard}>
+          <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScrollView}>
+            <Card.Content style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <MaterialCommunityIcons name="lock-reset" size={32} color="#FF9800" />
+                <Title style={styles.modalTitle}>Şifre Değiştir</Title>
+                <TouchableOpacity onPress={() => setShowChangePasswordModal(false)}>
+                  <MaterialCommunityIcons name="close" size={24} color="#757575" />
+                </TouchableOpacity>
+              </View>
+              
+              <Text style={styles.modalSubtitle}>Güvenliğiniz için şifrenizi güncelleyin</Text>
+              
+              <TextInput
+                mode="outlined"
+                label="Mevcut Şifre"
+                value={currentPassword}
+                onChangeText={setCurrentPassword}
+                style={styles.textInput}
+                left={<TextInput.Icon icon="lock" />}
+                secureTextEntry
+                outlineColor="#E0E0E0"
+                activeOutlineColor="#FF9800"
+              />
+              
+              <TextInput
+                mode="outlined"
+                label="Yeni Şifre"
+                value={newPassword}
+                onChangeText={setNewPassword}
+                style={styles.textInput}
+                left={<TextInput.Icon icon="lock-plus" />}
+                secureTextEntry
+                outlineColor="#E0E0E0"
+                activeOutlineColor="#FF9800"
+              />
+              
+              <TextInput
+                mode="outlined"
+                label="Yeni Şifre Tekrar"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                style={styles.textInput}
+                left={<TextInput.Icon icon="lock-check" />}
+                secureTextEntry
+                outlineColor="#E0E0E0"
+                activeOutlineColor="#FF9800"
+              />
+
+              <View style={styles.modalButtons}>
+                <Button
+                  mode="outlined"
+                  onPress={() => setShowChangePasswordModal(false)}
+                  style={[styles.modalButton, styles.cancelButton]}
+                  contentStyle={{ paddingVertical: 12 }}
+                >
+                  İptal
+                </Button>
+                <Button
+                  mode="contained"
+                  onPress={() => {
+                    console.log('Şifre değiştirildi');
+                    setShowChangePasswordModal(false);
+                    setCurrentPassword('');
+                    setNewPassword('');
+                    setConfirmPassword('');
+                  }}
+                  style={[styles.modalButton, styles.saveButton]}
+                  buttonColor="#FF9800"
+                  contentStyle={{ paddingVertical: 12 }}
+                >
+                  Değiştir
+                </Button>
+              </View>
+            </Card.Content>
+          </ScrollView>
+        </Card>
+      </Modal>
+    </Portal>
+
+    {/* Hesap Ayarları Modal */}
+    <Portal>
+      <Modal
+        visible={showAccountSettingsModal}
+        onDismiss={() => setShowAccountSettingsModal(false)}
+        contentContainerStyle={styles.modalContainer}
+      >
+        <Card style={styles.modalCard}>
+          <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScrollView}>
+            <Card.Content style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <MaterialCommunityIcons name="cog" size={32} color="#4CAF50" />
+              <Title style={styles.modalTitle}>Hesap Ayarları</Title>
+              <TouchableOpacity onPress={() => setShowAccountSettingsModal(false)}>
+                <MaterialCommunityIcons name="close" size={24} color="#757575" />
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={styles.modalSubtitle}>Hesap tercihlerinizi yönetin</Text>
+            
+            <List.Section>
+              <List.Item
+                title="Gizlilik Ayarları"
+                description="Profil görünürlüğü ve gizlilik"
+                left={props => <List.Icon {...props} icon="shield-account" color="#4CAF50" />}
+                right={props => <List.Icon {...props} icon="chevron-right" />}
+                style={styles.listItem}
+              />
+              <List.Item
+                title="Bildirim Tercihleri"
+                description="E-posta ve push bildirimleri"
+                left={props => <List.Icon {...props} icon="bell-cog" color="#4CAF50" />}
+                right={props => <List.Icon {...props} icon="chevron-right" />}
+                style={styles.listItem}
+              />
+              <List.Item
+                title="Dil ve Bölge"
+                description="Uygulama dili ve saat dilimi"
+                left={props => <List.Icon {...props} icon="earth" color="#4CAF50" />}
+                right={props => <List.Icon {...props} icon="chevron-right" />}
+                style={styles.listItem}
+              />
+              <List.Item
+                title="Veri İndirme"
+                description="Hesap verilerinizi indirin"
+                left={props => <List.Icon {...props} icon="download" color="#2196F3" />}
+                right={props => <List.Icon {...props} icon="chevron-right" />}
+                style={styles.listItem}
+              />
+              <List.Item
+                title="Hesap Silme"
+                description="Hesabınızı kalıcı olarak silin"
+                left={props => <List.Icon {...props} icon="delete-forever" color="#F44336" />}
+                right={props => <List.Icon {...props} icon="chevron-right" />}
+                style={styles.listItem}
+              />
+            </List.Section>
+
+            <Button
+              mode="contained"
+              onPress={() => setShowAccountSettingsModal(false)}
+              style={[styles.modalButton, { marginTop: 32 }]}
+              buttonColor="#4CAF50"
+              contentStyle={{ paddingVertical: 12 }}
+            >
+              Tamam
+            </Button>
+          </Card.Content>
+          </ScrollView>
+        </Card>
+      </Modal>
+    </Portal>
+
+    {/* Yardım Modal */}
+    <Portal>
+      <Modal
+        visible={showHelpModal}
+        onDismiss={() => setShowHelpModal(false)}
+        contentContainerStyle={styles.modalContainer}
+      >
+        <Card style={styles.modalCard}>
+          <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScrollView}>
+            <Card.Content style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <MaterialCommunityIcons name="help-circle" size={32} color="#2196F3" />
+              <Title style={styles.modalTitle}>Yardım & Destek</Title>
+              <TouchableOpacity onPress={() => setShowHelpModal(false)}>
+                <MaterialCommunityIcons name="close" size={24} color="#757575" />
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={styles.modalSubtitle}>Size nasıl yardımcı olabiliriz?</Text>
+            
+            <List.Section>
+              <List.Item
+                title="Sık Sorulan Sorular"
+                description="En çok merak edilen konular"
+                left={props => <List.Icon {...props} icon="frequently-asked-questions" color="#2196F3" />}
+                right={props => <List.Icon {...props} icon="chevron-right" />}
+                style={styles.listItem}
+              />
+              <List.Item
+                title="Canlı Destek"
+                description="7/24 müşteri hizmetleri"
+                left={props => <List.Icon {...props} icon="chat" color="#4CAF50" />}
+                right={props => <List.Icon {...props} icon="chevron-right" />}
+                style={styles.listItem}
+              />
+              <List.Item
+                title="E-posta Desteği"
+                description="destek@teniskulubu.com"
+                left={props => <List.Icon {...props} icon="email" color="#FF9800" />}
+                right={props => <List.Icon {...props} icon="chevron-right" />}
+                style={styles.listItem}
+              />
+              <List.Item
+                title="Telefon Desteği"
+                description="+90 212 555 0123"
+                left={props => <List.Icon {...props} icon="phone" color="#9C27B0" />}
+                right={props => <List.Icon {...props} icon="chevron-right" />}
+                style={styles.listItem}
+              />
+              <List.Item
+                title="Kullanım Kılavuzu"
+                description="Uygulama nasıl kullanılır?"
+                left={props => <List.Icon {...props} icon="book-open" color="#607D8B" />}
+                right={props => <List.Icon {...props} icon="chevron-right" />}
+                style={styles.listItem}
+              />
+            </List.Section>
+
+            <Button
+              mode="contained"
+              onPress={() => setShowHelpModal(false)}
+              style={[styles.modalButton, { marginTop: 32 }]}
+              buttonColor="#2196F3"
+              contentStyle={{ paddingVertical: 12 }}
+            >
+              Tamam
+            </Button>
+          </Card.Content>
+          </ScrollView>
+        </Card>
+      </Modal>
+    </Portal>
+    </>
   );
 };
 
@@ -434,6 +764,82 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     borderColor: '#2E7D32',
     borderRadius: 12,
+  },
+  modalContainer: {
+    margin: 10,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  modalCard: {
+    borderRadius: 16,
+    maxHeight: '85%',
+    minHeight: '60%',
+    backgroundColor: '#FFFFFF',
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+  },
+  modalScrollView: {
+    flexGrow: 1,
+  },
+  modalContent: {
+    padding: 24,
+    paddingBottom: 32,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E9ECEF',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1B1B1B',
+    flex: 1,
+    marginLeft: 12,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#6C757D',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  textInput: {
+    marginBottom: 20,
+    backgroundColor: '#FFFFFF',
+    fontSize: 16,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 32,
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 8,
+  },
+  cancelButton: {
+    borderColor: '#757575',
+  },
+  saveButton: {
+    // Flex gap ile spacing sağlandı
+  },
+  listItem: {
+    backgroundColor: '#F8F9FA',
+    marginBottom: 8,
+    borderRadius: 12,
+    paddingVertical: 4,
   },
 });
 

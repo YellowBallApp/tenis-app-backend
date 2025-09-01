@@ -6,6 +6,7 @@ import GameModesScreen from '../screens/GameModesScreen';
 import CoachesScreen from '../screens/CoachesScreen';
 import MembersScreen from '../screens/MembersScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import ReservationScreen from '../screens/ReservationScreen';
 
 export type MainTabParamList = {
   Home: undefined;
@@ -13,6 +14,7 @@ export type MainTabParamList = {
   Coaches: undefined;
   Members: undefined;
   Profile: undefined;
+  Reservation: undefined;
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -54,9 +56,9 @@ const MainTabNavigator = () => {
         name="GameModes"
         component={GameModesScreen}
         options={{
-          title: 'Oyun Modları',
+          title: 'Defi Lig',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="gamepad-variant" color={color} size={size} />
+            <MaterialCommunityIcons name="trophy" color={color} size={size} />
           ),
         }}
       />
@@ -88,6 +90,15 @@ const MainTabNavigator = () => {
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="account" color={color} size={size} />
           ),
+        }}
+      />
+      <Tab.Screen
+        name="Reservation"
+        component={ReservationScreen}
+        options={{
+          title: 'Rezervasyon',
+          tabBarButton: () => null, // Hide from tab bar but keep in navigator
+          headerShown: false, // Hide default header since we have custom header
         }}
       />
     </Tab.Navigator>

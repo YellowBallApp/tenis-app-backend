@@ -4,7 +4,11 @@ import {
   StyleSheet,
   ScrollView,
   Dimensions,
+  TouchableOpacity,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { MainTabParamList } from '../navigation/MainTabNavigator';
 import {
   Card,
   Title,
@@ -17,17 +21,20 @@ import { MaterialCommunityIcons, MaterialIcons, Ionicons } from '@expo/vector-ic
 
 const { width } = Dimensions.get('window');
 
+type HomeScreenNavigationProp = BottomTabNavigationProp<MainTabParamList, 'Home'>;
+
 const HomeScreen = () => {
+  const navigation = useNavigation<HomeScreenNavigationProp>();
   const upcomingMatches = [
     { id: 1, player1: 'Ahmet Yılmaz', player2: 'Mehmet Demir', time: '14:00', court: 'Kort 1' },
     { id: 2, player1: 'Fatma Kaya', player2: 'Ayşe Özkan', time: '15:30', court: 'Kort 2' },
   ];
 
   const quickActions = [
-    { title: 'Rezervasyon Yap', icon: 'calendar-plus', color: '#2E7D32' },
-    { title: 'Ders Programı', icon: 'school', color: '#4CAF50' },
-    { title: 'Lider Tablosu', icon: 'trophy', color: '#81C784' },
-    { title: 'Duyurular', icon: 'bullhorn', color: '#28A745' },
+    { title: 'Rezervasyon Yap', icon: 'calendar-plus', color: '#2E7D32', action: () => navigation.navigate('Reservation') },
+    { title: 'Ders Programı', icon: 'school', color: '#4CAF50', action: () => console.log('Ders Programı') },
+    { title: 'Lider Tablosu', icon: 'trophy', color: '#81C784', action: () => navigation.navigate('GameModes') },
+    { title: 'Duyurular', icon: 'bullhorn', color: '#28A745', action: () => console.log('Duyurular') },
   ];
 
   return (
@@ -69,14 +76,16 @@ const HomeScreen = () => {
         <Title style={styles.sectionTitle}>Hızlı İşlemler</Title>
         <View style={styles.quickActionsGrid}>
           {quickActions.map((action, index) => (
-            <Card key={index} style={styles.actionCard}>
-              <Card.Content style={styles.actionContent}>
-                <View style={[styles.actionIcon, { backgroundColor: action.color }]}>
-                  <MaterialCommunityIcons name={action.icon as any} size={24} color="#fff" />
-                </View>
-                <Text style={styles.actionTitle}>{action.title}</Text>
-              </Card.Content>
-            </Card>
+            <TouchableOpacity key={index} onPress={action.action} activeOpacity={1}>
+              <Card style={styles.actionCard}>
+                <Card.Content style={styles.actionContent}>
+                  <View style={[styles.actionIcon, { backgroundColor: action.color }]}>
+                    <MaterialCommunityIcons name={action.icon as any} size={24} color="#fff" />
+                  </View>
+                  <Text style={styles.actionTitle}>{action.title}</Text>
+                </Card.Content>
+              </Card>
+            </TouchableOpacity>
           ))}
         </View>
       </View>

@@ -4,6 +4,9 @@ import {
   StyleSheet,
   ScrollView,
   Dimensions,
+  Linking,
+  Alert,
+  TouchableOpacity,
 } from 'react-native';
 import {
   Card,
@@ -14,6 +17,10 @@ import {
   Chip,
   Searchbar,
   FAB,
+  Portal,
+  Modal,
+  TextInput,
+  IconButton,
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 
@@ -22,6 +29,10 @@ const { width } = Dimensions.get('window');
 const CoachesScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedCoach, setSelectedCoach] = useState<any>(null);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
 
   const coaches = [
     {
@@ -36,6 +47,11 @@ const CoachesScreen = () => {
       languages: ['Türkçe', 'İngilizce'],
       certifications: ['ATP Coach', 'ITF Intermediate'],
       image: 'https://via.placeholder.com/100',
+      phone: '+90 532 123 45 67',
+      reviews: [
+        { id: 1, rating: 5, comment: 'Harika bir antrenör!', user: 'Mehmet A.' },
+        { id: 2, rating: 4, comment: 'Çok sabırlı ve öğretici.', user: 'Ayşe K.' }
+      ],
     },
     {
       id: 2,
@@ -49,6 +65,10 @@ const CoachesScreen = () => {
       languages: ['Türkçe', 'Almanca'],
       certifications: ['ITF Advanced', 'Doubles Specialist'],
       image: 'https://via.placeholder.com/100',
+      phone: '+90 535 987 65 43',
+      reviews: [
+        { id: 1, rating: 5, comment: 'Çiftler stratejisinde uzman!', user: 'Ali B.' }
+      ],
     },
     {
       id: 3,
@@ -62,6 +82,11 @@ const CoachesScreen = () => {
       languages: ['Türkçe'],
       certifications: ['ITF Beginner', 'Beginner Specialist'],
       image: 'https://via.placeholder.com/100',
+      phone: '+90 505 234 56 78',
+      reviews: [
+        { id: 1, rating: 5, comment: 'Başlangıç için mükemmel!', user: 'Zeynep C.' },
+        { id: 2, rating: 4, comment: 'Çok sabırlı bir antrenör.', user: 'Can D.' }
+      ],
     },
     {
       id: 4,
@@ -75,6 +100,12 @@ const CoachesScreen = () => {
       languages: ['Türkçe', 'İngilizce', 'Fransızca'],
       certifications: ['ATP Elite Coach', 'Grand Slam Experience'],
       image: 'https://via.placeholder.com/100',
+      phone: '+90 541 876 54 32',
+      reviews: [
+        { id: 1, rating: 5, comment: 'Dünya seviyesinde antrenörlük!', user: 'Emre F.' },
+        { id: 2, rating: 5, comment: 'Profesyonel ve disiplinli.', user: 'Selin G.' },
+        { id: 3, rating: 4, comment: 'İleri seviye için ideal.', user: 'Burak H.' }
+      ],
     },
   ];
 
@@ -115,6 +146,82 @@ const CoachesScreen = () => {
     coach.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     coach.specialty.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleCallCoach = (phone: string, name: string) => {
+    Alert.alert(
+      'Arama Yap',
+      `${name} adlı antrenörü aramak istediğinizden emin misiniz?\n\nTelefon: ${phone}`,
+      [
+        {
+          text: 'İptal',
+          style: 'cancel',
+        },
+        {
+          text: 'Ara',
+          onPress: () => {
+            const phoneUrl = `tel:${phone}`;
+            Linking.openURL(phoneUrl).catch(() => {
+              Alert.alert('Hata', 'Telefon uygulaması açılamadı.');
+            });
+          },
+        },
+      ]
+    );
+  };
+
+  const openReviewModal = (coach: any) => {
+    setSelectedCoach(coach);
+    setReviewRating(0);
+    setReviewComment('');
+    setShowReviewModal(true);
+  };
+
+  const submitReview = () => {
+    if (reviewRating === 0) {
+      Alert.alert('Hata', 'Lütfen bir yıldız puanı verin.');
+      return;
+    }
+    if (reviewComment.trim() === '') {
+      Alert.alert('Hata', 'Lütfen bir yorum yazın.');
+      return;
+    }
+
+    // Burada review'ı backend'e gönderebiliriz
+    console.log('Review submitted:', {
+      coachId: selectedCoach.id,
+      rating: reviewRating,
+      comment: reviewComment,
+    });
+
+    Alert.alert('Başarılı', 'Yorumunuz başarıyla gönderildi!');
+    setShowReviewModal(false);
+    setReviewRating(0);
+    setReviewComment('');
+    setSelectedCoach(null    );
+  };
+
+
+
+  const renderStars = (rating: number, size: number = 20, onPress?: (star: number) => void) => {
+    return (
+      <View style={styles.starsContainer}>
+        {[1, 2, 3, 4, 5].map((star) => (
+          <TouchableOpacity
+            key={star}
+            onPress={() => onPress?.(star)}
+            disabled={!onPress}
+          >
+            <MaterialIcons
+              name={star <= rating ? 'star' : 'star-border'}
+              size={size}
+              color="#FFD700"
+              style={styles.star}
+            />
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -210,20 +317,41 @@ const CoachesScreen = () => {
                 ))}
               </View>
 
+              {/* Reviews Section */}
+              <View style={styles.reviewsSection}>
+                <Text style={styles.reviewsTitle}>Yorumlar ({coach.reviews.length})</Text>
+                {coach.reviews.slice(0, 2).map((review: any) => (
+                  <View key={review.id} style={styles.reviewItem}>
+                    <View style={styles.reviewHeader}>
+                      <Text style={styles.reviewUser}>{review.user}</Text>
+                      {renderStars(review.rating, 14)}
+                    </View>
+                    <Text style={styles.reviewComment}>{review.comment}</Text>
+                  </View>
+                ))}
+                {coach.reviews.length > 2 && (
+                  <Text style={styles.moreReviews}>+{coach.reviews.length - 2} yorum daha</Text>
+                )}
+              </View>
+
               <View style={styles.actionButtons}>
                 <Button
                   mode="outlined"
                   style={styles.actionButton}
                   textColor="#2E7D32"
-                  icon="calendar"
+                  icon="star"
+                  onPress={() => openReviewModal(coach)}
+                  contentStyle={styles.buttonContent}
                 >
-                  Rezervasyon
+                  Değerlendir
                 </Button>
                 <Button
                   mode="contained"
                   style={styles.actionButton}
                   buttonColor="#2E7D32"
-                  icon="message"
+                  icon="phone"
+                  onPress={() => handleCallCoach(coach.phone, coach.name)}
+                  contentStyle={styles.buttonContent}
                 >
                   İletişim
                 </Button>
@@ -240,6 +368,74 @@ const CoachesScreen = () => {
         onPress={() => {}}
         color="#FFFFFF"
       />
+
+      {/* Review Modal */}
+      <Portal>
+        <Modal
+          visible={showReviewModal}
+          onDismiss={() => setShowReviewModal(false)}
+          contentContainerStyle={styles.reviewModal}
+        >
+          <Card style={styles.reviewCard}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Card.Content style={styles.reviewContent}>
+                <View style={styles.reviewModalHeader}>
+                  <MaterialCommunityIcons name="star" size={32} color="#FFD700" />
+                  <Title style={styles.reviewModalTitle}>Antrenör Değerlendir</Title>
+                  <TouchableOpacity onPress={() => setShowReviewModal(false)}>
+                    <MaterialCommunityIcons name="close" size={24} color="#757575" />
+                  </TouchableOpacity>
+                </View>
+                
+                {selectedCoach && (
+                  <>
+                    <Text style={styles.reviewModalSubtitle}>
+                      {selectedCoach.name} için puan ve yorumunuzu paylaşın
+                    </Text>
+                    
+                    <View style={styles.ratingSection}>
+                      <Text style={styles.ratingLabel}>Puanınız:</Text>
+                      {renderStars(reviewRating, 32, setReviewRating)}
+                    </View>
+                    
+                    <TextInput
+                      mode="outlined"
+                      label="Yorumunuz"
+                      placeholder="Deneyiminizi paylaşın..."
+                      value={reviewComment}
+                      onChangeText={setReviewComment}
+                      multiline
+                      numberOfLines={4}
+                      style={styles.commentInput}
+                      outlineColor="#E0E0E0"
+                      activeOutlineColor="#2E7D32"
+                    />
+
+                    <View style={styles.reviewModalButtons}>
+                      <Button
+                        mode="outlined"
+                        onPress={() => setShowReviewModal(false)}
+                        style={styles.modalCancelButton}
+                        textColor="#757575"
+                      >
+                        İptal
+                      </Button>
+                      <Button
+                        mode="contained"
+                        onPress={submitReview}
+                        style={styles.modalSubmitButton}
+                        buttonColor="#2E7D32"
+                      >
+                        Gönder
+                      </Button>
+                    </View>
+                  </>
+                )}
+              </Card.Content>
+            </ScrollView>
+          </Card>
+        </Modal>
+      </Portal>
     </View>
   );
 };
@@ -409,6 +605,123 @@ const styles = StyleSheet.create({
   actionButton: {
     flex: 1,
     marginHorizontal: 5,
+    borderRadius: 12,
+  },
+  singleActionButton: {
+    borderRadius: 12,
+    minWidth: 200,
+  },
+  buttonContent: {
+    paddingVertical: 8,
+  },
+  reviewsSection: {
+    marginBottom: 20,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 16,
+  },
+  reviewsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1B1B1B',
+    marginBottom: 12,
+  },
+  reviewItem: {
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  reviewUser: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2E7D32',
+  },
+  reviewComment: {
+    fontSize: 14,
+    color: '#6C757D',
+    lineHeight: 18,
+  },
+  moreReviews: {
+    fontSize: 12,
+    color: '#2E7D32',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  starsContainer: {
+    flexDirection: 'row',
+  },
+  star: {
+    marginHorizontal: 1,
+  },
+  reviewModal: {
+    margin: 20,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  reviewCard: {
+    borderRadius: 20,
+    maxHeight: '80%',
+    backgroundColor: '#FFFFFF',
+  },
+  reviewContent: {
+    padding: 24,
+  },
+  reviewModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E9ECEF',
+  },
+  reviewModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1B1B1B',
+    flex: 1,
+    marginLeft: 12,
+  },
+  reviewModalSubtitle: {
+    fontSize: 14,
+    color: '#6C757D',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  ratingSection: {
+    marginBottom: 24,
+    alignItems: 'center',
+  },
+  ratingLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1B1B1B',
+    marginBottom: 12,
+  },
+  commentInput: {
+    marginBottom: 24,
+    backgroundColor: '#FFFFFF',
+  },
+  reviewModalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  modalCancelButton: {
+    flex: 1,
+    marginRight: 8,
+    borderRadius: 12,
+  },
+  modalSubmitButton: {
+    flex: 1,
+    marginLeft: 8,
     borderRadius: 12,
   },
   fab: {
