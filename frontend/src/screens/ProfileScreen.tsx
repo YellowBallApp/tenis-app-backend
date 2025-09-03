@@ -164,19 +164,27 @@ const ProfileScreen = () => {
       </View>
 
       {/* Achievements */}
-      <View style={styles.section}>
+      <View style={[styles.section, styles.achievementsSection]}>
         <Title style={styles.sectionTitle}>Başarılar</Title>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.achievementsContainer}
+        >
           {achievements.map((achievement) => (
             <Card key={achievement.id} style={styles.achievementCard}>
               <Card.Content style={styles.achievementContent}>
-                <MaterialCommunityIcons 
-                  name={achievement.icon as any} 
-                  size={40} 
-                  color={achievement.color} 
-                />
-                <Title style={styles.achievementTitle}>{achievement.title}</Title>
-                <Text style={styles.achievementDescription}>{achievement.description}</Text>
+                <View style={styles.achievementIconContainer}>
+                  <MaterialCommunityIcons 
+                    name={achievement.icon as any} 
+                    size={36} 
+                    color={achievement.color} 
+                  />
+                </View>
+                <View style={styles.achievementTextContainer}>
+                  <Title style={styles.achievementTitle}>{achievement.title}</Title>
+                  <Text style={styles.achievementDescription}>{achievement.description}</Text>
+                </View>
               </Card.Content>
             </Card>
           ))}
@@ -380,9 +388,23 @@ const ProfileScreen = () => {
                 style={styles.textInput}
                 left={<TextInput.Icon icon="lock-check" />}
                 secureTextEntry
-                outlineColor="#E0E0E0"
-                activeOutlineColor="#FF9800"
+                outlineColor={confirmPassword && newPassword !== confirmPassword ? "#F44336" : "#E0E0E0"}
+                activeOutlineColor={confirmPassword && newPassword !== confirmPassword ? "#F44336" : "#FF9800"}
+                error={!!confirmPassword && newPassword !== confirmPassword}
               />
+              
+              {/* Şifre Kontrol Mesajları */}
+              {confirmPassword && newPassword !== confirmPassword && (
+                <Text style={styles.errorText}>
+                  ⚠️ Şifreler uyuşmuyor
+                </Text>
+              )}
+              
+              {newPassword && confirmPassword && newPassword === confirmPassword && (
+                <Text style={styles.successText}>
+                  ✅ Şifreler uyuşuyor
+                </Text>
+              )}
 
               <View style={styles.modalButtons}>
                 <Button
@@ -402,9 +424,14 @@ const ProfileScreen = () => {
                     setNewPassword('');
                     setConfirmPassword('');
                   }}
-                  style={[styles.modalButton, styles.saveButton]}
-                  buttonColor="#FF9800"
+                  style={[
+                    styles.modalButton, 
+                    styles.saveButton,
+                    (!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword) && styles.disabledButton
+                  ]}
+                  buttonColor={(!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword) ? "#CCCCCC" : "#FF9800"}
                   contentStyle={{ paddingVertical: 12 }}
+                  disabled={!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword}
                 >
                   Değiştir
                 </Button>
@@ -653,9 +680,19 @@ const styles = StyleSheet.create({
     color: '#6C757D',
     textAlign: 'center',
   },
+  achievementsSection: {
+    marginBottom: 0,
+    paddingBottom: 0,
+  },
+  achievementsContainer: {
+    paddingHorizontal: 20,
+    paddingRight: 40,
+    paddingBottom: 5,
+  },
   achievementCard: {
-    width: 150,
-    marginRight: 15,
+    width: 160,
+    minHeight: 140,
+    marginRight: 16,
     backgroundColor: '#FFFFFF',
     borderRadius: 15,
     borderWidth: 1,
@@ -671,21 +708,35 @@ const styles = StyleSheet.create({
   },
   achievementContent: {
     alignItems: 'center',
-    padding: 15,
+    justifyContent: 'center',
+    minHeight: 120,
+    padding: 16,
+    paddingVertical: 20,
+  },
+  achievementIconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  achievementTextContainer: {
+    alignItems: 'center',
+    flex: 1,
   },
   achievementTitle: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#1B1B1B',
-    marginTop: 10,
-    marginBottom: 5,
+    marginTop: 0,
+    marginBottom: 6,
     textAlign: 'center',
+    lineHeight: 20,
   },
   achievementDescription: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#6C757D',
     textAlign: 'center',
-    lineHeight: 16,
+    lineHeight: 18,
+    paddingHorizontal: 4,
   },
   membershipCard: {
     backgroundColor: '#FFFFFF',
@@ -840,6 +891,23 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     borderRadius: 12,
     paddingVertical: 4,
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#F44336',
+    marginTop: -15,
+    marginBottom: 10,
+    marginLeft: 16,
+  },
+  successText: {
+    fontSize: 12,
+    color: '#4CAF50',
+    marginTop: -15,
+    marginBottom: 10,
+    marginLeft: 16,
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
 });
 

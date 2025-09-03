@@ -274,7 +274,11 @@ const CoachesScreen = () => {
           <Card key={coach.id} style={styles.coachCard}>
             <Card.Content>
               <View style={styles.coachHeader}>
-                <Avatar.Image size={80} source={{ uri: coach.image }} />
+                <Avatar.Text 
+                  size={80} 
+                  label={coach.name.split(' ').map(n => n.charAt(0)).join('')} 
+                  style={styles.coachAvatar}
+                />
                 <View style={styles.coachInfo}>
                   <Title style={styles.coachName}>{coach.name}</Title>
                   <Text style={styles.coachSpecialty}>{coach.specialty}</Text>
@@ -534,6 +538,9 @@ const styles = StyleSheet.create({
   coachHeader: {
     flexDirection: 'row',
     marginBottom: 20,
+  },
+  coachAvatar: {
+    backgroundColor: '#2E7D32',
   },
   coachInfo: {
     flex: 1,
