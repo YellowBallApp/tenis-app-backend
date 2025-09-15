@@ -35,9 +35,6 @@ import {
       
     @DeleteDateColumn()
     deletedAt: Date;
-
-    @Column({ type: 'int', nullable: false })
-    leagueRanking: number;
     
     //TODO: Temporarly will be used as Role, later need to implement role.entity
     @Column({ type: 'varchar', length: 100, nullable: true })

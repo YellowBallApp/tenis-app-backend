@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany } from 'typeorm';
 import { CommentTextArea } from "./commentTextArea";
 import { User } from './user.entity';
+import { League } from './league.entity';
 
 
 @Entity()
@@ -22,4 +23,7 @@ export class MatchHistory {
 
     @ManyToOne(() => User, { nullable: true })
     user?: User;
+
+    @ManyToOne(() => League, { nullable: true })
+    league?: League;
 }
