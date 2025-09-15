@@ -1,5 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import HomeScreen from '../screens/HomeScreen';
 import GameModesScreen from '../screens/GameModesScreen';
@@ -7,6 +8,8 @@ import CoachesScreen from '../screens/CoachesScreen';
 import MembersScreen from '../screens/MembersScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ReservationScreen from '../screens/ReservationScreen';
+import DefiLigScreen from '../screens/DefiLigScreen';
+import LigSiralamaScreen from '../screens/LigSiralamaScreen';
 
 export type MainTabParamList = {
   Home: undefined;
@@ -15,11 +18,14 @@ export type MainTabParamList = {
   Members: undefined;
   Profile: undefined;
   Reservation: undefined;
+  DefiLig: undefined;
+  LigSiralama: { lig: any };
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
+const Stack = createStackNavigator<MainTabParamList>();
 
-const MainTabNavigator = () => {
+const TabNavigator = () => {
   return (
     <Tab.Navigator
       screenOptions={{
@@ -102,6 +108,44 @@ const MainTabNavigator = () => {
         }}
       />
     </Tab.Navigator>
+  );
+};
+
+const MainTabNavigator = () => {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: '#2E7D32',
+        },
+        headerTintColor: '#FFFFFF',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+      }}
+    >
+      <Stack.Screen 
+        name="Home" 
+        component={TabNavigator} 
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="DefiLig" 
+        component={DefiLigScreen} 
+        options={{ 
+          title: 'Defi Lig',
+          headerShown: false 
+        }}
+      />
+      <Stack.Screen 
+        name="LigSiralama" 
+        component={LigSiralamaScreen} 
+        options={{ 
+          title: 'Lig Sıralaması',
+          headerShown: false 
+        }}
+      />
+    </Stack.Navigator>
   );
 };
 

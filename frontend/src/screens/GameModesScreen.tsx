@@ -16,7 +16,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
-const GameModesScreen = () => {
+const GameModesScreen = ({ navigation }: any) => {
   const gameModes = [
     {
       id: 1,
@@ -70,6 +70,7 @@ const GameModesScreen = () => {
                 mode="contained"
                 style={[styles.playButton, { backgroundColor: mode.color }]}
                 buttonColor={mode.color}
+                onPress={() => navigation.navigate('DefiLig')}
               >
                 Oyna
               </Button>

@@ -225,144 +225,151 @@ const CoachesScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header Section */}
-      <View style={styles.headerSection}>
-        <Title style={styles.headerTitle}>🎾 Antrenörler</Title>
-        <Text style={styles.headerSubtitle}>
-          Deneyimli antrenörlerimizle tenis becerilerinizi geliştirin
-        </Text>
-      </View>
+      {/* Main ScrollView - Tüm içerik scrollable */}
+      <ScrollView 
+        style={styles.mainScrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Header Section */}
+        <View style={styles.headerSection}>
+          <Title style={styles.headerTitle}>🎾 Antrenörler</Title>
+          <Text style={styles.headerSubtitle}>
+            Deneyimli antrenörlerimizle tenis becerilerinizi geliştirin
+          </Text>
+        </View>
 
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Searchbar
-          placeholder="Antrenör ara..."
-          onChangeText={setSearchQuery}
-          value={searchQuery}
-          style={styles.searchBar}
-          iconColor="#2E7D32"
-          inputStyle={styles.searchInput}
-        />
-      </View>
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <Searchbar
+            placeholder="Antrenör ara..."
+            onChangeText={setSearchQuery}
+            value={searchQuery}
+            style={styles.searchBar}
+            iconColor="#2E7D32"
+            inputStyle={styles.searchInput}
+          />
+        </View>
 
-      {/* Filters */}
-      <View style={styles.filtersContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {filters.map((filter) => (
-            <Chip
-              key={filter.key}
-              mode={selectedFilter === filter.key ? 'flat' : 'outlined'}
-              onPress={() => setSelectedFilter(filter.key)}
-              style={[
-                styles.filterChip,
-                selectedFilter === filter.key && styles.selectedFilterChip
-              ]}
-              textStyle={[
-                styles.filterText,
-                selectedFilter === filter.key && styles.selectedFilterText
-              ]}
-            >
-              {filter.label}
-            </Chip>
-          ))}
-        </ScrollView>
-      </View>
+        {/* Filters */}
+        <View style={styles.filtersContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {filters.map((filter) => (
+              <Chip
+                key={filter.key}
+                mode={selectedFilter === filter.key ? 'flat' : 'outlined'}
+                onPress={() => setSelectedFilter(filter.key)}
+                style={[
+                  styles.filterChip,
+                  selectedFilter === filter.key && styles.selectedFilterChip
+                ]}
+                textStyle={[
+                  styles.filterText,
+                  selectedFilter === filter.key && styles.selectedFilterText
+                ]}
+              >
+                {filter.label}
+              </Chip>
+            ))}
+          </ScrollView>
+        </View>
 
-      {/* Coaches List */}
-      <ScrollView style={styles.coachesList} showsVerticalScrollIndicator={false}>
-        {searchFilteredCoaches.map((coach) => (
-          <Card key={coach.id} style={styles.coachCard}>
-            <Card.Content>
-              <View style={styles.coachHeader}>
-                <Avatar.Text 
-                  size={80} 
-                  label={coach.name.split(' ').map(n => n.charAt(0)).join('')} 
-                  style={styles.coachAvatar}
-                />
-                <View style={styles.coachInfo}>
-                  <Title style={styles.coachName}>{coach.name}</Title>
-                  <Text style={styles.coachSpecialty}>{coach.specialty}</Text>
-                  <View style={styles.ratingContainer}>
-                    <MaterialIcons name="star" size={16} color="#FFD700" />
-                    <Text style={styles.ratingText}>{coach.rating}</Text>
-                    <Chip 
-                      mode="outlined" 
-                      style={[styles.availabilityChip, { borderColor: getAvailabilityColor(coach.availability) }]}
-                    >
-                      {coach.availability}
-                    </Chip>
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.coachDetails}>
-                <View style={styles.detailRow}>
-                  <MaterialCommunityIcons name="clock" size={20} color="#2E7D32" />
-                  <Text style={styles.detailText}>{coach.experience} deneyim</Text>
-                </View>
-                <View style={styles.detailRow}>
-                  <MaterialCommunityIcons name="currency-try" size={20} color="#4CAF50" />
-                  <Text style={styles.detailText}>{coach.hourlyRate}/saat</Text>
-                </View>
-                <View style={styles.detailRow}>
-                  <MaterialCommunityIcons name="translate" size={20} color="#81C784" />
-                  <Text style={styles.detailText}>{coach.languages.join(', ')}</Text>
-                </View>
-              </View>
-
-              <Text style={styles.coachBio}>{coach.bio}</Text>
-
-              <View style={styles.certificationsContainer}>
-                <Text style={styles.certificationsTitle}>Sertifikalar:</Text>
-                {coach.certifications.map((cert: string, index: number) => (
-                  <Chip key={index} mode="outlined" style={styles.certificationChip}>
-                    {cert}
-                  </Chip>
-                ))}
-              </View>
-
-              {/* Reviews Section */}
-              <View style={styles.reviewsSection}>
-                <Text style={styles.reviewsTitle}>Yorumlar ({coach.reviews.length})</Text>
-                {coach.reviews.slice(0, 2).map((review: any) => (
-                  <View key={review.id} style={styles.reviewItem}>
-                    <View style={styles.reviewHeader}>
-                      <Text style={styles.reviewUser}>{review.user}</Text>
-                      {renderStars(review.rating, 14)}
+        {/* Coaches List */}
+        <View style={styles.coachesList}>
+          {searchFilteredCoaches.map((coach) => (
+            <Card key={coach.id} style={styles.coachCard}>
+              <Card.Content>
+                <View style={styles.coachHeader}>
+                  <Avatar.Text 
+                    size={80} 
+                    label={coach.name.split(' ').map(n => n.charAt(0)).join('')} 
+                    style={styles.coachAvatar}
+                  />
+                  <View style={styles.coachInfo}>
+                    <Title style={styles.coachName}>{coach.name}</Title>
+                    <Text style={styles.coachSpecialty}>{coach.specialty}</Text>
+                    <View style={styles.ratingContainer}>
+                      <MaterialIcons name="star" size={16} color="#FFD700" />
+                      <Text style={styles.ratingText}>{coach.rating}</Text>
+                      <Chip 
+                        mode="outlined" 
+                        style={[styles.availabilityChip, { borderColor: getAvailabilityColor(coach.availability) }]}
+                      >
+                        {coach.availability}
+                      </Chip>
                     </View>
-                    <Text style={styles.reviewComment}>{review.comment}</Text>
                   </View>
-                ))}
-                {coach.reviews.length > 2 && (
-                  <Text style={styles.moreReviews}>+{coach.reviews.length - 2} yorum daha</Text>
-                )}
-              </View>
+                </View>
 
-              <View style={styles.actionButtons}>
-                <Button
-                  mode="outlined"
-                  style={styles.actionButton}
-                  textColor="#2E7D32"
-                  icon="star"
-                  onPress={() => openReviewModal(coach)}
-                  contentStyle={styles.buttonContent}
-                >
-                  Değerlendir
-                </Button>
-                <Button
-                  mode="contained"
-                  style={styles.actionButton}
-                  buttonColor="#2E7D32"
-                  icon="phone"
-                  onPress={() => handleCallCoach(coach.phone, coach.name)}
-                  contentStyle={styles.buttonContent}
-                >
-                  İletişim
-                </Button>
-              </View>
-            </Card.Content>
-          </Card>
-        ))}
+                <View style={styles.coachDetails}>
+                  <View style={styles.detailRow}>
+                    <MaterialCommunityIcons name="clock" size={20} color="#2E7D32" />
+                    <Text style={styles.detailText}>{coach.experience} deneyim</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <MaterialCommunityIcons name="currency-try" size={20} color="#4CAF50" />
+                    <Text style={styles.detailText}>{coach.hourlyRate}/saat</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <MaterialCommunityIcons name="translate" size={20} color="#81C784" />
+                    <Text style={styles.detailText}>{coach.languages.join(', ')}</Text>
+                  </View>
+                </View>
+
+                <Text style={styles.coachBio}>{coach.bio}</Text>
+
+                <View style={styles.certificationsContainer}>
+                  <Text style={styles.certificationsTitle}>Sertifikalar:</Text>
+                  {coach.certifications.map((cert: string, index: number) => (
+                    <Chip key={index} mode="outlined" style={styles.certificationChip}>
+                      {cert}
+                    </Chip>
+                  ))}
+                </View>
+
+                {/* Reviews Section */}
+                <View style={styles.reviewsSection}>
+                  <Text style={styles.reviewsTitle}>Yorumlar ({coach.reviews.length})</Text>
+                  {coach.reviews.slice(0, 2).map((review: any) => (
+                    <View key={review.id} style={styles.reviewItem}>
+                      <View style={styles.reviewHeader}>
+                        <Text style={styles.reviewUser}>{review.user}</Text>
+                        {renderStars(review.rating, 14)}
+                      </View>
+                      <Text style={styles.reviewComment}>{review.comment}</Text>
+                    </View>
+                  ))}
+                  {coach.reviews.length > 2 && (
+                    <Text style={styles.moreReviews}>+{coach.reviews.length - 2} yorum daha</Text>
+                  )}
+                </View>
+
+                <View style={styles.actionButtons}>
+                  <Button
+                    mode="outlined"
+                    style={styles.actionButton}
+                    textColor="#2E7D32"
+                    icon="star"
+                    onPress={() => openReviewModal(coach)}
+                    contentStyle={styles.buttonContent}
+                  >
+                    Değerlendir
+                  </Button>
+                  <Button
+                    mode="contained"
+                    style={styles.actionButton}
+                    buttonColor="#2E7D32"
+                    icon="phone"
+                    onPress={() => handleCallCoach(coach.phone, coach.name)}
+                    contentStyle={styles.buttonContent}
+                  >
+                    İletişim
+                  </Button>
+                </View>
+              </Card.Content>
+            </Card>
+          ))}
+        </View>
       </ScrollView>
 
       {/* FAB */}
@@ -449,6 +456,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
+  mainScrollView: {
+    flex: 1,
+  },
   headerSection: {
     backgroundColor: '#2E7D32',
     padding: 20,
@@ -517,8 +527,10 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   coachesList: {
-    flex: 1,
     paddingHorizontal: 20,
+  },
+  scrollContent: {
+    paddingBottom: 100, // Extra padding for FAB
   },
   coachCard: {
     backgroundColor: '#FFFFFF',

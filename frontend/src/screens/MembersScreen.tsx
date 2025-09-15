@@ -273,72 +273,79 @@ const MembersScreen = () => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#2E7D32" />
       
-      {/* Header Section */}
-      <View style={styles.headerSection}>
-        <Title style={styles.headerTitle}>👥 Üyeler</Title>
-        <Text style={styles.headerSubtitle}>
-          Tenis kulübü üyelerini keşfedin ve bağlantı kurun
-        </Text>
-      </View>
-
-      {/* Search and View Toggle */}
-      <View style={styles.controlsContainer}>
-        <Searchbar
-          placeholder="Üye ara..."
-          onChangeText={setSearchQuery}
-          value={searchQuery}
-          style={styles.searchBar}
-          iconColor="#2E7D32"
-          inputStyle={styles.searchInput}
-        />
-        <View style={styles.viewToggle}>
-          <IconButton
-            icon="view-list"
-            size={24}
-            iconColor={viewMode === 'list' ? '#2E7D32' : '#6C757D'}
-            onPress={() => setViewMode('list')}
-          />
-          <IconButton
-            icon="view-grid"
-            size={24}
-            iconColor={viewMode === 'grid' ? '#2E7D32' : '#6C757D'}
-            onPress={() => setViewMode('grid')}
-          />
+      {/* Main ScrollView - Tüm içerik scrollable */}
+      <ScrollView 
+        style={styles.mainScrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Header Section */}
+        <View style={styles.headerSection}>
+          <Title style={styles.headerTitle}>👥 Üyeler</Title>
+          <Text style={styles.headerSubtitle}>
+            Tenis kulübü üyelerini keşfedin ve bağlantı kurun
+          </Text>
         </View>
-      </View>
 
-      {/* Filters */}
-      <View style={styles.filtersContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {filters.map((filter) => (
-            <Chip
-              key={filter.key}
-              mode={selectedFilter === filter.key ? 'flat' : 'outlined'}
-              onPress={() => setSelectedFilter(filter.key)}
-              style={[
-                styles.filterChip,
-                selectedFilter === filter.key && styles.selectedFilterChip
-              ]}
-              textStyle={[
-                styles.filterText,
-                selectedFilter === filter.key && styles.selectedFilterText
-              ]}
-            >
-              {filter.label}
-            </Chip>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* Members List/Grid */}
-      <ScrollView style={styles.membersContainer} showsVerticalScrollIndicator={false}>
-        {viewMode === 'list' ? (
-          searchFilteredMembers.map(renderMemberCard)
-        ) : (
-          <View style={styles.gridContainer}>
-            {searchFilteredMembers.map(renderMemberGrid)}
+        {/* Search and View Toggle */}
+        <View style={styles.controlsContainer}>
+          <Searchbar
+            placeholder="Üye ara..."
+            onChangeText={setSearchQuery}
+            value={searchQuery}
+            style={styles.searchBar}
+            iconColor="#2E7D32"
+            inputStyle={styles.searchInput}
+          />
+          <View style={styles.viewToggle}>
+            <IconButton
+              icon="view-list"
+              size={24}
+              iconColor={viewMode === 'list' ? '#2E7D32' : '#6C757D'}
+              onPress={() => setViewMode('list')}
+            />
+            <IconButton
+              icon="view-grid"
+              size={24}
+              iconColor={viewMode === 'grid' ? '#2E7D32' : '#6C757D'}
+              onPress={() => setViewMode('grid')}
+            />
           </View>
-        )}
+        </View>
+
+        {/* Filters */}
+        <View style={styles.filtersContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {filters.map((filter) => (
+              <Chip
+                key={filter.key}
+                mode={selectedFilter === filter.key ? 'flat' : 'outlined'}
+                onPress={() => setSelectedFilter(filter.key)}
+                style={[
+                  styles.filterChip,
+                  selectedFilter === filter.key && styles.selectedFilterChip
+                ]}
+                textStyle={[
+                  styles.filterText,
+                  selectedFilter === filter.key && styles.selectedFilterText
+                ]}
+              >
+                {filter.label}
+              </Chip>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Members List/Grid */}
+        <View style={styles.membersContainer}>
+          {viewMode === 'list' ? (
+            searchFilteredMembers.map(renderMemberCard)
+          ) : (
+            <View style={styles.gridContainer}>
+              {searchFilteredMembers.map(renderMemberGrid)}
+            </View>
+          )}
+        </View>
       </ScrollView>
 
       {/* FAB */}
@@ -356,6 +363,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  mainScrollView: {
+    flex: 1,
   },
   headerSection: {
     backgroundColor: '#2E7D32',
@@ -435,8 +445,10 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   membersContainer: {
-    flex: 1,
     paddingHorizontal: 20,
+  },
+  scrollContent: {
+    paddingBottom: 100, // Extra padding for FAB
   },
   memberCard: {
     backgroundColor: '#FFFFFF',
