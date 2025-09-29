@@ -7,6 +7,7 @@ OneToMany
 } from 'typeorm';
 import { User } from './user.entity';
 import { MatchHistory } from './matchHistory.entity';
+import { LeagueSettingsTemplate } from './leagueSettingsTemplate';
 
 
 
@@ -24,5 +25,8 @@ leagueRanking: number;
 @OneToOne(() => User)
 @JoinColumn()
 user: User;
+
+@OneToMany(() => LeagueSettingsTemplate, template => template.leagueEntity)
+  leagueSettingsTemplates: LeagueSettingsTemplate[];
 
 }
