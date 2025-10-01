@@ -279,104 +279,66 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
     const positionDifference = currentUser.position - player.position;
     const canChallenge = !isCurrentUser && positionDifference <= 3 && positionDifference > 0;
     
+    // Kullanıcı kendini gösterme, zaten "Senin Sıran" bölümünde gösteriliyor
+    if (isCurrentUser) {
+      return null;
+    }
+    
     return (
       <Card 
         key={player.id} 
-        style={[
-          styles.playerCard,
-          isCurrentUser && styles.currentUserHighlightCard
-        ]}
+        style={styles.playerCard}
       >
         <Card.Content>
           <View style={styles.playerHeader}>
             <View style={styles.positionContainer}>
               <MaterialCommunityIcons 
                 name={getPositionIcon(player.position) as any} 
-                size={isCurrentUser ? 28 : 24} 
-                color={isCurrentUser ? '#FFD700' : getPositionColor(player.position)} 
+                size={20} 
+                color={getPositionColor(player.position)} 
               />
-              <Text style={[styles.positionText, { 
-                color: isCurrentUser ? '#FFD700' : getPositionColor(player.position),
-                fontSize: isCurrentUser ? 18 : 16,
-                fontWeight: isCurrentUser ? 'bold' : 'bold'
-              }]}>
+              <Text style={[styles.positionText, { color: getPositionColor(player.position) }]}>
                 #{player.position}
               </Text>
             </View>
             
             <Avatar.Text 
-              size={isCurrentUser ? 60 : 50} 
+              size={45} 
               label={player.name.split(' ').map((n: string) => n.charAt(0)).join('')} 
-              style={[styles.playerAvatar, isCurrentUser && styles.currentUserAvatar]}
+              style={styles.playerAvatar}
             />
             
             <View style={styles.playerInfo}>
-              <View style={styles.playerNameRow}>
-                <Text style={[styles.playerName, isCurrentUser && styles.currentUserName]}>
-                  {player.name}
-                </Text>
-                {isCurrentUser && (
-                  <Chip mode="flat" style={styles.currentUserChip} textStyle={styles.currentUserChipText}>
-                    Sen
-                  </Chip>
-                )}
-              </View>
+              <Text style={styles.playerName}>{player.name}</Text>
               <Text style={styles.playerLevel}>{player.level} • {player.rank}</Text>
-              <View style={styles.playerStats}>
-                <Text style={styles.playerPoints}>{player.points} puan</Text>
-                <Text style={styles.playerWinRate}>%{player.winRate} galibiyet</Text>
-              </View>
+              <Text style={styles.playerPoints}>{player.points} puan</Text>
             </View>
             
             <View style={styles.playerActions}>
-              <View style={styles.statusContainer}>
-                <View style={[styles.statusDot, { backgroundColor: getStatusColor(player.status) }]} />
-                <Text style={styles.statusText}>{getStatusText(player.status)}</Text>
-              </View>
-              {!isCurrentUser && (
-                <View style={styles.challengeContainer}>
-                  {canChallenge ? (
-                    <Button
-                      mode="outlined"
-                      onPress={() => openChallengeModal(player)}
-                      style={styles.challengeButton}
-                      textColor="#2E7D32"
-                      icon="sword-cross"
-                      compact
-                    >
-                      Meydan Oku
-                    </Button>
-                  ) : (
-                    <View style={styles.disabledChallengeContainer}>
-                      <Button
-                        mode="outlined"
-                        disabled={true}
-                        style={[styles.challengeButton, styles.disabledChallengeButton]}
-                        textColor="#9E9E9E"
-                        icon="lock"
-                        compact
-                      >
-                        {positionDifference > 3 ? 'Çok Uzak' : 'Aşağıda'}
-                      </Button>
-                      <Text style={styles.challengeRuleText}>
-                        {positionDifference > 3 
-                          ? '3 sıra üstüne meydan okuyabilirsiniz' 
-                          : 'Sadece üst sıralara meydan okuyabilirsiniz'
-                        }
-                      </Text>
-                    </View>
-                  )}
-                </View>
+              {canChallenge ? (
+                <Button
+                  mode="contained"
+                  onPress={() => openChallengeModal(player)}
+                  style={styles.challengeButton}
+                  buttonColor="#2E7D32"
+                  icon="sword-cross"
+                  compact
+                >
+                  Meydan Oku
+                </Button>
+              ) : (
+                <Button
+                  mode="outlined"
+                  disabled={true}
+                  style={styles.disabledChallengeButton}
+                  textColor="#9E9E9E"
+                  icon="lock"
+                  compact
+                >
+                  Kilitli
+                </Button>
               )}
             </View>
-          </View>
-          
-          <View style={styles.achievementsContainer}>
-            {player.achievements.map((achievement: string, index: number) => (
-              <Chip key={index} mode="outlined" style={styles.achievementChip}>
-                {achievement}
-              </Chip>
-            ))}
           </View>
         </Card.Content>
       </Card>
@@ -435,23 +397,12 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
 
         {/* Current User Card - Belirgin Gösterim */}
         <View style={styles.currentUserSection}>
-          <Title style={styles.sectionTitle}>Sen</Title>
+          <Title style={styles.sectionTitle}>Senin Sıran</Title>
           <Card style={styles.currentUserHighlightCard}>
             <Card.Content>
               <View style={styles.currentUserHighlightHeader}>
-                <View style={styles.currentUserPositionContainer}>
-                  <MaterialCommunityIcons 
-                    name={getPositionIcon(currentUser.position) as any} 
-                    size={28} 
-                    color={getPositionColor(currentUser.position)} 
-                  />
-                  <Text style={[styles.currentUserPositionText, { color: getPositionColor(currentUser.position) }]}>
-                    #{currentUser.position}
-                  </Text>
-                </View>
-                
                 <Avatar.Text 
-                  size={60} 
+                  size={55} 
                   label={currentUser.name.split(' ').map((n: string) => n.charAt(0)).join('')} 
                   style={styles.currentUserHighlightAvatar}
                 />
@@ -459,27 +410,32 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                 <View style={styles.currentUserHighlightInfo}>
                   <Text style={styles.currentUserHighlightName}>{currentUser.name}</Text>
                   <Text style={styles.currentUserHighlightLevel}>{currentUser.level} • {currentUser.rank}</Text>
-                  <View style={styles.currentUserHighlightStats}>
-                    <Text style={styles.currentUserHighlightPoints}>{currentUser.points} puan</Text>
-                    <Text style={styles.currentUserHighlightWinRate}>%{currentUser.winRate} galibiyet</Text>
-                  </View>
                 </View>
                 
-                <View style={styles.currentUserStatusContainer}>
-                  <View style={[styles.currentUserStatusDot, { backgroundColor: getStatusColor(currentUser.status) }]} />
-                  <Text style={styles.currentUserStatusText}>{getStatusText(currentUser.status)}</Text>
+                <View style={styles.currentUserPositionContainer}>
+                  <MaterialCommunityIcons 
+                    name={getPositionIcon(currentUser.position) as any} 
+                    size={24} 
+                    color={getPositionColor(currentUser.position)} 
+                  />
+                  <Text style={[styles.currentUserPositionText, { color: getPositionColor(currentUser.position) }]}>
+                    #{currentUser.position}
+                  </Text>
                 </View>
               </View>
               
-              <View style={styles.currentUserAchievements}>
-                <Text style={styles.currentUserAchievementTitle}>Başarıların:</Text>
-                <View style={styles.currentUserAchievementList}>
-                  <Chip mode="outlined" style={styles.currentUserAchievementChip}>
-                    ⭐ Yeni Yetenek
-                  </Chip>
-                  <Chip mode="outlined" style={styles.currentUserAchievementChip}>
-                    🎯 İstikrarlı Oyuncu
-                  </Chip>
+              <View style={styles.currentUserHighlightStats}>
+                <View style={styles.statItem}>
+                  <Text style={styles.statValue}>{currentUser.points}</Text>
+                  <Text style={styles.statLabel}>Puan</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Text style={styles.statValue}>{currentUser.winRate}%</Text>
+                  <Text style={styles.statLabel}>Galibiyet</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Text style={styles.statValue}>{currentUser.matchesPlayed}</Text>
+                  <Text style={styles.statLabel}>Maç</Text>
                 </View>
               </View>
             </Card.Content>
@@ -675,81 +631,52 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   currentUserPositionContainer: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
-    marginRight: 15,
-    minWidth: 50,
   },
   currentUserPositionText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginLeft: 5,
+    marginTop: 2,
   },
   currentUserHighlightAvatar: {
     backgroundColor: '#2E7D32',
-    marginRight: 15,
+    marginRight: 12,
   },
   currentUserHighlightInfo: {
     flex: 1,
   },
   currentUserHighlightName: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: 'bold',
     color: '#1B1B1B',
-    marginBottom: 5,
+    marginBottom: 4,
   },
   currentUserHighlightLevel: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#6C757D',
-    marginBottom: 8,
   },
   currentUserHighlightStats: {
     flexDirection: 'row',
-  },
-  currentUserHighlightPoints: {
-    fontSize: 14,
-    color: '#2E7D32',
-    fontWeight: '500',
-    marginRight: 15,
-  },
-  currentUserHighlightWinRate: {
-    fontSize: 14,
-    color: '#6C757D',
-  },
-  currentUserStatusContainer: {
-    alignItems: 'center',
-  },
-  currentUserStatusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginBottom: 5,
-  },
-  currentUserStatusText: {
-    fontSize: 12,
-    color: '#6C757D',
-  },
-  currentUserAchievements: {
-    marginTop: 10,
+    justifyContent: 'space-around',
+    marginTop: 15,
     paddingTop: 15,
     borderTopWidth: 1,
     borderTopColor: '#E9ECEF',
   },
-  currentUserAchievementTitle: {
-    fontSize: 14,
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statValue: {
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginBottom: 8,
+    color: '#2E7D32',
+    marginBottom: 4,
   },
-  currentUserAchievementList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  currentUserAchievementChip: {
-    marginRight: 8,
-    marginBottom: 8,
-    borderColor: '#2E7D32',
-    backgroundColor: '#F8FFF8',
+  statLabel: {
+    fontSize: 12,
+    color: '#6C757D',
   },
   playersSection: {
     padding: 20,
@@ -798,117 +725,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   positionContainer: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
-    marginRight: 15,
-    minWidth: 40,
+    marginRight: 12,
+    minWidth: 35,
   },
   positionText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
-    marginLeft: 5,
+    marginTop: 2,
   },
   playerAvatar: {
     backgroundColor: '#2E7D32',
-    marginRight: 15,
-  },
-  currentUserAvatar: {
-    backgroundColor: '#2E7D32',
-    borderWidth: 2,
-    borderColor: '#FFD700',
+    marginRight: 12,
   },
   playerInfo: {
     flex: 1,
   },
-  playerNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
   playerName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#1B1B1B',
-  },
-  currentUserName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2E7D32',
-  },
-  currentUserChip: {
-    backgroundColor: '#2E7D32',
-    marginLeft: 10,
-  },
-  currentUserChipText: {
-    color: '#FFFFFF',
-    fontSize: 10,
+    marginBottom: 3,
   },
   playerLevel: {
     fontSize: 12,
     color: '#6C757D',
-    marginBottom: 5,
-  },
-  playerStats: {
-    flexDirection: 'row',
+    marginBottom: 3,
   },
   playerPoints: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#2E7D32',
     fontWeight: '500',
-    marginRight: 15,
-  },
-  playerWinRate: {
-    fontSize: 12,
-    color: '#6C757D',
   },
   playerActions: {
     alignItems: 'flex-end',
-  },
-  statusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 5,
-  },
-  statusText: {
-    fontSize: 10,
-    color: '#6C757D',
-  },
-  challengeContainer: {
-    alignItems: 'flex-end',
+    justifyContent: 'center',
   },
   challengeButton: {
     borderRadius: 8,
-    borderColor: '#2E7D32',
-  },
-  disabledChallengeContainer: {
-    alignItems: 'flex-end',
   },
   disabledChallengeButton: {
-    borderColor: '#9E9E9E',
-    opacity: 0.6,
-  },
-  challengeRuleText: {
-    fontSize: 10,
-    color: '#9E9E9E',
-    textAlign: 'right',
-    marginTop: 4,
-    maxWidth: 120,
-  },
-  achievementsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 10,
-  },
-  achievementChip: {
-    marginRight: 8,
-    marginBottom: 8,
-    borderColor: '#2E7D32',
+    borderRadius: 8,
+    borderColor: '#E0E0E0',
   },
   quickActionsSection: {
     padding: 20,

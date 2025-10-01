@@ -68,10 +68,20 @@ const DefiLigScreen = ({ navigation }: any) => {
       <ScrollView style={styles.container}>
         {/* Header Section */}
         <View style={styles.headerSection}>
-          <Title style={styles.headerTitle}>🏆 Defi Lig</Title>
-          <Text style={styles.headerSubtitle}>
-            Rekabetçi oyuncularla karşılaşın ve lig sıralamasında yükselin
-          </Text>
+          <View style={styles.headerTop}>
+            <View style={styles.headerTextContainer}>
+              <Title style={styles.headerTitle}>🏆 Defi Lig</Title>
+              <Text style={styles.headerSubtitle}>
+                Rekabetçi oyuncularla karşılaşın ve lig sıralamasında yükselin
+              </Text>
+            </View>
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('LigAyarlari')}
+              style={styles.settingsButton}
+            >
+              <MaterialCommunityIcons name="cog" size={28} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Current User Card - Belirgin Gösterim */}
@@ -80,19 +90,8 @@ const DefiLigScreen = ({ navigation }: any) => {
           <Card style={styles.currentUserHighlightCard}>
             <Card.Content>
               <View style={styles.currentUserHighlightHeader}>
-                <View style={styles.currentUserPositionContainer}>
-                  <MaterialCommunityIcons 
-                    name="trophy" 
-                    size={28} 
-                    color="#FFD700" 
-                  />
-                  <Text style={styles.currentUserPositionText}>
-                    #{currentUser.position}
-                  </Text>
-                </View>
-                
                 <Avatar.Text 
-                  size={70} 
+                  size={60} 
                   label={currentUser.name.charAt(0)} 
                   style={styles.currentUserHighlightAvatar}
                 />
@@ -100,21 +99,21 @@ const DefiLigScreen = ({ navigation }: any) => {
                 <View style={styles.currentUserHighlightInfo}>
                   <Title style={styles.currentUserHighlightName}>{currentUser.name}</Title>
                   <Text style={styles.currentUserHighlightLevel}>{currentUser.level} • {currentUser.rank}</Text>
-                  <Text style={styles.currentUserHighlightPoints}>{currentUser.points} puan</Text>
                 </View>
                 
-                <View style={styles.currentUserStatusContainer}>
-                  <View style={styles.currentUserStatusDot} />
-                  <Text style={styles.currentUserStatusText}>Çevrimiçi</Text>
+                <View style={styles.currentUserPositionContainer}>
+                  <MaterialCommunityIcons 
+                    name="trophy" 
+                    size={24} 
+                    color="#FFD700" 
+                  />
+                  <Text style={styles.currentUserPositionText}>
+                    #{currentUser.position}
+                  </Text>
                 </View>
               </View>
               
               <View style={styles.currentUserHighlightStats}>
-                <View style={styles.currentUserHighlightStatItem}>
-                  <MaterialCommunityIcons name="trophy" size={20} color="#FFD700" />
-                  <Text style={styles.currentUserHighlightStatNumber}>#{currentUser.position}</Text>
-                  <Text style={styles.currentUserHighlightStatLabel}>Sıralama</Text>
-                </View>
                 <View style={styles.currentUserHighlightStatItem}>
                   <MaterialCommunityIcons name="percent" size={20} color="#4CAF50" />
                   <Text style={styles.currentUserHighlightStatNumber}>{currentUser.winRate}%</Text>
@@ -125,20 +124,10 @@ const DefiLigScreen = ({ navigation }: any) => {
                   <Text style={styles.currentUserHighlightStatNumber}>{currentUser.matchesPlayed}</Text>
                   <Text style={styles.currentUserHighlightStatLabel}>Maç</Text>
                 </View>
-              </View>
-              
-              <View style={styles.currentUserAchievements}>
-                <Text style={styles.currentUserAchievementTitle}>Başarıların:</Text>
-                <View style={styles.currentUserAchievementList}>
-                  <Chip mode="outlined" style={styles.currentUserAchievementChip}>
-                    ⭐ Yeni Yetenek
-                  </Chip>
-                  <Chip mode="outlined" style={styles.currentUserAchievementChip}>
-                    🎯 İstikrarlı Oyuncu
-                  </Chip>
-                  <Chip mode="outlined" style={styles.currentUserAchievementChip}>
-                    🏆 Lig Oyuncusu
-                  </Chip>
+                <View style={styles.currentUserHighlightStatItem}>
+                  <MaterialCommunityIcons name="star" size={20} color="#FFD700" />
+                  <Text style={styles.currentUserHighlightStatNumber}>{currentUser.points}</Text>
+                  <Text style={styles.currentUserHighlightStatLabel}>Puan</Text>
                 </View>
               </View>
             </Card.Content>
@@ -155,37 +144,36 @@ const DefiLigScreen = ({ navigation }: any) => {
                   <View style={[styles.ligIcon, { backgroundColor: defiLig.color }]}>
                     <MaterialCommunityIcons 
                       name={defiLig.icon as any} 
-                      size={32} 
+                      size={40} 
                       color="#FFFFFF" 
                     />
                   </View>
                   <View style={styles.ligInfo}>
                     <Title style={styles.ligName}>{defiLig.name}</Title>
-                    <Text style={styles.ligDescription}>{defiLig.description}</Text>
-                    <Text style={styles.ligPlayers}>{defiLig.playerCount} oyuncu</Text>
+                    <Text style={styles.ligPlayers}>
+                      <MaterialCommunityIcons name="account-group" size={16} color="#2E7D32" />
+                      {' '}{defiLig.playerCount} oyuncu aktif
+                    </Text>
                   </View>
+                  <MaterialCommunityIcons 
+                    name="chevron-right" 
+                    size={28} 
+                    color="#2E7D32" 
+                  />
                 </View>
 
-                <View style={styles.ligRules}>
-                  <Text style={styles.rulesTitle}>Kurallar:</Text>
-                  <View style={styles.rulesList}>
-                    {defiLig.rules.map((rule, index) => (
-                      <View key={index} style={styles.ruleItem}>
-                        <MaterialCommunityIcons name="check-circle" size={16} color="#2E7D32" />
-                        <Text style={styles.ruleText}>{rule}</Text>
-                      </View>
-                    ))}
+                <View style={styles.ligQuickInfo}>
+                  <View style={styles.quickInfoItem}>
+                    <MaterialCommunityIcons name="tennis" size={20} color="#2E7D32" />
+                    <Text style={styles.quickInfoText}>1v1 Format</Text>
                   </View>
-                </View>
-
-                <View style={styles.ligRewards}>
-                  <Text style={styles.rewardsTitle}>Ödüller:</Text>
-                  <View style={styles.rewardsList}>
-                    {defiLig.rewards.map((reward, index) => (
-                      <Chip key={index} mode="outlined" style={styles.rewardChip}>
-                        {reward}
-                      </Chip>
-                    ))}
+                  <View style={styles.quickInfoItem}>
+                    <MaterialCommunityIcons name="trophy" size={20} color="#FFD700" />
+                    <Text style={styles.quickInfoText}>Rozetler</Text>
+                  </View>
+                  <View style={styles.quickInfoItem}>
+                    <MaterialCommunityIcons name="chart-line" size={20} color="#4CAF50" />
+                    <Text style={styles.quickInfoText}>Puan Sistemi</Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -317,7 +305,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#2E7D32',
     padding: 20,
     paddingTop: 40,
-    alignItems: 'center',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
     shadowColor: '#000',
@@ -328,6 +315,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 8,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerTextContainer: {
+    flex: 1,
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 28,
@@ -341,6 +337,11 @@ const styles = StyleSheet.create({
     color: '#E8F5E8',
     textAlign: 'center',
     lineHeight: 22,
+  },
+  settingsButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   currentUserSection: {
     padding: 20,
@@ -366,16 +367,14 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   currentUserPositionContainer: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
-    marginRight: 15,
-    minWidth: 50,
   },
   currentUserPositionText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#FFD700',
-    marginLeft: 5,
+    marginTop: 2,
   },
   currentUserHighlightAvatar: {
     backgroundColor: '#2E7D32',
@@ -385,33 +384,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   currentUserHighlightName: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: 'bold',
     color: '#1B1B1B',
-    marginBottom: 5,
+    marginBottom: 4,
   },
   currentUserHighlightLevel: {
-    fontSize: 14,
-    color: '#6C757D',
-    marginBottom: 5,
-  },
-  currentUserHighlightPoints: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2E7D32',
-  },
-  currentUserStatusContainer: {
-    alignItems: 'center',
-  },
-  currentUserStatusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#4CAF50',
-    marginBottom: 5,
-  },
-  currentUserStatusText: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#6C757D',
   },
   currentUserHighlightStats: {
@@ -427,38 +406,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   currentUserHighlightStatNumber: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#2E7D32',
     marginTop: 5,
     marginBottom: 3,
   },
   currentUserHighlightStatLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#6C757D',
     textAlign: 'center',
-  },
-  currentUserAchievements: {
-    marginTop: 15,
-    paddingTop: 15,
-    borderTopWidth: 1,
-    borderTopColor: '#E9ECEF',
-  },
-  currentUserAchievementTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginBottom: 8,
-  },
-  currentUserAchievementList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  currentUserAchievementChip: {
-    marginRight: 8,
-    marginBottom: 8,
-    borderColor: '#2E7D32',
-    backgroundColor: '#F8FFF8',
   },
   ligSection: {
     padding: 20,
@@ -487,11 +444,12 @@ const styles = StyleSheet.create({
   ligHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 15,
   },
   ligIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
@@ -499,74 +457,33 @@ const styles = StyleSheet.create({
   ligInfo: {
     flex: 1,
   },
-  ligTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 5,
-  },
   ligName: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#1B1B1B',
-    marginBottom: 5,
-  },
-  ligDescription: {
-    fontSize: 14,
-    color: '#6C757D',
-    marginBottom: 5,
+    marginBottom: 8,
   },
   ligPlayers: {
     fontSize: 14,
     color: '#2E7D32',
     fontWeight: '500',
   },
-  ligRules: {
-    marginTop: 15,
+  ligQuickInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
     paddingTop: 15,
     borderTopWidth: 1,
     borderTopColor: '#E9ECEF',
   },
-  rulesTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginBottom: 10,
-  },
-  rulesList: {
-    marginBottom: 10,
-  },
-  ruleItem: {
-    flexDirection: 'row',
+  quickInfoItem: {
     alignItems: 'center',
-    marginBottom: 8,
-  },
-  ruleText: {
-    fontSize: 14,
-    color: '#6C757D',
-    marginLeft: 10,
     flex: 1,
   },
-  ligRewards: {
-    marginTop: 15,
-    paddingTop: 15,
-    borderTopWidth: 1,
-    borderTopColor: '#E9ECEF',
-  },
-  rewardsTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginBottom: 8,
-  },
-  rewardsList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  rewardChip: {
-    marginRight: 8,
-    marginBottom: 8,
-    borderColor: '#2E7D32',
+  quickInfoText: {
+    fontSize: 12,
+    color: '#6C757D',
+    marginTop: 5,
+    textAlign: 'center',
   },
   statsSection: {
     padding: 20,

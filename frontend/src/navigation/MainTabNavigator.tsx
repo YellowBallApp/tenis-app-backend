@@ -10,6 +10,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 import ReservationScreen from '../screens/ReservationScreen';
 import DefiLigScreen from '../screens/DefiLigScreen';
 import LigSiralamaScreen from '../screens/LigSiralamaScreen';
+import LigAyarlariScreen from '../screens/LigAyarlariScreen';
 
 export type MainTabParamList = {
   Home: undefined;
@@ -20,6 +21,7 @@ export type MainTabParamList = {
   Reservation: undefined;
   DefiLig: undefined;
   LigSiralama: { lig: any };
+  LigAyarlari: undefined;
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -142,6 +144,14 @@ const MainTabNavigator = () => {
         component={LigSiralamaScreen} 
         options={{ 
           title: 'Lig Sıralaması',
+          headerShown: false 
+        }}
+      />
+      <Stack.Screen 
+        name="LigAyarlari" 
+        component={LigAyarlariScreen} 
+        options={{ 
+          title: 'Lig Ayarları',
           headerShown: false 
         }}
       />

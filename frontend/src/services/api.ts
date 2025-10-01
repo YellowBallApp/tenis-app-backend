@@ -84,4 +84,57 @@ export const authService = {
   },
 };
 
+export const leagueService = {
+  // Lig ayarlarını getir
+  getLeagueSettings: async () => {
+    const response = await api.get('/league/settings');
+    return response.data.data;
+  },
+
+  // Lig ayarlarını güncelle
+  updateLeagueSettings: async (settings: any) => {
+    const response = await api.put('/league/settings', settings);
+    return response.data.data;
+  },
+
+  // Lig sıralamasını getir
+  getLeagueRankings: async () => {
+    const response = await api.get('/league/rankings');
+    return response.data.data;
+  },
+
+  // Kullanıcının lig bilgilerini getir
+  getUserLeagueInfo: async (userId: number) => {
+    const response = await api.get(`/league/user/${userId}`);
+    return response.data.data;
+  },
+
+  // Teklif yapılabilecek oyuncuları getir
+  getAvailableOpponents: async (userId: number) => {
+    const response = await api.get(`/league/available-opponents/${userId}`);
+    return response.data.data;
+  },
+
+  // Maç teklifi gönder
+  sendMatchChallenge: async (challengerId: number, opponentId: number, message: string) => {
+    const response = await api.post('/league/challenge', {
+      challengerId,
+      opponentId,
+      message,
+    });
+    return response.data.data;
+  },
+
+  // Maç sonucu kaydet
+  recordMatchResult: async (matchId: number, winnerId: number, loserId: number, score: string) => {
+    const response = await api.post('/league/match-result', {
+      matchId,
+      winnerId,
+      loserId,
+      score,
+    });
+    return response.data.data;
+  },
+};
+
 export default api;

@@ -26,27 +26,87 @@ export class LeagueSettings {
     @Column({ nullable: true })
     updater: string;
 
-    // maks yapılabilecek sıra teklifi
+    // === LİG DÖNEMLERİ ===
+    @Column({ type: 'date' })
+    leagueStartDate: Date;
+
+    @Column({ type: 'date' })
+    leagueEndDate: Date;
+
+    @Column({ type: 'date' })
+    eliminationStartDate: Date;
+
+    @Column({ type: 'date' })
+    eliminationEndDate: Date;
+
+    @Column({ type: 'date' })
+    finalDate: Date;
+
+    // === KATILIM BİLGİLERİ ===
+    @Column({ type: 'decimal', precision: 10, scale: 2 })
+    registrationFee: number;
+
+    @Column('int')
+    minMatchCountForElimination: number;
+
+    // === MAÇ FORMATI ===
+    @Column('int')
+    warmupTimeMinutes: number;
+
+    @Column('int')
+    gamesPerSet: number;
+
+    @Column('int')
+    setsCount: number;
+
+    @Column('int')
+    gameTiebreakPoints: number;
+
+    @Column('int')
+    matchTiebreakPoints: number;
+
+    // === TEKLİF KURALLARI ===
+    @Column('int')
+    offerResponseDays: number;
+
+    @Column('int')
+    matchCompletionDays: number;
+
+    @Column('int')
+    postMatchCooldownHours: number;
+
+    @Column('int')
+    reofferCooldownDays: number;
+
+    @Column('int')
+    consecutiveWOLimit: number;
+
+    @Column('int')
+    lateArrivalMinutes: number;
+
+    // === SIRA BAZLI TEKLİF LİMİTLERİ ===
+    @Column('json')
+    offerLimitsByRank: {
+        range: string;
+        limit: number;
+    }[];
+
+    // === ESKİ ALANLAR (Geriye Dönük Uyumluluk) ===
     @Column('int')
     offerValue: number;
 
-    // Lig default olarak sadece yukarı teklif edilebilir.
     @Column('boolean')
     offerEverywhere: boolean;
 
-    // Maç sonrası alınan koruma süresi, saat cinsinden
     @Column('int')
     shieldIntervalHour: number;
 
-    // Kullanıcıya verilen kendini koruma (mazeret izni) süresi, saat cinsinden
     @Column('int')
     userShieldHour: number;
 
-    // Kullanıcının sahip olabileceği toplam koruma (mazeret izni) sayısı
     @Column('int')
     userShieldAmount: number;
 
-    // Maç teklif edildiği sırada, teklifin kabul edilmesi için son süre, saat cinsinden
     @Column('int')
     responseTimeHour: number;
 
