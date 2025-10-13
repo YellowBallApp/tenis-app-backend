@@ -5,6 +5,7 @@ import {
   ScrollView,
   Dimensions,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import {
   Card,
@@ -21,10 +22,18 @@ import {
   List,
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../navigation/AppNavigator';
+import { authService } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
+type ProfileScreenNavigationProp = StackNavigationProp<RootStackParamList>;
+
 const ProfileScreen = () => {
+  const navigation = useNavigation<ProfileScreenNavigationProp>();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   
@@ -71,6 +80,50 @@ const ProfileScreen = () => {
     setEditName(user.name);
     setEditEmail(user.email);
     setShowEditProfileModal(true);
+  };
+
+  const handleLogout = async () => {
+    Alert.alert(
+      'Çıkış Yap',
+      'Çıkış yapmak istediğinizden emin misiniz?',
+      [
+        {
+          text: 'İptal',
+          style: 'cancel',
+        },
+        {
+          text: 'Çıkış Yap',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const refreshToken = await AsyncStorage.getItem('refreshToken');
+              
+              // Backend'e logout isteği gönder
+              if (refreshToken) {
+                await authService.logout(refreshToken);
+              }
+              
+              // Token'ları temizle
+              await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
+              
+              // Login ekranına yönlendir
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            } catch (error) {
+              console.error('Logout error:', error);
+              // Hata olsa bile token'ları temizle ve login'e yönlendir
+              await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            }
+          },
+        },
+      ]
+    );
   };
 
   const quickActions = [
@@ -262,6 +315,20 @@ const ProfileScreen = () => {
             </Button>
           ))}
         </View>
+      </View>
+
+      {/* Logout Button */}
+      <View style={[styles.section, { paddingBottom: 40 }]}>
+        <Button
+          mode="contained"
+          onPress={handleLogout}
+          style={styles.logoutButton}
+          buttonColor="#DC3545"
+          icon="logout"
+          contentStyle={styles.logoutButtonContent}
+        >
+          Çıkış Yap
+        </Button>
       </View>
     </ScrollView>
 
@@ -815,6 +882,20 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     borderColor: '#2E7D32',
     borderRadius: 12,
+  },
+  logoutButton: {
+    borderRadius: 12,
+    elevation: 4,
+    shadowColor: '#DC3545',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  logoutButtonContent: {
+    paddingVertical: 12,
   },
   modalContainer: {
     margin: 10,
