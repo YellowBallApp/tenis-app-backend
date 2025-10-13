@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,6 +6,7 @@ import {
   Dimensions,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import {
   Card,
@@ -21,6 +22,8 @@ import {
   IconButton,
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
+import { leagueService } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
@@ -29,178 +32,39 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
   const [showChallengeModal, setShowChallengeModal] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
   const [challengeMessage, setChallengeMessage] = useState('');
+  const [players, setPlayers] = useState<any[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const currentUser = {
-    id: 12,
-    name: 'Ahmet Emin Kahraman',
-    level: 'İleri',
-    rank: 'Altın',
-    points: 1250,
-    position: 12,
-    winRate: 78,
-    matchesPlayed: 45,
-    lastActive: '2 saat önce',
-    status: 'online',
+  useEffect(() => {
+    loadRankings();
+  }, []);
+
+  const loadRankings = async () => {
+    try {
+      setLoading(true);
+      
+      // Sıralama verilerini getir
+      const rankingsData = await leagueService.getLeagueRankings();
+      
+      // Kullanıcı bilgisini al (şu an için ilk kullanıcıyı current user olarak kabul ediyoruz)
+      // Gerçek uygulamada AsyncStorage'dan alınmalı
+      const currentUserData = rankingsData[0]; // İlk kullanıcıyı current user yap
+      
+      setPlayers(rankingsData);
+      setCurrentUser({
+        id: currentUserData.user.id,
+        name: currentUserData.user.name,
+        position: currentUserData.position,
+        email: currentUserData.user.email,
+      });
+    } catch (error) {
+      console.error('Sıralama yüklenirken hata:', error);
+      Alert.alert('Hata', 'Sıralama verileri yüklenemedi');
+    } finally {
+      setLoading(false);
+    }
   };
-
-  const players = [
-    {
-      id: 1,
-      name: 'Mehmet Demir',
-      level: 'Uzman',
-      rank: 'Platin',
-      points: 2450,
-      position: 1,
-      winRate: 92,
-      matchesPlayed: 89,
-      lastActive: '1 saat önce',
-      status: 'online',
-      achievements: ['🏆 Lig Şampiyonu', '⭐ 10 Maç Serisi'],
-    },
-    {
-      id: 2,
-      name: 'Ayşe Özkan',
-      level: 'Uzman',
-      rank: 'Platin',
-      points: 2380,
-      position: 2,
-      winRate: 88,
-      matchesPlayed: 76,
-      lastActive: '3 saat önce',
-      status: 'online',
-      achievements: ['🥈 İkinci Sıra', '🔥 5 Maç Serisi'],
-    },
-    {
-      id: 3,
-      name: 'Ali Veli',
-      level: 'İleri',
-      rank: 'Altın',
-      points: 2200,
-      position: 3,
-      winRate: 85,
-      matchesPlayed: 67,
-      lastActive: '5 saat önce',
-      status: 'away',
-      achievements: ['🥉 Üçüncü Sıra'],
-    },
-    {
-      id: 4,
-      name: 'Fatma Kaya',
-      level: 'İleri',
-      rank: 'Altın',
-      points: 1980,
-      position: 4,
-      winRate: 82,
-      matchesPlayed: 54,
-      lastActive: '1 gün önce',
-      status: 'offline',
-      achievements: ['⭐ Yükselen Oyuncu'],
-    },
-    {
-      id: 5,
-      name: 'Zeynep Arslan',
-      level: 'İleri',
-      rank: 'Altın',
-      points: 1850,
-      position: 5,
-      winRate: 79,
-      matchesPlayed: 48,
-      lastActive: '2 gün önce',
-      status: 'offline',
-      achievements: ['🎯 İstikrarlı Oyuncu'],
-    },
-    {
-      id: 6,
-      name: 'Can Yılmaz',
-      level: 'Orta',
-      rank: 'Gümüş',
-      points: 1650,
-      position: 6,
-      winRate: 75,
-      matchesPlayed: 42,
-      lastActive: '3 gün önce',
-      status: 'offline',
-      achievements: ['🌱 Gelişen Yetenek'],
-    },
-    {
-      id: 7,
-      name: 'Selin Demir',
-      level: 'Orta',
-      rank: 'Gümüş',
-      points: 1520,
-      position: 7,
-      winRate: 72,
-      matchesPlayed: 38,
-      lastActive: '4 gün önce',
-      status: 'offline',
-      achievements: ['💪 Güçlü Savunma'],
-    },
-    {
-      id: 8,
-      name: 'Burak Kaya',
-      level: 'Orta',
-      rank: 'Gümüş',
-      points: 1480,
-      position: 8,
-      winRate: 70,
-      matchesPlayed: 35,
-      lastActive: '5 gün önce',
-      status: 'offline',
-      achievements: ['🎾 Teknik Oyuncu'],
-    },
-    {
-      id: 9,
-      name: 'Emre Özkan',
-      level: 'Orta',
-      rank: 'Gümüş',
-      points: 1420,
-      position: 9,
-      winRate: 68,
-      matchesPlayed: 33,
-      lastActive: '6 gün önce',
-      status: 'offline',
-      achievements: ['⚡ Hızlı Oyuncu'],
-    },
-    {
-      id: 10,
-      name: 'Deniz Arslan',
-      level: 'Orta',
-      rank: 'Gümüş',
-      points: 1380,
-      position: 10,
-      winRate: 65,
-      matchesPlayed: 31,
-      lastActive: '1 hafta önce',
-      status: 'offline',
-      achievements: ['🎯 Hedefli Oyuncu'],
-    },
-    {
-      id: 11,
-      name: 'Gizem Yılmaz',
-      level: 'Orta',
-      rank: 'Gümüş',
-      points: 1320,
-      position: 11,
-      winRate: 63,
-      matchesPlayed: 29,
-      lastActive: '1 hafta önce',
-      status: 'offline',
-      achievements: ['🤝 Takım Oyuncusu'],
-    },
-    {
-      id: 12,
-      name: 'Ahmet Emin Kahraman',
-      level: 'İleri',
-      rank: 'Altın',
-      points: 1250,
-      position: 12,
-      winRate: 78,
-      matchesPlayed: 45,
-      lastActive: '2 saat önce',
-      status: 'online',
-      achievements: ['⭐ Yeni Yetenek'],
-    },
-  ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -256,26 +120,38 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
     setShowChallengeModal(true);
   };
 
-  const sendChallenge = () => {
+  const sendChallenge = async () => {
     if (!challengeMessage.trim()) {
       Alert.alert('Hata', 'Lütfen bir mesaj yazın.');
       return;
     }
 
-    Alert.alert(
-      'Meydan Okuma Gönderildi',
-      `${selectedPlayer?.name} adlı oyuncuya meydan okuma gönderildi!`,
-      [
-        {
-          text: 'Tamam',
-          onPress: () => setShowChallengeModal(false),
-        },
-      ]
-    );
+    try {
+      await leagueService.sendMatchChallenge(
+        currentUser.id,
+        selectedPlayer.user.id,
+        challengeMessage
+      );
+
+      Alert.alert(
+        'Meydan Okuma Gönderildi',
+        `${selectedPlayer?.user.name} adlı oyuncuya meydan okuma gönderildi!`,
+        [
+          {
+            text: 'Tamam',
+            onPress: () => setShowChallengeModal(false),
+          },
+        ]
+      );
+    } catch (error: any) {
+      Alert.alert('Hata', error.response?.data?.message || 'Meydan okuma gönderilemedi');
+    }
   };
 
   const renderPlayerCard = (player: any) => {
-    const isCurrentUser = player.id === currentUser.id;
+    if (!currentUser) return null;
+    
+    const isCurrentUser = player.user.id === currentUser.id;
     const positionDifference = currentUser.position - player.position;
     const canChallenge = !isCurrentUser && positionDifference <= 3 && positionDifference > 0;
     
@@ -286,7 +162,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
     
     return (
       <Card 
-        key={player.id} 
+        key={player.user.id} 
         style={styles.playerCard}
       >
         <Card.Content>
@@ -304,14 +180,13 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
             
             <Avatar.Text 
               size={45} 
-              label={player.name.split(' ').map((n: string) => n.charAt(0)).join('')} 
+              label={player.user.name.charAt(0)} 
               style={styles.playerAvatar}
             />
             
             <View style={styles.playerInfo}>
-              <Text style={styles.playerName}>{player.name}</Text>
-              <Text style={styles.playerLevel}>{player.level} • {player.rank}</Text>
-              <Text style={styles.playerPoints}>{player.points} puan</Text>
+              <Text style={styles.playerName}>{player.user.name}</Text>
+              <Text style={styles.playerLevel}>{player.description || 'Oyuncu'}</Text>
             </View>
             
             <View style={styles.playerActions}>
@@ -344,6 +219,15 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
       </Card>
     );
   };
+
+  if (loading || !currentUser) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#2E7D32" />
+        <Text style={{ marginTop: 10, color: '#6C757D' }}>Yükleniyor...</Text>
+      </View>
+    );
+  }
 
   return (
     <>
@@ -388,7 +272,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                   </Text>
                 </View>
                 <Text style={styles.userStatusText}>
-                  {currentUser.points} puan • %{currentUser.winRate} galibiyet
+                  {currentUser.email}
                 </Text>
               </View>
             </Card.Content>
@@ -403,13 +287,13 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
               <View style={styles.currentUserHighlightHeader}>
                 <Avatar.Text 
                   size={55} 
-                  label={currentUser.name.split(' ').map((n: string) => n.charAt(0)).join('')} 
+                  label={currentUser.name.charAt(0)} 
                   style={styles.currentUserHighlightAvatar}
                 />
                 
                 <View style={styles.currentUserHighlightInfo}>
                   <Text style={styles.currentUserHighlightName}>{currentUser.name}</Text>
-                  <Text style={styles.currentUserHighlightLevel}>{currentUser.level} • {currentUser.rank}</Text>
+                  <Text style={styles.currentUserHighlightLevel}>{currentUser.email}</Text>
                 </View>
                 
                 <View style={styles.currentUserPositionContainer}>
@@ -421,21 +305,6 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                   <Text style={[styles.currentUserPositionText, { color: getPositionColor(currentUser.position) }]}>
                     #{currentUser.position}
                   </Text>
-                </View>
-              </View>
-              
-              <View style={styles.currentUserHighlightStats}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{currentUser.points}</Text>
-                  <Text style={styles.statLabel}>Puan</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{currentUser.winRate}%</Text>
-                  <Text style={styles.statLabel}>Galibiyet</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{currentUser.matchesPlayed}</Text>
-                  <Text style={styles.statLabel}>Maç</Text>
                 </View>
               </View>
             </Card.Content>
@@ -494,18 +363,18 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
               {selectedPlayer && (
                 <>
                   <Text style={styles.modalSubtitle}>
-                    {selectedPlayer.name} adlı oyuncuya meydan okuma gönderin
+                    {selectedPlayer.user.name} adlı oyuncuya meydan okuma gönderin
                   </Text>
                   
                   <View style={styles.opponentInfo}>
                     <Avatar.Text 
                       size={40} 
-                      label={selectedPlayer.name.split(' ').map((n: string) => n.charAt(0)).join('')} 
+                      label={selectedPlayer.user.name.charAt(0)} 
                     />
                     <View style={styles.opponentDetails}>
-                      <Text style={styles.opponentName}>{selectedPlayer.name}</Text>
-                      <Text style={styles.opponentLevel}>{selectedPlayer.level} • {selectedPlayer.rank}</Text>
-                      <Text style={styles.opponentPoints}>{selectedPlayer.points} puan</Text>
+                      <Text style={styles.opponentName}>{selectedPlayer.user.name}</Text>
+                      <Text style={styles.opponentLevel}>{selectedPlayer.description || 'Oyuncu'}</Text>
+                      <Text style={styles.opponentPoints}>#{selectedPlayer.position}</Text>
                     </View>
                   </View>
                   
@@ -706,19 +575,6 @@ const styles = StyleSheet.create({
     borderColor: '#2E7D32',
     borderWidth: 2,
     backgroundColor: '#F8FFF8',
-  },
-  currentUserHighlightCard: {
-    borderColor: '#2E7D32',
-    borderWidth: 3,
-    backgroundColor: '#F8FFF8',
-    shadowColor: '#2E7D32',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
   },
   playerHeader: {
     flexDirection: 'row',

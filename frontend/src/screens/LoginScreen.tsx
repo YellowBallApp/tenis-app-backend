@@ -17,6 +17,7 @@ import {
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { authService } from '../services/api';
 
 const { width, height } = Dimensions.get('window');
 
@@ -38,15 +39,14 @@ const LoginScreen = ({ navigation }: any) => {
     try {
       console.log('Login attempt with:', { email, password });
       
-      // Şimdilik auth service'i comment'e alıyoruz
-      // const tokens = await authService.login({ email, password });
-      // console.log('Login successful, tokens received:', tokens);
+      const tokens = await authService.login({ email, password });
+      console.log('Login successful, tokens received');
 
-      // Test için fake token ekleyelim
-      await AsyncStorage.setItem('accessToken', 'fake-token-for-testing');
-      await AsyncStorage.setItem('refreshToken', 'fake-refresh-token-for-testing');
+      // Gerçek token'ları AsyncStorage'a kaydet
+      await AsyncStorage.setItem('accessToken', tokens.accessToken);
+      await AsyncStorage.setItem('refreshToken', tokens.refreshToken);
 
-      console.log('Login bypassed - going to Main screen');
+      console.log('Tokens saved - going to Main screen');
 
       // Main ekranına yönlendir
       navigation.replace('Main');

@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
   ScrollView,
   Dimensions,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -18,6 +19,7 @@ import {
   Chip,
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons, Ionicons } from '@expo/vector-icons';
+import { reservationService, announcementService } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -25,10 +27,9 @@ type HomeScreenNavigationProp = BottomTabNavigationProp<MainTabParamList, 'Home'
 
 const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
-  const upcomingMatches = [
-    { id: 1, player1: 'Ahmet Yılmaz', player2: 'Mehmet Demir', time: '14:00', court: 'Kort 1' },
-    { id: 2, player1: 'Fatma Kaya', player2: 'Ayşe Özkan', time: '15:30', court: 'Kort 2' },
-  ];
+  const [reservations, setReservations] = useState<any[]>([]);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const quickActions = [
     { title: 'Rezervasyon Yap', icon: 'calendar-plus', color: '#2E7D32', action: () => navigation.navigate('Reservation') },
@@ -36,6 +37,43 @@ const HomeScreen = () => {
     { title: 'Lider Tablosu', icon: 'trophy', color: '#81C784', action: () => navigation.navigate('GameModes') },
     { title: 'Duyurular', icon: 'bullhorn', color: '#28A745', action: () => console.log('Duyurular') },
   ];
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      
+      // Bugünkü rezervasyonları getir
+      const today = new Date().toISOString().split('T')[0];
+      const reservationsData = await reservationService.getReservationsByDate(today);
+      setReservations(reservationsData.slice(0, 2)); // İlk 2 rezervasyon
+
+      // Duyuruları getir
+      const announcementsData = await announcementService.getAllAnnouncements();
+      setAnnouncements(announcementsData.slice(0, 1)); // İlk duyuru
+    } catch (error) {
+      console.error('Veri yüklenirken hata:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#2E7D32" />
+        <Text style={{ marginTop: 10, color: '#6C757D' }}>Yükleniyor...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
@@ -90,53 +128,86 @@ const HomeScreen = () => {
         </View>
       </View>
 
-      {/* Upcoming Matches */}
+      {/* Upcoming Matches - Bugünkü Rezervasyonlar */}
       <View style={styles.section}>
-        <Title style={styles.sectionTitle}>Yaklaşan Maçlar</Title>
-        {upcomingMatches.map((match) => (
-          <Card key={match.id} style={styles.matchCard}>
+        <Title style={styles.sectionTitle}>Bugünkü Rezervasyonlar</Title>
+        {reservations.length > 0 ? (
+          reservations.map((reservation) => (
+            <Card key={reservation.id} style={styles.matchCard}>
+              <Card.Content>
+                <View style={styles.matchHeader}>
+                  <Text style={styles.matchTime}>{formatTime(reservation.startTime)}</Text>
+                  <View style={styles.courtChip}>
+                    <Text style={styles.courtText}>Kort {reservation.courtNumber}</Text>
+                  </View>
+                </View>
+                <View style={styles.matchPlayers}>
+                  <View style={styles.player}>
+                    <Avatar.Text size={40} label={reservation.user.name.charAt(0)} />
+                    <Text style={styles.playerName}>{reservation.user.name}</Text>
+                  </View>
+                  {reservation.participants && reservation.participants.length > 0 && (
+                    <>
+                      <View style={styles.vsContainer}>
+                        <Text style={styles.vsText}>VS</Text>
+                      </View>
+                      <View style={styles.player}>
+                        <Avatar.Text size={40} label={reservation.participants[0].charAt(0)} />
+                        <Text style={styles.playerName}>{reservation.participants[0]}</Text>
+                      </View>
+                    </>
+                  )}
+                </View>
+                {reservation.notes && (
+                  <Text style={styles.reservationNotes}>📝 {reservation.notes}</Text>
+                )}
+              </Card.Content>
+            </Card>
+          ))
+        ) : (
+          <Card style={styles.matchCard}>
             <Card.Content>
-              <View style={styles.matchHeader}>
-                <Text style={styles.matchTime}>{match.time}</Text>
-                <View style={styles.courtChip}>
-                  <Text style={styles.courtText}>{match.court}</Text>
-                </View>
-              </View>
-              <View style={styles.matchPlayers}>
-                <View style={styles.player}>
-                  <Avatar.Text size={40} label={match.player1.charAt(0)} />
-                  <Text style={styles.playerName}>{match.player1}</Text>
-                </View>
-                <View style={styles.vsContainer}>
-                  <Text style={styles.vsText}>VS</Text>
-                </View>
-                <View style={styles.player}>
-                  <Avatar.Text size={40} label={match.player2.charAt(0)} />
-                  <Text style={styles.playerName}>{match.player2}</Text>
-                </View>
-              </View>
+              <Text style={{ textAlign: 'center', color: '#6C757D' }}>
+                Bugün için rezervasyon bulunmuyor
+              </Text>
             </Card.Content>
           </Card>
-        ))}
+        )}
       </View>
 
       {/* News & Updates */}
       <View style={styles.section}>
         <Title style={styles.sectionTitle}>Haberler & Güncellemeler</Title>
-        <Card style={styles.newsCard}>
-          <Card.Content>
-            <View style={styles.newsHeader}>
-              <MaterialCommunityIcons name="newspaper" size={24} color="#2E7D32" />
-              <Text style={styles.newsTitle}>Yeni Turnuva Duyurusu</Text>
-            </View>
-            <Text style={styles.newsContent}>
-              Bu hafta sonu gerçekleşecek olan "Bahar Kupası" turnuvası için kayıtlar başlamıştır.
-            </Text>
-            <Button mode="text" textColor="#2E7D32">
-              Detayları Gör
-            </Button>
-          </Card.Content>
-        </Card>
+        {announcements.length > 0 ? (
+          announcements.map((announcement) => (
+            <Card key={announcement.id} style={styles.newsCard}>
+              <Card.Content>
+                <View style={styles.newsHeader}>
+                  <MaterialCommunityIcons 
+                    name={announcement.isPinned ? "pin" : "newspaper"} 
+                    size={24} 
+                    color="#2E7D32" 
+                  />
+                  <Text style={styles.newsTitle}>{announcement.title}</Text>
+                </View>
+                <Text style={styles.newsContent}>
+                  {announcement.content}
+                </Text>
+                <Text style={styles.newsAuthor}>
+                  👤 {announcement.author.name} • {new Date(announcement.createdAt).toLocaleDateString('tr-TR')}
+                </Text>
+              </Card.Content>
+            </Card>
+          ))
+        ) : (
+          <Card style={styles.newsCard}>
+            <Card.Content>
+              <Text style={{ textAlign: 'center', color: '#6C757D' }}>
+                Henüz duyuru bulunmuyor
+              </Text>
+            </Card.Content>
+          </Card>
+        )}
       </View>
     </ScrollView>
   );
@@ -341,6 +412,18 @@ const styles = StyleSheet.create({
   newsContent: {
     color: '#6C757D',
     marginBottom: 15,
+    lineHeight: 20,
+  },
+  newsAuthor: {
+    color: '#9E9E9E',
+    fontSize: 12,
+    marginTop: 10,
+  },
+  reservationNotes: {
+    color: '#6C757D',
+    fontSize: 13,
+    marginTop: 10,
+    fontStyle: 'italic',
   },
 });
 
