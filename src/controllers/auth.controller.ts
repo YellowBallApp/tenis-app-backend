@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { AppError } from "../utils/error/app.error";
 import { loginSchema, refreshTokenSchema, registerSchema } from "../validations/authJoi.schema";
 import authService from "../services/auth.service";
+import { CLIENT_RENEG_LIMIT } from "tls";
 
 const authController = {
   register: async (req: Request, res: Response) => {
@@ -55,6 +56,7 @@ const authController = {
         },
       });
     } catch (err) {
+      console.log(err);
       const error = err instanceof AppError
         ? err
         : new AppError("INVALID_CREDENTIALS");

@@ -131,7 +131,7 @@ export class LeagueService {
   }
 
   // Kullanıcının lig bilgilerini getir
-  async getUserLeagueInfo(userId: number) {
+  async getUserLeagueInfo(userId: string) {
     try {
       const league = await this.leagueRepository.findOne({
         where: { user: { id: userId } },
@@ -171,7 +171,7 @@ export class LeagueService {
   }
 
   // Maç teklifi gönderme kurallarını kontrol et
-  async sendMatchChallenge(challengerId: number, opponentId: number, message: string) {
+  async sendMatchChallenge(challengerId: string, opponentId: string, message: string) {
     try {
       const challengerLeague = await this.leagueRepository.findOne({
         where: { user: { id: challengerId } },
@@ -229,8 +229,8 @@ export class LeagueService {
   // Maç sonucunu kaydet ve sıralamaları güncelle
   async recordMatchResult(
     matchId: number,
-    winnerId: number,
-    loserId: number,
+    winnerId: string,
+    loserId: string,
     score: string
   ) {
     try {
@@ -312,7 +312,7 @@ export class LeagueService {
   }
 
   // Teklif yapılabilecek oyuncuları getir
-  async getAvailableOpponents(userId: number) {
+  async getAvailableOpponents(userId: string) {
     try {
       const userLeague = await this.leagueRepository.findOne({
         where: { user: { id: userId } },

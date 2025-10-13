@@ -61,7 +61,7 @@ export class LeagueController {
   // Kullanıcının lig bilgilerini getir
   getUserLeagueInfo = async (req: Request, res: Response) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = req.params.userId;
       const leagueInfo = await this.leagueService.getUserLeagueInfo(userId);
       return res.status(200).json({
         success: true,
@@ -123,7 +123,7 @@ export class LeagueController {
   // Teklif yapılabilecek oyuncuları getir
   getAvailableOpponents = async (req: Request, res: Response) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = req.params.userId;
       const opponents = await this.leagueService.getAvailableOpponents(userId);
       return res.status(200).json({
         success: true,

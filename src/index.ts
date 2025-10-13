@@ -1,7 +1,9 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import swaggerUi from "swagger-ui-express";
 import { AppDataSource } from "./config/data-source";
+import { swaggerSpec } from "./config/swagger";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import leagueRoutes from "./routes/league.routes";
@@ -15,6 +17,21 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+
+// Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Tenis App API Docs',
+}));
+
+// Ana sayfa - API bilgisi
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Tenis App Backend API',
+    version: '1.0.0',
+    documentation: '/api-docs',
+  });
+});
 
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
