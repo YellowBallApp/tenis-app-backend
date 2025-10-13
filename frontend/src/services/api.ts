@@ -104,19 +104,19 @@ export const leagueService = {
   },
 
   // Kullanıcının lig bilgilerini getir
-  getUserLeagueInfo: async (userId: number) => {
+  getUserLeagueInfo: async (userId: string) => {
     const response = await api.get(`/league/user/${userId}`);
     return response.data.data;
   },
 
   // Teklif yapılabilecek oyuncuları getir
-  getAvailableOpponents: async (userId: number) => {
+  getAvailableOpponents: async (userId: string) => {
     const response = await api.get(`/league/available-opponents/${userId}`);
     return response.data.data;
   },
 
   // Maç teklifi gönder
-  sendMatchChallenge: async (challengerId: number, opponentId: number, message: string) => {
+  sendMatchChallenge: async (challengerId: string, opponentId: string, message: string) => {
     const response = await api.post('/league/challenge', {
       challengerId,
       opponentId,
@@ -126,13 +126,110 @@ export const leagueService = {
   },
 
   // Maç sonucu kaydet
-  recordMatchResult: async (matchId: number, winnerId: number, loserId: number, score: string) => {
+  recordMatchResult: async (matchId: number, winnerId: string, loserId: string, score: string) => {
     const response = await api.post('/league/match-result', {
       matchId,
       winnerId,
       loserId,
       score,
     });
+    return response.data.data;
+  },
+};
+
+export const reservationService = {
+  // Tarihe göre rezervasyonları getir
+  getReservationsByDate: async (date: string) => {
+    const response = await api.get('/reservations', { params: { date } });
+    return response.data.data;
+  },
+
+  // Kullanıcının rezervasyonlarını getir
+  getMyReservations: async () => {
+    const response = await api.get('/reservations/my');
+    return response.data.data;
+  },
+
+  // Yeni rezervasyon oluştur
+  createReservation: async (data: {
+    courtNumber: number;
+    startTime: string;
+    endTime: string;
+    participants?: string[];
+    notes?: string;
+  }) => {
+    const response = await api.post('/reservations', data);
+    return response.data.data;
+  },
+
+  // Rezervasyon iptal et
+  cancelReservation: async (reservationId: number) => {
+    const response = await api.delete(`/reservations/${reservationId}`);
+    return response.data;
+  },
+};
+
+export const announcementService = {
+  // Tüm duyuruları getir
+  getAllAnnouncements: async () => {
+    const response = await api.get('/announcements');
+    return response.data.data;
+  },
+
+  // Yeni duyuru oluştur (Admin)
+  createAnnouncement: async (data: {
+    title: string;
+    content: string;
+    targetGroup?: string;
+    isPinned?: boolean;
+  }) => {
+    const response = await api.post('/announcements', data);
+    return response.data.data;
+  },
+
+  // Duyuru güncelle
+  updateAnnouncement: async (announcementId: number, data: any) => {
+    const response = await api.put(`/announcements/${announcementId}`, data);
+    return response.data.data;
+  },
+
+  // Duyuru sil
+  deleteAnnouncement: async (announcementId: number) => {
+    const response = await api.delete(`/announcements/${announcementId}`);
+    return response.data;
+  },
+};
+
+export const tournamentService = {
+  // Tüm turnuvaları getir
+  getAllTournaments: async () => {
+    const response = await api.get('/tournaments');
+    return response.data.data;
+  },
+
+  // Turnuva bracket'ını getir
+  getTournamentBracket: async (tournamentId: number) => {
+    const response = await api.get(`/tournaments/${tournamentId}/bracket`);
+    return response.data.data;
+  },
+
+  // Yeni turnuva oluştur (Admin)
+  createTournament: async (data: {
+    name: string;
+    size: number;
+    startDate: string;
+    playerIds: string[];
+  }) => {
+    const response = await api.post('/tournaments', data);
+    return response.data.data;
+  },
+
+  // Maç sonucunu kaydet
+  reportMatchResult: async (matchId: number, data: {
+    winnerId: string;
+    score: string;
+  }) => {
+    const response = await api.post(`/tournaments/matches/${matchId}/result`, data);
     return response.data.data;
   },
 };

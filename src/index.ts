@@ -7,6 +7,9 @@ import { swaggerSpec } from "./config/swagger";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import leagueRoutes from "./routes/league.routes";
+import reservationRoutes from "./routes/reservation.routes";
+import announcementRoutes from "./routes/announcement.routes";
+import tournamentRoutes from "./routes/tournament.routes";
 
 const app = express();
 
@@ -36,6 +39,9 @@ app.get('/', (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/league", leagueRoutes);
+app.use("/api/reservations", reservationRoutes);
+app.use("/api/announcements", announcementRoutes);
+app.use("/api/tournaments", tournamentRoutes);
 
 const authMiddleware = express.Router();
 
