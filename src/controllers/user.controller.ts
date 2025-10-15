@@ -63,6 +63,52 @@ const userController = {
       });
     }
   },
+
+  getAvailableUsersForDate: async (req: Request, res: Response) => {
+    try {
+      const { startTime, endTime } = req.query;
+
+      if (!startTime || typeof startTime !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'startTime parametresi gereklidir (ISO 8601 formatında)',
+        });
+      }
+
+      if (!endTime || typeof endTime !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'endTime parametresi gereklidir (ISO 8601 formatında)',
+        });
+      }
+
+      const availableUsers = await userService.findAvailableUsersForTimeSlot(startTime, endTime);
+      
+      return res.status(200).json({
+        success: true,
+        data: availableUsers.map(user => ({
+          id: user.id,
+          name: user.name,
+          surname: user.surname,
+          email: user.email,
+          phone: user.phone,
+          gender: user.gender,
+          title: user.title,
+        })),
+      });
+    } catch (err) {
+      const error = err instanceof AppError
+        ? err
+        : new AppError("UNKNOWN_ERROR");
+
+      console.error(err);
+      return res.status(error.status).json({
+        errorKey: error.errorKey,
+        errorCode: error.errorCode,
+        message: error.message,
+      });
+    }
+  },
 };
 
 export default userController;

@@ -61,6 +61,11 @@ const rawErrors = {
         code: 1012,
         key: "LEAGUE_NOT_FOUND",
         message: "League not found"
+    },
+    LEAGUE_STANDING_NOT_FOUND: {
+        code: 1013,
+        key: "LEAGUE_STANDING_NOT_FOUND",
+        message: "League standing not found"
     }
 } as const;
 

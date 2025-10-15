@@ -71,10 +71,11 @@ router.get('/my', reservationController.getUserReservations);
  *               endTime:
  *                 type: string
  *                 format: date-time
- *               participants:
+ *               participantIds:
  *                 type: array
  *                 items:
  *                   type: string
+ *                 description: Katılımcı kullanıcı ID'leri
  *               notes:
  *                 type: string
  *     responses:

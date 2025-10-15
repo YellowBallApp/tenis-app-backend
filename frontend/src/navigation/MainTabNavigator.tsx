@@ -19,13 +19,45 @@ export type MainTabParamList = {
   Members: undefined;
   Profile: undefined;
   Reservation: undefined;
+};
+
+export type GameModesStackParamList = {
+  GameModesList: undefined;
   DefiLig: undefined;
   LigSiralama: { lig: any };
   LigAyarlari: undefined;
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
-const Stack = createStackNavigator<MainTabParamList>();
+const GameModesStack = createStackNavigator<GameModesStackParamList>();
+
+// GameModes Stack Navigator
+const GameModesStackNavigator = () => {
+  return (
+    <GameModesStack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <GameModesStack.Screen 
+        name="GameModesList" 
+        component={GameModesScreen}
+      />
+      <GameModesStack.Screen 
+        name="DefiLig" 
+        component={DefiLigScreen}
+      />
+      <GameModesStack.Screen 
+        name="LigSiralama" 
+        component={LigSiralamaScreen}
+      />
+      <GameModesStack.Screen 
+        name="LigAyarlari" 
+        component={LigAyarlariScreen}
+      />
+    </GameModesStack.Navigator>
+  );
+};
 
 const TabNavigator = () => {
   return (
@@ -62,7 +94,7 @@ const TabNavigator = () => {
       />
       <Tab.Screen
         name="GameModes"
-        component={GameModesScreen}
+        component={GameModesStackNavigator}
         options={{
           title: 'Defi Lig',
           tabBarIcon: ({ color, size }) => (
@@ -114,49 +146,7 @@ const TabNavigator = () => {
 };
 
 const MainTabNavigator = () => {
-  return (
-    <Stack.Navigator
-      screenOptions={{
-        headerStyle: {
-          backgroundColor: '#2E7D32',
-        },
-        headerTintColor: '#FFFFFF',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-        },
-      }}
-    >
-      <Stack.Screen 
-        name="Home" 
-        component={TabNavigator} 
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen 
-        name="DefiLig" 
-        component={DefiLigScreen} 
-        options={{ 
-          title: 'Defi Lig',
-          headerShown: false 
-        }}
-      />
-      <Stack.Screen 
-        name="LigSiralama" 
-        component={LigSiralamaScreen} 
-        options={{ 
-          title: 'Lig Sıralaması',
-          headerShown: false 
-        }}
-      />
-      <Stack.Screen 
-        name="LigAyarlari" 
-        component={LigAyarlariScreen} 
-        options={{ 
-          title: 'Lig Ayarları',
-          headerShown: false 
-        }}
-      />
-    </Stack.Navigator>
-  );
+  return <TabNavigator />;
 };
 
 export default MainTabNavigator;

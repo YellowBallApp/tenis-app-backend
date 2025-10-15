@@ -152,8 +152,8 @@ const HomeScreen = () => {
                         <Text style={styles.vsText}>VS</Text>
                       </View>
                       <View style={styles.player}>
-                        <Avatar.Text size={40} label={reservation.participants[0].charAt(0)} />
-                        <Text style={styles.playerName}>{reservation.participants[0]}</Text>
+                        <Avatar.Text size={40} label={reservation.participants[0].name.charAt(0)} />
+                        <Text style={styles.playerName}>{reservation.participants[0].name}</Text>
                       </View>
                     </>
                   )}

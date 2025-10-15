@@ -1,56 +1,37 @@
-import { AppDataSource } from '../config/data-source';
-import { User } from '../entities/user.entity';
-import { LeagueStandings } from '../entities/leagueStandings.entity';
-import { League } from '../entities/league.entity';
+import { AppDataSource } from "../config/data-source";
+import { League } from "../entities/league.entity";
 
 export const seedLeagues = async () => {
-  const userRepository = AppDataSource.getRepository(User);
-  const leagueStandingsRepository = AppDataSource.getRepository(LeagueStandings);
   const leagueRepository = AppDataSource.getRepository(League);
-
-  console.log('🎾 Lig sıralama verileri oluşturuluyor...');
-
-  // İlk ligi al (ana lig)
-  const mainLeague = await leagueRepository.findOne({
-    where: {},
-    order: { id: 'ASC' }
-  });
-
-  if (!mainLeague) {
-    console.log('⚠️  Önce lig entity seedini çalıştırın');
+  
+  const leagueCount = await leagueRepository.count();
+  if (leagueCount > 0) {
+    console.log(`✅ ${leagueCount} lig zaten mevcut, seed atlanıyor.`);
     return;
   }
-
-  // Tüm kullanıcıları al
-  const users = await userRepository.find();
-
-  if (users.length === 0) {
-    console.log('⚠️  Önce kullanıcı seedini çalıştırın');
-    return;
-  }
-
-  // Her kullanıcı için ana ligde sıralama oluştur
-  for (let i = 0; i < users.length; i++) {
-    const existingStanding = await leagueStandingsRepository.findOne({
-      where: { 
-        user: { id: users[i].id },
-        league: { id: mainLeague.id }
+  
+  console.log("🏆 Ligler oluşturuluyor...");
+  
+  try {
+    const leaguesData = [
+      {
+        description: "EGEV TK Defi Ligi 2025 - Ana Lig",
       },
-    });
+      {
+        description: "EGEV TK Yaz Sezonu Ligi",
+      },
+      {
+        description: "EGEV TK Çiftler Ligi",
+      },
+    ];
 
-    if (!existingStanding) {
-      const standing = leagueStandingsRepository.create({
-        user: users[i],
-        league: mainLeague,
-        leagueRanking: i + 1, // Sıralama: 1, 2, 3, ...
-        description: `${users[i].name} - ${i + 1}. sırada`,
-      });
-
-      await leagueStandingsRepository.save(standing);
-      console.log(`✅ ${users[i].name} -> ${mainLeague.description} - ${i + 1}. sıra`);
-    }
+    const leagues = leagueRepository.create(leaguesData);
+    await leagueRepository.save(leagues);
+    
+    console.log(`✅ ${leagues.length} lig oluşturuldu`);
+  } catch (error) {
+    console.error("❌ Lig oluşturma hatası:", error);
+    throw error;
   }
-
-  console.log('✅ Lig sıralama verileri oluşturuldu!');
 };
 

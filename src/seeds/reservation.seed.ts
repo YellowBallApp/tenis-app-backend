@@ -25,16 +25,16 @@ export const seedReservations = async () => {
       courtNumber: 1,
       startTime: new Date(today.getTime() + 9 * 60 * 60 * 1000), // 09:00
       endTime: new Date(today.getTime() + 10 * 60 * 60 * 1000),  // 10:00
-      participants: [users[1].name],
-      notes: 'Defi ligi maçı',
+      participants: [users[1]],
+      notes: `Defi ligi maçı - Rakip: ${users[1].name}`,
     },
     {
       user: users[2],
       courtNumber: 2,
       startTime: new Date(today.getTime() + 10 * 60 * 60 * 1000), // 10:00
       endTime: new Date(today.getTime() + 11 * 60 * 60 * 1000),   // 11:00
-      participants: [users[3].name],
-      notes: 'Antrenman',
+      participants: [users[3]],
+      notes: `Antrenman - Partner: ${users[3].name}`,
     },
     {
       user: users[1],
@@ -42,6 +42,7 @@ export const seedReservations = async () => {
       startTime: new Date(today.getTime() + 14 * 60 * 60 * 1000), // 14:00
       endTime: new Date(today.getTime() + 15 * 60 * 60 * 1000),   // 15:00
       participants: [],
+      notes: 'Tekler maçı',
     },
   ];
 
