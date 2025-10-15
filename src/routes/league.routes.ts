@@ -259,6 +259,193 @@ router.post('/challenge', leagueController.sendMatchChallenge);
  */
 router.post('/match-result', leagueController.recordMatchResult);
 
+// ==================== League Standings CRUD Routes ====================
+
+/**
+ * @swagger
+ * /api/league/standings:
+ *   get:
+ *     summary: Tüm standings'leri getir
+ *     tags: [League Standings]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Standings listesi
+ */
+router.get('/standings', leagueController.getAllStandings);
+
+/**
+ * @swagger
+ * /api/league/standings/{id}:
+ *   get:
+ *     summary: ID'ye göre standing getir
+ *     tags: [League Standings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Standing detayı
+ */
+router.get('/standings/:id', leagueController.getStandingById);
+
+/**
+ * @swagger
+ * /api/league/standings/league/{leagueId}:
+ *   get:
+ *     summary: Belirli bir lige ait standings'leri getir
+ *     tags: [League Standings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: leagueId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Lig standings listesi
+ */
+router.get('/standings/league/:leagueId', leagueController.getStandingsByLeagueId);
+
+/**
+ * @swagger
+ * /api/league/standings/user/{userId}:
+ *   get:
+ *     summary: Belirli bir kullanıcıya ait standings'leri getir
+ *     tags: [League Standings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Kullanıcı standings listesi
+ */
+router.get('/standings/user/:userId', leagueController.getStandingsByUserId);
+
+/**
+ * @swagger
+ * /api/league/standings:
+ *   post:
+ *     summary: Yeni standing oluştur
+ *     tags: [League Standings]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               leagueRanking:
+ *                 type: number
+ *               description:
+ *                 type: string
+ *               userId:
+ *                 type: number
+ *               leagueId:
+ *                 type: number
+ *     responses:
+ *       201:
+ *         description: Standing oluşturuldu
+ */
+router.post('/standings', leagueController.createStanding);
+
+/**
+ * @swagger
+ * /api/league/standings/{id}:
+ *   put:
+ *     summary: Standing güncelle
+ *     tags: [League Standings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               leagueRanking:
+ *                 type: number
+ *               description:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Standing güncellendi
+ */
+router.put('/standings/:id', leagueController.updateStanding);
+
+/**
+ * @swagger
+ * /api/league/standings/{id}:
+ *   delete:
+ *     summary: Standing sil
+ *     tags: [League Standings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Standing silindi
+ */
+router.delete('/standings/:id', leagueController.deleteStanding);
+
+/**
+ * @swagger
+ * /api/league/standings/ranking:
+ *   put:
+ *     summary: Kullanıcının lig sıralamasını güncelle
+ *     tags: [League Standings]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - leagueId
+ *               - userId
+ *               - newRanking
+ *             properties:
+ *               leagueId:
+ *                 type: number
+ *               userId:
+ *                 type: number
+ *               newRanking:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Sıralama güncellendi
+ */
+router.put('/standings/ranking', leagueController.updateUserRanking);
+
 // ==================== League Entity CRUD Routes ====================
 // Not: Bu route'lar en sonda tanımlanmalı ki /settings, /rankings gibi özel route'larla çakışmasın
 

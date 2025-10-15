@@ -94,6 +94,12 @@ export const userService = {
     const response = await api.get('/user/all');
     return response.data.data;
   },
+
+  // Belirli bir tarih ve saat aralığında rezervasyonu olmayan kullanıcıları getir
+  getAvailableUsersForTimeSlot: async (startTime: string, endTime: string) => {
+    const response = await api.get('/user/available', { params: { startTime, endTime } });
+    return response.data.data;
+  },
 };
 
 export const coachService = {
@@ -143,7 +149,7 @@ export const leagueService = {
     return response.data;
   },
 
-  // ==================== League Settings & Standings ====================
+  // ==================== League Settings ====================
 
   // Lig ayarlarını getir
   getLeagueSettings: async () => {
@@ -156,6 +162,72 @@ export const leagueService = {
     const response = await api.put('/league/settings', settings);
     return response.data.data;
   },
+};
+
+export const leagueStandingsService = {
+  // ==================== League Standings CRUD ====================
+
+  // Tüm standings'leri getir
+  getAllStandings: async () => {
+    const response = await api.get('/league/standings');
+    return response.data.data;
+  },
+
+  // ID'ye göre standing getir
+  getStandingById: async (id: number) => {
+    const response = await api.get(`/league/standings/${id}`);
+    return response.data.data;
+  },
+
+  // Belirli bir lige ait standings'leri getir
+  getStandingsByLeagueId: async (leagueId: number) => {
+    const response = await api.get(`/league/standings/league/${leagueId}`);
+    return response.data.data;
+  },
+
+  // Belirli bir kullanıcıya ait standings'leri getir
+  getStandingsByUserId: async (userId: string) => {
+    const response = await api.get(`/league/standings/user/${userId}`);
+    return response.data.data;
+  },
+
+  // Yeni standing oluştur
+  createStanding: async (data: {
+    leagueRanking: number;
+    description?: string;
+    userId: number;
+    leagueId: number;
+  }) => {
+    const response = await api.post('/league/standings', data);
+    return response.data.data;
+  },
+
+  // Standing güncelle
+  updateStanding: async (id: number, data: {
+    leagueRanking?: number;
+    description?: string;
+  }) => {
+    const response = await api.put(`/league/standings/${id}`, data);
+    return response.data.data;
+  },
+
+  // Standing sil
+  deleteStanding: async (id: number) => {
+    const response = await api.delete(`/league/standings/${id}`);
+    return response.data;
+  },
+
+  // Kullanıcının lig sıralamasını güncelle
+  updateUserRanking: async (leagueId: number, userId: number, newRanking: number) => {
+    const response = await api.put('/league/standings/ranking', {
+      leagueId,
+      userId,
+      newRanking,
+    });
+    return response.data.data;
+  },
+
+  // ==================== Rankings & Match Functions ====================
 
   // Lig sıralamasını getir
   getLeagueRankings: async (leagueId?: number) => {
@@ -218,7 +290,7 @@ export const reservationService = {
     courtNumber: number;
     startTime: string;
     endTime: string;
-    participants?: string[];
+    participantIds?: string[];
     notes?: string;
   }) => {
     const response = await api.post('/reservations', data);

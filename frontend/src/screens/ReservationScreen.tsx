@@ -7,8 +7,11 @@ import {
   Animated,
   TouchableOpacity,
   StatusBar,
+  FlatList,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { MainTabParamList } from '../navigation/MainTabNavigator';
 import {
@@ -22,10 +25,14 @@ import {
   Surface,
   Portal,
   Modal,
+  Searchbar,
+  Snackbar,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Calendar } from 'react-native-calendars';
 import { LinearGradient } from 'expo-linear-gradient';
+import { userService, reservationService } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -38,26 +45,105 @@ const ReservationScreen = () => {
   const [selectedCourt, setSelectedCourt] = useState('');
   const [playerType, setPlayerType] = useState('single');
   const [partnerName, setPartnerName] = useState('');
+  const [selectedPartner, setSelectedPartner] = useState<any>(null);
+  const [selectedOpponents, setSelectedOpponents] = useState<any[]>([]);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [showUserSelector, setShowUserSelector] = useState(false);
+  const [selectorMode, setSelectorMode] = useState<'partner' | 'opponents'>('partner');
   const [currentStep, setCurrentStep] = useState(1);
+  const [users, setUsers] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuccessSnackbar, setShowSuccessSnackbar] = useState(false);
+  const [currentScrollY, setCurrentScrollY] = useState(0);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
+  const scrollViewRef = useRef<ScrollView>(null);
+  const step2Ref = useRef<View>(null);
+  const step3Ref = useRef<View>(null);
+  const step4Ref = useRef<View>(null);
 
+  // Sayfa her açıldığında tüm seçimleri resetle
+  useFocusEffect(
+    React.useCallback(() => {
+      // Tüm state'leri sıfırla
+      setSelectedDate('');
+      setSelectedTime('');
+      setSelectedCourt('');
+      setPlayerType('single');
+      setPartnerName('');
+      setSelectedPartner(null);
+      setSelectedOpponents([]);
+      setCurrentStep(1);
+      setSearchQuery('');
+      setCurrentScrollY(0);
+      
+      // Scroll'u en üste getir
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+      
+      // Animasyonları başlat
+      fadeAnim.setValue(0);
+      slideAnim.setValue(50);
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, [fadeAnim, slideAnim])
+  );
+
+  // Tarih veya saat değiştiğinde seçimleri sıfırla
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
+    // Partner ve rakipleri sıfırla
+    setSelectedPartner(null);
+    setSelectedOpponents([]);
+  }, [selectedDate, selectedTime]);
+
+  // Seçilen tarih ve saate göre müsait kullanıcıları yükle
+  useEffect(() => {
+    const fetchAvailableUsers = async () => {
+      if (!selectedDate || !selectedTime) {
+        // Tarih veya saat seçilmemişse tüm kullanıcıları yükle
+        try {
+          const usersList = await userService.getAllUsers();
+          setUsers(usersList);
+        } catch (error) {
+          console.error('Kullanıcılar yüklenirken hata:', error);
+        }
+        return;
+      }
+
+      // Tarih ve saat seçilmişse o saat aralığında müsait kullanıcıları yükle
+      try {
+        // Tarih ve saati birleştir
+        const [hours, minutes] = selectedTime.split(':');
+        const startDateTime = new Date(selectedDate);
+        startDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+        // Bitiş saatini hesapla (1 saat sonra)
+        const endDateTime = new Date(startDateTime);
+        endDateTime.setHours(startDateTime.getHours() + 1);
+
+        const availableUsersList = await userService.getAvailableUsersForTimeSlot(
+          startDateTime.toISOString(),
+          endDateTime.toISOString()
+        );
+        setUsers(availableUsersList);
+      } catch (error) {
+        console.error('Müsait kullanıcılar yüklenirken hata:', error);
+      }
+    };
+
+    fetchAvailableUsers();
+  }, [selectedDate, selectedTime]);
 
   const availableTimes = [
     '09:00', '10:00', '11:00', '12:00', '13:00', 
@@ -99,30 +185,159 @@ const ReservationScreen = () => {
     },
   ];
 
+  const scrollToStep = (stepRef: React.RefObject<View | null>) => {
+    setTimeout(() => {
+      if (stepRef.current && scrollViewRef.current) {
+        // measureInWindow: elementin ekrandaki pozisyonunu verir
+        stepRef.current.measureInWindow((x, y, width, height) => {
+          if (scrollViewRef.current && y !== undefined) {
+            // y: step'in ekranın üstünden uzaklığı (şu anki scroll pozisyonunda)
+            // currentScrollY: mevcut scroll pozisyonu
+            // Step'i ekranın en üstüne getirmek için: mevcut scroll + step'in ekrandaki pozisyonu
+            const targetScrollY = currentScrollY + y;
+            
+            scrollViewRef.current.scrollTo({ 
+              y: targetScrollY,
+              animated: true 
+            });
+          }
+        });
+      }
+    }, 700);
+  };
+
   const handleDateSelect = (day: any) => {
     setSelectedDate(day.dateString);
     setShowCalendar(false);
-    if (currentStep === 1) setCurrentStep(2);
-  };
-
-  const handleTimeSelect = (time: string) => {
-    setSelectedTime(time);
-    if (currentStep === 2) setCurrentStep(3);
+    if (currentStep === 1) {
+      setCurrentStep(2);
+      scrollToStep(step2Ref);
+    }
   };
 
   const handleCourtSelect = (courtId: string) => {
     setSelectedCourt(courtId);
-    if (currentStep === 3) setCurrentStep(4);
+    if (currentStep === 2) {
+      setCurrentStep(3);
+      scrollToStep(step3Ref);
+    }
   };
 
-  const handleReservation = () => {
-    console.log('Rezervasyon yapıldı:', {
-      date: selectedDate,
-      time: selectedTime,
-      court: selectedCourt,
-      playerType,
-      partnerName,
-    });
+  const handleTimeSelect = (time: string) => {
+    setSelectedTime(time);
+    if (currentStep === 3) {
+      setCurrentStep(4);
+      scrollToStep(step4Ref);
+    }
+  };
+
+  const handleReservation = async () => {
+    try {
+      setIsLoading(true);
+
+      // Court ID'den court number'ı çıkar (court1 -> 1, court2 -> 2, etc.)
+      const courtNumber = parseInt(selectedCourt.replace('court', ''));
+
+      // Tarih ve saati birleştir
+      const [hours, minutes] = selectedTime.split(':');
+      const startDateTime = new Date(selectedDate);
+      startDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+      // Bitiş saatini hesapla (1 saat sonra)
+      const endDateTime = new Date(startDateTime);
+      endDateTime.setHours(startDateTime.getHours() + 1);
+
+      // Participant ID'lerini oluştur
+      const participantIds: string[] = [];
+      
+      if (playerType === 'single' && selectedPartner) {
+        participantIds.push(selectedPartner.id);
+      } else if (playerType === 'double') {
+        if (selectedPartner) {
+          participantIds.push(selectedPartner.id);
+        }
+        selectedOpponents.forEach(opp => participantIds.push(opp.id));
+      }
+
+      // Notes oluştur
+      const notes = playerType === 'single' 
+        ? `Tekler maçı${selectedPartner ? ` - Rakip: ${selectedPartner.name}` : ''}` 
+        : `Çiftler maçı${selectedPartner ? ` - Partner: ${selectedPartner.name}` : ''}${selectedOpponents.length > 0 ? ` - Rakipler: ${selectedOpponents.map(o => o.name).join(', ')}` : ''}`;
+
+      // Backend'e gönder
+      const reservation = await reservationService.createReservation({
+        courtNumber,
+        startTime: startDateTime.toISOString(),
+        endTime: endDateTime.toISOString(),
+        participantIds: participantIds.length > 0 ? participantIds : undefined,
+        notes,
+      });
+
+      setIsLoading(false);
+
+      // Formu temizle
+      setSelectedDate('');
+      setSelectedTime('');
+      setSelectedCourt('');
+      setPlayerType('single');
+      setSelectedPartner(null);
+      setPartnerName('');
+      setSelectedOpponents([]);
+      setCurrentStep(1);
+
+      // Başarılı mesajını göster
+      setShowSuccessSnackbar(true);
+
+      // 2 saniye sonra ana sayfaya yönlendir
+      setTimeout(() => {
+        navigation.navigate('Home');
+      }, 2000);
+    } catch (error: any) {
+      setIsLoading(false);
+      console.error('Rezervasyon hatası:', error);
+      Alert.alert(
+        'Hata',
+        error.response?.data?.message || 'Rezervasyon oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.',
+        [{ text: 'Tamam' }]
+      );
+    }
+  };
+
+  const filteredUsers = users.filter((user) =>
+    user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    user.email?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleUserSelect = (user: any) => {
+    if (selectorMode === 'partner') {
+      setSelectedPartner(user);
+      setPartnerName(user.name);
+      setShowUserSelector(false);
+      setSearchQuery('');
+    } else {
+      // opponents mode - multiple select
+      const isAlreadySelected = selectedOpponents.some(opp => opp.id === user.id);
+      if (isAlreadySelected) {
+        setSelectedOpponents(selectedOpponents.filter(opp => opp.id !== user.id));
+      } else {
+        if (selectedOpponents.length < 2) {
+          setSelectedOpponents([...selectedOpponents, user]);
+        }
+      }
+    }
+  };
+
+  const handleOpponentSelectorClose = () => {
+    setShowUserSelector(false);
+    setSearchQuery('');
+  };
+
+  const handlePlayerTypeChange = (type: string) => {
+    setPlayerType(type);
+    // Oyuncu tipi değiştiğinde seçimleri temizle
+    setSelectedPartner(null);
+    setPartnerName('');
+    setSelectedOpponents([]);
   };
 
   const getStepProgress = () => {
@@ -143,7 +358,13 @@ const ReservationScreen = () => {
   return (
     <>
       <StatusBar backgroundColor="#1B5E20" barStyle="light-content" />
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        ref={scrollViewRef} 
+        style={styles.container} 
+        showsVerticalScrollIndicator={false}
+        onScroll={(event) => setCurrentScrollY(event.nativeEvent.contentOffset.y)}
+        scrollEventThrottle={16}
+      >
         {/* Modern Header with Gradient */}
         <LinearGradient
           colors={['#2E7D32', '#1B5E20', '#0D4A12']}
@@ -237,60 +458,17 @@ const ReservationScreen = () => {
             </Card.Content>
           </Card>
 
-          {/* Step 2: Time Selection */}
+          {/* Step 2: Court Selection */}
           {selectedDate && (
-            <Card style={[styles.stepCard, currentStep >= 2 && styles.activeStepCard]}>
-              <Card.Content>
-                <View style={styles.stepHeader}>
-                  <View style={[styles.stepNumber, currentStep >= 2 && styles.activeStepNumber]}>
-                    <Text style={styles.stepNumberText}>2</Text>
+            <View ref={step2Ref} collapsable={false}>
+              <Card style={[styles.stepCard, currentStep >= 2 && styles.activeStepCard]}>
+                <Card.Content>
+                  <View style={styles.stepHeader}>
+                    <View style={[styles.stepNumber, currentStep >= 2 && styles.activeStepNumber]}>
+                      <Text style={styles.stepNumberText}>2</Text>
+                    </View>
+                    <Title style={styles.stepTitle}>Kort Seçin</Title>
                   </View>
-                  <Title style={styles.stepTitle}>Saat Seçin</Title>
-                </View>
-                
-                <View style={styles.timeGrid}>
-                  {availableTimes.map((time) => (
-                    <TouchableOpacity
-                      key={time}
-                      onPress={() => handleTimeSelect(time)}
-                      style={styles.timeChipContainer}
-                    >
-                      <LinearGradient
-                        colors={selectedTime === time ? ['#2E7D32', '#1B5E20'] : ['#FFFFFF', '#F5F5F5']}
-                        style={[
-                          styles.timeChip,
-                          selectedTime === time && styles.selectedTimeChip
-                        ]}
-                      >
-                        <MaterialCommunityIcons 
-                          name="clock" 
-                          size={16} 
-                          color={selectedTime === time ? "#FFFFFF" : "#757575"} 
-                        />
-                        <Text style={[
-                          styles.timeChipText,
-                          selectedTime === time && styles.selectedTimeChipText
-                        ]}>
-                          {time}
-                        </Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </Card.Content>
-            </Card>
-          )}
-
-          {/* Step 3: Court Selection */}
-          {selectedTime && (
-            <Card style={[styles.stepCard, currentStep >= 3 && styles.activeStepCard]}>
-              <Card.Content>
-                <View style={styles.stepHeader}>
-                  <View style={[styles.stepNumber, currentStep >= 3 && styles.activeStepNumber]}>
-                    <Text style={styles.stepNumberText}>3</Text>
-                  </View>
-                  <Title style={styles.stepTitle}>Kort Seçin</Title>
-                </View>
                 
                 <View style={styles.courtGrid}>
                   {courts.map((court) => (
@@ -336,24 +514,72 @@ const ReservationScreen = () => {
                 </View>
               </Card.Content>
             </Card>
+            </View>
+          )}
+
+          {/* Step 3: Time Selection */}
+          {selectedCourt && (
+            <View ref={step3Ref} collapsable={false}>
+              <Card style={[styles.stepCard, currentStep >= 3 && styles.activeStepCard]}>
+                <Card.Content>
+                  <View style={styles.stepHeader}>
+                    <View style={[styles.stepNumber, currentStep >= 3 && styles.activeStepNumber]}>
+                      <Text style={styles.stepNumberText}>3</Text>
+                    </View>
+                    <Title style={styles.stepTitle}>Saat Seçin</Title>
+                  </View>
+                
+                <View style={styles.timeGrid}>
+                  {availableTimes.map((time) => (
+                    <TouchableOpacity
+                      key={time}
+                      onPress={() => handleTimeSelect(time)}
+                      style={styles.timeChipContainer}
+                    >
+                      <LinearGradient
+                        colors={selectedTime === time ? ['#2E7D32', '#1B5E20'] : ['#FFFFFF', '#F5F5F5']}
+                        style={[
+                          styles.timeChip,
+                          selectedTime === time && styles.selectedTimeChip
+                        ]}
+                      >
+                        <MaterialCommunityIcons 
+                          name="clock" 
+                          size={16} 
+                          color={selectedTime === time ? "#FFFFFF" : "#757575"} 
+                        />
+                        <Text style={[
+                          styles.timeChipText,
+                          selectedTime === time && styles.selectedTimeChipText
+                        ]}>
+                          {time}
+                        </Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </Card.Content>
+            </Card>
+            </View>
           )}
 
           {/* Step 4: Player Type & Final Details */}
-          {selectedCourt && (
-            <Card style={[styles.stepCard, currentStep >= 4 && styles.activeStepCard]}>
-              <Card.Content>
-                <View style={styles.stepHeader}>
+          {selectedTime && (
+            <View ref={step4Ref} collapsable={false}>
+              <Card style={[styles.stepCard, currentStep >= 4 && styles.activeStepCard]}>
+                <Card.Content>
+                  <View style={styles.stepHeader}>
                   <View style={[styles.stepNumber, currentStep >= 4 && styles.activeStepNumber]}>
                     <Text style={styles.stepNumberText}>4</Text>
                   </View>
                   <Title style={styles.stepTitle}>Oyuncu Tipi</Title>
                 </View>
                 
-                <RadioButton.Group onValueChange={setPlayerType} value={playerType}>
+                <RadioButton.Group onValueChange={handlePlayerTypeChange} value={playerType}>
                   <Surface style={styles.radioContainer}>
                     <TouchableOpacity 
                       style={styles.radioOption}
-                      onPress={() => setPlayerType('single')}
+                      onPress={() => handlePlayerTypeChange('single')}
                     >
                       <RadioButton value="single" />
                       <View style={styles.radioContent}>
@@ -364,7 +590,7 @@ const ReservationScreen = () => {
                     
                     <TouchableOpacity 
                       style={styles.radioOption}
-                      onPress={() => setPlayerType('double')}
+                      onPress={() => handlePlayerTypeChange('double')}
                     >
                       <RadioButton value="double" />
                       <View style={styles.radioContent}>
@@ -375,23 +601,115 @@ const ReservationScreen = () => {
                   </Surface>
                 </RadioButton.Group>
 
-                {playerType === 'double' && (
+                {playerType === 'single' && (
                   <View style={styles.partnerSection}>
-                    <Text style={styles.partnerLabel}>Partner Adı</Text>
-                    <TextInput
-                      mode="outlined"
-                      placeholder="Partner adını girin"
-                      value={partnerName}
-                      onChangeText={setPartnerName}
-                      style={styles.textInput}
-                      outlineColor="#E0E0E0"
-                      activeOutlineColor="#2E7D32"
-                      left={<TextInput.Icon icon="account-plus" />}
-                    />
+                    <Text style={styles.partnerLabel}>Rakip Seç</Text>
+                    <TouchableOpacity 
+                      style={styles.userSelector}
+                      onPress={() => {
+                        setSelectorMode('partner');
+                        setShowUserSelector(true);
+                      }}
+                    >
+                      <LinearGradient
+                        colors={selectedPartner ? ['#4CAF50', '#2E7D32'] : ['#FFFFFF', '#F5F5F5']}
+                        style={styles.userSelectorGradient}
+                      >
+                        <MaterialCommunityIcons 
+                          name="account-search" 
+                          size={24} 
+                          color={selectedPartner ? "#FFFFFF" : "#757575"} 
+                        />
+                        <Text style={[
+                          styles.userSelectorText,
+                          selectedPartner && styles.selectedUserText
+                        ]}>
+                          {selectedPartner ? selectedPartner.name : 'Rakip seçmek için tıklayın'}
+                        </Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
                   </View>
+                )}
+
+                {playerType === 'double' && (
+                  <>
+                    <View style={styles.partnerSection}>
+                      <Text style={styles.partnerLabel}>Partner Seç</Text>
+                      <TouchableOpacity 
+                        style={styles.userSelector}
+                        onPress={() => {
+                          setSelectorMode('partner');
+                          setShowUserSelector(true);
+                        }}
+                      >
+                        <LinearGradient
+                          colors={selectedPartner ? ['#4CAF50', '#2E7D32'] : ['#FFFFFF', '#F5F5F5']}
+                          style={styles.userSelectorGradient}
+                        >
+                          <MaterialCommunityIcons 
+                            name="account-search" 
+                            size={24} 
+                            color={selectedPartner ? "#FFFFFF" : "#757575"} 
+                          />
+                          <Text style={[
+                            styles.userSelectorText,
+                            selectedPartner && styles.selectedUserText
+                          ]}>
+                            {selectedPartner ? selectedPartner.name : 'Partner seçmek için tıklayın'}
+                          </Text>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.opponentsSection}>
+                      <Text style={styles.partnerLabel}>Rakipler Seç (2 Kişi)</Text>
+                      <TouchableOpacity 
+                        style={styles.userSelector}
+                        onPress={() => {
+                          setSelectorMode('opponents');
+                          setShowUserSelector(true);
+                        }}
+                      >
+                        <LinearGradient
+                          colors={selectedOpponents.length > 0 ? ['#FF9800', '#F57C00'] : ['#FFFFFF', '#F5F5F5']}
+                          style={styles.userSelectorGradient}
+                        >
+                          <MaterialCommunityIcons 
+                            name="account-multiple" 
+                            size={24} 
+                            color={selectedOpponents.length > 0 ? "#FFFFFF" : "#757575"} 
+                          />
+                          <Text style={[
+                            styles.userSelectorText,
+                            selectedOpponents.length > 0 && styles.selectedUserText
+                          ]}>
+                            {selectedOpponents.length > 0 
+                              ? `${selectedOpponents.length}/2 rakip seçildi` 
+                              : 'Rakipleri seçmek için tıklayın'}
+                          </Text>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                      
+                      {selectedOpponents.length > 0 && (
+                        <View style={styles.selectedOpponentsContainer}>
+                          {selectedOpponents.map((opponent, index) => (
+                            <View key={opponent.id} style={styles.selectedOpponentChip}>
+                              <Text style={styles.selectedOpponentText}>{opponent.name}</Text>
+                              <TouchableOpacity
+                                onPress={() => setSelectedOpponents(selectedOpponents.filter(opp => opp.id !== opponent.id))}
+                              >
+                                <MaterialCommunityIcons name="close-circle" size={20} color="#F57C00" />
+                              </TouchableOpacity>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  </>
                 )}
               </Card.Content>
             </Card>
+            </View>
           )}
 
           {/* Reservation Summary */}
@@ -436,9 +754,37 @@ const ReservationScreen = () => {
                     </View>
                     <Text style={styles.summaryText}>
                       {playerType === 'single' ? 'Tekler' : 'Çiftler'}
-                      {playerType === 'double' && partnerName && ` - ${partnerName}`}
                     </Text>
                   </View>
+
+                  {selectedPartner && (
+                    <View style={styles.summaryRow}>
+                      <View style={styles.summaryIcon}>
+                        <MaterialCommunityIcons 
+                          name={playerType === 'single' ? "account" : "account-heart"} 
+                          size={20} 
+                          color="#2E7D32" 
+                        />
+                      </View>
+                      <Text style={styles.summaryText}>
+                        {playerType === 'single' ? 'Rakip: ' : 'Partner: '}
+                        {selectedPartner.name}
+                      </Text>
+                    </View>
+                  )}
+
+                  {playerType === 'double' && selectedOpponents.length > 0 && (
+                    <View style={styles.summaryRow}>
+                      <View style={styles.summaryIcon}>
+                        <MaterialCommunityIcons name="account-multiple" size={20} color="#FF9800" />
+                      </View>
+                      <View style={styles.summaryTextContainer}>
+                        <Text style={styles.summaryText}>
+                          Rakipler: {selectedOpponents.map(opp => opp.name).join(', ')}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
                 </View>
               </LinearGradient>
             </Card>
@@ -447,28 +793,37 @@ const ReservationScreen = () => {
           {/* Action Button */}
           <TouchableOpacity
             onPress={handleReservation}
-            disabled={!selectedDate || !selectedTime || !selectedCourt}
+            disabled={!selectedDate || !selectedTime || !selectedCourt || isLoading}
             style={[
               styles.reservationButtonContainer,
-              (!selectedDate || !selectedTime || !selectedCourt) && styles.disabledButton
+              (!selectedDate || !selectedTime || !selectedCourt || isLoading) && styles.disabledButton
             ]}
           >
             <LinearGradient
-              colors={(!selectedDate || !selectedTime || !selectedCourt) 
+              colors={(!selectedDate || !selectedTime || !selectedCourt || isLoading) 
                 ? ['#BDBDBD', '#9E9E9E'] 
                 : ['#4CAF50', '#2E7D32']
               }
               style={styles.reservationButton}
             >
-              <MaterialCommunityIcons 
-                name="check-circle" 
-                size={24} 
-                color="#FFFFFF" 
-                style={styles.buttonIcon}
-              />
-              <Text style={styles.reservationButtonText}>
-                Rezervasyonu Onayla
-              </Text>
+              {isLoading ? (
+                <>
+                  <ActivityIndicator size="small" color="#FFFFFF" style={styles.buttonIcon} />
+                  <Text style={styles.reservationButtonText}>İşleniyor...</Text>
+                </>
+              ) : (
+                <>
+                  <MaterialCommunityIcons 
+                    name="check-circle" 
+                    size={24} 
+                    color="#FFFFFF" 
+                    style={styles.buttonIcon}
+                  />
+                  <Text style={styles.reservationButtonText}>
+                    Rezervasyonu Onayla
+                  </Text>
+                </>
+              )}
             </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
@@ -526,7 +881,161 @@ const ReservationScreen = () => {
             </Card.Content>
           </Card>
         </Modal>
+
+        {/* User Selector Modal */}
+        <Modal
+          visible={showUserSelector}
+          onDismiss={() => {
+            setShowUserSelector(false);
+            setSearchQuery('');
+          }}
+          contentContainerStyle={styles.userSelectorModal}
+        >
+          <Card style={styles.userSelectorCard}>
+            <Card.Content>
+              <View style={styles.modalHeader}>
+                <Title style={styles.modalTitle}>
+                  {selectorMode === 'partner' 
+                    ? (playerType === 'single' ? 'Rakip Seç' : 'Partner Seç')
+                    : 'Rakipler Seç (2 Kişi)'}
+                </Title>
+                <TouchableOpacity onPress={handleOpponentSelectorClose}>
+                  <MaterialCommunityIcons name="close" size={24} color="#757575" />
+                </TouchableOpacity>
+              </View>
+
+              {selectorMode === 'opponents' && (
+                <View style={styles.selectedCountInfo}>
+                  <MaterialCommunityIcons name="information" size={20} color="#FF9800" />
+                  <Text style={styles.selectedCountText}>
+                    {selectedOpponents.length}/2 rakip seçildi
+                  </Text>
+                </View>
+              )}
+
+              <Searchbar
+                placeholder="Kullanıcı ara..."
+                onChangeText={setSearchQuery}
+                value={searchQuery}
+                style={styles.searchbar}
+                iconColor={selectorMode === 'opponents' ? "#FF9800" : "#2E7D32"}
+              />
+
+              <FlatList
+                data={filteredUsers}
+                keyExtractor={(item) => item.id.toString()}
+                style={styles.userList}
+                renderItem={({ item }) => {
+                  const isSelected = selectorMode === 'partner' 
+                    ? selectedPartner?.id === item.id
+                    : selectedOpponents.some(opp => opp.id === item.id);
+                  
+                  // Partner modundaysa, rakiplerde seçili olanları disable et
+                  const isDisabledInPartnerMode = selectorMode === 'partner' && 
+                    playerType === 'double' && 
+                    selectedOpponents.some(opp => opp.id === item.id);
+                  
+                  // Opponents modundaysa, partner olarak seçili olanı disable et
+                  const isDisabledInOpponentsMode = selectorMode === 'opponents' && 
+                    selectedPartner?.id === item.id;
+                  
+                  // Opponents modunda 2 kişi seçildiyse ve bu kullanıcı seçili değilse disable et
+                  const isDisabledDueToLimit = selectorMode === 'opponents' && 
+                    selectedOpponents.length >= 2 && 
+                    !isSelected;
+                  
+                  const isDisabled = isDisabledInPartnerMode || 
+                    isDisabledInOpponentsMode || 
+                    isDisabledDueToLimit;
+                  
+                  return (
+                    <TouchableOpacity
+                      style={styles.userItem}
+                      onPress={() => handleUserSelect(item)}
+                      disabled={isDisabled}
+                    >
+                      <View style={[
+                        styles.userItemContent,
+                        isDisabled && styles.disabledUserItem
+                      ]}>
+                        <View style={styles.userAvatar}>
+                          <MaterialCommunityIcons name="account" size={24} color={
+                            isDisabled
+                              ? "#BDBDBD" 
+                              : (selectorMode === 'opponents' ? "#FF9800" : "#2E7D32")
+                          } />
+                        </View>
+                        <View style={styles.userInfo}>
+                          <Text style={[
+                            styles.userName,
+                            isDisabled && styles.disabledText
+                          ]}>
+                            {item.name}
+                            {isDisabledInPartnerMode && ' (Rakip olarak seçili)'}
+                            {isDisabledInOpponentsMode && ' (Partner olarak seçili)'}
+                          </Text>
+                          <Text style={[
+                            styles.userEmail,
+                            isDisabled && styles.disabledText
+                          ]}>{item.email}</Text>
+                        </View>
+                        {isSelected && (
+                          <MaterialCommunityIcons 
+                            name={selectorMode === 'opponents' ? "checkbox-marked-circle" : "check-circle"} 
+                            size={24} 
+                            color={selectorMode === 'opponents' ? "#FF9800" : "#4CAF50"} 
+                          />
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                }}
+                ListEmptyComponent={() => (
+                  <View style={styles.emptyList}>
+                    <MaterialCommunityIcons name="account-search" size={48} color="#BDBDBD" />
+                    <Text style={styles.emptyListText}>Kullanıcı bulunamadı</Text>
+                  </View>
+                )}
+              />
+
+              {selectorMode === 'opponents' && selectedOpponents.length > 0 && (
+                <TouchableOpacity
+                  style={styles.confirmButton}
+                  onPress={handleOpponentSelectorClose}
+                >
+                  <LinearGradient
+                    colors={['#FF9800', '#F57C00']}
+                    style={styles.confirmButtonGradient}
+                  >
+                    <MaterialCommunityIcons name="check" size={24} color="#FFFFFF" />
+                    <Text style={styles.confirmButtonText}>Tamam</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            </Card.Content>
+          </Card>
+        </Modal>
       </Portal>
+
+      {/* Success Snackbar */}
+      <Snackbar
+        visible={showSuccessSnackbar}
+        onDismiss={() => setShowSuccessSnackbar(false)}
+        duration={2000}
+        style={styles.successSnackbar}
+        action={{
+          label: 'Tamam',
+          onPress: () => {
+            setShowSuccessSnackbar(false);
+            navigation.navigate('Home');
+          },
+        }}
+      >
+        <View style={styles.snackbarContent}>
+          <MaterialCommunityIcons name="check-circle" size={24} color="#FFFFFF" />
+          <Text style={styles.snackbarText}>Rezervasyonunuz onaylandı!</Text>
+        </View>
+      </Snackbar>
     </>
   );
 };
@@ -773,15 +1282,172 @@ const styles = StyleSheet.create({
   partnerSection: {
     marginTop: 20,
   },
+  opponentsSection: {
+    marginTop: 20,
+  },
   partnerLabel: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1B1B1B',
     marginBottom: 12,
   },
+  selectedOpponentsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 12,
+    gap: 8,
+  },
+  selectedOpponentChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#FF9800',
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  selectedOpponentText: {
+    color: '#F57C00',
+    fontWeight: '600',
+    marginRight: 8,
+    fontSize: 14,
+  },
   textInput: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
+  },
+  userSelector: {
+    borderRadius: 15,
+    overflow: 'hidden',
+  },
+  userSelectorGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  userSelectorText: {
+    marginLeft: 12,
+    fontSize: 16,
+    color: '#757575',
+    flex: 1,
+  },
+  selectedUserText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  userSelectorModal: {
+    margin: 20,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  userSelectorCard: {
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    maxHeight: height * 0.7,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1B1B1B',
+  },
+  searchbar: {
+    marginBottom: 16,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+  },
+  userList: {
+    maxHeight: height * 0.45,
+  },
+  userItem: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  userItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  userAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#E8F5E8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  userInfo: {
+    flex: 1,
+  },
+  userName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1B1B1B',
+    marginBottom: 4,
+  },
+  userEmail: {
+    fontSize: 14,
+    color: '#757575',
+  },
+  emptyList: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyListText: {
+    fontSize: 16,
+    color: '#BDBDBD',
+    marginTop: 12,
+  },
+  disabledUserItem: {
+    opacity: 0.5,
+  },
+  disabledText: {
+    color: '#BDBDBD',
+  },
+  selectedCountInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  selectedCountText: {
+    fontSize: 14,
+    color: '#F57C00',
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  confirmButton: {
+    marginTop: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  confirmButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+  },
+  confirmButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
   },
   summaryCard: {
     marginBottom: 20,
@@ -829,6 +1495,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     flex: 1,
   },
+  summaryTextContainer: {
+    flex: 1,
+  },
   reservationButtonContainer: {
     marginBottom: 40,
     borderRadius: 16,
@@ -873,6 +1542,25 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#1B1B1B',
+  },
+  successSnackbar: {
+    backgroundColor: '#4CAF50',
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    borderRadius: 12,
+    elevation: 6,
+  },
+  snackbarContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  snackbarText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 12,
   },
 });
 

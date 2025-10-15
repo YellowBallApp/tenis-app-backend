@@ -23,6 +23,7 @@ export class ReservationService {
       const reservations = await this.reservationRepository
         .createQueryBuilder('reservation')
         .leftJoinAndSelect('reservation.user', 'user')
+        .leftJoinAndSelect('reservation.participants', 'participants')
         .where('reservation.startTime >= :start', { start: startOfDay })
         .andWhere('reservation.startTime <= :end', { end: endOfDay })
         .orderBy('reservation.courtNumber', 'ASC')
@@ -40,7 +41,7 @@ export class ReservationService {
     courtNumber: number;
     startTime: Date;
     endTime: Date;
-    participants?: string[];
+    participantIds?: string[];
     notes?: string;
   }) {
     try {
@@ -62,12 +63,21 @@ export class ReservationService {
         throw new Error('Bu zaman diliminde kort zaten rezerve edilmiş');
       }
 
+      // Participant user'ları bul
+      let participants: User[] = [];
+      if (data.participantIds && data.participantIds.length > 0) {
+        participants = await this.userRepository
+          .createQueryBuilder('user')
+          .where('user.id IN (:...ids)', { ids: data.participantIds })
+          .getMany();
+      }
+
       const reservation = this.reservationRepository.create({
         user,
         courtNumber: data.courtNumber,
         startTime: data.startTime,
         endTime: data.endTime,
-        participants: data.participants || [],
+        participants: participants,
         notes: data.notes,
       });
 
@@ -82,7 +92,7 @@ export class ReservationService {
     try {
       const reservations = await this.reservationRepository.find({
         where: { user: { id: userId } },
-        relations: ['user'],
+        relations: ['user', 'participants'],
         order: { startTime: 'DESC' },
       });
 

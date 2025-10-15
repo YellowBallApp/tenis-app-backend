@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import {
   Card,
@@ -22,7 +24,7 @@ import {
   IconButton,
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import { leagueService } from '../services/api';
+import { leagueStandingsService, authService } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
@@ -44,23 +46,75 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
     try {
       setLoading(true);
       
+      // Kullanıcı profilini getir
+      const profileData = await authService.getProfile();
+      
       // Sıralama verilerini getir
-      const rankingsData = await leagueService.getLeagueRankings();
+      const rankingsData = await leagueStandingsService.getLeagueRankings();
       
-      // Kullanıcı bilgisini al (şu an için ilk kullanıcıyı current user olarak kabul ediyoruz)
-      // Gerçek uygulamada AsyncStorage'dan alınmalı
-      const currentUserData = rankingsData[0]; // İlk kullanıcıyı current user yap
-      
-      setPlayers(rankingsData);
-      setCurrentUser({
-        id: currentUserData.user.id,
-        name: currentUserData.user.name,
-        position: currentUserData.position,
-        email: currentUserData.user.email,
-      });
+      // Eğer ranking data boşsa veya kullanıcı yoksa, mock data kullan
+      if (!rankingsData || rankingsData.length === 0) {
+        // Mock current user data
+        setCurrentUser({
+          id: profileData.id,
+          name: profileData.name || 'Oyuncu',
+          position: 1,
+          email: profileData.email,
+        });
+        
+        // Mock players data
+        setPlayers([
+          {
+            user: {
+              id: profileData.id,
+              name: profileData.name || 'Oyuncu',
+              email: profileData.email,
+            },
+            position: 1,
+            description: 'Yeni Oyuncu'
+          }
+        ]);
+      } else {
+        // Gerçek kullanıcıyı rankings'de bul
+        const currentUserRanking = rankingsData.find((r: any) => r.user.id === profileData.id);
+        
+        if (currentUserRanking) {
+          setCurrentUser({
+            id: currentUserRanking.user.id,
+            name: currentUserRanking.user.name,
+            position: currentUserRanking.position,
+            email: currentUserRanking.user.email,
+          });
+        } else {
+          // Kullanıcı rankings'de yoksa, ilk kullanıcıyı kullan
+          const firstUser = rankingsData[0];
+          setCurrentUser({
+            id: firstUser.user.id,
+            name: firstUser.user.name,
+            position: firstUser.position,
+            email: firstUser.user.email,
+          });
+        }
+        
+        setPlayers(rankingsData);
+      }
     } catch (error) {
       console.error('Sıralama yüklenirken hata:', error);
-      Alert.alert('Hata', 'Sıralama verileri yüklenemedi');
+      
+      // Hata durumunda da kullanıcıyı yükle
+      try {
+        const profileData = await authService.getProfile();
+        setCurrentUser({
+          id: profileData.id,
+          name: profileData.name || 'Oyuncu',
+          position: 1,
+          email: profileData.email,
+        });
+        setPlayers([]);
+      } catch (profileError) {
+        console.error('Profil yüklenirken hata:', profileError);
+        Alert.alert('Hata', 'Veri yüklenemedi. Lütfen tekrar deneyin.');
+      }
     } finally {
       setLoading(false);
     }
@@ -127,7 +181,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
     }
 
     try {
-      await leagueService.sendMatchChallenge(
+      await leagueStandingsService.sendMatchChallenge(
         currentUser.id,
         selectedPlayer.user.id,
         challengeMessage
@@ -230,29 +284,29 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
   }
 
   return (
-    <>
-      <ScrollView style={styles.container}>
+    <View style={styles.container}>
+      <ScrollView>
         {/* Header Section */}
         <View style={styles.headerSection}>
           <View style={styles.headerTop}>
-            <IconButton
-              icon="arrow-left"
-              size={24}
-              iconColor="#FFFFFF"
+            <TouchableOpacity 
               onPress={() => navigation.goBack()}
-            />
+              style={styles.backButton}
+            >
+              <MaterialCommunityIcons name="arrow-left" size={28} color="#FFFFFF" />
+            </TouchableOpacity>
             <View style={styles.headerInfo}>
               <Title style={styles.headerTitle}>{lig.name}</Title>
               <Text style={styles.headerSubtitle}>
                 {players.length} oyuncu • 1v1 rekabet
               </Text>
             </View>
-            <IconButton
-              icon="refresh"
-              size={24}
-              iconColor="#FFFFFF"
-              onPress={() => {}}
-            />
+            <TouchableOpacity 
+              onPress={loadRankings}
+              style={styles.refreshButton}
+            >
+              <MaterialCommunityIcons name="refresh" size={28} color="#FFFFFF" />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -351,8 +405,12 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
           contentContainerStyle={styles.modalContainer}
         >
           <Card style={styles.modalCard}>
-            <Card.Content>
-              <View style={styles.modalHeader}>
+            <ScrollView 
+              showsVerticalScrollIndicator={true}
+              style={styles.modalScrollView}
+            >
+              <Card.Content>
+                <View style={styles.modalHeader}>
                 <MaterialCommunityIcons name="sword-cross" size={32} color="#FF9800" />
                 <Title style={styles.modalTitle}>Meydan Okuma Gönder</Title>
                 <TouchableOpacity onPress={() => setShowChallengeModal(false)}>
@@ -410,11 +468,12 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                   </View>
                 </>
               )}
-            </Card.Content>
+              </Card.Content>
+            </ScrollView>
           </Card>
         </Modal>
       </Portal>
-    </>
+    </View>
   );
 };
 
@@ -426,12 +485,24 @@ const styles = StyleSheet.create({
   headerSection: {
     backgroundColor: '#2E7D32',
     padding: 20,
-    paddingTop: 40,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight ? StatusBar.currentHeight + 20 : 50 : 50,
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginRight: 10,
+  },
+  refreshButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginLeft: 10,
   },
   headerInfo: {
     flex: 1,
@@ -654,6 +725,10 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.4,
     shadowRadius: 16,
+    maxHeight: '80%',
+  },
+  modalScrollView: {
+    maxHeight: '100%',
   },
   modalHeader: {
     flexDirection: 'row',
