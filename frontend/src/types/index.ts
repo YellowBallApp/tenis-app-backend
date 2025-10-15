@@ -2,6 +2,10 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  surname?: string;
+  title?: string;
+  phone?: string;
+  gender?: string | null;
 }
 
 export interface AuthTokens {

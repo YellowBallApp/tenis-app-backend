@@ -22,6 +22,7 @@ import {
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { authService } from '../services/api';
+import { User } from '../types';
 
 const { width } = Dimensions.get('window');
 
