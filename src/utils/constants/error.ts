@@ -46,6 +46,21 @@ const rawErrors = {
         code: 1009,
         key: "USER_ALREADY_EXISTS",
         message: "User already exists with this email"
+    },
+    COACH_NOT_FOUND: {
+        code: 1010,
+        key: "COACH_NOT_FOUND",
+        message: "Coach not found"
+    },
+    TOKEN_EXPIRED: {
+        code: 1011,
+        key: "TOKEN_EXPIRED",
+        message: "Access token has expired"
+    },
+    LEAGUE_NOT_FOUND: {
+        code: 1012,
+        key: "LEAGUE_NOT_FOUND",
+        message: "League not found"
     }
 } as const;
 

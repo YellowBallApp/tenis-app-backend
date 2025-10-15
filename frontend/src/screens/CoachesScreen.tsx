@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,6 +7,7 @@ import {
   Linking,
   Alert,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import {
   Card,
@@ -23,6 +24,7 @@ import {
   IconButton,
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
+import { coachService } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -33,81 +35,32 @@ const CoachesScreen = () => {
   const [selectedCoach, setSelectedCoach] = useState<any>(null);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
+  const [coaches, setCoaches] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const coaches = [
-    {
-      id: 1,
-      name: 'Ahmet Yılmaz',
-      specialty: 'Tekler',
-      experience: '15 yıl',
-      rating: 4.8,
-      hourlyRate: '₺200',
-      availability: 'Müsait',
-      bio: 'Profesyonel tenis oyuncusu ve antrenör. ATP turnuvalarında oynamış, şimdi genç yetenekleri yetiştiriyor.',
-      languages: ['Türkçe', 'İngilizce'],
-      certifications: ['ATP Coach', 'ITF Intermediate'],
-      image: 'https://via.placeholder.com/100',
-      phone: '+90 532 123 45 67',
-      reviews: [
-        { id: 1, rating: 5, comment: 'Harika bir antrenör!', user: 'Mehmet A.' },
-        { id: 2, rating: 4, comment: 'Çok sabırlı ve öğretici.', user: 'Ayşe K.' }
-      ],
-    },
-    {
-      id: 2,
-      name: 'Fatma Kaya',
-      specialty: 'Çiftler',
-      experience: '12 yıl',
-      rating: 4.9,
-      hourlyRate: '₺180',
-      availability: 'Müsait',
-      bio: 'Çiftler oyununda uzmanlaşmış antrenör. Takım koordinasyonu ve strateji konularında deneyimli.',
-      languages: ['Türkçe', 'Almanca'],
-      certifications: ['ITF Advanced', 'Doubles Specialist'],
-      image: 'https://via.placeholder.com/100',
-      phone: '+90 535 987 65 43',
-      reviews: [
-        { id: 1, rating: 5, comment: 'Çiftler stratejisinde uzman!', user: 'Ali B.' }
-      ],
-    },
-    {
-      id: 3,
-      name: 'Mehmet Demir',
-      specialty: 'Başlangıç',
-      experience: '8 yıl',
-      rating: 4.7,
-      hourlyRate: '₺150',
-      availability: 'Sınırlı',
-      bio: 'Yeni başlayanlar için ideal antrenör. Sabırlı ve anlayışlı yaklaşımıyla tanınıyor.',
-      languages: ['Türkçe'],
-      certifications: ['ITF Beginner', 'Beginner Specialist'],
-      image: 'https://via.placeholder.com/100',
-      phone: '+90 505 234 56 78',
-      reviews: [
-        { id: 1, rating: 5, comment: 'Başlangıç için mükemmel!', user: 'Zeynep C.' },
-        { id: 2, rating: 4, comment: 'Çok sabırlı bir antrenör.', user: 'Can D.' }
-      ],
-    },
-    {
-      id: 4,
-      name: 'Ayşe Özkan',
-      specialty: 'İleri Seviye',
-      experience: '20 yıl',
-      rating: 5.0,
-      hourlyRate: '₺250',
-      availability: 'Müsait',
-      bio: 'Elite seviye oyuncular için antrenör. Grand Slam turnuvalarında oyuncular yetiştirmiş.',
-      languages: ['Türkçe', 'İngilizce', 'Fransızca'],
-      certifications: ['ATP Elite Coach', 'Grand Slam Experience'],
-      image: 'https://via.placeholder.com/100',
-      phone: '+90 541 876 54 32',
-      reviews: [
-        { id: 1, rating: 5, comment: 'Dünya seviyesinde antrenörlük!', user: 'Emre F.' },
-        { id: 2, rating: 5, comment: 'Profesyonel ve disiplinli.', user: 'Selin G.' },
-        { id: 3, rating: 4, comment: 'İleri seviye için ideal.', user: 'Burak H.' }
-      ],
-    },
-  ];
+  useEffect(() => {
+    loadCoaches();
+  }, []);
+
+  const loadCoaches = async () => {
+    try {
+      setLoading(true);
+      const coachesData = await coachService.getAllCoaches();
+      
+      // Backend'den gelen antrenörleri frontend formatına dönüştür
+      const formattedCoaches = coachesData.map((coach: any) => ({
+        ...coach,
+        reviews: [], // TODO: Review sistemi eklendiğinde buraya eklenecek
+      }));
+      
+      setCoaches(formattedCoaches);
+    } catch (error) {
+      console.error('Antrenörler yüklenirken hata:', error);
+      Alert.alert('Hata', 'Antrenörler yüklenemedi');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filters = [
     { key: 'all', label: 'Tümü' },
@@ -223,6 +176,15 @@ const CoachesScreen = () => {
     );
   };
 
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#2E7D32" />
+        <Text style={{ marginTop: 10, color: '#6C757D' }}>Yükleniyor...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {/* Main ScrollView - Tüm içerik scrollable */}
@@ -327,22 +289,24 @@ const CoachesScreen = () => {
                   ))}
                 </View>
 
-                {/* Reviews Section */}
-                <View style={styles.reviewsSection}>
-                  <Text style={styles.reviewsTitle}>Yorumlar ({coach.reviews.length})</Text>
-                  {coach.reviews.slice(0, 2).map((review: any) => (
-                    <View key={review.id} style={styles.reviewItem}>
-                      <View style={styles.reviewHeader}>
-                        <Text style={styles.reviewUser}>{review.user}</Text>
-                        {renderStars(review.rating, 14)}
+                {/* Reviews Section - Şimdilik yorumlar devre dışı */}
+                {coach.reviews && coach.reviews.length > 0 && (
+                  <View style={styles.reviewsSection}>
+                    <Text style={styles.reviewsTitle}>Yorumlar ({coach.reviews.length})</Text>
+                    {coach.reviews.slice(0, 2).map((review: any) => (
+                      <View key={review.id} style={styles.reviewItem}>
+                        <View style={styles.reviewHeader}>
+                          <Text style={styles.reviewUser}>{review.user}</Text>
+                          {renderStars(review.rating, 14)}
+                        </View>
+                        <Text style={styles.reviewComment}>{review.comment}</Text>
                       </View>
-                      <Text style={styles.reviewComment}>{review.comment}</Text>
-                    </View>
-                  ))}
-                  {coach.reviews.length > 2 && (
-                    <Text style={styles.moreReviews}>+{coach.reviews.length - 2} yorum daha</Text>
-                  )}
-                </View>
+                    ))}
+                    {coach.reviews.length > 2 && (
+                      <Text style={styles.moreReviews}>+{coach.reviews.length - 2} yorum daha</Text>
+                    )}
+                  </View>
+                )}
 
                 <View style={styles.actionButtons}>
                   <Button

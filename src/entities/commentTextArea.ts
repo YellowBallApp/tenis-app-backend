@@ -24,8 +24,8 @@ export class CommentTextArea {
     @UpdateDateColumn()
     updated: Date;
 
-    @ManyToOne(() => User, { nullable: true })
-    user?: User;
+    @ManyToOne(() => User)
+    user: User;
 
     @ManyToOne(() => MatchHistory, { nullable: true })
     matchHistory?: MatchHistory;

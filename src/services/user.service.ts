@@ -22,6 +22,10 @@ const userService = {
     }
     return user;
   },
+
+  findAll: async (): Promise<User[]> => {
+    return await userRepository.findAll();
+  },
 };
 
 export default userService;

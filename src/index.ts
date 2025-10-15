@@ -1,5 +1,7 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import compression from "compression";
 import dotenv from "dotenv";
 import swaggerUi from "swagger-ui-express";
 import { AppDataSource } from "./config/data-source";
@@ -10,10 +12,20 @@ import leagueRoutes from "./routes/league.routes";
 import reservationRoutes from "./routes/reservation.routes";
 import announcementRoutes from "./routes/announcement.routes";
 import tournamentRoutes from "./routes/tournament.routes";
+import coachRoutes from "./routes/coach.routes";
 
 const app = express();
 
 dotenv.config();
+
+// Güvenlik middleware'leri
+app.use(helmet({
+  contentSecurityPolicy: false, // Swagger UI için CSP'yi devre dışı bırak
+  crossOriginEmbedderPolicy: false,
+}));
+
+// Gzip sıkıştırma
+app.use(compression());
 
 app.use(cors({
   origin: ['http://localhost:8081', 'http://localhost:3000', 'http://192.168.1.108:3000', 'http://192.168.1.108:8081'],
@@ -42,6 +54,7 @@ app.use("/api/league", leagueRoutes);
 app.use("/api/reservations", reservationRoutes);
 app.use("/api/announcements", announcementRoutes);
 app.use("/api/tournaments", tournamentRoutes);
+app.use("/api/coaches", coachRoutes);
 
 const authMiddleware = express.Router();
 

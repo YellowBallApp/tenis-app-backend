@@ -109,12 +109,49 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               description: 'Lig açıklaması',
             },
+            leagueSettingsTemplates: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/LeagueSettingsTemplate',
+              },
+              description: 'Lig ayar şablonları',
+            },
+          },
+        },
+        LeagueStandings: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'number',
+              description: 'Sıralama ID',
+            },
+            description: {
+              type: 'string',
+              description: 'Sıralama açıklaması',
+            },
             leagueRanking: {
               type: 'number',
-              description: 'Lig sıralaması',
+              description: 'Lig sıralaması (pozisyon)',
             },
             user: {
               $ref: '#/components/schemas/User',
+            },
+          },
+        },
+        LeagueSettingsTemplate: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'number',
+              description: 'Şablon ID',
+            },
+            code: {
+              type: 'string',
+              description: 'Şablon kodu',
+            },
+            description: {
+              type: 'string',
+              description: 'Şablon açıklaması',
             },
           },
         },

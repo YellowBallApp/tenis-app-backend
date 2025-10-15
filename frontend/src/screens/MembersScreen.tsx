@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
   ScrollView,
   Dimensions,
   StatusBar,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import {
   Card,
@@ -18,6 +20,7 @@ import {
   IconButton,
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
+import { userService } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -25,6 +28,42 @@ const MembersScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [members, setMembers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadMembers();
+  }, []);
+
+  const loadMembers = async () => {
+    try {
+      setLoading(true);
+      const usersData = await userService.getAllUsers();
+      
+      // Backend'den gelen kullanıcıları members formatına dönüştür
+      const formattedMembers = usersData.map((user: any) => ({
+        id: user.id,
+        name: user.name + (user.surname ? ` ${user.surname}` : ''),
+        level: user.title || 'Üye',
+        status: 'Aktif',
+        surface: 'Sert',
+        matchesPlayed: 0, // TODO: Match history'den hesaplanacak
+        winRate: 0, // TODO: Match history'den hesaplanacak
+        lastActive: new Date(user.createdAt).toLocaleDateString('tr-TR'),
+        email: user.email,
+        phone: user.phone,
+        gender: user.gender,
+        achievements: [],
+      }));
+      
+      setMembers(formattedMembers);
+    } catch (error) {
+      console.error('Üyeler yüklenirken hata:', error);
+      Alert.alert('Hata', 'Üyeler yüklenemedi');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // İsim ve soyisimin ilk harflerini almak için fonksiyon
   const getInitials = (name: string) => {
@@ -34,81 +73,6 @@ const MembersScreen = () => {
     }
     return nameParts[0].charAt(0).toUpperCase();
   };
-
-  const members = [
-    {
-      id: 1,
-      name: 'Ahmet Yılmaz',
-      level: 'İleri',
-      status: 'Aktif',
-      surface: 'Sert',
-      matchesPlayed: 45,
-      winRate: 78,
-      lastActive: '2 saat önce',
-      image: 'https://via.placeholder.com/100',
-      achievements: ['🏆 Turnuva Şampiyonu', '⭐ En İyi Gelişim'],
-    },
-    {
-      id: 2,
-      name: 'Fatma Kaya',
-      level: 'Orta',
-      status: 'Aktif',
-      surface: 'Toprak',
-      matchesPlayed: 32,
-      winRate: 65,
-      lastActive: '1 gün önce',
-      image: 'https://via.placeholder.com/100',
-      achievements: ['🎯 Seri Kazanan', '🤝 Takım Oyuncusu'],
-    },
-    {
-      id: 3,
-      name: 'Mehmet Demir',
-      level: 'Başlangıç',
-      status: 'Yeni',
-      surface: 'Çim',
-      matchesPlayed: 8,
-      winRate: 45,
-      lastActive: '3 gün önce',
-      image: 'https://via.placeholder.com/100',
-      achievements: ['🌱 Yeni Yetenek'],
-    },
-    {
-      id: 4,
-      name: 'Ayşe Özkan',
-      level: 'Uzman',
-      status: 'Aktif',
-      surface: 'Sert',
-      matchesPlayed: 89,
-      winRate: 82,
-      lastActive: '5 saat önce',
-      image: 'https://via.placeholder.com/100',
-      achievements: ['👑 Sezon Şampiyonu', '💎 Elit Oyuncu'],
-    },
-    {
-      id: 5,
-      name: 'Ali Veli',
-      level: 'Orta',
-      status: 'Pasif',
-      surface: 'Toprak',
-      matchesPlayed: 28,
-      winRate: 58,
-      lastActive: '1 hafta önce',
-      image: 'https://via.placeholder.com/100',
-      achievements: ['📈 Sürekli Gelişim'],
-    },
-    {
-      id: 6,
-      name: 'Zeynep Arslan',
-      level: 'İleri',
-      status: 'Aktif',
-      surface: 'Çim',
-      matchesPlayed: 56,
-      winRate: 71,
-      lastActive: '1 gün önce',
-      image: 'https://via.placeholder.com/100',
-      achievements: ['🎾 Çim Ustası', '🔥 Form Oyuncusu'],
-    },
-  ];
 
   const filters = [
     { key: 'all', label: 'Tümü' },
@@ -268,6 +232,15 @@ const MembersScreen = () => {
       </Card.Content>
     </Card>
   );
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#2E7D32" />
+        <Text style={{ marginTop: 10, color: '#6C757D' }}>Yükleniyor...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

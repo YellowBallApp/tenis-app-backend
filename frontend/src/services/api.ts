@@ -35,6 +35,7 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     
+    // Token expired veya unauthorized durumunda
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       
@@ -49,13 +50,16 @@ api.interceptors.response.use(
           await AsyncStorage.setItem('accessToken', accessToken);
           await AsyncStorage.setItem('refreshToken', newRefreshToken);
           
+          // Yeni access token ile tekrar dene
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
           return api(originalRequest);
         }
       } catch (refreshError) {
         // Refresh token da geçersiz, kullanıcıyı logout yap
+        console.error('Refresh token error:', refreshError);
         await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
         // Burada navigation ile login ekranına yönlendirme yapılabilir
+        return Promise.reject(refreshError);
       }
     }
     
@@ -84,7 +88,63 @@ export const authService = {
   },
 };
 
+export const userService = {
+  // Tüm kullanıcıları getir (Members screen için)
+  getAllUsers: async () => {
+    const response = await api.get('/user/all');
+    return response.data.data;
+  },
+};
+
+export const coachService = {
+  // Tüm antrenörleri getir
+  getAllCoaches: async () => {
+    const response = await api.get('/coaches');
+    return response.data.data;
+  },
+
+  // Belirli bir antrenörü getir
+  getCoachById: async (id: string) => {
+    const response = await api.get(`/coaches/${id}`);
+    return response.data.data;
+  },
+};
+
 export const leagueService = {
+  // ==================== League Entity CRUD ====================
+  
+  // Tüm ligleri getir
+  getAllLeagues: async () => {
+    const response = await api.get('/league/all');
+    return response.data.data;
+  },
+
+  // Belirli bir ligi getir
+  getLeagueById: async (id: number) => {
+    const response = await api.get(`/league/entity/${id}`);
+    return response.data.data;
+  },
+
+  // Yeni lig oluştur
+  createLeague: async (data: { description?: string }) => {
+    const response = await api.post('/league/create', data);
+    return response.data.data;
+  },
+
+  // Lig güncelle
+  updateLeague: async (id: number, data: { description?: string }) => {
+    const response = await api.put(`/league/entity/${id}`, data);
+    return response.data.data;
+  },
+
+  // Lig sil
+  deleteLeague: async (id: number) => {
+    const response = await api.delete(`/league/entity/${id}`);
+    return response.data;
+  },
+
+  // ==================== League Settings & Standings ====================
+
   // Lig ayarlarını getir
   getLeagueSettings: async () => {
     const response = await api.get('/league/settings');
@@ -98,20 +158,23 @@ export const leagueService = {
   },
 
   // Lig sıralamasını getir
-  getLeagueRankings: async () => {
-    const response = await api.get('/league/rankings');
+  getLeagueRankings: async (leagueId?: number) => {
+    const params = leagueId ? { leagueId } : {};
+    const response = await api.get('/league/rankings', { params });
     return response.data.data;
   },
 
   // Kullanıcının lig bilgilerini getir
-  getUserLeagueInfo: async (userId: string) => {
-    const response = await api.get(`/league/user/${userId}`);
+  getUserLeagueInfo: async (userId: string, leagueId?: number) => {
+    const params = leagueId ? { leagueId } : {};
+    const response = await api.get(`/league/user/${userId}`, { params });
     return response.data.data;
   },
 
   // Teklif yapılabilecek oyuncuları getir
-  getAvailableOpponents: async (userId: string) => {
-    const response = await api.get(`/league/available-opponents/${userId}`);
+  getAvailableOpponents: async (userId: string, leagueId?: number) => {
+    const params = leagueId ? { leagueId } : {};
+    const response = await api.get(`/league/available-opponents/${userId}`, { params });
     return response.data.data;
   },
 

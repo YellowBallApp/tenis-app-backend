@@ -27,6 +27,14 @@ const userRepository = {
     return user;
   },
 
+  findAll: async (): Promise<User[]> => {
+    return await repository.find({
+      order: {
+        createdAt: 'DESC'
+      }
+    });
+  },
+
 };
 
 export default userRepository;

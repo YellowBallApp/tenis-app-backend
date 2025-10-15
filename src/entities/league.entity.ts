@@ -1,32 +1,27 @@
 import {Entity,
-PrimaryGeneratedColumn,
-Column,
-OneToOne,
-JoinColumn,
-OneToMany
-} from 'typeorm';
-import { User } from './user.entity';
-import { MatchHistory } from './matchHistory.entity';
-import { LeagueSettingsTemplate } from './leagueSettingsTemplate';
-
-
-
-@Entity()
-export class League {
-@PrimaryGeneratedColumn()
-id: number;
-
-@Column({ type: 'text', nullable: true })
-description?: string;
-
-@Column({ type: 'int' })
-leagueRanking: number;
-
-@OneToOne(() => User)
-@JoinColumn()
-user: User;
-
-@OneToMany(() => LeagueSettingsTemplate, template => template.leagueEntity)
-  leagueSettingsTemplates: LeagueSettingsTemplate[];
-
-}
+    PrimaryGeneratedColumn,
+    Column,
+    OneToMany
+    } from 'typeorm';
+    import { LeagueSettingsTemplate } from './leagueSettingsTemplate';
+    import { LeagueStandings } from './leagueStandings.entity';
+    
+    
+    
+    @Entity('league')
+    export class League {
+    @PrimaryGeneratedColumn()
+    id: number;
+    
+    @Column({ type: 'text', nullable: true })
+    description?: string;
+    
+    @OneToMany(() => LeagueSettingsTemplate, template => template.leagueEntity)
+    leagueSettingsTemplates: LeagueSettingsTemplate[];
+    
+    @OneToMany(() => LeagueStandings, standing => standing.league)
+    standings: LeagueStandings[];
+    
+    }
+    
+    

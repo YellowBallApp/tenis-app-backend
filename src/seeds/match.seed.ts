@@ -18,35 +18,44 @@ export const seedMatches = async () => {
   // Örnek maçlar
   const matches = [
     {
-      winner: users[0],
-      loser: users[1],
+      winners: [users[0]],
+      losers: [users[1]],
       score: '4-2, 4-3',
       matchDate: new Date('2025-01-15'),
     },
     {
-      winner: users[2],
-      loser: users[3],
+      winners: [users[2]],
+      losers: [users[3]],
       score: '4-1, 4-2',
       matchDate: new Date('2025-01-16'),
     },
     {
-      winner: users[0],
-      loser: users[2],
+      winners: [users[0]],
+      losers: [users[2]],
       score: '4-3, 3-4, 10-8',
       matchDate: new Date('2025-01-20'),
     },
     {
-      winner: users[1],
-      loser: users[3],
+      winners: [users[1]],
+      losers: [users[3]],
       score: '4-0, 4-1',
       matchDate: new Date('2025-01-22'),
+    },
+    // Çiftler maçı örneği
+    {
+      winners: [users[0], users[1]],
+      losers: [users[2], users[3]],
+      score: '4-2, 4-1',
+      matchDate: new Date('2025-01-25'),
     },
   ];
 
   for (const matchData of matches) {
     const match = matchRepository.create(matchData);
     await matchRepository.save(match);
-    console.log(`✅ ${matchData.winner.name} vs ${matchData.loser.name} (Kazanan: ${matchData.winner.name})`);
+    const winnerNames = matchData.winners.map(w => w.name).join(' & ');
+    const loserNames = matchData.losers.map(l => l.name).join(' & ');
+    console.log(`✅ ${winnerNames} vs ${loserNames} (Kazanan: ${winnerNames})`);
   }
 
   console.log('✅ Maç geçmişi oluşturuldu!');

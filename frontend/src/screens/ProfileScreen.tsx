@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,6 +6,7 @@ import {
   Dimensions,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import {
   Card,
@@ -36,6 +37,8 @@ const ProfileScreen = () => {
   const navigation = useNavigation<ProfileScreenNavigationProp>();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
   
   // Modal states
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
@@ -50,18 +53,39 @@ const ProfileScreen = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  const user = {
-    name: 'Ahmet Yılmaz',
-    email: 'ahmet.yilmaz@email.com',
-    level: 'İleri',
-    rank: 'Altın',
-    points: 1250,
-    matchesPlayed: 45,
-    matchesWon: 32,
-    winRate: 71,
-    joinDate: 'Mart 2023',
-    membershipType: 'Premium',
-    nextRenewal: '15 Nisan 2024',
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const loadProfile = async () => {
+    try {
+      setLoading(true);
+      const profileData = await authService.getProfile();
+      
+      // Backend'den gelen profil verisini UI formatına dönüştür
+      const formattedUser = {
+        name: profileData.name,
+        email: profileData.email,
+        phone: profileData.phone,
+        surname: profileData.surname,
+        level: profileData.title || 'Üye',
+        rank: 'Altın', // TODO: Rank sistemi eklenecek
+        points: 0, // TODO: Match history'den hesaplanacak
+        matchesPlayed: 0, // TODO: Match history'den hesaplanacak
+        matchesWon: 0, // TODO: Match history'den hesaplanacak
+        winRate: 0, // TODO: Match history'den hesaplanacak
+        joinDate: new Date(profileData.createdAt).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' }),
+        membershipType: 'Premium',
+        nextRenewal: '15 Nisan 2024',
+      };
+      
+      setUser(formattedUser);
+    } catch (error) {
+      console.error('Profil yüklenirken hata:', error);
+      Alert.alert('Hata', 'Profil bilgileri yüklenemedi');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const achievements = [
@@ -77,9 +101,11 @@ const ProfileScreen = () => {
   ];
 
   const openEditProfile = () => {
-    setEditName(user.name);
-    setEditEmail(user.email);
-    setShowEditProfileModal(true);
+    if (user) {
+      setEditName(user.name);
+      setEditEmail(user.email);
+      setShowEditProfileModal(true);
+    }
   };
 
   const handleLogout = async () => {
@@ -152,6 +178,15 @@ const ProfileScreen = () => {
       default: return '#6C757D';
     }
   };
+
+  if (loading || !user) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#2E7D32" />
+        <Text style={{ marginTop: 10, color: '#6C757D' }}>Yükleniyor...</Text>
+      </View>
+    );
+  }
 
   return (
     <>

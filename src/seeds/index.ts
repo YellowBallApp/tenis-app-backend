@@ -1,9 +1,12 @@
 import { AppDataSource } from "../config/data-source";
 import { seedUsers } from "./user.seed";
 import { seedLeagues } from "./league.seed";
+import { seedLeagueEntities } from "./leagueEntity.seed";
 import { seedMatches } from "./match.seed";
 import { seedReservations } from "./reservation.seed";
 import { seedAnnouncements } from "./announcement.seed";
+import { seedComments } from "./comment.seed";
+import { seedCoaches } from "./coach.seed";
 
 async function runSeeds() {
     const queryRunner = AppDataSource.createQueryRunner();
@@ -14,10 +17,13 @@ async function runSeeds() {
         await queryRunner.startTransaction();
 
         await seedUsers();
+        await seedLeagueEntities();
         await seedLeagues();
         await seedMatches();
         await seedReservations();
         await seedAnnouncements();
+        await seedComments();
+        await seedCoaches();
 
         console.log("\n✅ Seeding completed successfully!");
 
