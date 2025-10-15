@@ -38,13 +38,13 @@ export class ReservationController {
   createReservation = async (req: Request, res: Response) => {
     try {
       const userId = (req as any).userId; // authMiddleware'den geliyor
-      const { courtNumber, startTime, endTime, participants, notes } = req.body;
+      const { courtNumber, startTime, endTime, participantIds, notes } = req.body;
 
       const reservation = await this.reservationService.createReservation(userId, {
         courtNumber,
         startTime: new Date(startTime),
         endTime: new Date(endTime),
-        participants,
+        participantIds,
         notes,
       });
 

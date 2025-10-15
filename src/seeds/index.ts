@@ -1,7 +1,7 @@
 import { AppDataSource } from "../config/data-source";
 import { seedUsers } from "./user.seed";
 import { seedLeagues } from "./league.seed";
-import { seedLeagueEntities } from "./leagueEntity.seed";
+import { seedLeagueStandings } from "./leagueStandings.seed";
 import { seedMatches } from "./match.seed";
 import { seedReservations } from "./reservation.seed";
 import { seedAnnouncements } from "./announcement.seed";
@@ -17,8 +17,8 @@ async function runSeeds() {
         await queryRunner.startTransaction();
 
         await seedUsers();
-        await seedLeagueEntities();
         await seedLeagues();
+        await seedLeagueStandings();
         await seedMatches();
         await seedReservations();
         await seedAnnouncements();

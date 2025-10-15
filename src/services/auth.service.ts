@@ -126,16 +126,18 @@ const authService = {
   const newAccessToken = sign(payload, jwtSecret, { expiresIn: "1h" });
   const newRefreshToken = sign(payload, refreshSecret, { expiresIn: "1d" });
 
+  // Önce eski token'ı sil
+  await refreshTokenRepo.delete({ token });
+
+  // Sonra yeni token'ı kaydet (expiresAt'i güncelle)
   await refreshTokenRepo.save({
     token: newRefreshToken,
     userId: id,
     sessionId: stored.sessionId,
     ipAddress: stored.ipAddress,
     userAgent: stored.userAgent,
-    expiresAt: stored.expiresAt, 
+    expiresAt: dayjs().add(1, "day").toDate(), 
   });
-
-  await refreshTokenRepo.delete({ token });
 
   return { accessToken: newAccessToken, refreshToken: newRefreshToken };
 },

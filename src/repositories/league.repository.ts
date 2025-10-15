@@ -4,7 +4,7 @@ import { League } from "../entities/league.entity";
 
 const repository = AppDataSource.getRepository(League);
 
-const leagueEntityRepository = {
+const leagueRepository = {
   create: async (leagueData: Partial<League>): Promise<League> => {
     const league = repository.create(leagueData);
     return await repository.save(league);
@@ -13,7 +13,7 @@ const leagueEntityRepository = {
   findById: async (id: number): Promise<League> => {
     const league = await repository.findOne({
       where: { id },
-      relations: ['leagueSettingsTemplates'],
+      relations: ['leagueSettingsTemplates', 'standings'],
     });
     if (!league) throw new AppError("LEAGUE_NOT_FOUND");
     return league;
@@ -21,7 +21,7 @@ const leagueEntityRepository = {
 
   findAll: async (): Promise<League[]> => {
     return await repository.find({
-      relations: ['leagueSettingsTemplates'],
+      relations: ['leagueSettingsTemplates', 'standings'],
       order: {
         id: 'DESC'
       }
@@ -42,5 +42,5 @@ const leagueEntityRepository = {
   },
 };
 
-export default leagueEntityRepository;
+export default leagueRepository;
 

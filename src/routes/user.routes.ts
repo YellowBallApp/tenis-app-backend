@@ -59,4 +59,43 @@ router.get("/profile", authMiddleware, userController.getProfile);
  */
 router.get("/all", authMiddleware, userController.getAllUsers);
 
+/**
+ * @swagger
+ * /api/user/available:
+ *   get:
+ *     summary: Belirli bir tarihte rezervasyonu olmayan kullanıcıları getir
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: '2024-01-15'
+ *         description: Tarih (YYYY-MM-DD formatında)
+ *     responses:
+ *       200:
+ *         description: Müsait kullanıcı listesi
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Geçersiz tarih formatı
+ *       401:
+ *         description: Yetkisiz erişim
+ */
+router.get("/available", authMiddleware, userController.getAvailableUsersForDate);
+
 export default router;

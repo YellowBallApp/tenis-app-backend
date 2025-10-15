@@ -7,6 +7,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  SafeAreaView,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import {
   Card,
@@ -42,9 +45,9 @@ const DefiLigScreen = ({ navigation }: any) => {
       
       // Backend'den gelen profil verisini UI formatına dönüştür
       const formattedUser = {
-        name: profileData.name + (profileData.surname ? ` ${profileData.surname}` : ''),
+        name: profileData.name || 'Oyuncu',
         email: profileData.email,
-        level: profileData.title || 'Üye',
+        level: 'Üye',
         rank: 'Altın', // TODO: Rank sistemi eklenecek
         points: 0, // TODO: Match history'den hesaplanacak
         position: 0, // TODO: League ranking'den alınacak
@@ -98,11 +101,17 @@ const DefiLigScreen = ({ navigation }: any) => {
   }
 
   return (
-    <>
-      <ScrollView style={styles.container}>
+    <View style={styles.container}>
+      <ScrollView>
         {/* Header Section */}
         <View style={styles.headerSection}>
           <View style={styles.headerTop}>
+            <TouchableOpacity 
+              onPress={() => navigation.goBack()}
+              style={styles.backButton}
+            >
+              <MaterialCommunityIcons name="arrow-left" size={28} color="#FFFFFF" />
+            </TouchableOpacity>
             <View style={styles.headerTextContainer}>
               <Title style={styles.headerTitle}>🏆 Defi Lig</Title>
               <Text style={styles.headerSubtitle}>
@@ -249,6 +258,33 @@ const DefiLigScreen = ({ navigation }: any) => {
             </Card>
           </View>
         </View>
+
+        {/* Recent Achievements */}
+        <View style={styles.achievementsSection}>
+          <Title style={styles.sectionTitle}>Son Başarılar</Title>
+          <Card style={styles.achievementCard}>
+            <Card.Content>
+              <View style={styles.achievementItem}>
+                <MaterialCommunityIcons name="trophy-award" size={40} color="#FFD700" />
+                <View style={styles.achievementInfo}>
+                  <Text style={styles.achievementTitle}>İlk Zafer!</Text>
+                  <Text style={styles.achievementDescription}>İlk Defi Lig maçını kazandınız</Text>
+                </View>
+              </View>
+            </Card.Content>
+          </Card>
+          <Card style={styles.achievementCard}>
+            <Card.Content>
+              <View style={styles.achievementItem}>
+                <MaterialCommunityIcons name="fire" size={40} color="#FF6B35" />
+                <View style={styles.achievementInfo}>
+                  <Text style={styles.achievementTitle}>Seri Kazanan</Text>
+                  <Text style={styles.achievementDescription}>3 maç üst üste kazandınız</Text>
+                </View>
+              </View>
+            </Card.Content>
+          </Card>
+        </View>
       </ScrollView>
 
       {/* Lig Detay Modal */}
@@ -259,10 +295,14 @@ const DefiLigScreen = ({ navigation }: any) => {
           contentContainerStyle={styles.modalContainer}
         >
           <Card style={styles.modalCard}>
-            <Card.Content>
-              {selectedLig && (
-                <>
-                  <View style={styles.modalHeader}>
+            <ScrollView 
+              showsVerticalScrollIndicator={true}
+              style={styles.modalScrollView}
+            >
+              <Card.Content>
+                {selectedLig && (
+                  <>
+                    <View style={styles.modalHeader}>
                     <View style={[styles.modalIcon, { backgroundColor: selectedLig.color }]}>
                       <MaterialCommunityIcons 
                         name={selectedLig.icon as any} 
@@ -322,11 +362,12 @@ const DefiLigScreen = ({ navigation }: any) => {
                   </View>
                 </>
               )}
-            </Card.Content>
+              </Card.Content>
+            </ScrollView>
           </Card>
         </Modal>
       </Portal>
-    </>
+    </View>
   );
 };
 
@@ -338,7 +379,7 @@ const styles = StyleSheet.create({
   headerSection: {
     backgroundColor: '#2E7D32',
     padding: 20,
-    paddingTop: 40,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight ? StatusBar.currentHeight + 20 : 50 : 50,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
     shadowColor: '#000',
@@ -354,6 +395,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginRight: 10,
   },
   headerTextContainer: {
     flex: 1,
@@ -376,6 +423,7 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginLeft: 10,
   },
   currentUserSection: {
     padding: 20,
@@ -521,7 +569,7 @@ const styles = StyleSheet.create({
   },
   statsSection: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 10,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -560,6 +608,44 @@ const styles = StyleSheet.create({
     color: '#6C757D',
     textAlign: 'center',
   },
+  achievementsSection: {
+    padding: 20,
+    paddingTop: 10,
+    paddingBottom: 40,
+  },
+  achievementCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 15,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  achievementItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  achievementInfo: {
+    marginLeft: 15,
+    flex: 1,
+  },
+  achievementTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1B1B1B',
+    marginBottom: 4,
+  },
+  achievementDescription: {
+    fontSize: 13,
+    color: '#6C757D',
+  },
   modalContainer: {
     margin: 20,
     flex: 1,
@@ -576,6 +662,10 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.4,
     shadowRadius: 16,
+    maxHeight: '80%',
+  },
+  modalScrollView: {
+    maxHeight: '100%',
   },
   modalHeader: {
     flexDirection: 'row',

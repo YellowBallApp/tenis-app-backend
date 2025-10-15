@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, ManyToMany, JoinTable, CreateDateColumn, JoinColumn } from 'typeorm';
 import { User } from './user.entity';
 
 @Entity('reservation')
@@ -19,8 +19,13 @@ export class Reservation {
   @Column({ type: 'timestamp' })
   endTime: Date;
 
-  @Column({ type: 'jsonb', nullable: true })
-  participants: string[]; // Diğer katılımcıların isimleri
+  @ManyToMany(() => User, { nullable: true })
+  @JoinTable({
+    name: 'reservation_participants',
+    joinColumn: { name: 'reservationId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'userId', referencedColumnName: 'id' }
+  })
+  participants: User[]; // Diğer katılımcılar (User array)
 
   @Column({ type: 'text', nullable: true })
   notes: string;
