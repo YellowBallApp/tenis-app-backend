@@ -1,4 +1,4 @@
-import { League } from './league.entity';
+import { LeagueStandings } from './leagueStandings.entity';
 import { LeagueSettings } from './leagueSettings';
 import {
 Entity,
@@ -10,6 +10,7 @@ JoinColumn,
 CreateDateColumn,
 UpdateDateColumn
 } from 'typeorm';
+import { League } from './league.entity';
 
 @Entity()
 export class LeagueSettingsTemplate {

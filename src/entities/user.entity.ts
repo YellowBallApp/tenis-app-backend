@@ -1,8 +1,7 @@
 import { 
     Entity, PrimaryGeneratedColumn, Column,
-    UpdateDateColumn, CreateDateColumn, DeleteDateColumn, OneToMany
+    UpdateDateColumn, CreateDateColumn, DeleteDateColumn
   } from "typeorm";
-  import { MatchHistory } from './matchHistory.entity';
   
   @Entity("user")
   export class User {
@@ -39,9 +38,6 @@ import {
     //TODO: Temporarly will be used as Role, later need to implement role.entity
     @Column({ type: 'varchar', length: 100, nullable: true })
     title: string;
-    
-    @OneToMany(() => MatchHistory, matchHistory => matchHistory.user)
-    matchHistories?: MatchHistory[];
     
   }
   

@@ -33,6 +33,8 @@ export class AppError extends Error {
   private getDefaultStatusCode(errorCode: number): number {
     if (errorCode === 1003) return 401; // UNAUTHORIZED
     if (errorCode === 1004) return 403; // FORBIDDEN
+    if (errorCode === 1006) return 401; // INVALID_REFRESH_TOKEN
+    if (errorCode === 1011) return 401; // TOKEN_EXPIRED
 
     const category = Math.floor(errorCode / 1000);
     const isNotFound = errorCode % 10 === 3;

@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
   ScrollView,
   Dimensions,
   TouchableOpacity,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import {
   Card,
@@ -19,21 +21,44 @@ import {
   Divider,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { authService } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
 const DefiLigScreen = ({ navigation }: any) => {
   const [showLigModal, setShowLigModal] = useState(false);
   const [selectedLig, setSelectedLig] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const currentUser = {
-    name: 'Ahmet Emin Kahraman',
-    level: 'İleri',
-    rank: 'Altın',
-    points: 1250,
-    position: 12,
-    winRate: 78,
-    matchesPlayed: 45,
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      setLoading(true);
+      const profileData = await authService.getProfile();
+      
+      // Backend'den gelen profil verisini UI formatına dönüştür
+      const formattedUser = {
+        name: profileData.name + (profileData.surname ? ` ${profileData.surname}` : ''),
+        email: profileData.email,
+        level: profileData.title || 'Üye',
+        rank: 'Altın', // TODO: Rank sistemi eklenecek
+        points: 0, // TODO: Match history'den hesaplanacak
+        position: 0, // TODO: League ranking'den alınacak
+        winRate: 0, // TODO: Match history'den hesaplanacak
+        matchesPlayed: 0, // TODO: Match history'den hesaplanacak
+      };
+      
+      setCurrentUser(formattedUser);
+    } catch (error) {
+      console.error('Kullanıcı verisi yüklenirken hata:', error);
+      Alert.alert('Hata', 'Kullanıcı bilgileri yüklenemedi');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const defiLig = {
@@ -62,6 +87,15 @@ const DefiLigScreen = ({ navigation }: any) => {
     // Navigate to Lig Sıralama screen
     navigation.navigate('LigSiralama', { lig: defiLig });
   };
+
+  if (loading || !currentUser) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#2E7D32" />
+        <Text style={{ marginTop: 10, color: '#6C757D' }}>Yükleniyor...</Text>
+      </View>
+    );
+  }
 
   return (
     <>

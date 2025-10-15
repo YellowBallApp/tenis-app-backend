@@ -1,19 +1,19 @@
 import { AppDataSource } from '../config/data-source';
-import { League } from '../entities/league.entity';
+import { LeagueStandings } from '../entities/leagueStandings.entity';
 import { LeagueSettings } from '../entities/leagueSettings';
 import { LeagueSettingsTemplate } from '../entities/leagueSettingsTemplate';
 import { User } from '../entities/user.entity';
 import { MatchHistory } from '../entities/matchHistory.entity';
 
 export class LeagueService {
-  private leagueRepository;
+  private leagueStandingsRepository;
   private leagueSettingsRepository;
   private leagueSettingsTemplateRepository;
   private userRepository;
   private matchHistoryRepository;
 
   constructor() {
-    this.leagueRepository = AppDataSource.getRepository(League);
+    this.leagueStandingsRepository = AppDataSource.getRepository(LeagueStandings);
     this.leagueSettingsRepository = AppDataSource.getRepository(LeagueSettings);
     this.leagueSettingsTemplateRepository = AppDataSource.getRepository(LeagueSettingsTemplate);
     this.userRepository = AppDataSource.getRepository(User);
@@ -106,24 +106,31 @@ export class LeagueService {
     }
   }
 
-  // Lig sıralamasını getir
-  async getLeagueRankings() {
+  // Lig sıralamasını getir (belirli bir lig için veya tüm ligler için)
+  async getLeagueRankings(leagueId?: number) {
     try {
-      const rankings = await this.leagueRepository.find({
-        relations: ['user'],
+      const where = leagueId ? { league: { id: leagueId } } : {};
+      
+      const rankings = await this.leagueStandingsRepository.find({
+        where,
+        relations: ['user', 'league'],
         order: {
           leagueRanking: 'ASC',
         },
       });
 
-      return rankings.map((league) => ({
-        position: league.leagueRanking,
+      return rankings.map((standing) => ({
+        position: standing.leagueRanking,
         user: {
-          id: league.user.id,
-          name: league.user.name,
-          email: league.user.email,
+          id: standing.user.id,
+          name: standing.user.name,
+          email: standing.user.email,
         },
-        description: league.description,
+        league: standing.league ? {
+          id: standing.league.id,
+          description: standing.league.description,
+        } : null,
+        description: standing.description,
       }));
     } catch (error) {
       throw new Error('Lig sıralaması alınırken bir hata oluştu');
@@ -131,39 +138,49 @@ export class LeagueService {
   }
 
   // Kullanıcının lig bilgilerini getir
-  async getUserLeagueInfo(userId: string) {
+  async getUserLeagueInfo(userId: string, leagueId?: number) {
     try {
-      const league = await this.leagueRepository.findOne({
-        where: { user: { id: userId } },
-        relations: ['user'],
+      const where: any = { user: { id: userId } };
+      if (leagueId) {
+        where.league = { id: leagueId };
+      }
+      
+      const standing = await this.leagueStandingsRepository.findOne({
+        where,
+        relations: ['user', 'league'],
       });
 
-      if (!league) {
+      if (!standing) {
         throw new Error('Kullanıcı lige kayıtlı değil');
       }
 
       // Kullanıcının maç geçmişini al
       const matchHistory = await this.matchHistoryRepository.find({
-        where: [
-          { winner: { id: userId } },
-          { loser: { id: userId } },
-        ],
-        relations: ['winner', 'loser'],
+        relations: ['winners', 'losers'],
         order: { matchDate: 'DESC' },
       });
 
-      const wins = matchHistory.filter((match) => match.winner.id === userId).length;
-      const losses = matchHistory.filter((match) => match.loser.id === userId).length;
+      // Kullanıcının kazandığı ve kaybettiği maçları filtrele
+      const wins = matchHistory.filter((match) => 
+        match.winners.some(winner => winner.id === userId)
+      ).length;
+      const losses = matchHistory.filter((match) => 
+        match.losers.some(loser => loser.id === userId)
+      ).length;
       const totalMatches = wins + losses;
       const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
 
       return {
-        position: league.leagueRanking,
+        position: standing.leagueRanking,
         totalMatches,
         wins,
         losses,
         winRate,
-        description: league.description,
+        description: standing.description,
+        league: standing.league ? {
+          id: standing.league.id,
+          description: standing.league.description,
+        } : null,
       };
     } catch (error) {
       throw new Error('Kullanıcı lig bilgisi alınırken bir hata oluştu');
@@ -173,26 +190,26 @@ export class LeagueService {
   // Maç teklifi gönderme kurallarını kontrol et
   async sendMatchChallenge(challengerId: string, opponentId: string, message: string) {
     try {
-      const challengerLeague = await this.leagueRepository.findOne({
+      const challengerStanding = await this.leagueStandingsRepository.findOne({
         where: { user: { id: challengerId } },
       });
 
-      const opponentLeague = await this.leagueRepository.findOne({
+      const opponentStanding = await this.leagueStandingsRepository.findOne({
         where: { user: { id: opponentId } },
       });
 
-      if (!challengerLeague || !opponentLeague) {
+      if (!challengerStanding || !opponentStanding) {
         throw new Error('Oyuncular lige kayıtlı değil');
       }
 
       // Sıralama farkını kontrol et
-      const rankDifference = challengerLeague.leagueRanking - opponentLeague.leagueRanking;
+      const rankDifference = challengerStanding.leagueRanking - opponentStanding.leagueRanking;
       
       // Ayarları al
       const settings = await this.getLeagueSettings();
       
       // Sıra bazlı teklif limiti kontrolü
-      const maxOfferRange = this.getMaxOfferRange(challengerLeague.leagueRanking);
+      const maxOfferRange = this.getMaxOfferRange(challengerStanding.leagueRanking);
       
       if (rankDifference > maxOfferRange) {
         throw new Error(`Sadece ${maxOfferRange} sıra yukarıdaki oyunculara meydan okuyabilirsiniz`);
@@ -234,17 +251,17 @@ export class LeagueService {
     score: string
   ) {
     try {
-      const winnerLeague = await this.leagueRepository.findOne({
+      const winnerStanding = await this.leagueStandingsRepository.findOne({
         where: { user: { id: winnerId } },
         relations: ['user'],
       });
 
-      const loserLeague = await this.leagueRepository.findOne({
+      const loserStanding = await this.leagueStandingsRepository.findOne({
         where: { user: { id: loserId } },
         relations: ['user'],
       });
 
-      if (!winnerLeague || !loserLeague) {
+      if (!winnerStanding || !loserStanding) {
         throw new Error('Oyuncular lige kayıtlı değil');
       }
 
@@ -257,8 +274,8 @@ export class LeagueService {
       }
 
       const matchHistory = this.matchHistoryRepository.create({
-        winner,
-        loser,
+        winners: [winner],
+        losers: [loser],
         matchDate: new Date(),
         score,
       });
@@ -266,15 +283,15 @@ export class LeagueService {
       await this.matchHistoryRepository.save(matchHistory);
 
       // Sıralamayı güncelle
-      await this.updateRankingsAfterMatch(winnerLeague, loserLeague);
+      await this.updateRankingsAfterMatch(winnerStanding, loserStanding);
 
       return {
         matchId,
         winnerId,
         loserId,
         score,
-        newWinnerRank: winnerLeague.leagueRanking,
-        newLoserRank: loserLeague.leagueRanking,
+        newWinnerRank: winnerStanding.leagueRanking,
+        newLoserRank: loserStanding.leagueRanking,
       };
     } catch (error: any) {
       throw new Error(error.message || 'Maç sonucu kaydedilirken bir hata oluştu');
@@ -282,65 +299,82 @@ export class LeagueService {
   }
 
   // Maç sonrası sıralama güncellemesi
-  private async updateRankingsAfterMatch(winnerLeague: League, loserLeague: League) {
-    const winnerOldRank = winnerLeague.leagueRanking;
-    const loserOldRank = loserLeague.leagueRanking;
+  private async updateRankingsAfterMatch(winnerStanding: LeagueStandings, loserStanding: LeagueStandings) {
+    const winnerOldRank = winnerStanding.leagueRanking;
+    const loserOldRank = loserStanding.leagueRanking;
 
     // Kazanan, kaybeden oyuncunun sırasını alır
     if (winnerOldRank > loserOldRank) {
       // Aralarındaki oyuncuları bir sıra aşağı kaydır
-      const playersInBetween = await this.leagueRepository.find({
+      const standingsInBetween = await this.leagueStandingsRepository.find({
         where: {},
       });
 
-      for (const player of playersInBetween) {
-        if (player.leagueRanking >= loserOldRank && player.leagueRanking < winnerOldRank) {
-          player.leagueRanking += 1;
-          await this.leagueRepository.save(player);
+      for (const standing of standingsInBetween) {
+        if (standing.leagueRanking >= loserOldRank && standing.leagueRanking < winnerOldRank) {
+          standing.leagueRanking += 1;
+          await this.leagueStandingsRepository.save(standing);
         }
       }
 
-      winnerLeague.leagueRanking = loserOldRank;
-      loserLeague.leagueRanking = winnerOldRank;
+      winnerStanding.leagueRanking = loserOldRank;
+      loserStanding.leagueRanking = winnerOldRank;
     } else {
       // Kazanan zaten üstte, kaybeden bir sıra düşer
-      loserLeague.leagueRanking += 1;
+      loserStanding.leagueRanking += 1;
     }
 
-    await this.leagueRepository.save(winnerLeague);
-    await this.leagueRepository.save(loserLeague);
+    await this.leagueStandingsRepository.save(winnerStanding);
+    await this.leagueStandingsRepository.save(loserStanding);
   }
 
   // Teklif yapılabilecek oyuncuları getir
-  async getAvailableOpponents(userId: string) {
+  async getAvailableOpponents(userId: string, leagueId?: number) {
     try {
-      const userLeague = await this.leagueRepository.findOne({
-        where: { user: { id: userId } },
+      const where: any = { user: { id: userId } };
+      if (leagueId) {
+        where.league = { id: leagueId };
+      }
+      
+      const userStanding = await this.leagueStandingsRepository.findOne({
+        where,
+        relations: ['league'],
       });
 
-      if (!userLeague) {
+      if (!userStanding) {
         throw new Error('Kullanıcı lige kayıtlı değil');
       }
 
-      const maxOfferRange = this.getMaxOfferRange(userLeague.leagueRanking);
-      const minRank = Math.max(1, userLeague.leagueRanking - maxOfferRange);
-      const maxRank = userLeague.leagueRanking - 1;
+      const maxOfferRange = this.getMaxOfferRange(userStanding.leagueRanking);
+      const minRank = Math.max(1, userStanding.leagueRanking - maxOfferRange);
+      const maxRank = userStanding.leagueRanking - 1;
 
-      const opponents = await this.leagueRepository.find({
-        where: {},
-        relations: ['user'],
+      // Aynı ligdeki rakipleri getir
+      const opponentWhere: any = {};
+      if (userStanding.league) {
+        opponentWhere.league = { id: userStanding.league.id };
+      }
+
+      const opponents = await this.leagueStandingsRepository.find({
+        where: opponentWhere,
+        relations: ['user', 'league'],
       });
 
       return opponents
-        .filter((league) => 
-          league.leagueRanking >= minRank && 
-          league.leagueRanking <= maxRank
+        .filter((standing) => 
+          standing.leagueRanking >= minRank && 
+          standing.leagueRanking <= maxRank &&
+          standing.user.id !== userId
         )
-        .map((league) => ({
-          userId: league.user.id,
-          name: league.user.name,
-          position: league.leagueRanking,
+        .map((standing) => ({
+          userId: standing.user.id,
+          name: standing.user.name,
+          position: standing.leagueRanking,
           canChallenge: true,
+          league: standing.league ? {
+            id: standing.league.id,
+            description: standing.league.description,
+          } : null,
         }));
     } catch (error: any) {
       throw new Error(error.message || 'Rakip listesi alınırken bir hata oluştu');

@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { LeagueService } from '../services/league.service';
+import leagueEntityService from '../services/leagueEntity.service';
+import { AppError } from '../utils/error/app.error';
 
 export class LeagueController {
   private leagueService: LeagueService;
@@ -7,6 +9,125 @@ export class LeagueController {
   constructor() {
     this.leagueService = new LeagueService();
   }
+
+  // ==================== League Entity CRUD ====================
+  
+  // Tüm ligleri getir
+  getAllLeagues = async (req: Request, res: Response) => {
+    try {
+      const leagues = await leagueEntityService.findAll();
+      return res.status(200).json({
+        success: true,
+        data: leagues,
+      });
+    } catch (error: any) {
+      const appError = error instanceof AppError
+        ? error
+        : new AppError("UNKNOWN_ERROR");
+      
+      return res.status(appError.status).json({
+        success: false,
+        errorKey: appError.errorKey,
+        errorCode: appError.errorCode,
+        message: appError.message,
+      });
+    }
+  };
+
+  // Belirli bir ligi getir
+  getLeagueById = async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const league = await leagueEntityService.findById(id);
+      return res.status(200).json({
+        success: true,
+        data: league,
+      });
+    } catch (error: any) {
+      const appError = error instanceof AppError
+        ? error
+        : new AppError("UNKNOWN_ERROR");
+      
+      return res.status(appError.status).json({
+        success: false,
+        errorKey: appError.errorKey,
+        errorCode: appError.errorCode,
+        message: appError.message,
+      });
+    }
+  };
+
+  // Yeni lig oluştur
+  createLeague = async (req: Request, res: Response) => {
+    try {
+      const league = await leagueEntityService.create(req.body);
+      return res.status(201).json({
+        success: true,
+        message: 'Lig başarıyla oluşturuldu',
+        data: league,
+      });
+    } catch (error: any) {
+      const appError = error instanceof AppError
+        ? error
+        : new AppError("UNKNOWN_ERROR");
+      
+      return res.status(appError.status).json({
+        success: false,
+        errorKey: appError.errorKey,
+        errorCode: appError.errorCode,
+        message: appError.message,
+      });
+    }
+  };
+
+  // Lig güncelle
+  updateLeague = async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const league = await leagueEntityService.update(id, req.body);
+      return res.status(200).json({
+        success: true,
+        message: 'Lig başarıyla güncellendi',
+        data: league,
+      });
+    } catch (error: any) {
+      const appError = error instanceof AppError
+        ? error
+        : new AppError("UNKNOWN_ERROR");
+      
+      return res.status(appError.status).json({
+        success: false,
+        errorKey: appError.errorKey,
+        errorCode: appError.errorCode,
+        message: appError.message,
+      });
+    }
+  };
+
+  // Lig sil
+  deleteLeague = async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      await leagueEntityService.delete(id);
+      return res.status(200).json({
+        success: true,
+        message: 'Lig başarıyla silindi',
+      });
+    } catch (error: any) {
+      const appError = error instanceof AppError
+        ? error
+        : new AppError("UNKNOWN_ERROR");
+      
+      return res.status(appError.status).json({
+        success: false,
+        errorKey: appError.errorKey,
+        errorCode: appError.errorCode,
+        message: appError.message,
+      });
+    }
+  };
+
+  // ==================== League Standings & Match Functions ====================
 
   // Lig ayarlarını getir
   getLeagueSettings = async (req: Request, res: Response) => {
@@ -45,7 +166,8 @@ export class LeagueController {
   // Lig sıralamasını getir
   getLeagueRankings = async (req: Request, res: Response) => {
     try {
-      const rankings = await this.leagueService.getLeagueRankings();
+      const leagueId = req.query.leagueId ? parseInt(req.query.leagueId as string) : undefined;
+      const rankings = await this.leagueService.getLeagueRankings(leagueId);
       return res.status(200).json({
         success: true,
         data: rankings,
@@ -62,7 +184,8 @@ export class LeagueController {
   getUserLeagueInfo = async (req: Request, res: Response) => {
     try {
       const userId = req.params.userId;
-      const leagueInfo = await this.leagueService.getUserLeagueInfo(userId);
+      const leagueId = req.query.leagueId ? parseInt(req.query.leagueId as string) : undefined;
+      const leagueInfo = await this.leagueService.getUserLeagueInfo(userId, leagueId);
       return res.status(200).json({
         success: true,
         data: leagueInfo,
@@ -124,7 +247,8 @@ export class LeagueController {
   getAvailableOpponents = async (req: Request, res: Response) => {
     try {
       const userId = req.params.userId;
-      const opponents = await this.leagueService.getAvailableOpponents(userId);
+      const leagueId = req.query.leagueId ? parseInt(req.query.leagueId as string) : undefined;
+      const opponents = await this.leagueService.getAvailableOpponents(userId, leagueId);
       return res.status(200).json({
         success: true,
         data: opponents,

@@ -1,7 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, ManyToMany, JoinTable } from 'typeorm';
 import { CommentTextArea } from "./commentTextArea";
 import { User } from './user.entity';
-import { League } from './league.entity';
+import { LeagueStandings } from './leagueStandings.entity';
 
 
 @Entity()
@@ -12,16 +12,33 @@ export class MatchHistory {
     @OneToMany(() => CommentTextArea, commentTextArea => commentTextArea.matchHistory)
     commentTextAreas?: CommentTextArea[];
 
-    @Column({ type: 'varchar', nullable: true })
-    matchHistory: string;
+    @ManyToMany(() => User)
+    @JoinTable({
+        name: "match_history_winners",
+        joinColumn: {
+            name: "matchHistoryId",
+            referencedColumnName: "id"
+        },
+        inverseJoinColumn: {
+            name: "userId",
+            referencedColumnName: "id"
+        }
+    })
+    winners: User[];
 
-    @ManyToOne(() => User, { nullable: false })
-    @JoinColumn({ name: 'winnerId' })
-    winner: User;
-
-    @ManyToOne(() => User, { nullable: false })
-    @JoinColumn({ name: 'loserId' })
-    loser: User;
+    @ManyToMany(() => User)
+    @JoinTable({
+        name: "match_history_losers",
+        joinColumn: {
+            name: "matchHistoryId",
+            referencedColumnName: "id"
+        },
+        inverseJoinColumn: {
+            name: "userId",
+            referencedColumnName: "id"
+        }
+    })
+    losers: User[];
 
     @Column({ type: 'varchar', nullable: true })
     score: string;
@@ -35,9 +52,6 @@ export class MatchHistory {
     @UpdateDateColumn()
     updated: Date;
 
-    @ManyToOne(() => User, { nullable: true })
-    user?: User;
-
-    @ManyToOne(() => League, { nullable: true })
-    league?: League;
+    @ManyToOne(() => LeagueStandings, { nullable: true })
+    leagueStanding?: LeagueStandings;
 }

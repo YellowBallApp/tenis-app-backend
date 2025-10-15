@@ -62,7 +62,7 @@ export const authMiddleware = async (
     next();
   } catch (error: any) {
     if (error.name === "TokenExpiredError") {
-      return next(new AppError("INVALID_REFRESH_TOKEN"));
+      return next(new AppError("TOKEN_EXPIRED"));
     }
 
     return next(new AppError("UNAUTHORIZED"));

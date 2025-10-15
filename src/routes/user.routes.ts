@@ -34,4 +34,29 @@ const router = Router();
  */
 router.get("/profile", authMiddleware, userController.getProfile);
 
+/**
+ * @swagger
+ * /api/user/all:
+ *   get:
+ *     summary: Tüm kullanıcıları listele
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Kullanıcı listesi
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Yetkisiz erişim
+ */
+router.get("/all", authMiddleware, userController.getAllUsers);
+
 export default router;
