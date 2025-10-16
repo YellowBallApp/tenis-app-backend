@@ -1,7 +1,6 @@
 import {Entity,
 PrimaryGeneratedColumn,
 Column,
-OneToOne,
 JoinColumn,
 ManyToOne
 } from 'typeorm';
@@ -27,7 +26,7 @@ challengePending: boolean;
 @Column({ type: 'timestamp', nullable: true })
 challengeDate?: Date;
 
-@OneToOne(() => User)
+@ManyToOne(() => User)
 @JoinColumn()
 user: User;
 

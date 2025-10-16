@@ -208,6 +208,7 @@ router.get('/available-opponents/:userId', leagueController.getAvailableOpponent
  *             required:
  *               - challengerId
  *               - opponentId
+ *               - leagueId
  *             properties:
  *               challengerId:
  *                 type: string
@@ -215,6 +216,8 @@ router.get('/available-opponents/:userId', leagueController.getAvailableOpponent
  *                 type: string
  *               message:
  *                 type: string
+ *               leagueId:
+ *                 type: number
  *     responses:
  *       201:
  *         description: Meydan okuma gönderildi
@@ -366,6 +369,37 @@ router.post('/standings', leagueController.createStanding);
 
 /**
  * @swagger
+ * /api/league/standings/ranking:
+ *   put:
+ *     summary: Kullanıcının lig sıralamasını güncelle (challenge kazandığında)
+ *     tags: [League Standings]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - leagueId
+ *               - challengerId
+ *               - challengedId
+ *             properties:
+ *               leagueId:
+ *                 type: number
+ *               challengerId:
+ *                 type: string
+ *               challengedId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Sıralama güncellendi
+ */
+router.put('/standings/ranking', leagueController.updateUserRanking);
+
+/**
+ * @swagger
  * /api/league/standings/{id}:
  *   put:
  *     summary: Standing güncelle
@@ -417,9 +451,9 @@ router.delete('/standings/:id', leagueController.deleteStanding);
 
 /**
  * @swagger
- * /api/league/standings/ranking:
- *   put:
- *     summary: Kullanıcının lig sıralamasını güncelle (challenge kazandığında)
+ * /api/league/join:
+ *   post:
+ *     summary: Kullanıcıyı lige ekle
  *     tags: [League Standings]
  *     security:
  *       - bearerAuth: []
@@ -430,21 +464,20 @@ router.delete('/standings/:id', leagueController.deleteStanding);
  *           schema:
  *             type: object
  *             required:
+ *               - userId
  *               - leagueId
- *               - challengerId
- *               - challengedId
  *             properties:
+ *               userId:
+ *                 type: string
  *               leagueId:
  *                 type: number
- *               challengerId:
- *                 type: string
- *               challengedId:
- *                 type: string
  *     responses:
- *       200:
- *         description: Sıralama güncellendi
+ *       201:
+ *         description: Lige başarıyla katıldı
+ *       400:
+ *         description: Kullanıcı zaten ligde
  */
-router.put('/standings/ranking', leagueController.updateUserRanking);
+router.post('/join', leagueController.joinLeague);
 
 // ==================== League Entity CRUD Routes ====================
 // Not: Bu route'lar en sonda tanımlanmalı ki /settings, /rankings gibi özel route'larla çakışmasın

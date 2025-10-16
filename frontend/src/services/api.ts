@@ -138,13 +138,13 @@ export const leagueService = {
   },
 
   // Yeni lig oluştur
-  createLeague: async (data: { code: string; description?: string }) => {
+  createLeague: async (data: { name: string; code: string; description?: string }) => {
     const response = await api.post('/league/create', data);
     return response.data.data;
   },
 
   // Lig güncelle
-  updateLeague: async (id: number, data: { code?: string; description?: string }) => {
+  updateLeague: async (id: number, data: { name?: string; code?: string; description?: string }) => {
     const response = await api.put(`/league/entity/${id}`, data);
     return response.data.data;
   },
@@ -223,14 +223,20 @@ export const leagueStandingsService = {
     return response.data;
   },
 
-  // Kullanıcının lig sıralamasını güncelle (challenge kazandığında)
-  updateUserRanking: async (leagueId: number, challengerId: string, challengedId: string) => {
+  // Kullanıcının lig sıralamasını güncelle (maç sonucuna göre)
+  updateUserRanking: async (leagueId: number, winnerId: string, loserId: string) => {
     const response = await api.put('/league/standings/ranking', {
       leagueId,
-      challengerId,
-      challengedId,
+      challengerId: winnerId,
+      challengedId: loserId,
     });
     return response.data.data;
+  },
+
+  // Kullanıcıyı lige ekle
+  joinLeague: async (userId: string, leagueId: number) => {
+    const response = await api.post('/league/join', { userId, leagueId });
+    return response.data;
   },
 
   // ==================== Rankings & Match Functions ====================
@@ -257,11 +263,12 @@ export const leagueStandingsService = {
   },
 
   // Maç teklifi gönder
-  sendMatchChallenge: async (challengerId: string, opponentId: string, message: string) => {
+  sendMatchChallenge: async (challengerId: string, opponentId: string, message: string, leagueId: number) => {
     const response = await api.post('/league/challenge', {
       challengerId,
       opponentId,
       message,
+      leagueId,
     });
     console.log(response);
     return response.data.data;
