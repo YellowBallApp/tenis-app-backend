@@ -66,6 +66,11 @@ const rawErrors = {
         code: 1013,
         key: "LEAGUE_STANDING_NOT_FOUND",
         message: "League standing not found"
+    },
+    USER_ALREADY_IN_LEAGUE: {
+        code: 1014,
+        key: "USER_ALREADY_IN_LEAGUE",
+        message: "User is already in this league"
     }
 } as const;
 

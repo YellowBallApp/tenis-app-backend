@@ -226,11 +226,12 @@ export class LeagueController {
   // Maç teklifi gönder
   sendMatchChallenge = async (req: Request, res: Response) => {
     try {
-      const { challengerId, opponentId, message } = req.body;
+      const { challengerId, opponentId, message, leagueId } = req.body;
       const challenge = await this.leagueStandingsService.sendMatchChallenge(
         challengerId,
         opponentId,
-        message
+        message,
+        leagueId
       );
       return res.status(201).json({
         success: true,
@@ -457,6 +458,30 @@ export class LeagueController {
       return res.status(200).json({
         success: true,
         message: 'Sıralama başarıyla güncellendi',
+      });
+    } catch (error: any) {
+      const appError = error instanceof AppError
+        ? error
+        : new AppError("UNKNOWN_ERROR");
+      
+      return res.status(appError.status).json({
+        success: false,
+        errorKey: appError.errorKey,
+        errorCode: appError.errorCode,
+        message: error.message || appError.message,
+      });
+    }
+  };
+
+  // Kullanıcıyı lige ekle
+  joinLeague = async (req: Request, res: Response) => {
+    try {
+      const { userId, leagueId } = req.body;
+      const standing = await leagueStandingsService.joinLeague(userId, leagueId);
+      return res.status(201).json({
+        success: true,
+        message: 'Lige başarıyla katıldınız',
+        data: standing,
       });
     } catch (error: any) {
       const appError = error instanceof AppError

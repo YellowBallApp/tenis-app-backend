@@ -24,7 +24,7 @@ import {
   Divider,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { authService } from '../services/api';
+import { authService, leagueService, leagueStandingsService } from '../services/api';
 import { User } from '../types';
 
 const { width } = Dimensions.get('window');
@@ -34,18 +34,24 @@ const DefiLigScreen = ({ navigation }: any) => {
   const [selectedLig, setSelectedLig] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [leagues, setLeagues] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const leaguesPerPage = 2;
 
   useEffect(() => {
-    loadUserData();
+    loadData();
   }, []);
 
-  const loadUserData = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
+      
+      // Kullanıcı verisini çek
       const profileData = await authService.getProfile();
       
       // Backend'den gelen profil verisini UI formatına dönüştür
       const formattedUser = {
+        id: profileData.id,
         name: profileData.name || 'Oyuncu',
         email: profileData.email,
         level: 'Üye',
@@ -57,39 +63,100 @@ const DefiLigScreen = ({ navigation }: any) => {
       };
       
       setCurrentUser(formattedUser);
+      
+      // Tüm ligleri çek
+      const allLeagues = await leagueService.getAllLeagues();
+      
+      // Her lig için ikon ve renk tanımla
+      const leagueColors = ['#2E7D32', '#1976D2', '#D32F2F'];
+      const leagueIcons = ['trophy', 'weather-sunny', 'account-multiple'];
+      
+      // Her lig için standings'leri çek ve format düzenle
+      const formattedLeagues = await Promise.all(
+        allLeagues.map(async (league: any, index: number) => {
+          const standings = await leagueStandingsService.getStandingsByLeagueId(league.id);
+          
+          // Kullanıcının bu ligde olup olmadığını kontrol et
+          const isUserInThisLeague = standings.some((standing: any) => 
+            standing.user.id === profileData.id
+          );
+          
+          return {
+            id: league.id,
+            name: league.name || league.code,
+            code: league.code,
+            description: league.description || 'Rekabetçi oyuncularla karşılaşın ve lig sıralamasında yükselin',
+            playerCount: standings.length || 0,
+            isUserInLeague: isUserInThisLeague,
+            color: leagueColors[index % leagueColors.length],
+            icon: leagueIcons[index % leagueIcons.length],
+            rewards: ['Lig rozetleri', 'Puan bonusları', 'Özel ödüller'],
+            rules: [
+              '1v1 maç formatı',
+              'Sadece 3 sıra üstüne meydan okuma',
+              'Puan bazlı sıralama',
+              'Haftalık lig güncellemeleri'
+            ],
+          };
+        })
+      );
+      
+      setLeagues(formattedLeagues);
     } catch (error) {
-      console.error('Kullanıcı verisi yüklenirken hata:', error);
-      Alert.alert('Hata', 'Kullanıcı bilgileri yüklenemedi');
+      console.error('Veri yüklenirken hata:', error);
+      Alert.alert('Hata', 'Veriler yüklenemedi');
     } finally {
       setLoading(false);
     }
   };
 
-  const defiLig = {
-    id: 1,
-    name: 'Defi Lig',
-    playerCount: 156,
-    color: '#2E7D32',
-    icon: 'trophy',
-    description: 'Rekabetçi oyuncularla karşılaşın ve lig sıralamasında yükselin',
-    rewards: ['Lig rozetleri', 'Puan bonusları', 'Özel ödüller'],
-    rules: [
-      '1v1 maç formatı',
-      'Sadece 3 sıra üstüne meydan okuma',
-      'Puan bazlı sıralama',
-      'Haftalık lig güncellemeleri'
-    ],
-  };
-
-  const openLigModal = () => {
-    setSelectedLig(defiLig);
+  const openLigModal = (lig: any) => {
+    setSelectedLig(lig);
     setShowLigModal(true);
   };
 
-  const startLig = () => {
-    setShowLigModal(false);
-    // Navigate to Lig Sıralama screen
-    navigation.navigate('LigSiralama', { lig: defiLig });
+  const startLig = async () => {
+    try {
+      // Eğer kullanıcı ligde değilse, önce lige katıl
+      if (!selectedLig.isUserInLeague) {
+        setLoading(true);
+        
+        await leagueStandingsService.joinLeague(currentUser.id, selectedLig.id);
+        
+        Alert.alert('Başarılı', `${selectedLig.name} ligine katıldınız!`);
+        
+        // Ligleri yeniden yükle
+        await loadData();
+        setLoading(false);
+      }
+      
+      setShowLigModal(false);
+      // Navigate to Lig Sıralama screen
+      navigation.navigate('LigSiralama', { lig: selectedLig });
+    } catch (error: any) {
+      console.error('Lige katılma hatası:', error);
+      const errorMessage = error.response?.data?.message || 'Lige katılırken bir hata oluştu';
+      Alert.alert('Hata', errorMessage);
+      setLoading(false);
+    }
+  };
+
+  // Pagination yardımcı fonksiyonlar
+  const totalPages = Math.ceil(leagues.length / leaguesPerPage);
+  const startIndex = currentPage * leaguesPerPage;
+  const endIndex = startIndex + leaguesPerPage;
+  const currentLeagues = leagues.slice(startIndex, endIndex);
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages - 1) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const goToPreviousPage = () => {
+    if (currentPage > 0) {
+      setCurrentPage(currentPage - 1);
+    }
   };
 
   if (loading || !currentUser) {
@@ -114,7 +181,7 @@ const DefiLigScreen = ({ navigation }: any) => {
               <MaterialCommunityIcons name="arrow-left" size={28} color="#FFFFFF" />
             </TouchableOpacity>
             <View style={styles.headerTextContainer}>
-              <Title style={styles.headerTitle}>🏆 Defi Lig</Title>
+              <Title style={styles.headerTitle}>🏆 Ligler</Title>
               <Text style={styles.headerSubtitle}>
                 Rekabetçi oyuncularla karşılaşın ve lig sıralamasında yükselin
               </Text>
@@ -178,51 +245,106 @@ const DefiLigScreen = ({ navigation }: any) => {
           </Card>
         </View>
 
-        {/* Defi Lig Card */}
+        {/* Ligler Listesi */}
         <View style={styles.ligSection}>
-          <Title style={styles.sectionTitle}>Defi Lig</Title>
-          <Card style={styles.ligCard}>
-            <Card.Content>
-              <TouchableOpacity onPress={openLigModal}>
-                <View style={styles.ligHeader}>
-                  <View style={[styles.ligIcon, { backgroundColor: defiLig.color }]}>
+          <View style={styles.ligHeaderContainer}>
+            <Title style={styles.sectionTitle}>Aktif Ligler</Title>
+            <Text style={styles.pageIndicator}>
+              {currentPage + 1} / {totalPages}
+            </Text>
+          </View>
+          
+          {currentLeagues.map((lig, index) => (
+            <Card key={lig.id} style={[styles.ligCard, { marginBottom: index < currentLeagues.length - 1 ? 16 : 0 }]}>
+              <Card.Content>
+                <TouchableOpacity onPress={() => openLigModal(lig)}>
+                  <View style={styles.ligHeader}>
+                    <View style={[styles.ligIcon, { backgroundColor: lig.color }]}>
+                      <MaterialCommunityIcons 
+                        name={lig.icon as any} 
+                        size={40} 
+                        color="#FFFFFF" 
+                      />
+                    </View>
+                    <View style={styles.ligInfo}>
+                      <Title style={styles.ligName}>{lig.name}</Title>
+                      <Text style={styles.ligPlayers}>
+                        <MaterialCommunityIcons name="account-group" size={16} color={lig.color} />
+                        {' '}{lig.playerCount} oyuncu aktif
+                      </Text>
+                    </View>
                     <MaterialCommunityIcons 
-                      name={defiLig.icon as any} 
-                      size={40} 
-                      color="#FFFFFF" 
+                      name="chevron-right" 
+                      size={28} 
+                      color={lig.color} 
                     />
                   </View>
-                  <View style={styles.ligInfo}>
-                    <Title style={styles.ligName}>{defiLig.name}</Title>
-                    <Text style={styles.ligPlayers}>
-                      <MaterialCommunityIcons name="account-group" size={16} color="#2E7D32" />
-                      {' '}{defiLig.playerCount} oyuncu aktif
-                    </Text>
-                  </View>
-                  <MaterialCommunityIcons 
-                    name="chevron-right" 
-                    size={28} 
-                    color="#2E7D32" 
-                  />
-                </View>
 
-                <View style={styles.ligQuickInfo}>
-                  <View style={styles.quickInfoItem}>
-                    <MaterialCommunityIcons name="tennis" size={20} color="#2E7D32" />
-                    <Text style={styles.quickInfoText}>1v1 Format</Text>
+                  <View style={styles.ligQuickInfo}>
+                    <View style={styles.quickInfoItem}>
+                      <MaterialCommunityIcons name="tennis" size={20} color={lig.color} />
+                      <Text style={styles.quickInfoText}>1v1 Format</Text>
+                    </View>
+                    <View style={styles.quickInfoItem}>
+                      <MaterialCommunityIcons name="trophy" size={20} color="#FFD700" />
+                      <Text style={styles.quickInfoText}>Rozetler</Text>
+                    </View>
+                    <View style={styles.quickInfoItem}>
+                      <MaterialCommunityIcons name="chart-line" size={20} color="#4CAF50" />
+                      <Text style={styles.quickInfoText}>Puan Sistemi</Text>
+                    </View>
                   </View>
-                  <View style={styles.quickInfoItem}>
-                    <MaterialCommunityIcons name="trophy" size={20} color="#FFD700" />
-                    <Text style={styles.quickInfoText}>Rozetler</Text>
-                  </View>
-                  <View style={styles.quickInfoItem}>
-                    <MaterialCommunityIcons name="chart-line" size={20} color="#4CAF50" />
-                    <Text style={styles.quickInfoText}>Puan Sistemi</Text>
-                  </View>
-                </View>
+                </TouchableOpacity>
+              </Card.Content>
+            </Card>
+          ))}
+          
+          {/* Pagination Kontrolleri */}
+          {totalPages > 1 && (
+            <View style={styles.paginationContainer}>
+              <TouchableOpacity 
+                onPress={goToPreviousPage}
+                disabled={currentPage === 0}
+                style={[styles.paginationButton, currentPage === 0 && styles.paginationButtonDisabled]}
+              >
+                <MaterialCommunityIcons 
+                  name="chevron-left" 
+                  size={24} 
+                  color={currentPage === 0 ? '#CCCCCC' : '#2E7D32'} 
+                />
+                <Text style={[styles.paginationButtonText, currentPage === 0 && styles.paginationButtonTextDisabled]}>
+                  Önceki
+                </Text>
               </TouchableOpacity>
-            </Card.Content>
-          </Card>
+
+              <View style={styles.paginationDots}>
+                {Array.from({ length: totalPages }).map((_, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.paginationDot,
+                      index === currentPage && styles.paginationDotActive
+                    ]}
+                  />
+                ))}
+              </View>
+
+              <TouchableOpacity 
+                onPress={goToNextPage}
+                disabled={currentPage === totalPages - 1}
+                style={[styles.paginationButton, currentPage === totalPages - 1 && styles.paginationButtonDisabled]}
+              >
+                <Text style={[styles.paginationButtonText, currentPage === totalPages - 1 && styles.paginationButtonTextDisabled]}>
+                  Sonraki
+                </Text>
+                <MaterialCommunityIcons 
+                  name="chevron-right" 
+                  size={24} 
+                  color={currentPage === totalPages - 1 ? '#CCCCCC' : '#2E7D32'} 
+                />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* Quick Stats */}
@@ -357,8 +479,9 @@ const DefiLigScreen = ({ navigation }: any) => {
                       onPress={startLig}
                       style={styles.modalStartButton}
                       buttonColor="#2E7D32"
+                      icon={selectedLig.isUserInLeague ? "eye" : "account-plus"}
                     >
-                      Lige Katıl
+                      {selectedLig.isUserInLeague ? "Ligi Görüntüle" : "Lige Katıl"}
                     </Button>
                   </View>
                 </>
@@ -750,6 +873,63 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 10,
     borderRadius: 12,
+  },
+  ligHeaderContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  pageIndicator: {
+    fontSize: 14,
+    color: '#6C757D',
+    fontWeight: '600',
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 20,
+    paddingHorizontal: 10,
+  },
+  paginationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 10,
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  paginationButtonDisabled: {
+    backgroundColor: '#F8F9FA',
+    opacity: 0.5,
+  },
+  paginationButtonText: {
+    fontSize: 14,
+    color: '#2E7D32',
+    fontWeight: '600',
+    marginHorizontal: 5,
+  },
+  paginationButtonTextDisabled: {
+    color: '#CCCCCC',
+  },
+  paginationDots: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  paginationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#E9ECEF',
+  },
+  paginationDotActive: {
+    backgroundColor: '#2E7D32',
+    width: 24,
+    borderRadius: 4,
   },
 });
 

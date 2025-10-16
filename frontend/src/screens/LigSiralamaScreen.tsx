@@ -41,6 +41,8 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
   const [loading, setLoading] = useState(true);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [showMatchResultModal, setShowMatchResultModal] = useState(false);
+  const [selectedWinner, setSelectedWinner] = useState<string | null>(null);
 
   useEffect(() => {
     loadRankings();
@@ -53,8 +55,8 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
       // Kullanıcı profilini getir
       const profileData = await authService.getProfile();
       
-      // Sıralama verilerini getir
-      const rankingsData = await leagueStandingsService.getLeagueRankings();
+      // Seçilen ligin sıralama verilerini getir
+      const rankingsData = await leagueStandingsService.getLeagueRankings(lig.id);
       
       // Eğer ranking data boşsa veya kullanıcı yoksa, mock data kullan
       if (!rankingsData || rankingsData.length === 0) {
@@ -214,7 +216,8 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
       await leagueStandingsService.sendMatchChallenge(
         currentUser.id,
         selectedPlayer.user.id,
-        challengeMessage
+        challengeMessage,
+        lig.id
       );
 
       // Modal'ı kapat
@@ -229,6 +232,53 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
     } catch (error: any) {
       console.error('Challenge hatası:', error);
       Alert.alert('Hata', error.response?.data?.message || 'Meydan okuma gönderilemedi');
+    }
+  };
+
+  const openMatchResultModal = () => {
+    if (!currentUser.challengedUser) {
+      Alert.alert('Uyarı', 'Henüz oynanan bir maç yok');
+      return;
+    }
+    setSelectedWinner(null);
+    setShowMatchResultModal(true);
+  };
+
+  const submitMatchResult = async () => {
+    if (!selectedWinner) {
+      Alert.alert('Uyarı', 'Lütfen kazananı seçin');
+      return;
+    }
+
+    const winnerId = selectedWinner;
+    const loserId = selectedWinner === currentUser.id 
+      ? currentUser.challengedUser.id 
+      : currentUser.id;
+
+    try {
+      setLoading(true);
+
+      // Standings'leri güncelle
+      await leagueStandingsService.updateUserRanking(
+        lig.id,
+        winnerId,
+        loserId
+      );
+
+      // Modal'ı kapat
+      setShowMatchResultModal(false);
+
+      // Listeyi yenile
+      await loadRankings();
+      setLoading(false);
+
+      // Başarı bildirimi göster
+      setSnackbarMessage('Yerleştirmeler güncellendi!');
+      setSnackbarVisible(true);
+    } catch (error: any) {
+      console.error('Maç sonucu kaydetme hatası:', error);
+      Alert.alert('Hata', error.response?.data?.message || 'Maç sonucu kaydedilemedi');
+      setLoading(false);
     }
   };
 
@@ -432,12 +482,11 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
             <Button
               mode="contained"
               style={styles.quickActionButton}
-              buttonColor={currentUser.challengePending ? "#9E9E9E" : "#2E7D32"}
-              icon="sword-cross"
-              onPress={() => {}}
-              disabled={currentUser.challengePending}
+              buttonColor="#2E7D32"
+              icon="clipboard-check"
+              onPress={openMatchResultModal}
             >
-              Rastgele Meydan Okuma
+              Maç Sonucu Gir
             </Button>
             <Button
               mode="outlined"
@@ -534,6 +583,102 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
               )}
               </Card.Content>
             </ScrollView>
+          </Card>
+        </Modal>
+      </Portal>
+
+      {/* Match Result Modal */}
+      <Portal>
+        <Modal
+          visible={showMatchResultModal}
+          onDismiss={() => setShowMatchResultModal(false)}
+          contentContainerStyle={styles.modalContainer}
+        >
+          <Card style={styles.modalCard}>
+            <Card.Content>
+              <View style={styles.modalHeader}>
+                <MaterialCommunityIcons name="trophy" size={32} color="#FFD700" />
+                <Title style={styles.modalTitle}>Kazanan Kullanıcı</Title>
+                <TouchableOpacity onPress={() => setShowMatchResultModal(false)}>
+                  <MaterialCommunityIcons name="close" size={24} color="#757575" />
+                </TouchableOpacity>
+              </View>
+
+              {currentUser && currentUser.challengedUser && (
+                <>
+                  <Text style={styles.modalSubtitle}>
+                    Maç sonucunu belirtmek için kazananı seçin
+                  </Text>
+
+                  <View style={styles.winnerSelectionContainer}>
+                    {/* Kullanıcı seçeneği */}
+                    <TouchableOpacity
+                      style={[
+                        styles.winnerOption,
+                        selectedWinner === currentUser.id && styles.winnerOptionSelected
+                      ]}
+                      onPress={() => setSelectedWinner(currentUser.id)}
+                    >
+                      <View style={styles.radioButton}>
+                        {selectedWinner === currentUser.id && (
+                          <View style={styles.radioButtonInner} />
+                        )}
+                      </View>
+                      <Avatar.Text 
+                        size={40} 
+                        label={currentUser.name.charAt(0)} 
+                        style={styles.winnerAvatar}
+                      />
+                      <View style={styles.winnerInfo}>
+                        <Text style={styles.winnerName}>{currentUser.name}</Text>
+                        <Text style={styles.winnerLabel}>(Siz)</Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    {/* Rakip seçeneği */}
+                    <TouchableOpacity
+                      style={[
+                        styles.winnerOption,
+                        selectedWinner === currentUser.challengedUser.id && styles.winnerOptionSelected
+                      ]}
+                      onPress={() => setSelectedWinner(currentUser.challengedUser.id)}
+                    >
+                      <View style={styles.radioButton}>
+                        {selectedWinner === currentUser.challengedUser.id && (
+                          <View style={styles.radioButtonInner} />
+                        )}
+                      </View>
+                      <Avatar.Text 
+                        size={40} 
+                        label={currentUser.challengedUser.name.charAt(0)} 
+                        style={styles.winnerAvatar}
+                      />
+                      <View style={styles.winnerInfo}>
+                        <Text style={styles.winnerName}>{currentUser.challengedUser.name}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.modalButtons}>
+                    <Button
+                      mode="outlined"
+                      onPress={() => setShowMatchResultModal(false)}
+                      style={styles.modalCancelButton}
+                    >
+                      İptal
+                    </Button>
+                    <Button
+                      mode="contained"
+                      onPress={submitMatchResult}
+                      style={styles.modalSendButton}
+                      buttonColor="#2E7D32"
+                    >
+                      Onayla
+                    </Button>
+                  </View>
+                </>
+              )}
+            </Card.Content>
           </Card>
         </Modal>
       </Portal>
@@ -896,6 +1041,56 @@ const styles = StyleSheet.create({
   snackbar: {
     backgroundColor: '#2E7D32',
     marginBottom: 20,
+  },
+  winnerSelectionContainer: {
+    marginVertical: 20,
+    gap: 15,
+  },
+  winnerOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    backgroundColor: '#FAFAFA',
+  },
+  winnerOptionSelected: {
+    borderColor: '#2E7D32',
+    backgroundColor: '#E8F5E9',
+  },
+  radioButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#757575',
+    marginRight: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radioButtonInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#2E7D32',
+  },
+  winnerAvatar: {
+    backgroundColor: '#2E7D32',
+    marginRight: 15,
+  },
+  winnerInfo: {
+    flex: 1,
+  },
+  winnerName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1B1B1B',
+  },
+  winnerLabel: {
+    fontSize: 12,
+    color: '#757575',
+    marginTop: 2,
   },
 });
 

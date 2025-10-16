@@ -39,6 +39,16 @@ export class LeagueStandingsRepository {
     });
   }
 
+  async findByUserAndLeague(userId: string, leagueId: number): Promise<LeagueStandings | null> {
+    return this.repository.findOne({
+      where: { 
+        user: { id: userId },
+        league: { id: leagueId }
+      },
+      relations: ['user', 'league', 'challengedUser'],
+    });
+  }
+
   async create(data: Partial<LeagueStandings>): Promise<LeagueStandings> {
     const standing = this.repository.create(data);
     return this.repository.save(standing);
@@ -79,50 +89,75 @@ export class LeagueStandingsRepository {
       throw new Error('Challenger or challenged standing not found');
     }
 
-    const challengerOldRank = challengerStanding.leagueRanking;
-    const challengedRank = challengedStanding.leagueRanking;
-
-    // Eğer challenger zaten daha üst sıradaysa (düşük ranking numarası), işlem yapma
-    if (challengerOldRank <= challengedRank) {
-      throw new Error('Challenger is already ranked higher or equal');
-    }
+    const winnerOldRank = challengerStanding.leagueRanking;
+    const loserOldRank = challengedStanding.leagueRanking;
 
     // Transaction ile tüm güncellemeleri yap
     await AppDataSource.transaction(async (transactionalEntityManager) => {
-      // Challenged ranking ile challenger'ın eski ranking'i arasındaki herkesi bir aşağı kaydır
-      await transactionalEntityManager
-        .createQueryBuilder()
-        .update(LeagueStandings)
-        .set({ leagueRanking: () => 'leagueRanking + 1' })
-        .where('leagueId = :leagueId', { leagueId })
-        .andWhere('leagueRanking >= :minRank', { minRank: challengedRank })
-        .andWhere('leagueRanking < :maxRank', { maxRank: challengerOldRank })
-        .execute();
+      // Eğer kazanan zaten üst sıradaysa (düşük ranking), sadece challenge durumunu temizle
+      if (winnerOldRank <= loserOldRank) {
+        // Her iki kullanıcının da challenge durumunu temizle
+        await transactionalEntityManager
+          .createQueryBuilder()
+          .update(LeagueStandings)
+          .set({ 
+            challengePending: false,
+            challengeDate: null,
+            challengedUser: null,
+          })
+          .where('"leagueId" = :leagueId', { leagueId })
+          .andWhere('"userId" IN (:...userIds)', { userIds: [challengerId, challengedId] })
+          .execute();
+      } else {
+        // Kazanan alt sırada, sıralama güncellemesi yapılacak
+        
+        // Loser ranking ile winner'ın eski ranking'i arasındaki herkesi bir aşağı kaydır
+        await transactionalEntityManager
+          .createQueryBuilder()
+          .update(LeagueStandings)
+          .set({ leagueRanking: () => '"leagueRanking" + 1' })
+          .where('"leagueId" = :leagueId', { leagueId })
+          .andWhere('"leagueRanking" >= :minRank', { minRank: loserOldRank })
+          .andWhere('"leagueRanking" < :maxRank', { maxRank: winnerOldRank })
+          .execute();
 
-      // Challenger'ı challenged'ın rankingine çıkar ve challenge durumunu temizle
-      await transactionalEntityManager
-        .createQueryBuilder()
-        .update(LeagueStandings)
-        .set({ 
-          leagueRanking: challengedRank,
-          challengePending: false,
-          challengeDate: null,
-          challengedUser: null
-        })
-        .where('id = :id', { id: challengerStanding.id })
-        .execute();
+        // Winner'ı loser'ın rankingine çıkar ve challenge durumunu temizle
+        await transactionalEntityManager
+          .createQueryBuilder()
+          .update(LeagueStandings)
+          .set({ 
+            leagueRanking: loserOldRank,
+            challengePending: false,
+            challengeDate: null,
+            challengedUser: null,
+          })
+          .where('id = :id', { id: challengerStanding.id })
+          .execute();
 
-      // Challenged'ın challenge durumunu temizle
-      await transactionalEntityManager
-        .createQueryBuilder()
-        .update(LeagueStandings)
-        .set({ 
-          challengePending: false,
-          challengeDate: null,
-          challengedUser: null
-        })
-        .where('id = :id', { id: challengedStanding.id })
-        .execute();
+        // Loser kullanıcının challenge durumunu da temizle
+        await transactionalEntityManager
+          .createQueryBuilder()
+          .update(LeagueStandings)
+          .set({ 
+            challengePending: false,
+            challengeDate: null,
+            challengedUser: null,
+          })
+          .where('id = :id', { id: challengedStanding.id })
+          .execute();
+      }
+      
+      // Tüm etkilenen standings'lerin description'larını güncelle
+      const allStandings = await transactionalEntityManager.find(LeagueStandings, {
+        where: { league: { id: leagueId } },
+        relations: ['user'],
+        order: { leagueRanking: 'ASC' }
+      });
+      
+      for (const standing of allStandings) {
+        standing.description = `${standing.user.name} - ${standing.leagueRanking}. sırada`;
+        await transactionalEntityManager.save(standing);
+      }
     });
   }
 }

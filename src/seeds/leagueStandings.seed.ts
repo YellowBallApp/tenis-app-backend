@@ -10,13 +10,12 @@ export const seedLeagueStandings = async () => {
 
   console.log('🎾 Lig sıralama verileri oluşturuluyor...');
 
-  // İlk ligi al (ana lig)
-  const mainLeague = await leagueRepository.findOne({
-    where: {},
+  // Tüm ligleri al
+  const leagues = await leagueRepository.find({
     order: { id: 'ASC' }
   });
 
-  if (!mainLeague) {
+  if (leagues.length === 0) {
     console.log('⚠️  Önce lig entity seedini çalıştırın');
     return;
   }
@@ -29,28 +28,32 @@ export const seedLeagueStandings = async () => {
     return;
   }
 
-  // Her kullanıcı için ana ligde sıralama oluştur
-  for (let i = 0; i < users.length; i++) {
-    const existingStanding = await leagueStandingsRepository.findOne({
-      where: { 
-        user: { id: users[i].id },
-        league: { id: mainLeague.id }
-      },
-    });
-
-    if (!existingStanding) {
-      const standing = leagueStandingsRepository.create({
-        user: users[i],
-        league: mainLeague,
-        leagueRanking: i + 1, // Sıralama: 1, 2, 3, ...
-        description: `${users[i].name} - ${i + 1}. sırada`,
+  // Her lig için tüm kullanıcılar için sıralama oluştur
+  for (const league of leagues) {
+    console.log(`\n📊 ${league.description} için sıralama oluşturuluyor...`);
+    
+    for (let i = 0; i < users.length; i++) {
+      const existingStanding = await leagueStandingsRepository.findOne({
+        where: { 
+          user: { id: users[i].id },
+          league: { id: league.id }
+        },
       });
 
-      await leagueStandingsRepository.save(standing);
-      console.log(`✅ ${users[i].name} -> ${mainLeague.description} - ${i + 1}. sıra`);
+      if (!existingStanding) {
+        const standing = leagueStandingsRepository.create({
+          user: users[i],
+          league: league,
+          leagueRanking: i + 1, // Sıralama: 1, 2, 3, ...
+          description: `${users[i].name} - ${i + 1}. sırada`,
+        });
+
+        await leagueStandingsRepository.save(standing);
+        console.log(`✅ ${users[i].name} -> ${league.description} - ${i + 1}. sıra`);
+      }
     }
   }
 
-  console.log('✅ Lig sıralama verileri oluşturuldu!');
+  console.log('\n✅ Tüm ligler için sıralama verileri oluşturuldu!');
 };
 

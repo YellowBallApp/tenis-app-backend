@@ -84,11 +84,48 @@ export class LeagueStandingsService {
     }
   }
 
+  // Kullanıcıyı lige ekle (en son sıraya)
+  async joinLeague(userId: string, leagueId: number): Promise<LeagueStandings> {
+    try {
+      // Kullanıcının zaten bu ligde olup olmadığını kontrol et
+      const existingStanding = await leagueStandingsRepository.findByUserAndLeague(userId, leagueId);
+      if (existingStanding) {
+        throw new AppError('USER_ALREADY_IN_LEAGUE');
+      }
+
+      // Kullanıcıyı kontrol et
+      const user = await this.userRepository.findOne({ where: { id: userId } });
+      if (!user) {
+        throw new AppError('USER_NOT_FOUND');
+      }
+
+      // Mevcut standings'leri al ve son sırayı bul
+      const currentStandings = await leagueStandingsRepository.findByLeagueId(leagueId);
+      const lastRank = currentStandings.length > 0 
+        ? Math.max(...currentStandings.map(s => s.leagueRanking))
+        : 0;
+
+      // Yeni standing oluştur
+      const newStanding = await leagueStandingsRepository.create({
+        user: user,
+        league: { id: leagueId } as any,
+        leagueRanking: lastRank + 1,
+        description: `${user.name} - ${lastRank + 1}. sırada`,
+        challengePending: false,
+      });
+
+      return newStanding;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError('UNKNOWN_ERROR');
+    }
+  }
+
   async updateRanking(leagueId: number, challengerId: string, challengedId: string): Promise<void> {
     try {
       await leagueStandingsRepository.updateRanking(leagueId, challengerId, challengedId);
     } catch (error) {
-      throw new AppError('UNKNOWN_ERROR');
+      throw error instanceof AppError ? error : new AppError('UNKNOWN_ERROR');
     }
   }
 
@@ -183,17 +220,15 @@ export class LeagueStandingsService {
   }
 
   // Maç teklifi gönderme kurallarını kontrol et
-  async sendMatchChallenge(challengerId: string, opponentId: string, message: string) {
+  async sendMatchChallenge(challengerId: string, opponentId: string, message: string, leagueId: number) {
     try {
-      const challengerStandings = await leagueStandingsRepository.findByUserId(challengerId);
-      const opponentStandings = await leagueStandingsRepository.findByUserId(opponentId);
+      // Belirli ligde standings'leri bul
+      const challengerStanding = await leagueStandingsRepository.findByUserAndLeague(challengerId, leagueId);
+      const opponentStanding = await leagueStandingsRepository.findByUserAndLeague(opponentId, leagueId);
 
-      if (!challengerStandings.length || !opponentStandings.length) {
-        throw new Error('Oyuncular lige kayıtlı değil');
+      if (!challengerStanding || !opponentStanding) {
+        throw new Error('Oyuncular bu lige kayıtlı değil');
       }
-
-      const challengerStanding = challengerStandings[0];
-      const opponentStanding = opponentStandings[0];
 
       // Rakip zaten bekleyen bir challenge'a sahipse hata fırlat
       if (opponentStanding.challengePending) {
@@ -312,7 +347,7 @@ export class LeagueStandingsService {
   private async updateRankingsAfterMatch(winnerStanding: LeagueStandings, loserStanding: LeagueStandings) {
     const winnerOldRank = winnerStanding.leagueRanking;
     const loserOldRank = loserStanding.leagueRanking;
-
+console.log(winnerOldRank, loserOldRank);
     // Kazanan, kaybeden oyuncunun sırasını alır
     if (winnerOldRank > loserOldRank) {
       // Aralarındaki oyuncuları bir sıra aşağı kaydır
