@@ -30,6 +30,14 @@ export class LeagueService {
     return league;
   }
 
+  async findLeagueByCode(code: string): Promise<League> {
+    const league = await this.leagueRepository.findByCode(code);
+    if (!league) {
+      throw new AppError('LEAGUE_NOT_FOUND');
+    }
+    return league;
+  }
+
   async findAllLeagues(): Promise<League[]> {
     return await this.leagueRepository.findAll();
   }

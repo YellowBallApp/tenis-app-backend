@@ -33,3 +33,20 @@ export interface ApiError {
   errorCode: number;
   message: string;
 }
+
+export interface League {
+  id: number;
+  code: string;
+  description?: string;
+}
+
+export interface LeagueStandings {
+  id: number;
+  description?: string;
+  leagueRanking: number;
+  challengePending: boolean;
+  challengeDate?: string;
+  user: User;
+  challengedUser?: User;
+  league: League;
+}

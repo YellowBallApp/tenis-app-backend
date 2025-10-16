@@ -15,12 +15,15 @@ export const seedLeagues = async () => {
   try {
     const leaguesData = [
       {
+        code: "DL2025",
         description: "EGEV TK Defi Ligi 2025 - Ana Lig",
       },
       {
+        code: "YL2025",
         description: "EGEV TK Yaz Sezonu Ligi",
       },
       {
+        code: "CL2025",
         description: "EGEV TK Çiftler Ligi",
       },
     ];

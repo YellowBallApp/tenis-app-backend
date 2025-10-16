@@ -19,6 +19,15 @@ const leagueRepository = {
     return league;
   },
 
+  findByCode: async (code: string): Promise<League> => {
+    const league = await repository.findOne({
+      where: { code },
+      relations: ['leagueSettingsTemplates', 'standings'],
+    });
+    if (!league) throw new AppError("LEAGUE_NOT_FOUND");
+    return league;
+  },
+
   findAll: async (): Promise<League[]> => {
     return await repository.find({
       relations: ['leagueSettingsTemplates', 'standings'],

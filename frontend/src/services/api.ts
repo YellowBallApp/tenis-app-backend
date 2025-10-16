@@ -131,14 +131,20 @@ export const leagueService = {
     return response.data.data;
   },
 
+  // Code'a göre ligi getir
+  getLeagueByCode: async (code: string) => {
+    const response = await api.get(`/league/code/${code}`);
+    return response.data.data;
+  },
+
   // Yeni lig oluştur
-  createLeague: async (data: { description?: string }) => {
+  createLeague: async (data: { code: string; description?: string }) => {
     const response = await api.post('/league/create', data);
     return response.data.data;
   },
 
   // Lig güncelle
-  updateLeague: async (id: number, data: { description?: string }) => {
+  updateLeague: async (id: number, data: { code?: string; description?: string }) => {
     const response = await api.put(`/league/entity/${id}`, data);
     return response.data.data;
   },
@@ -217,12 +223,12 @@ export const leagueStandingsService = {
     return response.data;
   },
 
-  // Kullanıcının lig sıralamasını güncelle
-  updateUserRanking: async (leagueId: number, userId: number, newRanking: number) => {
+  // Kullanıcının lig sıralamasını güncelle (challenge kazandığında)
+  updateUserRanking: async (leagueId: number, challengerId: string, challengedId: string) => {
     const response = await api.put('/league/standings/ranking', {
       leagueId,
-      userId,
-      newRanking,
+      challengerId,
+      challengedId,
     });
     return response.data.data;
   },
@@ -257,6 +263,7 @@ export const leagueStandingsService = {
       opponentId,
       message,
     });
+    console.log(response);
     return response.data.data;
   },
 
