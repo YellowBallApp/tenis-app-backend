@@ -59,6 +59,29 @@ export class LeagueController {
     }
   };
 
+  // Code'a göre ligi getir
+  getLeagueByCode = async (req: Request, res: Response) => {
+    try {
+      const code = req.params.code;
+      const league = await this.leagueService.findLeagueByCode(code);
+      return res.status(200).json({
+        success: true,
+        data: league,
+      });
+    } catch (error: any) {
+      const appError = error instanceof AppError
+        ? error
+        : new AppError("UNKNOWN_ERROR");
+      
+      return res.status(appError.status).json({
+        success: false,
+        errorKey: appError.errorKey,
+        errorCode: appError.errorCode,
+        message: appError.message,
+      });
+    }
+  };
+
   // Yeni lig oluştur
   createLeague = async (req: Request, res: Response) => {
     try {
@@ -426,14 +449,13 @@ export class LeagueController {
     }
   };
 
-  // Kullanıcının lig sıralamasını güncelle
+  // Kullanıcının lig sıralamasını güncelle (challenge kazandığında)
   updateUserRanking = async (req: Request, res: Response) => {
     try {
-      const { leagueId, userId, newRanking } = req.body;
-      const standing = await leagueStandingsService.updateRanking(leagueId, userId, newRanking);
+      const { leagueId, challengerId, challengedId } = req.body;
+      await leagueStandingsService.updateRanking(leagueId, challengerId, challengedId);
       return res.status(200).json({
         success: true,
-        data: standing,
         message: 'Sıralama başarıyla güncellendi',
       });
     } catch (error: any) {

@@ -22,6 +22,7 @@ import {
   TextInput,
   Divider,
   IconButton,
+  Snackbar,
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { leagueStandingsService, authService } from '../services/api';
@@ -34,9 +35,12 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
   const [showChallengeModal, setShowChallengeModal] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
   const [challengeMessage, setChallengeMessage] = useState('');
+  const [messageError, setMessageError] = useState(false);
   const [players, setPlayers] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
 
   useEffect(() => {
     loadRankings();
@@ -60,6 +64,9 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
           name: profileData.name || 'Oyuncu',
           position: 1,
           email: profileData.email,
+          challengePending: false,
+          challengeDate: null,
+          challengedUser: null,
         });
         
         // Mock players data
@@ -71,7 +78,8 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
               email: profileData.email,
             },
             position: 1,
-            description: 'Yeni Oyuncu'
+            description: 'Yeni Oyuncu',
+            challengePending: false,
           }
         ]);
       } else {
@@ -84,6 +92,9 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
             name: currentUserRanking.user.name,
             position: currentUserRanking.position,
             email: currentUserRanking.user.email,
+            challengePending: currentUserRanking.challengePending,
+            challengeDate: currentUserRanking.challengeDate,
+            challengedUser: currentUserRanking.challengedUser,
           });
         } else {
           // Kullanıcı rankings'de yoksa, ilk kullanıcıyı kullan
@@ -93,6 +104,9 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
             name: firstUser.user.name,
             position: firstUser.position,
             email: firstUser.user.email,
+            challengePending: firstUser.challengePending,
+            challengeDate: firstUser.challengeDate,
+            challengedUser: firstUser.challengedUser,
           });
         }
         
@@ -109,6 +123,9 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
           name: profileData.name || 'Oyuncu',
           position: 1,
           email: profileData.email,
+          challengePending: false,
+          challengeDate: null,
+          challengedUser: null,
         });
         setPlayers([]);
       } catch (profileError) {
@@ -159,6 +176,15 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
       return;
     }
     
+    // Challenge bekleyen oyuncuya istek gönderilemez
+    if (player.challengePending) {
+      Alert.alert(
+        'Oyuncu Meşgul', 
+        `${player.user.name} zaten bekleyen bir meydan okuma isteğine sahip. Lütfen daha sonra tekrar deneyin.`
+      );
+      return;
+    }
+    
     // Defi Lig kuralı: Sadece 3 sıra üstüne meydan okunabilir
     const positionDifference = currentUser.position - player.position;
     if (positionDifference > 3) {
@@ -171,33 +197,37 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
     
     setSelectedPlayer(player);
     setChallengeMessage('');
+    setMessageError(false);
     setShowChallengeModal(true);
   };
 
   const sendChallenge = async () => {
     if (!challengeMessage.trim()) {
-      Alert.alert('Hata', 'Lütfen bir mesaj yazın.');
+      setMessageError(true);
       return;
     }
+    
+    setMessageError(false);
 
     try {
+      // Challenge gönder
       await leagueStandingsService.sendMatchChallenge(
         currentUser.id,
         selectedPlayer.user.id,
         challengeMessage
       );
 
-      Alert.alert(
-        'Meydan Okuma Gönderildi',
-        `${selectedPlayer?.user.name} adlı oyuncuya meydan okuma gönderildi!`,
-        [
-          {
-            text: 'Tamam',
-            onPress: () => setShowChallengeModal(false),
-          },
-        ]
-      );
+      // Modal'ı kapat
+      setShowChallengeModal(false);
+
+      // Listeyi hemen yenile
+      await loadRankings();
+
+      // Başarı bildirimi göster
+      setSnackbarMessage(`${selectedPlayer?.user.name} adlı oyuncuya meydan okuma gönderildi!`);
+      setSnackbarVisible(true);
     } catch (error: any) {
+      console.error('Challenge hatası:', error);
       Alert.alert('Hata', error.response?.data?.message || 'Meydan okuma gönderilemedi');
     }
   };
@@ -207,7 +237,11 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
     
     const isCurrentUser = player.user.id === currentUser.id;
     const positionDifference = currentUser.position - player.position;
-    const canChallenge = !isCurrentUser && positionDifference <= 3 && positionDifference > 0;
+    const canChallenge = !isCurrentUser 
+      && positionDifference <= 3 
+      && positionDifference > 0 
+      && !player.challengePending // Challenge bekleyen kullanıcılara istek gönderilemez
+      && !currentUser.challengePending; // Kendi challengePending'i true olan kullanıcı meydan okuyamaz
     
     // Kullanıcı kendini gösterme, zaten "Senin Sıran" bölümünde gösteriliyor
     if (isCurrentUser) {
@@ -241,6 +275,16 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
             <View style={styles.playerInfo}>
               <Text style={styles.playerName}>{player.user.name}</Text>
               <Text style={styles.playerLevel}>{player.description || 'Oyuncu'}</Text>
+              {player.challengePending && (
+                <Chip 
+                  icon="clock-alert-outline" 
+                  style={styles.pendingChip}
+                  textStyle={styles.pendingChipText}
+                  compact
+                >
+                  Beklemede
+                </Chip>
+              )}
             </View>
             
             <View style={styles.playerActions}>
@@ -348,6 +392,16 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                 <View style={styles.currentUserHighlightInfo}>
                   <Text style={styles.currentUserHighlightName}>{currentUser.name}</Text>
                   <Text style={styles.currentUserHighlightLevel}>{currentUser.email}</Text>
+                  {currentUser.challengePending && (
+                    <Chip 
+                      icon="clock-alert-outline" 
+                      style={styles.pendingChip}
+                      textStyle={styles.pendingChipText}
+                      compact
+                    >
+                      Bekleyen Challenge
+                    </Chip>
+                  )}
                 </View>
                 
                 <View style={styles.currentUserPositionContainer}>
@@ -378,9 +432,10 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
             <Button
               mode="contained"
               style={styles.quickActionButton}
-              buttonColor="#2E7D32"
+              buttonColor={currentUser.challengePending ? "#9E9E9E" : "#2E7D32"}
               icon="sword-cross"
               onPress={() => {}}
+              disabled={currentUser.challengePending}
             >
               Rastgele Meydan Okuma
             </Button>
@@ -438,16 +493,25 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                   
                   <TextInput
                     mode="outlined"
-                    label="Meydan Okuma Mesajı"
+                    label="Meydan Okuma Mesajı *"
                     placeholder="Mesajınızı yazın..."
                     value={challengeMessage}
-                    onChangeText={setChallengeMessage}
+                    onChangeText={(text) => {
+                      setChallengeMessage(text);
+                      if (messageError && text.trim()) {
+                        setMessageError(false);
+                      }
+                    }}
                     multiline
                     numberOfLines={3}
                     style={styles.messageInput}
-                    outlineColor="#E0E0E0"
-                    activeOutlineColor="#2E7D32"
+                    outlineColor={messageError ? "#D32F2F" : "#E0E0E0"}
+                    activeOutlineColor={messageError ? "#D32F2F" : "#2E7D32"}
+                    error={messageError}
                   />
+                  {messageError && (
+                    <Text style={styles.errorText}>Bu alan gereklidir</Text>
+                  )}
 
                   <View style={styles.modalButtons}>
                     <Button
@@ -473,6 +537,20 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
           </Card>
         </Modal>
       </Portal>
+
+      {/* Başarı Bildirimi Snackbar */}
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={3000}
+        style={styles.snackbar}
+        action={{
+          label: 'X',
+          onPress: () => setSnackbarVisible(false),
+        }}
+      >
+        {snackbarMessage}
+      </Snackbar>
     </View>
   );
 };
@@ -685,6 +763,16 @@ const styles = StyleSheet.create({
     color: '#2E7D32',
     fontWeight: '500',
   },
+  pendingChip: {
+    marginTop: 5,
+    backgroundColor: '#FFF3E0',
+    height: 24,
+  },
+  pendingChipText: {
+    fontSize: 10,
+    color: '#F57C00',
+    marginVertical: 0,
+  },
   playerActions: {
     alignItems: 'flex-end',
     justifyContent: 'center',
@@ -781,8 +869,15 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   messageInput: {
-    marginBottom: 20,
+    marginBottom: 5,
     backgroundColor: '#FFFFFF',
+  },
+  errorText: {
+    color: '#D32F2F',
+    fontSize: 12,
+    marginTop: 4,
+    marginBottom: 15,
+    marginLeft: 12,
   },
   modalButtons: {
     flexDirection: 'row',
@@ -797,6 +892,10 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 10,
     borderRadius: 12,
+  },
+  snackbar: {
+    backgroundColor: '#2E7D32',
+    marginBottom: 20,
   },
 });
 

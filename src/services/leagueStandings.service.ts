@@ -84,9 +84,9 @@ export class LeagueStandingsService {
     }
   }
 
-  async updateRanking(leagueId: number, userId: string, newRanking: number): Promise<LeagueStandings> {
+  async updateRanking(leagueId: number, challengerId: string, challengedId: string): Promise<void> {
     try {
-      return await leagueStandingsRepository.updateRanking(leagueId, userId, newRanking);
+      await leagueStandingsRepository.updateRanking(leagueId, challengerId, challengedId);
     } catch (error) {
       throw new AppError('UNKNOWN_ERROR');
     }
@@ -101,11 +101,18 @@ export class LeagueStandingsService {
 
       return standings.map((standing) => ({
         position: standing.leagueRanking,
+        challengePending: standing.challengePending,
+        challengeDate: standing.challengeDate,
         user: {
           id: standing.user.id,
           name: standing.user.name,
           email: standing.user.email,
         },
+        challengedUser: standing.challengedUser ? {
+          id: standing.challengedUser.id,
+          name: standing.challengedUser.name,
+          email: standing.challengedUser.email,
+        } : null,
         league: standing.league ? {
           id: standing.league.id,
           description: standing.league.description,
@@ -188,6 +195,16 @@ export class LeagueStandingsService {
       const challengerStanding = challengerStandings[0];
       const opponentStanding = opponentStandings[0];
 
+      // Rakip zaten bekleyen bir challenge'a sahipse hata fırlat
+      if (opponentStanding.challengePending) {
+        throw new Error('Bu oyuncu zaten bekleyen bir meydan okuma isteğine sahip');
+      }
+
+      // Challenger zaten bekleyen bir challenge'a sahipse hata fırlat
+      if (challengerStanding.challengePending) {
+        throw new Error('Zaten bekleyen bir meydan okuma isteğiniz var');
+      }
+
       // Sıralama farkını kontrol et
       const rankDifference = challengerStanding.leagueRanking - opponentStanding.leagueRanking;
       
@@ -205,12 +222,35 @@ export class LeagueStandingsService {
       // Son maç tarihine göre koruma kontrolü (24 saat)
       // Bu kısım MatchHistory'den kontrol edilecek
 
+      // Her iki kullanıcıyı da bul
+      const challenger = await this.userRepository.findOne({ where: { id: challengerId } });
+      const opponent = await this.userRepository.findOne({ where: { id: opponentId } });
+      
+      if (!challenger || !opponent) {
+        throw new Error('Kullanıcılar bulunamadı');
+      }
+
+      const currentDate = new Date();
+
+      // Her iki kullanıcının da standing'ini güncelle
+      await leagueStandingsRepository.update(challengerStanding.id, {
+        challengePending: true,
+        challengeDate: currentDate,
+        challengedUser: opponent,
+      });
+
+      await leagueStandingsRepository.update(opponentStanding.id, {
+        challengePending: true,
+        challengeDate: currentDate,
+        challengedUser: challenger,
+      });
+
       return {
         challengerId,
         opponentId,
         message,
         status: 'pending',
-        createdAt: new Date(),
+        createdAt: currentDate,
       };
     } catch (error: any) {
       throw new Error(error.message || 'Meydan okuma gönderilirken bir hata oluştu');
@@ -331,7 +371,9 @@ export class LeagueStandingsService {
           userId: standing.user.id,
           name: standing.user.name,
           position: standing.leagueRanking,
-          canChallenge: true,
+          challengePending: standing.challengePending,
+          challengeDate: standing.challengeDate,
+          canChallenge: !standing.challengePending, // challengePending ise challenge yapılamaz
           league: standing.league ? {
             id: standing.league.id,
             description: standing.league.description,

@@ -8,13 +8,16 @@ import {Entity,
     
     
     
-    @Entity('league')
-    export class League {
-    @PrimaryGeneratedColumn()
-    id: number;
-    
-    @Column({ type: 'text', nullable: true })
-    description?: string;
+@Entity('league')
+export class League {
+@PrimaryGeneratedColumn()
+id: number;
+
+@Column({ type: 'varchar', length: 50, unique: true })
+code: string;
+
+@Column({ type: 'text', nullable: true })
+description?: string;
     
     @OneToMany(() => LeagueSettingsTemplate, template => template.leagueEntity)
     leagueSettingsTemplates: LeagueSettingsTemplate[];

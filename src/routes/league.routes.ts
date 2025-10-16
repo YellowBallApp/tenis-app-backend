@@ -419,7 +419,7 @@ router.delete('/standings/:id', leagueController.deleteStanding);
  * @swagger
  * /api/league/standings/ranking:
  *   put:
- *     summary: Kullanıcının lig sıralamasını güncelle
+ *     summary: Kullanıcının lig sıralamasını güncelle (challenge kazandığında)
  *     tags: [League Standings]
  *     security:
  *       - bearerAuth: []
@@ -431,15 +431,15 @@ router.delete('/standings/:id', leagueController.deleteStanding);
  *             type: object
  *             required:
  *               - leagueId
- *               - userId
- *               - newRanking
+ *               - challengerId
+ *               - challengedId
  *             properties:
  *               leagueId:
  *                 type: number
- *               userId:
- *                 type: number
- *               newRanking:
- *                 type: number
+ *               challengerId:
+ *                 type: string
+ *               challengedId:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Sıralama güncellendi
@@ -496,6 +496,29 @@ router.get('/all', leagueController.getAllLeagues);
  *         description: Lig bulunamadı
  */
 router.get('/entity/:id', leagueController.getLeagueById);
+
+/**
+ * @swagger
+ * /api/league/code/{code}:
+ *   get:
+ *     summary: Code'a göre ligi getir
+ *     tags: [League]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: code
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Lig kodu (örn. DL2025)
+ *     responses:
+ *       200:
+ *         description: Lig detayı
+ *       404:
+ *         description: Lig bulunamadı
+ */
+router.get('/code/:code', leagueController.getLeagueByCode);
 
 /**
  * @swagger
