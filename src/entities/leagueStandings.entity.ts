@@ -14,9 +14,6 @@ export class LeagueStandings {
 @PrimaryGeneratedColumn()
 id: number;
 
-@Column({ type: 'text', nullable: true })
-description?: string;
-
 @Column({ type: 'int' })
 leagueRanking: number;
 

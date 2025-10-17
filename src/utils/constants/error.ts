@@ -71,6 +71,11 @@ const rawErrors = {
         code: 1014,
         key: "USER_ALREADY_IN_LEAGUE",
         message: "User is already in this league"
+    },
+    MATCH_HISTORY_NOT_FOUND: {
+        code: 1015,
+        key: "MATCH_HISTORY_NOT_FOUND",
+        message: "Match history not found"
     }
 } as const;
 

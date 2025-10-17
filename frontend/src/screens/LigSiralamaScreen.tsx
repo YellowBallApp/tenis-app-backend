@@ -43,6 +43,12 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [showMatchResultModal, setShowMatchResultModal] = useState(false);
   const [selectedWinner, setSelectedWinner] = useState<string | null>(null);
+  const [matchSets, setMatchSets] = useState<Array<{ userScore: string; opponentScore: string }>>([
+    { userScore: '', opponentScore: '' },
+    { userScore: '', opponentScore: '' },
+    { userScore: '', opponentScore: '' },
+  ]);
+  const [scoreError, setScoreError] = useState(false);
 
   useEffect(() => {
     loadRankings();
@@ -80,7 +86,6 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
               email: profileData.email,
             },
             position: 1,
-            description: 'Yeni Oyuncu',
             challengePending: false,
           }
         ]);
@@ -241,7 +246,40 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
       return;
     }
     setSelectedWinner(null);
+    setMatchSets([
+      { userScore: '', opponentScore: '' },
+      { userScore: '', opponentScore: '' },
+      { userScore: '', opponentScore: '' },
+    ]);
+    setScoreError(false);
     setShowMatchResultModal(true);
+  };
+
+  const updateSetScore = (setIndex: number, field: 'userScore' | 'opponentScore', value: string) => {
+    // Sadece sayıları kabul et
+    if (value && !/^\d+$/.test(value)) return;
+    
+    const newSets = [...matchSets];
+    newSets[setIndex][field] = value;
+    setMatchSets(newSets);
+    
+    // Hata durumunu temizle
+    if (scoreError) {
+      setScoreError(false);
+    }
+  };
+
+  const addSet = () => {
+    if (matchSets.length < 5) {
+      setMatchSets([...matchSets, { userScore: '', opponentScore: '' }]);
+    }
+  };
+
+  const removeSet = (index: number) => {
+    if (matchSets.length > 1) {
+      const newSets = matchSets.filter((_, i) => i !== index);
+      setMatchSets(newSets);
+    }
   };
 
   const submitMatchResult = async () => {
@@ -249,6 +287,19 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
       Alert.alert('Uyarı', 'Lütfen kazananı seçin');
       return;
     }
+
+    // Skor validasyonu - en az 2 set girilmiş olmalı (ZORUNLU)
+    const filledSets = matchSets.filter(set => set.userScore && set.opponentScore);
+    if (filledSets.length < 2) {
+      setScoreError(true);
+      Alert.alert('Uyarı', 'En az 2 set skoru girilmesi zorunludur');
+      return;
+    }
+
+    // Skor formatını oluştur (örn: "6-4, 3-6, 6-4")
+    const scoreString = filledSets
+      .map(set => `${set.userScore}-${set.opponentScore}`)
+      .join(', ');
 
     const winnerId = selectedWinner;
     const loserId = selectedWinner === currentUser.id 
@@ -258,11 +309,12 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
     try {
       setLoading(true);
 
-      // Standings'leri güncelle
+      // Standings'leri güncelle ve skoru yolla
       await leagueStandingsService.updateUserRanking(
         lig.id,
         winnerId,
-        loserId
+        loserId,
+        scoreString // Skoru backend'e gönder
       );
 
       // Modal'ı kapat
@@ -273,8 +325,10 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
       setLoading(false);
 
       // Başarı bildirimi göster
-      setSnackbarMessage('Yerleştirmeler güncellendi!');
+      setSnackbarMessage(`Maç sonucu kaydedildi: ${scoreString}`);
       setSnackbarVisible(true);
+      
+      console.log('Kaydedilen skor:', scoreString);
     } catch (error: any) {
       console.error('Maç sonucu kaydetme hatası:', error);
       Alert.alert('Hata', error.response?.data?.message || 'Maç sonucu kaydedilemedi');
@@ -324,7 +378,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
             
             <View style={styles.playerInfo}>
               <Text style={styles.playerName}>{player.user.name}</Text>
-              <Text style={styles.playerLevel}>{player.description || 'Oyuncu'}</Text>
+              <Text style={styles.playerLevel}>{player.user.name} - {player.position}. sırada</Text>
               {player.challengePending && (
                 <Chip 
                   icon="clock-alert-outline" 
@@ -478,26 +532,49 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
         {/* Quick Actions */}
         <View style={styles.quickActionsSection}>
           <Title style={styles.sectionTitle}>Hızlı İşlemler</Title>
-          <View style={styles.quickActionsGrid}>
+          
+          {/* Maç Sonucu Gir Butonu */}
+          <View style={styles.matchResultButtonContainer}>
             <Button
               mode="contained"
-              style={styles.quickActionButton}
-              buttonColor="#2E7D32"
+              style={[
+                styles.quickActionButton, 
+                !currentUser.challengePending && styles.disabledQuickActionButton
+              ]}
+              buttonColor={currentUser.challengePending ? "#2E7D32" : "#9E9E9E"}
               icon="clipboard-check"
               onPress={openMatchResultModal}
+              disabled={!currentUser.challengePending}
             >
               Maç Sonucu Gir
             </Button>
-            <Button
-              mode="outlined"
-              style={styles.quickActionButton}
-              textColor="#2E7D32"
-              icon="calendar"
-              onPress={() => {}}
-            >
-              Maç Geçmişi
-            </Button>
+            {currentUser.challengePending ? (
+              <View style={styles.matchInfoContainer}>
+                <MaterialCommunityIcons name="information" size={16} color="#2E7D32" />
+                <Text style={styles.matchInfoText}>
+                  {currentUser.challengedUser?.name} ile aktif müsabakanız var
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.matchInfoContainer}>
+                <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#FF9800" />
+                <Text style={styles.noMatchInfoText}>
+                  Aktif müsabaka bulunmuyor. Maç sonucu girebilmek için önce bir oyuncuya meydan okuyun.
+                </Text>
+              </View>
+            )}
           </View>
+
+          {/* Maç Geçmişi Butonu */}
+          <Button
+            mode="outlined"
+            style={styles.quickActionButton}
+            textColor="#2E7D32"
+            icon="calendar"
+            onPress={() => {}}
+          >
+            Maç Geçmişi
+          </Button>
         </View>
       </ScrollView>
 
@@ -535,7 +612,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                     />
                     <View style={styles.opponentDetails}>
                       <Text style={styles.opponentName}>{selectedPlayer.user.name}</Text>
-                      <Text style={styles.opponentLevel}>{selectedPlayer.description || 'Oyuncu'}</Text>
+                      <Text style={styles.opponentLevel}>{selectedPlayer.user.name} - {selectedPlayer.position}. sırada</Text>
                       <Text style={styles.opponentPoints}>#{selectedPlayer.position}</Text>
                     </View>
                   </View>
@@ -595,90 +672,168 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
           contentContainerStyle={styles.modalContainer}
         >
           <Card style={styles.modalCard}>
-            <Card.Content>
-              <View style={styles.modalHeader}>
-                <MaterialCommunityIcons name="trophy" size={32} color="#FFD700" />
-                <Title style={styles.modalTitle}>Kazanan Kullanıcı</Title>
-                <TouchableOpacity onPress={() => setShowMatchResultModal(false)}>
-                  <MaterialCommunityIcons name="close" size={24} color="#757575" />
-                </TouchableOpacity>
-              </View>
+            <ScrollView showsVerticalScrollIndicator={true} style={styles.modalScrollView}>
+              <Card.Content>
+                <View style={styles.modalHeader}>
+                  <MaterialCommunityIcons name="trophy" size={32} color="#FFD700" />
+                  <Title style={styles.modalTitle}>Maç Sonucu Gir</Title>
+                  <TouchableOpacity onPress={() => setShowMatchResultModal(false)}>
+                    <MaterialCommunityIcons name="close" size={24} color="#757575" />
+                  </TouchableOpacity>
+                </View>
 
-              {currentUser && currentUser.challengedUser && (
-                <>
-                  <Text style={styles.modalSubtitle}>
-                    Maç sonucunu belirtmek için kazananı seçin
-                  </Text>
+                {currentUser && currentUser.challengedUser && (
+                  <>
+                    <Text style={styles.modalSubtitle}>
+                      Maç sonucunu ve set skorlarını girin
+                    </Text>
 
-                  <View style={styles.winnerSelectionContainer}>
-                    {/* Kullanıcı seçeneği */}
-                    <TouchableOpacity
-                      style={[
-                        styles.winnerOption,
-                        selectedWinner === currentUser.id && styles.winnerOptionSelected
-                      ]}
-                      onPress={() => setSelectedWinner(currentUser.id)}
-                    >
-                      <View style={styles.radioButton}>
-                        {selectedWinner === currentUser.id && (
-                          <View style={styles.radioButtonInner} />
+                    {/* Kazanan Seçimi */}
+                    <Text style={styles.sectionLabel}>Kazanan Oyuncu</Text>
+                    <View style={styles.winnerSelectionContainer}>
+                      {/* Kullanıcı seçeneği */}
+                      <TouchableOpacity
+                        style={[
+                          styles.winnerOption,
+                          selectedWinner === currentUser.id && styles.winnerOptionSelected
+                        ]}
+                        onPress={() => setSelectedWinner(currentUser.id)}
+                      >
+                        <View style={styles.radioButton}>
+                          {selectedWinner === currentUser.id && (
+                            <View style={styles.radioButtonInner} />
+                          )}
+                        </View>
+                        <Avatar.Text 
+                          size={36} 
+                          label={currentUser.name.charAt(0)} 
+                          style={styles.winnerAvatar}
+                        />
+                        <View style={styles.winnerInfo}>
+                          <Text style={styles.winnerName}>{currentUser.name}</Text>
+                          <Text style={styles.winnerLabel}>(Siz)</Text>
+                        </View>
+                      </TouchableOpacity>
+
+                      {/* Rakip seçeneği */}
+                      <TouchableOpacity
+                        style={[
+                          styles.winnerOption,
+                          selectedWinner === currentUser.challengedUser.id && styles.winnerOptionSelected
+                        ]}
+                        onPress={() => setSelectedWinner(currentUser.challengedUser.id)}
+                      >
+                        <View style={styles.radioButton}>
+                          {selectedWinner === currentUser.challengedUser.id && (
+                            <View style={styles.radioButtonInner} />
+                          )}
+                        </View>
+                        <Avatar.Text 
+                          size={36} 
+                          label={currentUser.challengedUser.name.charAt(0)} 
+                          style={styles.winnerAvatar}
+                        />
+                        <View style={styles.winnerInfo}>
+                          <Text style={styles.winnerName}>{currentUser.challengedUser.name}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Set Skorları */}
+                    <View style={styles.scoresSection}>
+                      <View style={styles.scoresSectionHeader}>
+                        <Text style={styles.sectionLabel}>Set Skorları (Minimum 2 Set Zorunlu)</Text>
+                        {matchSets.length < 5 && (
+                          <TouchableOpacity onPress={addSet} style={styles.addSetButton}>
+                            <MaterialCommunityIcons name="plus-circle" size={24} color="#2E7D32" />
+                            <Text style={styles.addSetText}>Set Ekle</Text>
+                          </TouchableOpacity>
                         )}
                       </View>
-                      <Avatar.Text 
-                        size={40} 
-                        label={currentUser.name.charAt(0)} 
-                        style={styles.winnerAvatar}
-                      />
-                      <View style={styles.winnerInfo}>
-                        <Text style={styles.winnerName}>{currentUser.name}</Text>
-                        <Text style={styles.winnerLabel}>(Siz)</Text>
-                      </View>
-                    </TouchableOpacity>
 
-                    {/* Rakip seçeneği */}
-                    <TouchableOpacity
-                      style={[
-                        styles.winnerOption,
-                        selectedWinner === currentUser.challengedUser.id && styles.winnerOptionSelected
-                      ]}
-                      onPress={() => setSelectedWinner(currentUser.challengedUser.id)}
-                    >
-                      <View style={styles.radioButton}>
-                        {selectedWinner === currentUser.challengedUser.id && (
-                          <View style={styles.radioButtonInner} />
-                        )}
-                      </View>
-                      <Avatar.Text 
-                        size={40} 
-                        label={currentUser.challengedUser.name.charAt(0)} 
-                        style={styles.winnerAvatar}
-                      />
-                      <View style={styles.winnerInfo}>
-                        <Text style={styles.winnerName}>{currentUser.challengedUser.name}</Text>
-                      </View>
-                    </TouchableOpacity>
-                  </View>
+                      {/* Uyarı mesajı */}
+                      {scoreError && (
+                        <View style={styles.scoreErrorContainer}>
+                          <MaterialCommunityIcons name="alert-circle" size={20} color="#DC3545" />
+                          <Text style={styles.scoreErrorText}>
+                            En az 2 set skoru girilmesi zorunludur
+                          </Text>
+                        </View>
+                      )}
 
-                  <View style={styles.modalButtons}>
-                    <Button
-                      mode="outlined"
-                      onPress={() => setShowMatchResultModal(false)}
-                      style={styles.modalCancelButton}
-                    >
-                      İptal
-                    </Button>
-                    <Button
-                      mode="contained"
-                      onPress={submitMatchResult}
-                      style={styles.modalSendButton}
-                      buttonColor="#2E7D32"
-                    >
-                      Onayla
-                    </Button>
-                  </View>
-                </>
-              )}
-            </Card.Content>
+                      {/* Skorlar başlığı */}
+                      <View style={styles.scoresHeader}>
+                        <Text style={styles.scorePlayerLabel}>{currentUser.name}</Text>
+                        <Text style={styles.scoreDivider}>vs</Text>
+                        <Text style={styles.scorePlayerLabel}>{currentUser.challengedUser.name}</Text>
+                      </View>
+
+                      {/* Set input'ları */}
+                      {matchSets.map((set, index) => {
+                        const isSetFilled = set.userScore && set.opponentScore;
+                        const shouldShowError = scoreError && !isSetFilled && index < 2;
+                        
+                        return (
+                          <View key={index} style={styles.setRow}>
+                            <Text style={[styles.setLabel, shouldShowError && styles.setLabelError]}>
+                              Set {index + 1}{index < 2 ? ' *' : ''}:
+                            </Text>
+                            <TextInput
+                              mode="outlined"
+                              value={set.userScore}
+                              onChangeText={(value) => updateSetScore(index, 'userScore', value)}
+                              keyboardType="numeric"
+                              maxLength={2}
+                              style={styles.scoreInput}
+                              outlineColor={shouldShowError ? "#DC3545" : "#E0E0E0"}
+                              activeOutlineColor={shouldShowError ? "#DC3545" : "#2E7D32"}
+                              error={shouldShowError}
+                              dense
+                            />
+                            <Text style={styles.scoreSeparator}>-</Text>
+                            <TextInput
+                              mode="outlined"
+                              value={set.opponentScore}
+                              onChangeText={(value) => updateSetScore(index, 'opponentScore', value)}
+                              keyboardType="numeric"
+                              maxLength={2}
+                              style={styles.scoreInput}
+                              outlineColor={shouldShowError ? "#DC3545" : "#E0E0E0"}
+                              activeOutlineColor={shouldShowError ? "#DC3545" : "#2E7D32"}
+                              error={shouldShowError}
+                              dense
+                            />
+                            {matchSets.length > 1 && (
+                              <TouchableOpacity onPress={() => removeSet(index)} style={styles.removeSetButton}>
+                                <MaterialCommunityIcons name="close-circle" size={24} color="#DC3545" />
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                        );
+                      })}
+                    </View>
+
+                    <View style={styles.modalButtons}>
+                      <Button
+                        mode="outlined"
+                        onPress={() => setShowMatchResultModal(false)}
+                        style={styles.modalCancelButton}
+                      >
+                        İptal
+                      </Button>
+                      <Button
+                        mode="contained"
+                        onPress={submitMatchResult}
+                        style={styles.modalSendButton}
+                        buttonColor="#2E7D32"
+                      >
+                        Kaydet
+                      </Button>
+                    </View>
+                  </>
+                )}
+              </Card.Content>
+            </ScrollView>
           </Card>
         </Modal>
       </Portal>
@@ -938,9 +1093,35 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   quickActionButton: {
-    flex: 1,
-    marginHorizontal: 5,
+    marginBottom: 10,
     borderRadius: 12,
+  },
+  disabledQuickActionButton: {
+    opacity: 0.6,
+  },
+  matchResultButtonContainer: {
+    marginBottom: 20,
+  },
+  matchInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 5,
+    paddingHorizontal: 12,
+  },
+  matchInfoText: {
+    fontSize: 13,
+    color: '#2E7D32',
+    marginLeft: 6,
+    flex: 1,
+    fontWeight: '500',
+  },
+  noMatchInfoText: {
+    fontSize: 13,
+    color: '#757575',
+    marginLeft: 6,
+    flex: 1,
+    lineHeight: 18,
   },
   modalContainer: {
     margin: 20,
@@ -1091,6 +1272,103 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#757575',
     marginTop: 2,
+  },
+  sectionLabel: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#1B1B1B',
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  scoresSection: {
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  scoresSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  addSetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  addSetText: {
+    fontSize: 13,
+    color: '#2E7D32',
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+  scoresHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingVertical: 8,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+  },
+  scorePlayerLabel: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#2E7D32',
+    flex: 1,
+    textAlign: 'center',
+  },
+  scoreDivider: {
+    fontSize: 12,
+    color: '#6C757D',
+    paddingHorizontal: 8,
+  },
+  setRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    justifyContent: 'space-between',
+  },
+  setLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1B1B1B',
+    width: 50,
+  },
+  setLabelError: {
+    color: '#DC3545',
+  },
+  scoreInput: {
+    flex: 1,
+    height: 40,
+    backgroundColor: '#FFFFFF',
+    textAlign: 'center',
+  },
+  scoreSeparator: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#6C757D',
+    paddingHorizontal: 8,
+  },
+  removeSetButton: {
+    marginLeft: 8,
+    padding: 4,
+  },
+  scoreErrorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFEBEE',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#DC3545',
+  },
+  scoreErrorText: {
+    fontSize: 13,
+    color: '#DC3545',
+    marginLeft: 8,
+    flex: 1,
+    fontWeight: '500',
   },
 });
 

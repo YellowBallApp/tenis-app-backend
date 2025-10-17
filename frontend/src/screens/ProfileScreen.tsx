@@ -24,7 +24,7 @@ import {
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { authService } from '../services/api';
@@ -34,7 +34,7 @@ const { width } = Dimensions.get('window');
 type ProfileScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
 const ProfileScreen = () => {
-  const navigation = useNavigation<ProfileScreenNavigationProp>();
+  const navigation = useNavigation<any>();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -45,6 +45,8 @@ const ProfileScreen = () => {
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [showAccountSettingsModal, setShowAccountSettingsModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   
   // Form states
   const [editName, setEditName] = useState('');
@@ -74,7 +76,9 @@ const ProfileScreen = () => {
         matchesPlayed: 0, // TODO: Match history'den hesaplanacak
         matchesWon: 0, // TODO: Match history'den hesaplanacak
         winRate: 0, // TODO: Match history'den hesaplanacak
-        joinDate: new Date(profileData.createdAt).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' }),
+        joinDate: (profileData as any).createdAt 
+          ? new Date((profileData as any).createdAt).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })
+          : 'Bilinmiyor',
         membershipType: 'Premium',
         nextRenewal: '15 Nisan 2024',
       };
@@ -108,48 +112,64 @@ const ProfileScreen = () => {
     }
   };
 
-  const handleLogout = async () => {
-    Alert.alert(
-      'Çıkış Yap',
-      'Çıkış yapmak istediğinizden emin misiniz?',
-      [
-        {
-          text: 'İptal',
-          style: 'cancel',
-        },
-        {
-          text: 'Çıkış Yap',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const refreshToken = await AsyncStorage.getItem('refreshToken');
-              
-              // Backend'e logout isteği gönder
-              if (refreshToken) {
-                await authService.logout(refreshToken);
-              }
-              
-              // Token'ları temizle
-              await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
-              
-              // Login ekranına yönlendir
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'Login' }],
-              });
-            } catch (error) {
-              console.error('Logout error:', error);
-              // Hata olsa bile token'ları temizle ve login'e yönlendir
-              await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'Login' }],
-              });
-            }
-          },
-        },
-      ]
-    );
+  const handleLogout = () => {
+    console.log('handleLogout çağrıldı - Modal açılıyor');
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = async () => {
+    console.log('Çıkış Yap onaylandı');
+    setLoggingOut(true);
+    
+    try {
+      const refreshToken = await AsyncStorage.getItem('refreshToken');
+      console.log('RefreshToken:', refreshToken ? 'Bulundu' : 'Bulunamadı');
+      
+      // Backend'e logout isteği gönder
+      if (refreshToken) {
+        console.log('Backend logout isteği gönderiliyor...');
+        await authService.logout(refreshToken);
+        console.log('Backend logout başarılı');
+      }
+      
+      // Token'ları temizle
+      console.log('Token\'lar temizleniyor...');
+      await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
+      console.log('Token\'lar temizlendi');
+      
+      // Login ekranına yönlendir
+      console.log('Login ekranına yönlendiriliyor...');
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: 'Login' }],
+        })
+      );
+      console.log('Yönlendirme tamamlandı');
+    } catch (error) {
+      console.error('Logout error:', error);
+      console.error('Error detayı:', JSON.stringify(error, null, 2));
+      
+      // Hata olsa bile token'ları temizle ve login'e yönlendir
+      try {
+        await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
+        console.log('Hata sonrası token\'lar temizlendi');
+        
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: 'Login' }],
+          })
+        );
+        console.log('Hata sonrası yönlendirme tamamlandı');
+      } catch (innerError) {
+        console.error('İç hata:', innerError);
+        Alert.alert('Hata', 'Çıkış yapılırken bir hata oluştu. Lütfen uygulamayı yeniden başlatın.');
+      }
+    } finally {
+      setLoggingOut(false);
+      setShowLogoutModal(false);
+    }
   };
 
   const quickActions = [
@@ -689,6 +709,63 @@ const ProfileScreen = () => {
         </Card>
       </Modal>
     </Portal>
+
+    {/* Logout Confirmation Modal */}
+    <Portal>
+      <Modal
+        visible={showLogoutModal}
+        onDismiss={() => !loggingOut && setShowLogoutModal(false)}
+        contentContainerStyle={styles.logoutModalContainer}
+      >
+        <Card style={styles.logoutModalCard}>
+          <Card.Content style={styles.logoutModalContent}>
+            <View style={styles.logoutModalHeader}>
+              <MaterialCommunityIcons name="logout" size={28} color="#DC3545" />
+              <Title style={styles.logoutModalTitle}>Çıkış Yap</Title>
+              <TouchableOpacity 
+                onPress={() => setShowLogoutModal(false)}
+                disabled={loggingOut}
+              >
+                <MaterialCommunityIcons name="close" size={22} color="#757575" />
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={styles.logoutModalText}>
+              Çıkış yapmak istediğinizden emin misiniz?
+            </Text>
+
+            {loggingOut ? (
+              <View style={{ alignItems: 'center', paddingVertical: 15 }}>
+                <ActivityIndicator size="large" color="#DC3545" />
+                <Text style={{ marginTop: 8, color: '#6C757D', fontSize: 13 }}>Çıkış yapılıyor...</Text>
+              </View>
+            ) : (
+              <View style={styles.logoutModalButtons}>
+                <Button
+                  mode="outlined"
+                  onPress={() => setShowLogoutModal(false)}
+                  style={styles.logoutCancelButton}
+                  contentStyle={{ paddingVertical: 4 }}
+                  labelStyle={{ fontSize: 14 }}
+                >
+                  İptal
+                </Button>
+                <Button
+                  mode="contained"
+                  onPress={confirmLogout}
+                  style={styles.logoutConfirmButton}
+                  buttonColor="#DC3545"
+                  contentStyle={{ paddingVertical: 4 }}
+                  labelStyle={{ fontSize: 14 }}
+                >
+                  Çıkış Yap
+                </Button>
+              </View>
+            )}
+          </Card.Content>
+        </Card>
+      </Modal>
+    </Portal>
     </>
   );
 };
@@ -1024,6 +1101,64 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.6,
+  },
+  // Logout Modal Styles
+  logoutModalContainer: {
+    margin: 20,
+    justifyContent: 'center',
+  },
+  logoutModalCard: {
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+  },
+  logoutModalContent: {
+    padding: 16,
+  },
+  logoutModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E9ECEF',
+  },
+  logoutModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1B1B1B',
+    flex: 1,
+    marginLeft: 10,
+    marginTop: 0,
+    marginBottom: 0,
+  },
+  logoutModalText: {
+    fontSize: 14,
+    color: '#6C757D',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  logoutModalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  logoutCancelButton: {
+    flex: 1,
+    borderRadius: 10,
+    borderColor: '#757575',
+  },
+  logoutConfirmButton: {
+    flex: 1,
+    borderRadius: 10,
   },
 });
 

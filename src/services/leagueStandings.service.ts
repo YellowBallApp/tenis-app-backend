@@ -4,6 +4,7 @@ import { AppError } from '../utils/error/app.error';
 import { AppDataSource } from '../config/data-source';
 import { User } from '../entities/user.entity';
 import { MatchHistory } from '../entities/matchHistory.entity';
+import matchHistoryService from './matchHistory.service';
 
 export class LeagueStandingsService {
   private userRepository;
@@ -110,7 +111,6 @@ export class LeagueStandingsService {
         user: user,
         league: { id: leagueId } as any,
         leagueRanking: lastRank + 1,
-        description: `${user.name} - ${lastRank + 1}. sırada`,
         challengePending: false,
       });
 
@@ -121,8 +121,27 @@ export class LeagueStandingsService {
     }
   }
 
-  async updateRanking(leagueId: number, challengerId: string, challengedId: string): Promise<void> {
+  async updateRanking(leagueId: number, challengerId: string, challengedId: string, score: string): Promise<void> {
     try {
+      // Score zorunlu kontrol
+      if (!score) {
+        throw new AppError('VALIDATION_ERROR');
+      }
+
+      // Challenger'ın leagueStanding'ini bul (match history için)
+      const challengerStanding = await leagueStandingsRepository.findByUserAndLeague(challengerId, leagueId);
+      const challengerStandingId = challengerStanding?.id;
+
+      // Match history oluştur
+      await matchHistoryService.create({
+        winnerIds: [challengerId],
+        loserIds: [challengedId],
+        score,
+        matchDate: new Date(),
+        leagueStandingId: challengerStandingId,
+      });
+
+      // Standings'leri güncelle
       await leagueStandingsRepository.updateRanking(leagueId, challengerId, challengedId);
     } catch (error) {
       throw error instanceof AppError ? error : new AppError('UNKNOWN_ERROR');
@@ -154,7 +173,6 @@ export class LeagueStandingsService {
           id: standing.league.id,
           description: standing.league.description,
         } : null,
-        description: standing.description,
       }));
     } catch (error) {
       throw new Error('Lig sıralaması alınırken bir hata oluştu');
@@ -199,7 +217,6 @@ export class LeagueStandingsService {
         wins,
         losses,
         winRate,
-        description: standing.description,
         league: standing.league ? {
           id: standing.league.id,
           description: standing.league.description,
@@ -347,7 +364,7 @@ export class LeagueStandingsService {
   private async updateRankingsAfterMatch(winnerStanding: LeagueStandings, loserStanding: LeagueStandings) {
     const winnerOldRank = winnerStanding.leagueRanking;
     const loserOldRank = loserStanding.leagueRanking;
-console.log(winnerOldRank, loserOldRank);
+
     // Kazanan, kaybeden oyuncunun sırasını alır
     if (winnerOldRank > loserOldRank) {
       // Aralarındaki oyuncuları bir sıra aşağı kaydır

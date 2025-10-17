@@ -224,11 +224,12 @@ export const leagueStandingsService = {
   },
 
   // Kullanıcının lig sıralamasını güncelle (maç sonucuna göre)
-  updateUserRanking: async (leagueId: number, winnerId: string, loserId: string) => {
+  updateUserRanking: async (leagueId: number, winnerId: string, loserId: string, score: string) => {
     const response = await api.put('/league/standings/ranking', {
       leagueId,
       challengerId: winnerId,
       challengedId: loserId,
+      score,
     });
     return response.data.data;
   },

@@ -146,18 +146,6 @@ export class LeagueStandingsRepository {
           .where('id = :id', { id: challengedStanding.id })
           .execute();
       }
-      
-      // Tüm etkilenen standings'lerin description'larını güncelle
-      const allStandings = await transactionalEntityManager.find(LeagueStandings, {
-        where: { league: { id: leagueId } },
-        relations: ['user'],
-        order: { leagueRanking: 'ASC' }
-      });
-      
-      for (const standing of allStandings) {
-        standing.description = `${standing.user.name} - ${standing.leagueRanking}. sırada`;
-        await transactionalEntityManager.save(standing);
-      }
     });
   }
 }

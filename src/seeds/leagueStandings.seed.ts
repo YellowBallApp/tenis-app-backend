@@ -3,6 +3,16 @@ import { User } from '../entities/user.entity';
 import { LeagueStandings } from '../entities/leagueStandings.entity';
 import { League } from '../entities/league.entity';
 
+// Fisher-Yates shuffle algoritması
+const shuffleArray = <T>(array: T[]): T[] => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 export const seedLeagueStandings = async () => {
   const userRepository = AppDataSource.getRepository(User);
   const leagueStandingsRepository = AppDataSource.getRepository(LeagueStandings);
@@ -28,28 +38,40 @@ export const seedLeagueStandings = async () => {
     return;
   }
 
-  // Her lig için tüm kullanıcılar için sıralama oluştur
+  // Her lig için farklı sıralamalarla ve farklı sayıda kullanıcılar ekle
   for (const league of leagues) {
     console.log(`\n📊 ${league.description} için sıralama oluşturuluyor...`);
     
-    for (let i = 0; i < users.length; i++) {
+    // Her lig için kullanıcıları karıştır
+    const shuffledUsers = shuffleArray(users);
+    
+    // Her lig için rastgele bir kullanıcı sayısı belirle (minimum 4, maksimum tüm kullanıcılar)
+    const minPlayers = Math.min(4, users.length);
+    const maxPlayers = users.length;
+    const playerCount = Math.floor(Math.random() * (maxPlayers - minPlayers + 1)) + minPlayers;
+    
+    // Belirlenen sayıda kullanıcıyı seç
+    const selectedUsers = shuffledUsers.slice(0, playerCount);
+    
+    console.log(`   👥 Bu ligde ${playerCount} oyuncu olacak`);
+    
+    for (let i = 0; i < selectedUsers.length; i++) {
       const existingStanding = await leagueStandingsRepository.findOne({
         where: { 
-          user: { id: users[i].id },
+          user: { id: selectedUsers[i].id },
           league: { id: league.id }
         },
       });
 
       if (!existingStanding) {
         const standing = leagueStandingsRepository.create({
-          user: users[i],
+          user: selectedUsers[i],
           league: league,
           leagueRanking: i + 1, // Sıralama: 1, 2, 3, ...
-          description: `${users[i].name} - ${i + 1}. sırada`,
         });
 
         await leagueStandingsRepository.save(standing);
-        console.log(`✅ ${users[i].name} -> ${league.description} - ${i + 1}. sıra`);
+        console.log(`   ✅ ${selectedUsers[i].name} -> ${league.description} - ${i + 1}. sıra`);
       }
     }
   }
