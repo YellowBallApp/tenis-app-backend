@@ -33,9 +33,9 @@ const HomeScreen = () => {
 
   const quickActions = [
     { title: 'Rezervasyon Yap', icon: 'calendar-plus', color: '#2E7D32', action: () => navigation.navigate('Reservation') },
-    { title: 'Ders Programı', icon: 'school', color: '#4CAF50', action: () => console.log('Ders Programı') },
+    { title: 'Rezervasyonlar', icon: 'calendar-text', color: '#1B5E20', action: () => navigation.navigate('ReservationsList') },
+    { title: 'Maç Geçmişi', icon: 'history', color: '#FF9800', action: () => navigation.navigate('MatchHistory') },
     { title: 'Lider Tablosu', icon: 'trophy', color: '#81C784', action: () => navigation.navigate('GameModes') },
-    { title: 'Duyurular', icon: 'bullhorn', color: '#28A745', action: () => console.log('Duyurular') },
   ];
 
   useEffect(() => {
@@ -46,10 +46,9 @@ const HomeScreen = () => {
     try {
       setLoading(true);
       
-      // Bugünkü rezervasyonları getir
-      const today = new Date().toISOString().split('T')[0];
-      const reservationsData = await reservationService.getReservationsByDate(today);
-      setReservations(reservationsData.slice(0, 2)); // İlk 2 rezervasyon
+      // Yakın zamandaki rezervasyonları getir (en yakın 2)
+      const reservationsData = await reservationService.getUpcomingReservations(2);
+      setReservations(reservationsData);
 
       // Duyuruları getir
       const announcementsData = await announcementService.getAllAnnouncements();
@@ -128,9 +127,9 @@ const HomeScreen = () => {
         </View>
       </View>
 
-      {/* Upcoming Matches - Bugünkü Rezervasyonlar */}
+      {/* Upcoming Matches - Yakın Zamandaki Rezervasyonlar */}
       <View style={styles.section}>
-        <Title style={styles.sectionTitle}>Bugünkü Rezervasyonlar</Title>
+        <Title style={styles.sectionTitle}>Yakın Zamandaki Rezervasyonlar</Title>
         {reservations.length > 0 ? (
           reservations.map((reservation) => (
             <Card key={reservation.id} style={styles.matchCard}>
@@ -138,7 +137,7 @@ const HomeScreen = () => {
                 <View style={styles.matchHeader}>
                   <Text style={styles.matchTime}>{formatTime(reservation.startTime)}</Text>
                   <View style={styles.courtChip}>
-                    <Text style={styles.courtText}>Kort {reservation.courtNumber}</Text>
+                    <Text style={styles.courtText}>{reservation.court?.name || 'Kort'}</Text>
                   </View>
                 </View>
                 <View style={styles.matchPlayers}>
@@ -168,7 +167,7 @@ const HomeScreen = () => {
           <Card style={styles.matchCard}>
             <Card.Content>
               <Text style={{ textAlign: 'center', color: '#6C757D' }}>
-                Bugün için rezervasyon bulunmuyor
+                Yakın zamanda rezervasyon yok
               </Text>
             </Card.Content>
           </Card>

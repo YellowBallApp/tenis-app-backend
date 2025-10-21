@@ -224,12 +224,13 @@ export const leagueStandingsService = {
   },
 
   // Kullanıcının lig sıralamasını güncelle (maç sonucuna göre)
-  updateUserRanking: async (leagueId: number, winnerId: string, loserId: string, score: string) => {
+  updateUserRanking: async (leagueId: number, winnerId: string, loserId: string, score: string, courtId?: number) => {
     const response = await api.put('/league/standings/ranking', {
       leagueId,
       challengerId: winnerId,
       challengedId: loserId,
       score,
+      courtId,
     });
     return response.data.data;
   },
@@ -288,6 +289,12 @@ export const leagueStandingsService = {
 };
 
 export const reservationService = {
+  // Yakın zamandaki rezervasyonları getir
+  getUpcomingReservations: async (limit: number = 2) => {
+    const response = await api.get('/reservations/upcoming', { params: { limit } });
+    return response.data.data;
+  },
+
   // Tarihe göre rezervasyonları getir
   getReservationsByDate: async (date: string) => {
     const response = await api.get('/reservations', { params: { date } });
@@ -315,6 +322,54 @@ export const reservationService = {
   // Rezervasyon iptal et
   cancelReservation: async (reservationId: number) => {
     const response = await api.delete(`/reservations/${reservationId}`);
+    return response.data;
+  },
+};
+
+export const courtService = {
+  // Tüm kortları getir
+  getAllCourts: async () => {
+    const response = await api.get('/courts');
+    return response.data.data;
+  },
+
+  // Aktif kortları getir
+  getActiveCourts: async () => {
+    const response = await api.get('/courts/active');
+    return response.data.data;
+  },
+
+  // ID'ye göre kort getir
+  getCourtById: async (courtId: number) => {
+    const response = await api.get(`/courts/${courtId}`);
+    return response.data.data;
+  },
+
+  // Yeni kort oluştur
+  createCourt: async (data: {
+    name: string;
+    indoors?: boolean;
+    groundType?: 'grass' | 'clay' | 'hard';
+    closed?: boolean;
+  }) => {
+    const response = await api.post('/courts', data);
+    return response.data.data;
+  },
+
+  // Kort güncelle
+  updateCourt: async (courtId: number, data: {
+    name?: string;
+    indoors?: boolean;
+    groundType?: 'grass' | 'clay' | 'hard';
+    closed?: boolean;
+  }) => {
+    const response = await api.put(`/courts/${courtId}`, data);
+    return response.data.data;
+  },
+
+  // Kort sil
+  deleteCourt: async (courtId: number) => {
+    const response = await api.delete(`/courts/${courtId}`);
     return response.data;
   },
 };
@@ -380,6 +435,26 @@ export const tournamentService = {
     score: string;
   }) => {
     const response = await api.post(`/tournaments/matches/${matchId}/result`, data);
+    return response.data.data;
+  },
+};
+
+export const matchHistoryService = {
+  // Tüm maç geçmişini getir
+  getAllMatches: async () => {
+    const response = await api.get('/match-history');
+    return response.data.data;
+  },
+
+  // Kullanıcının maç geçmişini getir
+  getUserMatchHistory: async (userId: string) => {
+    const response = await api.get(`/match-history/user/${userId}`);
+    return response.data.data;
+  },
+
+  // Lige göre maç geçmişini getir
+  getMatchHistoryByLeague: async (leagueId: number) => {
+    const response = await api.get(`/match-history/league/${leagueId}`);
     return response.data.data;
   },
 };

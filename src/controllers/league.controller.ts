@@ -453,14 +453,14 @@ export class LeagueController {
   // Kullanıcının lig sıralamasını güncelle (challenge kazandığında)
   updateUserRanking = async (req: Request, res: Response) => {
     try {
-      const { leagueId, challengerId, challengedId, score } = req.body;
+      const { leagueId, challengerId, challengedId, score, courtId } = req.body;
       
       // Zorunlu alan kontrolü
       if (!leagueId || !challengerId || !challengedId || !score) {
         throw new AppError("VALIDATION_ERROR");
       }
 
-      await leagueStandingsService.updateRanking(leagueId, challengerId, challengedId, score);
+      await leagueStandingsService.updateRanking(leagueId, challengerId, challengedId, score, courtId);
       return res.status(200).json({
         success: true,
         message: 'Sıralama başarıyla güncellendi',

@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, ManyToMany, JoinTable, CreateDateColumn, JoinColumn } from 'typeorm';
 import { User } from './user.entity';
+import { Court } from './court.entity';
 
 @Entity('reservation')
 export class Reservation {
@@ -10,8 +11,9 @@ export class Reservation {
   @JoinColumn({ name: 'userId' })
   user: User;
 
-  @Column({ type: 'int' })
-  courtNumber: number;
+  @ManyToOne(() => Court, { nullable: false, eager: true })
+  @JoinColumn({ name: 'courtId' })
+  court: Court;
 
   @Column({ type: 'timestamp' })
   startTime: Date;

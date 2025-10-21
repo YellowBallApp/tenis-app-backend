@@ -1,6 +1,7 @@
 import { AppDataSource } from '../config/data-source';
 import { User } from '../entities/user.entity';
 import { MatchHistory } from '../entities/matchHistory.entity';
+import { GroundType } from '../enum/groundType.enum';
 
 export const seedMatches = async () => {
   const userRepository = AppDataSource.getRepository(User);
@@ -22,24 +23,32 @@ export const seedMatches = async () => {
       losers: [users[1]],
       score: '4-2, 4-3',
       matchDate: new Date('2025-01-15'),
+      indoorCourt: false,
+      courtGround: GroundType.HARD,
     },
     {
       winners: [users[2]],
       losers: [users[3]],
       score: '4-1, 4-2',
       matchDate: new Date('2025-01-16'),
+      indoorCourt: false,
+      courtGround: GroundType.CLAY,
     },
     {
       winners: [users[0]],
       losers: [users[2]],
       score: '4-3, 3-4, 10-8',
       matchDate: new Date('2025-01-20'),
+      indoorCourt: true,
+      courtGround: GroundType.HARD,
     },
     {
       winners: [users[1]],
       losers: [users[3]],
       score: '4-0, 4-1',
       matchDate: new Date('2025-01-22'),
+      indoorCourt: false,
+      courtGround: GroundType.GRASS,
     },
     // Çiftler maçı örneği
     {
@@ -47,6 +56,8 @@ export const seedMatches = async () => {
       losers: [users[2], users[3]],
       score: '4-2, 4-1',
       matchDate: new Date('2025-01-25'),
+      indoorCourt: true,
+      courtGround: GroundType.CLAY,
     },
   ];
 

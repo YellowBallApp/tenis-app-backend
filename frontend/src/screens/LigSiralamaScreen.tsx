@@ -25,7 +25,7 @@ import {
   Snackbar,
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import { leagueStandingsService, authService } from '../services/api';
+import { leagueStandingsService, authService, courtService } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
@@ -48,11 +48,24 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
     { userScore: '', opponentScore: '' },
     { userScore: '', opponentScore: '' },
   ]);
+  const [courts, setCourts] = useState<any[]>([]);
+  const [selectedCourt, setSelectedCourt] = useState<number | null>(null);
   const [scoreError, setScoreError] = useState(false);
+  const [scoreMismatch, setScoreMismatch] = useState(false);
 
   useEffect(() => {
     loadRankings();
+    loadCourts();
   }, []);
+
+  const loadCourts = async () => {
+    try {
+      const courtsList = await courtService.getActiveCourts();
+      setCourts(courtsList);
+    } catch (error) {
+      console.error('Kortlar yüklenirken hata:', error);
+    }
+  };
 
   const loadRankings = async () => {
     try {
@@ -246,6 +259,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
       return;
     }
     setSelectedWinner(null);
+    setSelectedCourt(null);
     setMatchSets([
       { userScore: '', opponentScore: '' },
       { userScore: '', opponentScore: '' },
@@ -288,12 +302,45 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
       return;
     }
 
+    if (!selectedCourt) {
+      Alert.alert('Uyarı', 'Lütfen kort seçin');
+      return;
+    }
+
     // Skor validasyonu - en az 2 set girilmiş olmalı (ZORUNLU)
     const filledSets = matchSets.filter(set => set.userScore && set.opponentScore);
     if (filledSets.length < 2) {
       setScoreError(true);
       Alert.alert('Uyarı', 'En az 2 set skoru girilmesi zorunludur');
       return;
+    }
+
+    // Set skorlarına göre gerçek kazananı belirle
+    let userWonSets = 0;
+    let opponentWonSets = 0;
+    
+    filledSets.forEach(set => {
+      const userScore = parseInt(set.userScore);
+      const opponentScore = parseInt(set.opponentScore);
+      
+      if (userScore > opponentScore) {
+        userWonSets++;
+      } else if (opponentScore > userScore) {
+        opponentWonSets++;
+      }
+    });
+
+    // Gerçek kazananı belirle (en çok seti kim kazandı?)
+    const actualWinnerId = userWonSets > opponentWonSets 
+      ? currentUser.id 
+      : currentUser.challengedUser.id;
+
+    // Seçilen kazanan ile gerçek kazananı karşılaştır - uyarı göster ve kaydetmeyi engelle
+    if (selectedWinner !== actualWinnerId) {
+      setScoreMismatch(true);
+      return;
+    } else {
+      setScoreMismatch(false);
     }
 
     // Skor formatını oluştur (örn: "6-4, 3-6, 6-4")
@@ -314,7 +361,8 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
         lig.id,
         winnerId,
         loserId,
-        scoreString // Skoru backend'e gönder
+        scoreString, // Skoru backend'e gönder
+        selectedCourt // Kort ID'sini backend'e gönder
       );
 
       // Modal'ı kapat
@@ -571,7 +619,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
             style={styles.quickActionButton}
             textColor="#2E7D32"
             icon="calendar"
-            onPress={() => {}}
+            onPress={() => navigation.navigate('MatchHistory', { leagueId: lig.id, leagueName: lig.name })}
           >
             Maç Geçmişi
           </Button>
@@ -690,14 +738,20 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
 
                     {/* Kazanan Seçimi */}
                     <Text style={styles.sectionLabel}>Kazanan Oyuncu</Text>
-                    <View style={styles.winnerSelectionContainer}>
+                    <View style={[
+                      styles.winnerSelectionContainer,
+                      scoreMismatch && styles.errorBorder
+                    ]}>
                       {/* Kullanıcı seçeneği */}
                       <TouchableOpacity
                         style={[
                           styles.winnerOption,
                           selectedWinner === currentUser.id && styles.winnerOptionSelected
                         ]}
-                        onPress={() => setSelectedWinner(currentUser.id)}
+                        onPress={() => {
+                          setSelectedWinner(currentUser.id);
+                          setScoreMismatch(false);
+                        }}
                       >
                         <View style={styles.radioButton}>
                           {selectedWinner === currentUser.id && (
@@ -721,7 +775,10 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                           styles.winnerOption,
                           selectedWinner === currentUser.challengedUser.id && styles.winnerOptionSelected
                         ]}
-                        onPress={() => setSelectedWinner(currentUser.challengedUser.id)}
+                        onPress={() => {
+                          setSelectedWinner(currentUser.challengedUser.id);
+                          setScoreMismatch(false);
+                        }}
                       >
                         <View style={styles.radioButton}>
                           {selectedWinner === currentUser.challengedUser.id && (
@@ -737,6 +794,40 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                           <Text style={styles.winnerName}>{currentUser.challengedUser.name}</Text>
                         </View>
                       </TouchableOpacity>
+                    </View>
+
+                    {/* Kort Seçimi */}
+                    <View style={styles.courtSelectionSection}>
+                      <Text style={styles.sectionLabel}>Kort Seçin *</Text>
+                      <View style={styles.courtDropdownContainer}>
+                        {courts.map((court) => (
+                          <TouchableOpacity
+                            key={court.id}
+                            style={[
+                              styles.courtOption,
+                              selectedCourt === court.id && styles.courtOptionSelected
+                            ]}
+                            onPress={() => setSelectedCourt(court.id)}
+                          >
+                            <View style={styles.radioButton}>
+                              {selectedCourt === court.id && (
+                                <View style={styles.radioButtonInner} />
+                              )}
+                            </View>
+                            <MaterialCommunityIcons 
+                              name="tennis" 
+                              size={20} 
+                              color={selectedCourt === court.id ? "#2E7D32" : "#757575"} 
+                            />
+                            <Text style={[
+                              styles.courtOptionText,
+                              selectedCourt === court.id && styles.courtOptionTextSelected
+                            ]}>
+                              {court.name}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
                     </View>
 
                     {/* Set Skorları */}
@@ -771,7 +862,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                       {/* Set input'ları */}
                       {matchSets.map((set, index) => {
                         const isSetFilled = set.userScore && set.opponentScore;
-                        const shouldShowError = scoreError && !isSetFilled && index < 2;
+                        const shouldShowError = (scoreError && !isSetFilled && index < 2) || scoreMismatch;
                         
                         return (
                           <View key={index} style={styles.setRow}>
@@ -781,7 +872,10 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                             <TextInput
                               mode="outlined"
                               value={set.userScore}
-                              onChangeText={(value) => updateSetScore(index, 'userScore', value)}
+                              onChangeText={(value) => {
+                                updateSetScore(index, 'userScore', value);
+                                setScoreMismatch(false);
+                              }}
                               keyboardType="numeric"
                               maxLength={2}
                               style={styles.scoreInput}
@@ -794,7 +888,10 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                             <TextInput
                               mode="outlined"
                               value={set.opponentScore}
-                              onChangeText={(value) => updateSetScore(index, 'opponentScore', value)}
+                              onChangeText={(value) => {
+                                updateSetScore(index, 'opponentScore', value);
+                                setScoreMismatch(false);
+                              }}
                               keyboardType="numeric"
                               maxLength={2}
                               style={styles.scoreInput}
@@ -811,6 +908,16 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                           </View>
                         );
                       })}
+
+                      {/* Skor Uyuşmazlığı Uyarısı */}
+                      {scoreMismatch && (
+                        <View style={styles.scoreErrorContainer}>
+                          <MaterialCommunityIcons name="alert-circle" size={20} color="#DC3545" />
+                          <Text style={styles.scoreErrorText}>
+                            Kazanan oyuncu ve yazılan skorlar uyuşmuyor
+                          </Text>
+                        </View>
+                      )}
                     </View>
 
                     <View style={styles.modalButtons}>
@@ -1226,6 +1333,44 @@ const styles = StyleSheet.create({
   winnerSelectionContainer: {
     marginVertical: 20,
     gap: 15,
+    padding: 10,
+    borderRadius: 12,
+  },
+  errorBorder: {
+    borderWidth: 2,
+    borderColor: '#DC3545',
+    backgroundColor: '#FFF5F5',
+  },
+  courtSelectionSection: {
+    marginVertical: 20,
+  },
+  courtDropdownContainer: {
+    gap: 12,
+    marginTop: 12,
+  },
+  courtOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    gap: 12,
+  },
+  courtOptionSelected: {
+    backgroundColor: '#E8F5E9',
+    borderColor: '#2E7D32',
+  },
+  courtOptionText: {
+    fontSize: 16,
+    color: '#424242',
+    fontWeight: '500',
+    flex: 1,
+  },
+  courtOptionTextSelected: {
+    color: '#2E7D32',
+    fontWeight: '700',
   },
   winnerOption: {
     flexDirection: 'row',
