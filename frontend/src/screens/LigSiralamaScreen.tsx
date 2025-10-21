@@ -23,6 +23,7 @@ import {
   Divider,
   IconButton,
   Snackbar,
+  Menu,
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { leagueStandingsService, authService, courtService } from '../services/api';
@@ -50,6 +51,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
   ]);
   const [courts, setCourts] = useState<any[]>([]);
   const [selectedCourt, setSelectedCourt] = useState<number | null>(null);
+  const [courtMenuVisible, setCourtMenuVisible] = useState(false);
   const [scoreError, setScoreError] = useState(false);
   const [scoreMismatch, setScoreMismatch] = useState(false);
 
@@ -799,35 +801,47 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                     {/* Kort Seçimi */}
                     <View style={styles.courtSelectionSection}>
                       <Text style={styles.sectionLabel}>Kort Seçin *</Text>
-                      <View style={styles.courtDropdownContainer}>
-                        {courts.map((court) => (
+                      <Menu
+                        visible={courtMenuVisible}
+                        onDismiss={() => setCourtMenuVisible(false)}
+                        anchor={
                           <TouchableOpacity
-                            key={court.id}
-                            style={[
-                              styles.courtOption,
-                              selectedCourt === court.id && styles.courtOptionSelected
-                            ]}
-                            onPress={() => setSelectedCourt(court.id)}
+                            style={styles.courtDropdownButton}
+                            onPress={() => setCourtMenuVisible(true)}
                           >
-                            <View style={styles.radioButton}>
-                              {selectedCourt === court.id && (
-                                <View style={styles.radioButtonInner} />
-                              )}
+                            <View style={styles.courtDropdownContent}>
+                              <MaterialCommunityIcons 
+                                name="tennis" 
+                                size={20} 
+                                color="#2E7D32" 
+                              />
+                              <Text style={styles.courtDropdownText}>
+                                {selectedCourt 
+                                  ? courts.find(c => c.id === selectedCourt)?.name 
+                                  : 'Kort seçin'}
+                              </Text>
                             </View>
                             <MaterialCommunityIcons 
-                              name="tennis" 
-                              size={20} 
-                              color={selectedCourt === court.id ? "#2E7D32" : "#757575"} 
+                              name="chevron-down" 
+                              size={24} 
+                              color="#757575" 
                             />
-                            <Text style={[
-                              styles.courtOptionText,
-                              selectedCourt === court.id && styles.courtOptionTextSelected
-                            ]}>
-                              {court.name}
-                            </Text>
                           </TouchableOpacity>
+                        }
+                      >
+                        {courts.map((court) => (
+                          <Menu.Item
+                            key={court.id}
+                            onPress={() => {
+                              setSelectedCourt(court.id);
+                              setCourtMenuVisible(false);
+                            }}
+                            title={court.name}
+                            leadingIcon="tennis"
+                            style={selectedCourt === court.id && styles.selectedMenuItem}
+                          />
                         ))}
-                      </View>
+                      </Menu>
                     </View>
 
                     {/* Set Skorları */}
@@ -1344,33 +1358,29 @@ const styles = StyleSheet.create({
   courtSelectionSection: {
     marginVertical: 20,
   },
-  courtDropdownContainer: {
-    gap: 12,
-    marginTop: 12,
-  },
-  courtOption: {
+  courtDropdownButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     padding: 16,
     backgroundColor: '#F5F5F5',
     borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    marginTop: 8,
+  },
+  courtDropdownContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
   },
-  courtOptionSelected: {
-    backgroundColor: '#E8F5E9',
-    borderColor: '#2E7D32',
-  },
-  courtOptionText: {
+  courtDropdownText: {
     fontSize: 16,
     color: '#424242',
     fontWeight: '500',
-    flex: 1,
   },
-  courtOptionTextSelected: {
-    color: '#2E7D32',
-    fontWeight: '700',
+  selectedMenuItem: {
+    backgroundColor: '#E8F5E9',
   },
   winnerOption: {
     flexDirection: 'row',
