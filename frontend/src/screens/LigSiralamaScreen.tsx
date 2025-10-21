@@ -804,6 +804,8 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                       <Menu
                         visible={courtMenuVisible}
                         onDismiss={() => setCourtMenuVisible(false)}
+                        anchorPosition="bottom"
+                        contentStyle={styles.menuContent}
                         anchor={
                           <TouchableOpacity
                             style={styles.courtDropdownButton}
@@ -1381,6 +1383,15 @@ const styles = StyleSheet.create({
   },
   selectedMenuItem: {
     backgroundColor: '#E8F5E9',
+  },
+  menuContent: {
+    marginTop: 8,
+    backgroundColor: '#FFFFFF',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   winnerOption: {
     flexDirection: 'row',

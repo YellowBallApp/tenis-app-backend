@@ -383,6 +383,33 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                       </View>
                     )}
 
+                    {/* Kort Bilgileri */}
+                    <View style={styles.courtInfoContainer}>
+                      <View style={styles.courtInfoItem}>
+                        <MaterialCommunityIcons 
+                          name={match.indoorCourt ? "home-roof" : "weather-sunny"} 
+                          size={16} 
+                          color="#2E7D32" 
+                        />
+                        <Text style={styles.courtInfoText}>
+                          {match.indoorCourt ? 'Kapalı Saha' : 'Açık Saha'}
+                        </Text>
+                      </View>
+                      <View style={styles.courtInfoDivider} />
+                      <View style={styles.courtInfoItem}>
+                        <MaterialCommunityIcons 
+                          name="texture-box" 
+                          size={16} 
+                          color="#2E7D32" 
+                        />
+                        <Text style={styles.courtInfoText}>
+                          {match.courtGround === 'grass' && 'Çim Kort'}
+                          {match.courtGround === 'clay' && 'Toprak Kort'}
+                          {match.courtGround === 'hard' && 'Sert Kort'}
+                        </Text>
+                      </View>
+                    </View>
+
                     {/* Lig Bilgisi - Sağ Alt Köşe */}
                     {match.leagueStanding?.league?.name && (
                       <View style={styles.leagueBadge}>
@@ -872,6 +899,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1B1B1B',
     flex: 1,
+  },
+  courtInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+    gap: 16,
+  },
+  courtInfoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  courtInfoText: {
+    fontSize: 13,
+    color: '#424242',
+    fontWeight: '500',
+  },
+  courtInfoDivider: {
+    width: 1,
+    height: 16,
+    backgroundColor: '#E0E0E0',
   },
   emptyCard: {
     backgroundColor: '#FFFFFF',
