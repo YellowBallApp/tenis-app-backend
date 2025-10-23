@@ -1,14 +1,39 @@
 import { AppDataSource } from '../config/data-source';
 import { Reservation } from '../entities/reservation.entity';
 import { User } from '../entities/user.entity';
+import { Court } from '../entities/court.entity';
 
 export class ReservationService {
   private reservationRepository;
   private userRepository;
+  private courtRepository;
 
   constructor() {
     this.reservationRepository = AppDataSource.getRepository(Reservation);
     this.userRepository = AppDataSource.getRepository(User);
+    this.courtRepository = AppDataSource.getRepository(Court);
+  }
+
+  // Kullanıcının yakın zamandaki rezervasyonlarını getir (şu andan sonraki en yakın 2)
+  async getUpcomingReservations(userId: string, limit: number = 2) {
+    try {
+      const now = new Date();
+
+      const reservations = await this.reservationRepository
+        .createQueryBuilder('reservation')
+        .leftJoinAndSelect('reservation.user', 'user')
+        .leftJoinAndSelect('reservation.court', 'court')
+        .leftJoinAndSelect('reservation.participants', 'participants')
+        .where('reservation.user.id = :userId', { userId })
+        .andWhere('reservation.startTime >= :now', { now })
+        .orderBy('reservation.startTime', 'ASC')
+        .limit(limit)
+        .getMany();
+
+      return reservations;
+    } catch (error) {
+      throw new Error('Yakın rezervasyonlar alınırken bir hata oluştu');
+    }
   }
 
   // Belirli bir tarihteki tüm rezervasyonları getir
@@ -23,10 +48,11 @@ export class ReservationService {
       const reservations = await this.reservationRepository
         .createQueryBuilder('reservation')
         .leftJoinAndSelect('reservation.user', 'user')
+        .leftJoinAndSelect('reservation.court', 'court')
         .leftJoinAndSelect('reservation.participants', 'participants')
         .where('reservation.startTime >= :start', { start: startOfDay })
         .andWhere('reservation.startTime <= :end', { end: endOfDay })
-        .orderBy('reservation.courtNumber', 'ASC')
+        .orderBy('court.id', 'ASC')
         .addOrderBy('reservation.startTime', 'ASC')
         .getMany();
 
@@ -38,7 +64,7 @@ export class ReservationService {
 
   // Yeni rezervasyon oluştur
   async createReservation(userId: string, data: {
-    courtNumber: number;
+    courtId: number;
     startTime: Date;
     endTime: Date;
     participantIds?: string[];
@@ -51,10 +77,22 @@ export class ReservationService {
         throw new Error('Kullanıcı bulunamadı');
       }
 
+      // Kort kontrolü
+      const court = await this.courtRepository.findOne({ where: { id: data.courtId } });
+      
+      if (!court) {
+        throw new Error('Kort bulunamadı');
+      }
+
+      if (court.closed) {
+        throw new Error('Bu kort şu anda kapalı');
+      }
+
       // Çakışma kontrolü
       const conflictingReservation = await this.reservationRepository
         .createQueryBuilder('reservation')
-        .where('reservation.courtNumber = :courtNumber', { courtNumber: data.courtNumber })
+        .leftJoin('reservation.court', 'court')
+        .where('court.id = :courtId', { courtId: data.courtId })
         .andWhere('reservation.startTime < :endTime', { endTime: data.endTime })
         .andWhere('reservation.endTime > :startTime', { startTime: data.startTime })
         .getOne();
@@ -74,7 +112,7 @@ export class ReservationService {
 
       const reservation = this.reservationRepository.create({
         user,
-        courtNumber: data.courtNumber,
+        court,
         startTime: data.startTime,
         endTime: data.endTime,
         participants: participants,

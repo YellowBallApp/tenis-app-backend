@@ -4,15 +4,18 @@ import { AppError } from '../utils/error/app.error';
 import { AppDataSource } from '../config/data-source';
 import { User } from '../entities/user.entity';
 import { MatchHistory } from '../entities/matchHistory.entity';
+import { Court } from '../entities/court.entity';
 import matchHistoryService from './matchHistory.service';
 
 export class LeagueStandingsService {
   private userRepository;
   private matchHistoryRepository;
+  private courtRepository;
 
   constructor() {
     this.userRepository = AppDataSource.getRepository(User);
     this.matchHistoryRepository = AppDataSource.getRepository(MatchHistory);
+    this.courtRepository = AppDataSource.getRepository(Court);
   }
   async findAll(): Promise<LeagueStandings[]> {
     try {
@@ -121,11 +124,23 @@ export class LeagueStandingsService {
     }
   }
 
-  async updateRanking(leagueId: number, challengerId: string, challengedId: string, score: string): Promise<void> {
+  async updateRanking(leagueId: number, challengerId: string, challengedId: string, score: string, courtId?: number): Promise<void> {
     try {
       // Score zorunlu kontrol
       if (!score) {
         throw new AppError('VALIDATION_ERROR');
+      }
+
+      // Kort bilgisini al
+      let indoorCourt = false;
+      let courtGround = undefined;
+      
+      if (courtId) {
+        const court = await this.courtRepository.findOne({ where: { id: courtId } });
+        if (court) {
+          indoorCourt = court.indoors;
+          courtGround = court.groundType;
+        }
       }
 
       // Challenger'ın leagueStanding'ini bul (match history için)
@@ -139,6 +154,8 @@ export class LeagueStandingsService {
         score,
         matchDate: new Date(),
         leagueStandingId: challengerStandingId,
+        indoorCourt,
+        courtGround,
       });
 
       // Standings'leri güncelle

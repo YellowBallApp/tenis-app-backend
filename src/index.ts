@@ -14,6 +14,7 @@ import announcementRoutes from "./routes/announcement.routes";
 import tournamentRoutes from "./routes/tournament.routes";
 import coachRoutes from "./routes/coach.routes";
 import matchHistoryRoutes from "./routes/matchHistory.routes";
+import courtRoutes from "./routes/court.routes";
 
 const app = express();
 
@@ -57,6 +58,7 @@ app.use("/api/announcements", announcementRoutes);
 app.use("/api/tournaments", tournamentRoutes);
 app.use("/api/coaches", coachRoutes);
 app.use("/api/match-history", matchHistoryRoutes);
+app.use("/api/courts", courtRoutes);
 
 const authMiddleware = express.Router();
 

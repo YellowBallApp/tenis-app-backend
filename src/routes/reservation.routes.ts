@@ -10,6 +10,41 @@ router.use(authMiddleware);
 
 /**
  * @swagger
+ * /api/reservations/upcoming:
+ *   get:
+ *     summary: Kullanıcının yakın zamandaki rezervasyonlarını getir
+ *     tags: [Reservations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *           default: 2
+ *         description: Kaç adet rezervasyon getirileceği
+ *     responses:
+ *       200:
+ *         description: Kullanıcının yakın rezervasyonları
+ */
+router.get('/upcoming', reservationController.getUpcomingReservations);
+
+/**
+ * @swagger
+ * /api/reservations/my:
+ *   get:
+ *     summary: Kullanıcının rezervasyonlarını getir
+ *     tags: [Reservations]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Kullanıcı rezervasyonları
+ */
+router.get('/my', reservationController.getUserReservations);
+
+/**
+ * @swagger
  * /api/reservations:
  *   get:
  *     summary: Tarihe göre rezervasyonları getir
@@ -29,20 +64,6 @@ router.use(authMiddleware);
  *         description: Rezervasyon listesi
  */
 router.get('/', reservationController.getReservationsByDate);
-
-/**
- * @swagger
- * /api/reservations/my:
- *   get:
- *     summary: Kullanıcının rezervasyonlarını getir
- *     tags: [Reservations]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Kullanıcı rezervasyonları
- */
-router.get('/my', reservationController.getUserReservations);
 
 /**
  * @swagger

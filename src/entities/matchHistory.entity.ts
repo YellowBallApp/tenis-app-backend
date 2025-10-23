@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { CommentTextArea } from "./commentTextArea";
 import { User } from './user.entity';
 import { LeagueStandings } from './leagueStandings.entity';
+import { GroundType } from '../enum/groundType.enum';
 
 
 @Entity()
@@ -45,6 +46,12 @@ export class MatchHistory {
 
     @Column({ type: 'timestamp', nullable: true })
     matchDate: Date;
+
+    @Column({ type: 'boolean', default: false })
+    indoorCourt: boolean;
+
+    @Column({ type: 'enum', enum: GroundType, default: GroundType.HARD })
+    courtGround: GroundType;
 
     @CreateDateColumn()
     created: Date;

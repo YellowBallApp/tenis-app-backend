@@ -8,6 +8,26 @@ export class ReservationController {
     this.reservationService = new ReservationService();
   }
 
+  // Kullanıcının yakın zamandaki rezervasyonlarını getir
+  getUpcomingReservations = async (req: Request, res: Response) => {
+    try {
+      const userId = req.currentUser.id; // authMiddleware'den geliyor
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 2;
+      
+      const reservations = await this.reservationService.getUpcomingReservations(userId, limit);
+      
+      return res.status(200).json({
+        success: true,
+        data: reservations,
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error.message || 'Yakın rezervasyonlar alınırken bir hata oluştu',
+      });
+    }
+  };
+
   // Tarihe göre rezervasyonları getir
   getReservationsByDate = async (req: Request, res: Response) => {
     try {
@@ -37,11 +57,11 @@ export class ReservationController {
   // Yeni rezervasyon oluştur
   createReservation = async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).userId; // authMiddleware'den geliyor
-      const { courtNumber, startTime, endTime, participantIds, notes } = req.body;
+      const userId = req.currentUser.id; // authMiddleware'den geliyor
+      const { courtId, startTime, endTime, participantIds, notes } = req.body;
 
       const reservation = await this.reservationService.createReservation(userId, {
-        courtNumber,
+        courtId,
         startTime: new Date(startTime),
         endTime: new Date(endTime),
         participantIds,
@@ -64,7 +84,7 @@ export class ReservationController {
   // Kullanıcının rezervasyonlarını getir
   getUserReservations = async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).userId;
+      const userId = req.currentUser.id;
       
       const reservations = await this.reservationService.getUserReservations(userId);
       
@@ -83,7 +103,7 @@ export class ReservationController {
   // Rezervasyon iptal et
   cancelReservation = async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).userId;
+      const userId = req.currentUser.id;
       const reservationId = parseInt(req.params.id);
 
       const result = await this.reservationService.cancelReservation(reservationId, userId);

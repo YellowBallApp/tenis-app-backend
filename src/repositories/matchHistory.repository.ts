@@ -11,7 +11,7 @@ export class MatchHistoryRepository {
 
   async findAll(): Promise<MatchHistory[]> {
     return this.repository.find({
-      relations: ['winners', 'losers', 'leagueStanding'],
+      relations: ['winners', 'losers', 'leagueStanding', 'leagueStanding.league'],
       order: { matchDate: 'DESC' },
     });
   }
@@ -19,17 +19,32 @@ export class MatchHistoryRepository {
   async findById(id: number): Promise<MatchHistory | null> {
     return this.repository.findOne({
       where: { id },
-      relations: ['winners', 'losers', 'leagueStanding'],
+      relations: ['winners', 'losers', 'leagueStanding', 'leagueStanding.league'],
     });
   }
 
   async findByUserId(userId: string): Promise<MatchHistory[]> {
+    // İlk önce kullanıcının olduğu match ID'lerini bul
+    const matchIds = await this.repository
+      .createQueryBuilder('matchHistory')
+      .leftJoin('matchHistory.winners', 'winners')
+      .leftJoin('matchHistory.losers', 'losers')
+      .where('winners.id = :userId OR losers.id = :userId', { userId })
+      .select('matchHistory.id')
+      .getMany();
+
+    if (matchIds.length === 0) {
+      return [];
+    }
+
+    // Sonra bu match'lerin tüm detaylarını getir (tüm winners ve losers ile)
     return this.repository
       .createQueryBuilder('matchHistory')
       .leftJoinAndSelect('matchHistory.winners', 'winners')
       .leftJoinAndSelect('matchHistory.losers', 'losers')
       .leftJoinAndSelect('matchHistory.leagueStanding', 'leagueStanding')
-      .where('winners.id = :userId OR losers.id = :userId', { userId })
+      .leftJoinAndSelect('leagueStanding.league', 'league')
+      .whereInIds(matchIds.map(m => m.id))
       .orderBy('matchHistory.matchDate', 'DESC')
       .getMany();
   }

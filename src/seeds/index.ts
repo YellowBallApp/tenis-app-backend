@@ -7,6 +7,7 @@ import { seedReservations } from "./reservation.seed";
 import { seedAnnouncements } from "./announcement.seed";
 import { seedComments } from "./comment.seed";
 import { seedCoaches } from "./coach.seed";
+import { seedCourts } from "./court.seed";
 
 async function runSeeds() {
     const queryRunner = AppDataSource.createQueryRunner();
@@ -17,6 +18,7 @@ async function runSeeds() {
         await queryRunner.startTransaction();
 
         await seedUsers();
+        await seedCourts();
         await seedLeagues();
         await seedLeagueStandings();
         await seedMatches();

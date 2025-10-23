@@ -4,6 +4,7 @@ import { AppError } from '../utils/error/app.error';
 import { AppDataSource } from '../config/data-source';
 import { User } from '../entities/user.entity';
 import { LeagueStandings } from '../entities/leagueStandings.entity';
+import { GroundType } from '../enum/groundType.enum';
 
 export class MatchHistoryService {
   private userRepository;
@@ -57,6 +58,8 @@ export class MatchHistoryService {
     score: string;
     matchDate?: Date;
     leagueStandingId?: number;
+    indoorCourt?: boolean;
+    courtGround?: GroundType;
   }): Promise<MatchHistory> {
     try {
       // Kullanıcıları bul
@@ -85,6 +88,8 @@ export class MatchHistoryService {
         score: data.score,
         matchDate: data.matchDate || new Date(),
         leagueStanding,
+        indoorCourt: data.indoorCourt !== undefined ? data.indoorCourt : false,
+        courtGround: data.courtGround || GroundType.HARD,
       });
 
       return matchHistory;

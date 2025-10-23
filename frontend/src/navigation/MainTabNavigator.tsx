@@ -8,6 +8,8 @@ import CoachesScreen from '../screens/CoachesScreen';
 import MembersScreen from '../screens/MembersScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ReservationScreen from '../screens/ReservationScreen';
+import ReservationsListScreen from '../screens/ReservationsListScreen';
+import MatchHistoryScreen from '../screens/MatchHistoryScreen';
 import DefiLigScreen from '../screens/DefiLigScreen';
 import LigSiralamaScreen from '../screens/LigSiralamaScreen';
 import LigAyarlariScreen from '../screens/LigAyarlariScreen';
@@ -19,6 +21,8 @@ export type MainTabParamList = {
   Members: undefined;
   Profile: undefined;
   Reservation: undefined;
+  ReservationsList: undefined;
+  MatchHistory: { leagueId?: number; leagueName?: string } | undefined;
 };
 
 export type GameModesStackParamList = {
@@ -137,6 +141,24 @@ const TabNavigator = () => {
         component={ReservationScreen}
         options={{
           title: 'Rezervasyon',
+          tabBarButton: () => null, // Hide from tab bar but keep in navigator
+          headerShown: false, // Hide default header since we have custom header
+        }}
+      />
+      <Tab.Screen
+        name="ReservationsList"
+        component={ReservationsListScreen}
+        options={{
+          title: 'Rezervasyonlar',
+          tabBarButton: () => null, // Hide from tab bar but keep in navigator
+          headerShown: false, // Hide default header since we have custom header
+        }}
+      />
+      <Tab.Screen
+        name="MatchHistory"
+        component={MatchHistoryScreen}
+        options={{
+          title: 'Maç Geçmişi',
           tabBarButton: () => null, // Hide from tab bar but keep in navigator
           headerShown: false, // Hide default header since we have custom header
         }}
