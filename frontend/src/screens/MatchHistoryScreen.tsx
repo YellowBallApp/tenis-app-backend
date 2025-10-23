@@ -7,6 +7,7 @@ import {
   StatusBar,
   ActivityIndicator,
   TouchableOpacity,
+  TextInput,
 } from 'react-native';
 import {
   Card,
@@ -19,7 +20,7 @@ import {
   Searchbar,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { matchHistoryService, authService, leagueService } from '../services/api';
+import { matchHistoryService, authService, leagueService, commentService } from '../services/api';
 
 interface MatchHistory {
   id: number;
@@ -60,6 +61,16 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
   const [filterGroundType, setFilterGroundType] = useState<'all' | 'grass' | 'clay' | 'hard'>('all');
   const [leagues, setLeagues] = useState<any[]>([]);
 
+  // Comment state'leri
+  const [showCommentModal, setShowCommentModal] = useState(false);
+  const [selectedMatch, setSelectedMatch] = useState<MatchHistory | null>(null);
+  const [comments, setComments] = useState<any[]>([]);
+  const [commentCounts, setCommentCounts] = useState<{[key: number]: number}>({});
+  const [newComment, setNewComment] = useState('');
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+  const [editingCommentText, setEditingCommentText] = useState('');
+  const [loadingComments, setLoadingComments] = useState(false);
+
   useEffect(() => {
     loadData();
   }, []);
@@ -94,11 +105,133 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
 
       // İstatistikleri hesapla
       calculateStats(matchHistory, profile.id);
+
+      // Her maç için yorum sayısını yükle
+      await loadCommentCounts(matchHistory);
     } catch (error) {
       console.error('Maç geçmişi yüklenirken hata:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadCommentCounts = async (matches: MatchHistory[]) => {
+    try {
+      const counts: {[key: number]: number} = {};
+      await Promise.all(
+        matches.map(async (match) => {
+          try {
+            const count = await commentService.getCommentCount(match.id);
+            counts[match.id] = count;
+          } catch (error) {
+            console.error(`Maç ${match.id} yorum sayısı yüklenemedi:`, error);
+            counts[match.id] = 0;
+          }
+        })
+      );
+      setCommentCounts(counts);
+    } catch (error) {
+      console.error('Yorum sayıları yüklenirken hata:', error);
+    }
+  };
+
+  const openCommentModal = async (match: MatchHistory) => {
+    setSelectedMatch(match);
+    setShowCommentModal(true);
+    setLoadingComments(true);
+    
+    try {
+      const matchComments = await commentService.getMatchComments(match.id);
+      setComments(matchComments);
+    } catch (error) {
+      console.error('Yorumlar yüklenirken hata:', error);
+      setComments([]);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  const closeCommentModal = () => {
+    setShowCommentModal(false);
+    setSelectedMatch(null);
+    setComments([]);
+    setNewComment('');
+    setEditingCommentId(null);
+    setEditingCommentText('');
+  };
+
+  const handleAddComment = async () => {
+    if (!newComment.trim() || !selectedMatch) return;
+
+    try {
+      await commentService.createComment({
+        matchHistoryId: selectedMatch.id,
+        comment: newComment.trim(),
+      });
+      
+      // Yorumları yeniden yükle
+      const matchComments = await commentService.getMatchComments(selectedMatch.id);
+      setComments(matchComments);
+      
+      // Yorum sayısını güncelle
+      const count = await commentService.getCommentCount(selectedMatch.id);
+      setCommentCounts(prev => ({...prev, [selectedMatch.id]: count}));
+      
+      setNewComment('');
+    } catch (error: any) {
+      console.error('Yorum eklenirken hata:', error);
+      alert(error.response?.data?.message || 'Yorum eklenirken bir hata oluştu');
+    }
+  };
+
+  const handleEditComment = async (commentId: number) => {
+    if (!editingCommentText.trim()) return;
+
+    try {
+      await commentService.updateComment(commentId, editingCommentText.trim());
+      
+      // Yorumları yeniden yükle
+      if (selectedMatch) {
+        const matchComments = await commentService.getMatchComments(selectedMatch.id);
+        setComments(matchComments);
+      }
+      
+      setEditingCommentId(null);
+      setEditingCommentText('');
+    } catch (error: any) {
+      console.error('Yorum güncellenirken hata:', error);
+      alert(error.response?.data?.message || 'Yorum güncellenirken bir hata oluştu');
+    }
+  };
+
+  const handleDeleteComment = async (commentId: number) => {
+    try {
+      await commentService.deleteComment(commentId);
+      
+      // Yorumları yeniden yükle
+      if (selectedMatch) {
+        const matchComments = await commentService.getMatchComments(selectedMatch.id);
+        setComments(matchComments);
+        
+        // Yorum sayısını güncelle
+        const count = await commentService.getCommentCount(selectedMatch.id);
+        setCommentCounts(prev => ({...prev, [selectedMatch.id]: count}));
+      }
+    } catch (error: any) {
+      console.error('Yorum silinirken hata:', error);
+      alert(error.response?.data?.message || 'Yorum silinirken bir hata oluştu');
+    }
+  };
+
+  const formatCommentDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('tr-TR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
   const calculateStats = (matchHistory: MatchHistory[], userId: string) => {
@@ -410,6 +543,20 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                       </View>
                     </View>
 
+                    {/* Yorum Butonu */}
+                    <TouchableOpacity
+                      style={styles.commentButton}
+                      onPress={() => openCommentModal(match)}
+                    >
+                      <MaterialCommunityIcons name="comment-text-outline" size={20} color="#2E7D32" />
+                      <Text style={styles.commentButtonText}>Yorumlar</Text>
+                      {commentCounts[match.id] > 0 && (
+                        <View style={styles.commentBadge}>
+                          <Text style={styles.commentBadgeText}>{commentCounts[match.id]}</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+
                     {/* Lig Bilgisi - Sağ Alt Köşe */}
                     {match.leagueStanding?.league?.name && (
                       <View style={styles.leagueBadge}>
@@ -657,6 +804,149 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                 >
                   Uygula
                 </Button>
+              </View>
+            </Card.Content>
+          </Card>
+        </Modal>
+
+        {/* Yorum Modalı */}
+        <Modal
+          visible={showCommentModal}
+          onDismiss={closeCommentModal}
+          contentContainerStyle={styles.modalContainer}
+        >
+          <Card style={styles.commentModalCard}>
+            <Card.Content style={styles.commentModalContent}>
+              <View style={styles.modalHeader}>
+                <Title style={styles.modalTitle}>Maç Yorumları</Title>
+                <TouchableOpacity onPress={closeCommentModal}>
+                  <MaterialCommunityIcons name="close" size={24} color="#757575" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Maç Bilgisi */}
+              {selectedMatch && (
+                <View style={styles.matchInfoBar}>
+                  <Text style={styles.matchInfoText}>
+                    {formatDate(selectedMatch.matchDate)} • {selectedMatch.score}
+                  </Text>
+                </View>
+              )}
+
+              {/* Yorumlar Listesi - ScrollView içinde - flex:1 ile genişler */}
+              <ScrollView 
+                style={styles.commentsScrollView} 
+                contentContainerStyle={styles.commentsContentContainer}
+                showsVerticalScrollIndicator={false}
+              >
+                {loadingComments ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" color="#2E7D32" />
+                    <Text style={styles.loadingText}>Yorumlar yükleniyor...</Text>
+                  </View>
+                ) : comments.length > 0 ? (
+                  comments.map((comment) => (
+                    <View key={comment.id} style={styles.commentItem}>
+                      <View style={styles.commentHeader}>
+                        <View style={styles.commentUserInfo}>
+                          <MaterialCommunityIcons name="account-circle" size={32} color="#2E7D32" />
+                          <View style={styles.commentUserDetails}>
+                            <Text style={styles.commentUserName}>{comment.user.name}</Text>
+                            <Text style={styles.commentDate}>{formatCommentDate(comment.created)}</Text>
+                          </View>
+                        </View>
+                        
+                        {/* Kullanıcının kendi yorumu ise edit/delete butonları */}
+                        {comment.user.id === currentUserId && (
+                          <View style={styles.commentActions}>
+                            <TouchableOpacity
+                              style={styles.commentActionButton}
+                              onPress={() => {
+                                setEditingCommentId(comment.id);
+                                setEditingCommentText(comment.comment);
+                              }}
+                            >
+                              <MaterialCommunityIcons name="pencil" size={20} color="#2E7D32" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={styles.commentActionButton}
+                              onPress={() => handleDeleteComment(comment.id)}
+                            >
+                              <MaterialCommunityIcons name="delete" size={20} color="#DC3545" />
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Yorum içeriği */}
+                      {editingCommentId === comment.id ? (
+                        <View style={styles.editCommentContainer}>
+                          <TextInput
+                            style={styles.editCommentInput}
+                            value={editingCommentText}
+                            onChangeText={setEditingCommentText}
+                            multiline
+                            placeholder="Yorumunuzu düzenleyin..."
+                          />
+                          <View style={styles.editCommentButtons}>
+                            <TouchableOpacity
+                              style={styles.cancelEditButton}
+                              onPress={() => {
+                                setEditingCommentId(null);
+                                setEditingCommentText('');
+                              }}
+                            >
+                              <Text style={styles.cancelEditButtonText}>İptal</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={styles.saveEditButton}
+                              onPress={() => handleEditComment(comment.id)}
+                            >
+                              <Text style={styles.saveEditButtonText}>Kaydet</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ) : (
+                        <Text style={styles.commentText}>{comment.comment}</Text>
+                      )}
+                    </View>
+                  ))
+                ) : (
+                  <View style={styles.emptyCommentsContainer}>
+                    <MaterialCommunityIcons name="comment-off-outline" size={48} color="#BDBDBD" />
+                    <Text style={styles.emptyCommentsText}>Henüz yorum yapılmamış</Text>
+                  </View>
+                )}
+              </ScrollView>
+
+              {/* Yeni Yorum Ekleme - Sabit pozisyonda - flex:0 ile sabit kalır */}
+              <View style={styles.addCommentContainer}>
+                <TextInput
+                  style={styles.commentInput}
+                  value={newComment}
+                  onChangeText={setNewComment}
+                  placeholder="Yorumunuzu yazın..."
+                  multiline
+                  numberOfLines={3}
+                />
+                <View style={styles.commentInputButtons}>
+                  <Button
+                    mode="outlined"
+                    onPress={closeCommentModal}
+                    style={styles.cancelCommentButton}
+                  >
+                    İptal
+                  </Button>
+                  <Button
+                    mode="contained"
+                    onPress={handleAddComment}
+                    style={styles.sendCommentButton}
+                    buttonColor="#2E7D32"
+                    disabled={!newComment.trim()}
+                  >
+                    Gönder
+                  </Button>
+                </View>
               </View>
             </Card.Content>
           </Card>
@@ -1005,6 +1295,197 @@ const styles = StyleSheet.create({
   modalApplyButton: {
     flex: 1,
     borderRadius: 12,
+  },
+  commentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E8',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginTop: 12,
+    gap: 6,
+    alignSelf: 'flex-start',
+  },
+  commentButtonText: {
+    fontSize: 13,
+    color: '#2E7D32',
+    fontWeight: '600',
+  },
+  commentBadge: {
+    backgroundColor: '#2E7D32',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  commentBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  commentModalCard: {
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    height: '85%',
+  },
+  commentModalContent: {
+    flex: 1,
+    flexDirection: 'column',
+  },
+  matchInfoBar: {
+    backgroundColor: '#F8F9FA',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 16,
+  },
+  matchInfoText: {
+    fontSize: 14,
+    color: '#1B1B1B',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  commentsScrollView: {
+    flex: 1,
+    marginBottom: 16,
+  },
+  commentsContentContainer: {
+    paddingBottom: 8,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#6C757D',
+    marginTop: 10,
+  },
+  commentItem: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  commentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  commentUserInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  commentUserDetails: {
+    flex: 1,
+  },
+  commentUserName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1B1B1B',
+  },
+  commentDate: {
+    fontSize: 11,
+    color: '#6C757D',
+    marginTop: 2,
+  },
+  commentActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  commentActionButton: {
+    padding: 6,
+    borderRadius: 6,
+    backgroundColor: '#FFFFFF',
+  },
+  commentText: {
+    fontSize: 14,
+    color: '#1B1B1B',
+    lineHeight: 20,
+  },
+  editCommentContainer: {
+    marginTop: 8,
+  },
+  editCommentInput: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+  editCommentButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    marginTop: 8,
+  },
+  cancelEditButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+  },
+  cancelEditButtonText: {
+    fontSize: 13,
+    color: '#6C757D',
+    fontWeight: '600',
+  },
+  saveEditButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    backgroundColor: '#2E7D32',
+  },
+  saveEditButtonText: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  emptyCommentsContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyCommentsText: {
+    fontSize: 14,
+    color: '#BDBDBD',
+    marginTop: 12,
+  },
+  addCommentContainer: {
+    flexShrink: 0,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+    paddingTop: 16,
+  },
+  commentInput: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    minHeight: 80,
+    textAlignVertical: 'top',
+    marginBottom: 12,
+  },
+  commentInputButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  cancelCommentButton: {
+    borderRadius: 10,
+  },
+  sendCommentButton: {
+    borderRadius: 10,
   },
 });
 

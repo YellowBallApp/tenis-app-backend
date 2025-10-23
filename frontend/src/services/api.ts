@@ -459,4 +459,46 @@ export const matchHistoryService = {
   },
 };
 
+export const commentService = {
+  // Maça ait tüm yorumları getir
+  getMatchComments: async (matchHistoryId: number) => {
+    const response = await api.get(`/comments/match/${matchHistoryId}`);
+    return response.data.data;
+  },
+
+  // Maçın yorum sayısını getir
+  getCommentCount: async (matchHistoryId: number) => {
+    const response = await api.get(`/comments/match/${matchHistoryId}/count`);
+    return response.data.data.count;
+  },
+
+  // Yeni yorum oluştur
+  createComment: async (data: {
+    matchHistoryId: number;
+    comment: string;
+    commentType?: string;
+  }) => {
+    const response = await api.post('/comments', data);
+    return response.data.data;
+  },
+
+  // Yorumu güncelle
+  updateComment: async (commentId: number, comment: string) => {
+    const response = await api.put(`/comments/${commentId}`, { comment });
+    return response.data.data;
+  },
+
+  // Yorumu sil
+  deleteComment: async (commentId: number) => {
+    const response = await api.delete(`/comments/${commentId}`);
+    return response.data;
+  },
+
+  // Belirli bir yorumu getir
+  getCommentById: async (commentId: number) => {
+    const response = await api.get(`/comments/${commentId}`);
+    return response.data.data;
+  },
+};
+
 export default api;

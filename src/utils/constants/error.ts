@@ -76,6 +76,26 @@ const rawErrors = {
         code: 1015,
         key: "MATCH_HISTORY_NOT_FOUND",
         message: "Match history not found"
+    },
+    COMMENT_NOT_FOUND: {
+        code: 1016,
+        key: "COMMENT_NOT_FOUND",
+        message: "Comment not found"
+    },
+    USER_NOT_IN_MATCH: {
+        code: 1017,
+        key: "USER_NOT_IN_MATCH",
+        message: "User is not a participant in this match"
+    },
+    UNAUTHORIZED_COMMENT_UPDATE: {
+        code: 1018,
+        key: "UNAUTHORIZED_COMMENT_UPDATE",
+        message: "You are not authorized to update this comment"
+    },
+    UNAUTHORIZED_COMMENT_DELETE: {
+        code: 1019,
+        key: "UNAUTHORIZED_COMMENT_DELETE",
+        message: "You are not authorized to delete this comment"
     }
 } as const;
 
