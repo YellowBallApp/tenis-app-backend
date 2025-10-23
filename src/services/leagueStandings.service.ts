@@ -6,6 +6,8 @@ import { User } from '../entities/user.entity';
 import { MatchHistory } from '../entities/matchHistory.entity';
 import { Court } from '../entities/court.entity';
 import matchHistoryService from './matchHistory.service';
+import { ChallengeStatus } from '../enum/challengeStatus.enum';
+import notificationService from './notification.service';
 
 export class LeagueStandingsService {
   private userRepository;
@@ -114,7 +116,6 @@ export class LeagueStandingsService {
         user: user,
         league: { id: leagueId } as any,
         leagueRanking: lastRank + 1,
-        challengePending: false,
       });
 
       return newStanding;
@@ -174,8 +175,9 @@ export class LeagueStandingsService {
 
       return standings.map((standing) => ({
         position: standing.leagueRanking,
-        challengePending: standing.challengePending,
-        challengeDate: standing.challengeDate,
+        challengeStatus: standing.challengeStatus,
+        challengePendingDate: standing.challengePendingDate,
+        challengeAcceptedDate: standing.challengeAcceptedDate,
         user: {
           id: standing.user.id,
           name: standing.user.name,
@@ -265,12 +267,12 @@ export class LeagueStandingsService {
       }
 
       // Rakip zaten bekleyen bir challenge'a sahipse hata fırlat
-      if (opponentStanding.challengePending) {
+      if (opponentStanding.challengeStatus === ChallengeStatus.PENDING) {
         throw new Error('Bu oyuncu zaten bekleyen bir meydan okuma isteğine sahip');
       }
 
       // Challenger zaten bekleyen bir challenge'a sahipse hata fırlat
-      if (challengerStanding.challengePending) {
+      if (challengerStanding.challengeStatus === ChallengeStatus.PENDING) {
         throw new Error('Zaten bekleyen bir meydan okuma isteğiniz var');
       }
 
@@ -303,16 +305,28 @@ export class LeagueStandingsService {
 
       // Her iki kullanıcının da standing'ini güncelle
       await leagueStandingsRepository.update(challengerStanding.id, {
-        challengePending: true,
-        challengeDate: currentDate,
+        challengeStatus: ChallengeStatus.PENDING,
+        challengePendingDate: currentDate,
         challengedUser: opponent,
       });
 
       await leagueStandingsRepository.update(opponentStanding.id, {
-        challengePending: true,
-        challengeDate: currentDate,
+        challengeStatus: ChallengeStatus.PENDING,
+        challengePendingDate: currentDate,
         challengedUser: challenger,
       });
+
+      // Rakibe notification gönder
+      try {
+        await notificationService.createMatchChallengeNotification(
+          opponentId,
+          challengerId,
+          leagueId
+        );
+      } catch (notificationError) {
+        console.error('Notification oluşturulamadı:', notificationError);
+        // Notification hatası ana işlemi etkilemesin
+      }
 
       return {
         challengerId,
@@ -323,6 +337,117 @@ export class LeagueStandingsService {
       };
     } catch (error: any) {
       throw new Error(error.message || 'Meydan okuma gönderilirken bir hata oluştu');
+    }
+  }
+
+  // Maç kabul etme
+  async matchAccepted(userId: string, challengerId: string, leagueId: number) {
+    try {
+      // Belirli ligde standings'leri bul
+      const userStanding = await leagueStandingsRepository.findByUserAndLeague(userId, leagueId);
+      const challengerStanding = await leagueStandingsRepository.findByUserAndLeague(challengerId, leagueId);
+
+      if (!userStanding || !challengerStanding) {
+        throw new Error('Oyuncular bu lige kayıtlı değil');
+      }
+
+      // Her iki kullanıcının da challengeStatus'ünü PENDING olup olmadığını kontrol et
+      if (userStanding.challengeStatus !== ChallengeStatus.PENDING || 
+          challengerStanding.challengeStatus !== ChallengeStatus.PENDING) {
+        throw new Error('Bekleyen bir meydan okuma bulunamadı');
+      }
+
+      const currentDate = new Date();
+
+      // Her iki kullanıcının da standing'ini ACCEPTED olarak güncelle
+      await leagueStandingsRepository.update(userStanding.id, {
+        challengeStatus: ChallengeStatus.ACCEPTED,
+        challengeAcceptedDate: currentDate,
+      });
+
+      await leagueStandingsRepository.update(challengerStanding.id, {
+        challengeStatus: ChallengeStatus.ACCEPTED,
+        challengeAcceptedDate: currentDate,
+      });
+
+      // İlgili notification'ları sil
+      try {
+        const notificationRepository = (await import('../repositories/notification.repository')).default;
+        
+        // Her iki kullanıcının da bu challenge ile ilgili notification'larını bul ve sil
+        const userNotifications = await notificationRepository.findPendingChallengeNotifications(userId, challengerId, leagueId);
+        const challengerNotifications = await notificationRepository.findPendingChallengeNotifications(challengerId, userId, leagueId);
+        
+        for (const notification of [...userNotifications, ...challengerNotifications]) {
+          await notificationRepository.delete(notification.id);
+        }
+      } catch (notificationError) {
+        // Notification silme hatası ana işlemi etkilemesin
+      }
+
+      return {
+        success: true,
+        message: 'Maç kabul edildi',
+        acceptedAt: currentDate,
+      };
+    } catch (error: any) {
+      throw new Error(error.message || 'Maç kabul edilirken bir hata oluştu');
+    }
+  }
+
+  // Maç reddetme
+  async matchRejected(userId: string, challengerId: string, leagueId: number) {
+    try {
+      // Belirli ligde standings'leri bul
+      const userStanding = await leagueStandingsRepository.findByUserAndLeague(userId, leagueId);
+      const challengerStanding = await leagueStandingsRepository.findByUserAndLeague(challengerId, leagueId);
+
+      if (!userStanding || !challengerStanding) {
+        throw new Error('Oyuncular bu lige kayıtlı değil');
+      }
+
+      // Her iki kullanıcının da challengeStatus'ünü PENDING olup olmadığını kontrol et
+      if (userStanding.challengeStatus !== ChallengeStatus.PENDING || 
+          challengerStanding.challengeStatus !== ChallengeStatus.PENDING) {
+        throw new Error('Bekleyen bir meydan okuma bulunamadı');
+      }
+
+      // Her iki kullanıcının da challenge bilgilerini temizle
+      await leagueStandingsRepository.update(userStanding.id, {
+        challengeStatus: null,
+        challengePendingDate: null,
+        challengeAcceptedDate: null,
+        challengedUser: null,
+      });
+
+      await leagueStandingsRepository.update(challengerStanding.id, {
+        challengeStatus: null,
+        challengePendingDate: null,
+        challengeAcceptedDate: null,
+        challengedUser: null,
+      });
+
+      // İlgili notification'ları sil
+      try {
+        const notificationRepository = (await import('../repositories/notification.repository')).default;
+        
+        // Her iki kullanıcının da bu challenge ile ilgili notification'larını bul ve sil
+        const userNotifications = await notificationRepository.findPendingChallengeNotifications(userId, challengerId, leagueId);
+        const challengerNotifications = await notificationRepository.findPendingChallengeNotifications(challengerId, userId, leagueId);
+        
+        for (const notification of [...userNotifications, ...challengerNotifications]) {
+          await notificationRepository.delete(notification.id);
+        }
+      } catch (notificationError) {
+        // Notification silme hatası ana işlemi etkilemesin
+      }
+
+      return {
+        success: true,
+        message: 'Maç reddedildi',
+      };
+    } catch (error: any) {
+      throw new Error(error.message || 'Maç reddedilirken bir hata oluştu');
     }
   }
 
@@ -440,9 +565,10 @@ export class LeagueStandingsService {
           userId: standing.user.id,
           name: standing.user.name,
           position: standing.leagueRanking,
-          challengePending: standing.challengePending,
-          challengeDate: standing.challengeDate,
-          canChallenge: !standing.challengePending, // challengePending ise challenge yapılamaz
+          challengeStatus: standing.challengeStatus,
+          challengePendingDate: standing.challengePendingDate,
+          challengeAcceptedDate: standing.challengeAcceptedDate,
+          canChallenge: standing.challengeStatus !== ChallengeStatus.PENDING, // PENDING ise challenge yapılamaz
           league: standing.league ? {
             id: standing.league.id,
             description: standing.league.description,

@@ -96,6 +96,11 @@ const rawErrors = {
         code: 1019,
         key: "UNAUTHORIZED_COMMENT_DELETE",
         message: "You are not authorized to delete this comment"
+    },
+    NOTIFICATION_NOT_FOUND: {
+        code: 1020,
+        key: "NOTIFICATION_NOT_FOUND",
+        message: "Notification not found"
     }
 } as const;
 

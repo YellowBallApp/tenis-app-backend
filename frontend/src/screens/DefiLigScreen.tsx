@@ -24,7 +24,7 @@ import {
   Divider,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { authService, leagueService, leagueStandingsService } from '../services/api';
+import { authService, leagueService, leagueStandingsService, matchHistoryService } from '../services/api';
 import { User } from '../types';
 
 const { width } = Dimensions.get('window');
@@ -37,6 +37,12 @@ const DefiLigScreen = ({ navigation }: any) => {
   const [leagues, setLeagues] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const leaguesPerPage = 2;
+  const [matchStats, setMatchStats] = useState({
+    leagueWins: 0,
+    totalMatches: 0,
+    winRate: 0,
+    badges: 0,
+  });
 
   useEffect(() => {
     loadData();
@@ -49,6 +55,30 @@ const DefiLigScreen = ({ navigation }: any) => {
       // Kullanıcı verisini çek
       const profileData = await authService.getProfile();
       
+      // Kullanıcının maç geçmişini çek
+      const matchHistory = await matchHistoryService.getUserMatchHistory(profileData.id);
+      
+      // Maç istatistiklerini hesapla
+      const totalMatches = matchHistory.length;
+      const wins = matchHistory.filter((match: any) => 
+        match.winners.some((winner: any) => winner.id === profileData.id)
+      ).length;
+      const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
+      
+      // Lig maçlarını say (leagueStanding'i olan maçlar)
+      const leagueMatches = matchHistory.filter((match: any) => match.leagueStanding);
+      const leagueWins = leagueMatches.filter((match: any) => 
+        match.winners.some((winner: any) => winner.id === profileData.id)
+      ).length;
+      
+      // İstatistikleri güncelle
+      setMatchStats({
+        leagueWins: leagueWins,
+        totalMatches: totalMatches,
+        winRate: winRate,
+        badges: 0, // TODO: Rozet sistemi eklenecek
+      });
+      
       // Backend'den gelen profil verisini UI formatına dönüştür
       const formattedUser = {
         id: profileData.id,
@@ -58,8 +88,8 @@ const DefiLigScreen = ({ navigation }: any) => {
         rank: 'Altın', // TODO: Rank sistemi eklenecek
         points: 0, // TODO: Match history'den hesaplanacak
         position: 0, // TODO: League ranking'den alınacak
-        winRate: 0, // TODO: Match history'den hesaplanacak
-        matchesPlayed: 0, // TODO: Match history'den hesaplanacak
+        winRate: winRate,
+        matchesPlayed: totalMatches,
       };
       
       setCurrentUser(formattedUser);
@@ -354,28 +384,28 @@ const DefiLigScreen = ({ navigation }: any) => {
             <Card style={styles.statCard}>
               <Card.Content style={styles.statContent}>
                 <MaterialCommunityIcons name="trophy" size={32} color="#FFD700" />
-                <Text style={styles.statNumber}>3</Text>
-                <Text style={styles.statLabel}>Lig Kazandı</Text>
+                <Text style={styles.statNumber}>{matchStats.leagueWins}</Text>
+                <Text style={styles.statLabel}>Lig Galibiyeti</Text>
               </Card.Content>
             </Card>
             <Card style={styles.statCard}>
               <Card.Content style={styles.statContent}>
                 <MaterialCommunityIcons name="tennis" size={32} color="#4CAF50" />
-                <Text style={styles.statNumber}>45</Text>
-                <Text style={styles.statLabel}>Maç Oynadı</Text>
+                <Text style={styles.statNumber}>{matchStats.totalMatches}</Text>
+                <Text style={styles.statLabel}>Toplam Maç</Text>
               </Card.Content>
             </Card>
             <Card style={styles.statCard}>
               <Card.Content style={styles.statContent}>
                 <MaterialCommunityIcons name="percent" size={32} color="#81C784" />
-                <Text style={styles.statNumber}>78%</Text>
-                <Text style={styles.statLabel}>Galibiyet</Text>
+                <Text style={styles.statNumber}>{matchStats.winRate}%</Text>
+                <Text style={styles.statLabel}>Galibiyet Oranı</Text>
               </Card.Content>
             </Card>
             <Card style={styles.statCard}>
               <Card.Content style={styles.statContent}>
                 <MaterialCommunityIcons name="medal" size={32} color="#FF9800" />
-                <Text style={styles.statNumber}>12</Text>
+                <Text style={styles.statNumber}>{matchStats.badges}</Text>
                 <Text style={styles.statLabel}>Rozet</Text>
               </Card.Content>
             </Card>

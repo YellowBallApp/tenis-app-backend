@@ -276,6 +276,26 @@ export const leagueStandingsService = {
     return response.data.data;
   },
 
+  // Maç kabul et
+  matchAccepted: async (userId: string, challengerId: string, leagueId: number) => {
+    const response = await api.post('/league/match-accepted', {
+      userId,
+      challengerId,
+      leagueId,
+    });
+    return response.data.data;
+  },
+
+  // Maç reddet
+  matchRejected: async (userId: string, challengerId: string, leagueId: number) => {
+    const response = await api.post('/league/match-rejected', {
+      userId,
+      challengerId,
+      leagueId,
+    });
+    return response.data.data;
+  },
+
   // Maç sonucu kaydet
   recordMatchResult: async (matchId: number, winnerId: string, loserId: string, score: string) => {
     const response = await api.post('/league/match-result', {
@@ -498,6 +518,51 @@ export const commentService = {
   getCommentById: async (commentId: number) => {
     const response = await api.get(`/comments/${commentId}`);
     return response.data.data;
+  },
+};
+
+// Notification servisleri
+export const notificationService = {
+  // Kullanıcının notification'larını getir (pagination ile)
+  getUserNotifications: async (page: number = 1, limit: number = 20) => {
+    const response = await api.get(`/notifications?page=${page}&limit=${limit}`);
+    return response.data.data;
+  },
+
+  // Okunmamış notification sayısını getir
+  getUnreadCount: async () => {
+    const response = await api.get('/notifications/unread-count');
+    return response.data.data.count;
+  },
+
+  // Belirli bir notification'ı getir
+  getNotificationById: async (notificationId: number) => {
+    const response = await api.get(`/notifications/${notificationId}`);
+    return response.data.data;
+  },
+
+  // Notification'ı okundu olarak işaretle
+  markAsRead: async (notificationId: number) => {
+    const response = await api.put(`/notifications/${notificationId}/read`);
+    return response.data.data;
+  },
+
+  // Tüm notification'ları okundu olarak işaretle
+  markAllAsRead: async () => {
+    const response = await api.put('/notifications/mark-all-read');
+    return response.data;
+  },
+
+  // Notification'ı sil
+  deleteNotification: async (notificationId: number) => {
+    const response = await api.delete(`/notifications/${notificationId}`);
+    return response.data;
+  },
+
+  // Tüm notification'ları sil
+  deleteAllNotifications: async () => {
+    const response = await api.delete('/notifications/delete-all');
+    return response.data;
   },
 };
 
