@@ -19,7 +19,7 @@ import {
   Chip,
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons, Ionicons } from '@expo/vector-icons';
-import { reservationService, announcementService } from '../services/api';
+import { reservationService, announcementService, userService, courtService, coachService } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -30,6 +30,11 @@ const HomeScreen = () => {
   const [reservations, setReservations] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    users: 0,
+    courts: 0,
+    coaches: 0,
+  });
 
   const quickActions = [
     { title: 'Rezervasyon Yap', icon: 'calendar-plus', color: '#2E7D32', action: () => navigation.navigate('Reservation') },
@@ -49,13 +54,24 @@ const HomeScreen = () => {
     try {
       setLoading(true);
       
-      // Yakın zamandaki rezervasyonları getir (en yakın 2)
-      const reservationsData = await reservationService.getUpcomingReservations(2);
+      // Tüm verileri paralel olarak çek
+      const [reservationsData, announcementsData, usersData, courtsData, coachesData] = await Promise.all([
+        reservationService.getUpcomingReservations(2),
+        announcementService.getAllAnnouncements(),
+        userService.getAllUsers(),
+        courtService.getAllCourts(),
+        coachService.getAllCoaches(),
+      ]);
+      
       setReservations(reservationsData);
-
-      // Duyuruları getir
-      const announcementsData = await announcementService.getAllAnnouncements();
       setAnnouncements(announcementsData.slice(0, 1)); // İlk duyuru
+      
+      // İstatistikleri güncelle
+      setStats({
+        users: usersData.length,
+        courts: courtsData.length,
+        coaches: coachesData.length,
+      });
     } catch (error) {
       console.error('Veri yüklenirken hata:', error);
     } finally {
@@ -97,16 +113,16 @@ const HomeScreen = () => {
         </View>
         <View style={styles.heroStats}>
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>150+</Text>
+            <Text style={styles.statNumber}>{stats.users}</Text>
             <Text style={styles.statLabel}>Aktif Üye</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>8</Text>
+            <Text style={styles.statNumber}>{stats.courts}</Text>
             <Text style={styles.statLabel}>Kort</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>12</Text>
-            <Text style={styles.statLabel}>Hoca</Text>
+            <Text style={styles.statNumber}>{stats.coaches}</Text>
+            <Text style={styles.statLabel}>Koç</Text>
           </View>
         </View>
       </View>
