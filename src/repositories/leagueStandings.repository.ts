@@ -101,8 +101,9 @@ export class LeagueStandingsRepository {
           .createQueryBuilder()
           .update(LeagueStandings)
           .set({ 
-            challengePending: false,
-            challengeDate: null,
+            challengeStatus: null,
+            challengePendingDate: null,
+            challengeAcceptedDate: null,
             challengedUser: null,
           })
           .where('"leagueId" = :leagueId', { leagueId })
@@ -127,8 +128,9 @@ export class LeagueStandingsRepository {
           .update(LeagueStandings)
           .set({ 
             leagueRanking: loserOldRank,
-            challengePending: false,
-            challengeDate: null,
+            challengeStatus: null,
+            challengePendingDate: null,
+            challengeAcceptedDate: null,
             challengedUser: null,
           })
           .where('id = :id', { id: challengerStanding.id })
@@ -139,8 +141,9 @@ export class LeagueStandingsRepository {
           .createQueryBuilder()
           .update(LeagueStandings)
           .set({ 
-            challengePending: false,
-            challengeDate: null,
+            challengeStatus: null,
+            challengePendingDate: null,
+            challengeAcceptedDate: null,
             challengedUser: null,
           })
           .where('id = :id', { id: challengedStanding.id })

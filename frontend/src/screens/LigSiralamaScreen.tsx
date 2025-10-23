@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -10,6 +10,7 @@ import {
   Platform,
   StatusBar,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   Card,
   Title,
@@ -55,10 +56,13 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
   const [scoreError, setScoreError] = useState(false);
   const [scoreMismatch, setScoreMismatch] = useState(false);
 
-  useEffect(() => {
-    loadRankings();
-    loadCourts();
-  }, []);
+  // Sayfa her odaklandığında verileri yeniden yükle
+  useFocusEffect(
+    useCallback(() => {
+      loadRankings();
+      loadCourts();
+    }, [])
+  );
 
   const loadCourts = async () => {
     try {
@@ -87,8 +91,9 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
           name: profileData.name || 'Oyuncu',
           position: 1,
           email: profileData.email,
-          challengePending: false,
-          challengeDate: null,
+          challengeStatus: undefined,
+          challengePendingDate: null,
+          challengeAcceptedDate: null,
           challengedUser: null,
         });
         
@@ -101,7 +106,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
               email: profileData.email,
             },
             position: 1,
-            challengePending: false,
+            challengeStatus: undefined,
           }
         ]);
       } else {
@@ -114,8 +119,9 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
             name: currentUserRanking.user.name,
             position: currentUserRanking.position,
             email: currentUserRanking.user.email,
-            challengePending: currentUserRanking.challengePending,
-            challengeDate: currentUserRanking.challengeDate,
+            challengeStatus: currentUserRanking.challengeStatus,
+            challengePendingDate: currentUserRanking.challengePendingDate,
+            challengeAcceptedDate: currentUserRanking.challengeAcceptedDate,
             challengedUser: currentUserRanking.challengedUser,
           });
         } else {
@@ -126,8 +132,9 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
             name: firstUser.user.name,
             position: firstUser.position,
             email: firstUser.user.email,
-            challengePending: firstUser.challengePending,
-            challengeDate: firstUser.challengeDate,
+            challengeStatus: firstUser.challengeStatus,
+            challengePendingDate: firstUser.challengePendingDate,
+            challengeAcceptedDate: firstUser.challengeAcceptedDate,
             challengedUser: firstUser.challengedUser,
           });
         }
@@ -145,8 +152,9 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
           name: profileData.name || 'Oyuncu',
           position: 1,
           email: profileData.email,
-          challengePending: false,
-          challengeDate: null,
+          challengeStatus: undefined,
+          challengePendingDate: null,
+          challengeAcceptedDate: null,
           challengedUser: null,
         });
         setPlayers([]);
@@ -199,7 +207,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
     }
     
     // Challenge bekleyen oyuncuya istek gönderilemez
-    if (player.challengePending) {
+    if (player.challengeStatus === 'challengePending') {
       Alert.alert(
         'Oyuncu Meşgul', 
         `${player.user.name} zaten bekleyen bir meydan okuma isteğine sahip. Lütfen daha sonra tekrar deneyin.`
@@ -386,16 +394,80 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
     }
   };
 
+  // Sıralama ekranında challenge kabul et
+  const handleAcceptChallengeInRanking = async (player: any) => {
+    // Loading durumunda tekrar istek gönderme
+    if (loading) return;
+    
+    try {
+      setLoading(true);
+      
+      // Maç kabul et
+      // userId: meydan okunan kişi (üst sıradaki - currentUser)
+      // challengerId: meydan okuyan kişi (alt sıradaki - player)
+      await leagueStandingsService.matchAccepted(
+        currentUser.id,
+        player.user.id,
+        lig.id
+      );
+      
+      // Sayfayı yenile
+      await loadRankings();
+      
+      Alert.alert('Başarılı', 'Maç kabul edildi');
+    } catch (error: any) {
+      Alert.alert('Hata', error.response?.data?.message || 'Meydan okuma kabul edilemedi');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Sıralama ekranında challenge reddet
+  const handleRejectChallengeInRanking = async (player: any) => {
+    // Loading durumunda tekrar istek gönderme
+    if (loading) return;
+    
+    try {
+      setLoading(true);
+      
+      // Maç reddet - her iki kullanıcının da challenge bilgilerini temizle
+      await leagueStandingsService.matchRejected(
+        currentUser.id,
+        player.user.id,
+        lig.id
+      );
+      
+      // Sayfayı yenile
+      await loadRankings();
+      
+      Alert.alert('Başarılı', `${player.user.name} kullanıcısının meydan okuması reddedildi`);
+    } catch (error: any) {
+      Alert.alert('Hata', error.response?.data?.message || 'Meydan okuma reddedilemedi');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const renderPlayerCard = (player: any) => {
     if (!currentUser) return null;
     
     const isCurrentUser = player.user.id === currentUser.id;
     const positionDifference = currentUser.position - player.position;
+    
+    // Bu player bana meydan okudu mu kontrol et
+    // Sadece ben meydan okunan kişi isem butonları göster
+    // Meydan okunan kişi her zaman üst sıradadır (daha küçük position)
+    const isChallenger = currentUser.challengeStatus === 'challengePending' 
+                        && currentUser.challengedUser?.id === player.user.id
+                        && currentUser.position < player.position; // Ben üst sıradaysam, bana meydan okunmuş demektir
+    
     const canChallenge = !isCurrentUser 
       && positionDifference <= 3 
       && positionDifference > 0 
-      && !player.challengePending // Challenge bekleyen kullanıcılara istek gönderilemez
-      && !currentUser.challengePending; // Kendi challengePending'i true olan kullanıcı meydan okuyamaz
+      && player.challengeStatus !== 'challengePending' // Challenge bekleyen kullanıcılara istek gönderilemez
+      && player.challengeStatus !== 'challengeAccepted' // Challenge kabul edilmiş kullanıcılara istek gönderilemez
+      && currentUser.challengeStatus !== 'challengePending' // Kendi challengeStatus'i PENDING olan kullanıcı meydan okuyamaz
+      && currentUser.challengeStatus !== 'challengeAccepted'; // Kendi challengeStatus'i ACCEPTED olan kullanıcı meydan okuyamaz
     
     // Kullanıcı kendini gösterme, zaten "Senin Sıran" bölümünde gösteriliyor
     if (isCurrentUser) {
@@ -429,7 +501,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
             <View style={styles.playerInfo}>
               <Text style={styles.playerName}>{player.user.name}</Text>
               <Text style={styles.playerLevel}>{player.user.name} - {player.position}. sırada</Text>
-              {player.challengePending && (
+              {player.challengeStatus === 'challengePending' && (
                 <Chip 
                   icon="clock-alert-outline" 
                   style={styles.pendingChip}
@@ -442,7 +514,31 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
             </View>
             
             <View style={styles.playerActions}>
-              {canChallenge ? (
+              {isChallenger ? (
+                // Bu oyuncu bana meydan okudu - Kabul/Reddet butonları
+                <View style={styles.challengeResponseButtons}>
+                  <Button
+                    mode="contained"
+                    onPress={() => handleAcceptChallengeInRanking(player)}
+                    style={styles.acceptChallengeButton}
+                    buttonColor="#2E7D32"
+                    icon="check"
+                    compact
+                  >
+                    Kabul Et
+                  </Button>
+                  <Button
+                    mode="outlined"
+                    onPress={() => handleRejectChallengeInRanking(player)}
+                    style={styles.rejectChallengeButton}
+                    textColor="#DC3545"
+                    icon="close"
+                    compact
+                  >
+                    Reddet
+                  </Button>
+                </View>
+              ) : canChallenge ? (
                 <Button
                   mode="contained"
                   onPress={() => openChallengeModal(player)}
@@ -546,7 +642,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                 <View style={styles.currentUserHighlightInfo}>
                   <Text style={styles.currentUserHighlightName}>{currentUser.name}</Text>
                   <Text style={styles.currentUserHighlightLevel}>{currentUser.email}</Text>
-                  {currentUser.challengePending && (
+                  {currentUser.challengeStatus === 'challengePending' && (
                     <Chip 
                       icon="clock-alert-outline" 
                       style={styles.pendingChip}
@@ -589,27 +685,34 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
               mode="contained"
               style={[
                 styles.quickActionButton, 
-                !currentUser.challengePending && styles.disabledQuickActionButton
+                currentUser.challengeStatus !== 'challengeAccepted' && styles.disabledQuickActionButton
               ]}
-              buttonColor={currentUser.challengePending ? "#2E7D32" : "#9E9E9E"}
+              buttonColor={currentUser.challengeStatus === 'challengeAccepted' ? "#2E7D32" : "#9E9E9E"}
               icon="clipboard-check"
               onPress={openMatchResultModal}
-              disabled={!currentUser.challengePending}
+              disabled={currentUser.challengeStatus !== 'challengeAccepted'}
             >
               Maç Sonucu Gir
             </Button>
-            {currentUser.challengePending ? (
+            {currentUser.challengeStatus === 'challengeAccepted' ? (
               <View style={styles.matchInfoContainer}>
                 <MaterialCommunityIcons name="information" size={16} color="#2E7D32" />
                 <Text style={styles.matchInfoText}>
-                  {currentUser.challengedUser?.name} ile aktif müsabakanız var
+                  {currentUser.challengedUser?.name} ile kabul edilmiş müsabakanız var
+                </Text>
+              </View>
+            ) : currentUser.challengeStatus === 'challengePending' ? (
+              <View style={styles.matchInfoContainer}>
+                <MaterialCommunityIcons name="clock-alert" size={16} color="#FF9800" />
+                <Text style={styles.noMatchInfoText}>
+                  Bekleyen meydan okuma var. Maç sonucu girebilmek için önce meydan okumanın kabul edilmesini bekleyin.
                 </Text>
               </View>
             ) : (
               <View style={styles.matchInfoContainer}>
                 <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#FF9800" />
                 <Text style={styles.noMatchInfoText}>
-                  Aktif müsabaka bulunmuyor. Maç sonucu girebilmek için önce bir oyuncuya meydan okuyun.
+                  Aktif müsabaka bulunmuyor. Maç sonucu girebilmek için önce bir oyuncuya meydan okuyun ve kabul edilmesini bekleyin.
                 </Text>
               </View>
             )}
@@ -1199,6 +1302,19 @@ const styles = StyleSheet.create({
   playerActions: {
     alignItems: 'flex-end',
     justifyContent: 'center',
+  },
+  challengeResponseButtons: {
+    flexDirection: 'column',
+    gap: 8,
+  },
+  acceptChallengeButton: {
+    borderRadius: 8,
+    minWidth: 100,
+  },
+  rejectChallengeButton: {
+    borderRadius: 8,
+    borderColor: '#DC3545',
+    minWidth: 100,
   },
   challengeButton: {
     borderRadius: 8,

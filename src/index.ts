@@ -16,6 +16,7 @@ import coachRoutes from "./routes/coach.routes";
 import matchHistoryRoutes from "./routes/matchHistory.routes";
 import courtRoutes from "./routes/court.routes";
 import commentRoutes from "./routes/comment.routes";
+import notificationRoutes from "./routes/notification.routes";
 
 const app = express();
 
@@ -61,6 +62,7 @@ app.use("/api/coaches", coachRoutes);
 app.use("/api/match-history", matchHistoryRoutes);
 app.use("/api/courts", courtRoutes);
 app.use("/api/comments", commentRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 const authMiddleware = express.Router();
 

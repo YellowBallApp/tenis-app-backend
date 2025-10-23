@@ -19,7 +19,7 @@ import {
   Chip,
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons, Ionicons } from '@expo/vector-icons';
-import { reservationService, announcementService, userService, courtService, coachService } from '../services/api';
+import { reservationService, announcementService, userService, courtService, coachService, notificationService } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -35,12 +35,13 @@ const HomeScreen = () => {
     courts: 0,
     coaches: 0,
   });
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const quickActions = [
     { title: 'Rezervasyon Yap', icon: 'calendar-plus', color: '#2E7D32', action: () => navigation.navigate('Reservation') },
     { title: 'Rezervasyonlar', icon: 'calendar-text', color: '#1B5E20', action: () => navigation.navigate('ReservationsList') },
     { title: 'Maç Geçmişi', icon: 'history', color: '#FF9800', action: () => navigation.navigate('MatchHistory') },
-    { title: 'Lider Tablosu', icon: 'trophy', color: '#81C784', action: () => navigation.navigate('GameModes') },
+    { title: 'Bildirimler', icon: 'bell', color: '#1976D2', action: () => navigation.navigate('Notifications'), badge: unreadCount },
   ];
 
   // Ekran her görünür olduğunda rezervasyonları yenile
@@ -55,12 +56,13 @@ const HomeScreen = () => {
       setLoading(true);
       
       // Tüm verileri paralel olarak çek
-      const [reservationsData, announcementsData, usersData, courtsData, coachesData] = await Promise.all([
+      const [reservationsData, announcementsData, usersData, courtsData, coachesData, unreadNotifications] = await Promise.all([
         reservationService.getUpcomingReservations(2),
         announcementService.getAllAnnouncements(),
         userService.getAllUsers(),
         courtService.getAllCourts(),
         coachService.getAllCoaches(),
+        notificationService.getUnreadCount().catch(() => 0), // Hata durumunda 0 döndür
       ]);
       
       setReservations(reservationsData);
@@ -72,6 +74,8 @@ const HomeScreen = () => {
         courts: courtsData.length,
         coaches: coachesData.length,
       });
+      
+      setUnreadCount(unreadNotifications);
     } catch (error) {
       console.error('Veri yüklenirken hata:', error);
     } finally {
@@ -137,6 +141,11 @@ const HomeScreen = () => {
                 <Card.Content style={styles.actionContent}>
                   <View style={[styles.actionIcon, { backgroundColor: action.color }]}>
                     <MaterialCommunityIcons name={action.icon as any} size={24} color="#fff" />
+                    {action.badge && action.badge > 0 && (
+                      <View style={styles.badge}>
+                        <Text style={styles.badgeText}>{action.badge > 99 ? '99+' : action.badge}</Text>
+                      </View>
+                    )}
                   </View>
                   <Text style={styles.actionTitle}>{action.title}</Text>
                 </Card.Content>
@@ -332,6 +341,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: '#DC3545',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   actionTitle: {
     fontSize: 12,

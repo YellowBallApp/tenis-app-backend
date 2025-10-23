@@ -246,6 +246,53 @@ export class LeagueController {
     }
   };
 
+  // Maç kabul et
+  matchAccepted = async (req: Request, res: Response) => {
+    try {
+      const { userId, challengerId, leagueId } = req.body;
+      
+      const result = await this.leagueStandingsService.matchAccepted(
+        userId,
+        challengerId,
+        leagueId
+      );
+      return res.status(200).json({
+        success: true,
+        message: 'Maç kabul edildi',
+        data: result,
+      });
+    } catch (error: any) {
+      return res.status(400).json({
+        success: false,
+        message: error.message || 'Maç kabul edilirken bir hata oluştu',
+      });
+    }
+  };
+
+  // Maç reddet
+  matchRejected = async (req: Request, res: Response) => {
+    try {
+      const { userId, challengerId, leagueId } = req.body;
+      
+      const result = await this.leagueStandingsService.matchRejected(
+        userId,
+        challengerId,
+        leagueId
+      );
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Maç reddedildi',
+        data: result,
+      });
+    } catch (error: any) {
+      return res.status(400).json({
+        success: false,
+        message: error.message || 'Maç reddedilirken bir hata oluştu',
+      });
+    }
+  };
+
   // Maç sonucunu kaydet
   recordMatchResult = async (req: Request, res: Response) => {
     try {

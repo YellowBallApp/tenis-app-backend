@@ -228,6 +228,68 @@ router.post('/challenge', leagueController.sendMatchChallenge);
 
 /**
  * @swagger
+ * /api/league/match-accepted:
+ *   post:
+ *     summary: Maç kabul et
+ *     tags: [League]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *               - challengerId
+ *               - leagueId
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               challengerId:
+ *                 type: string
+ *               leagueId:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Maç kabul edildi
+ *       400:
+ *         description: Geçersiz istek
+ */
+router.post('/match-accepted', leagueController.matchAccepted);
+
+/**
+ * @swagger
+ * /api/league/match-rejected:
+ *   post:
+ *     summary: Maç reddet
+ *     tags: [League]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *               - challengerId
+ *               - leagueId
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               challengerId:
+ *                 type: string
+ *               leagueId:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Maç reddedildi
+ *       400:
+ *         description: Geçersiz istek
+ */
+router.post('/match-rejected', leagueController.matchRejected);
+
+/**
+ * @swagger
  * /api/league/match-result:
  *   post:
  *     summary: Maç sonucunu kaydet

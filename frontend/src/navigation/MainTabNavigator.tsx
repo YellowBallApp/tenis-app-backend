@@ -13,6 +13,7 @@ import MatchHistoryScreen from '../screens/MatchHistoryScreen';
 import DefiLigScreen from '../screens/DefiLigScreen';
 import LigSiralamaScreen from '../screens/LigSiralamaScreen';
 import LigAyarlariScreen from '../screens/LigAyarlariScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 
 export type MainTabParamList = {
   Home: undefined;
@@ -23,6 +24,7 @@ export type MainTabParamList = {
   Reservation: undefined;
   ReservationsList: undefined;
   MatchHistory: { leagueId?: number; leagueName?: string } | undefined;
+  Notifications: undefined;
 };
 
 export type GameModesStackParamList = {
@@ -161,6 +163,14 @@ const TabNavigator = () => {
           title: 'Maç Geçmişi',
           tabBarButton: () => null, // Hide from tab bar but keep in navigator
           headerShown: false, // Hide default header since we have custom header
+        }}
+      />
+      <Tab.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{
+          title: 'Bildirimler',
+          tabBarButton: () => null, // Hide from tab bar but keep in navigator
         }}
       />
     </Tab.Navigator>
