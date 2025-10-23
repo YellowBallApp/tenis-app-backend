@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { MainTabParamList } from '../navigation/MainTabNavigator';
 import {
@@ -38,9 +38,12 @@ const HomeScreen = () => {
     { title: 'Lider Tablosu', icon: 'trophy', color: '#81C784', action: () => navigation.navigate('GameModes') },
   ];
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  // Ekran her görünür olduğunda rezervasyonları yenile
+  useFocusEffect(
+    React.useCallback(() => {
+      loadData();
+    }, [])
+  );
 
   const loadData = async () => {
     try {
