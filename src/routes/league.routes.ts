@@ -18,6 +18,12 @@ router.use(authMiddleware);
  *     tags: [League]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: leagueId
+ *         schema:
+ *           type: integer
+ *         description: Lig ID (opsiyonel)
  *     responses:
  *       200:
  *         description: Lig ayarları
@@ -35,12 +41,19 @@ router.get('/settings', leagueController.getLeagueSettings);
 
 /**
  * @swagger
- * /api/league/settings:
+ * /api/league/settings/{leagueId}:
  *   put:
  *     summary: Lig ayarlarını güncelle
  *     tags: [League]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: leagueId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Lig ID
  *     requestBody:
  *       required: true
  *       content:
@@ -51,7 +64,7 @@ router.get('/settings', leagueController.getLeagueSettings);
  *       200:
  *         description: Ayarlar güncellendi
  */
-router.put('/settings', leagueController.updateLeagueSettings);
+router.put('/settings/:leagueId', leagueController.updateLeagueSettings);
 
 /**
  * @swagger

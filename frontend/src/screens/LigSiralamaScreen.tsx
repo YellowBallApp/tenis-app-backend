@@ -55,6 +55,9 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
   const [courtMenuVisible, setCourtMenuVisible] = useState(false);
   const [scoreError, setScoreError] = useState(false);
   const [scoreMismatch, setScoreMismatch] = useState(false);
+  const [maxOfferRange, setMaxOfferRange] = useState<number>(3); // Varsayılan 3
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   // Sayfa her odaklandığında verileri yeniden yükle
   useFocusEffect(
@@ -82,6 +85,17 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
       
       // Seçilen ligin sıralama verilerini getir
       const rankingsData = await leagueStandingsService.getLeagueRankings(lig.id);
+      
+      // League settings'ten maxOfferRange'i çek
+      try {
+        const availableOpponents = await leagueStandingsService.getAvailableOpponents(profileData.id, lig.id);
+        if (availableOpponents.maxOfferRange) {
+          setMaxOfferRange(availableOpponents.maxOfferRange);
+        }
+      } catch (error) {
+        console.error('Max offer range alınırken hata:', error);
+        // Hata durumunda varsayılan 3 kullan
+      }
       
       // Eğer ranking data boşsa veya kullanıcı yoksa, mock data kullan
       if (!rankingsData || rankingsData.length === 0) {
@@ -124,6 +138,10 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
             challengeAcceptedDate: currentUserRanking.challengeAcceptedDate,
             challengedUser: currentUserRanking.challengedUser,
           });
+          
+          // Kullanıcının olduğu sayfayı hesapla
+          const userPage = Math.ceil(currentUserRanking.position / itemsPerPage);
+          setCurrentPage(userPage);
         } else {
           // Kullanıcı rankings'de yoksa, ilk kullanıcıyı kullan
           const firstUser = rankingsData[0];
@@ -137,6 +155,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
             challengeAcceptedDate: firstUser.challengeAcceptedDate,
             challengedUser: firstUser.challengedUser,
           });
+          setCurrentPage(1);
         }
         
         setPlayers(rankingsData);
@@ -215,12 +234,12 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
       return;
     }
     
-    // Defi Lig kuralı: Sadece 3 sıra üstüne meydan okunabilir
+    // Lig kuralı: Sadece maxOfferRange kadar sıra üstüne meydan okunabilir
     const positionDifference = currentUser.position - player.position;
-    if (positionDifference > 3) {
+    if (positionDifference > maxOfferRange) {
       Alert.alert(
         'Meydan Okuma Kuralı', 
-        `Sadece 3 sıra üstündeki oyunculara meydan okuyabilirsiniz.\n\nMevcut sıranız: #${currentUser.position}\nHedef sıra: #${player.position}\nFark: ${positionDifference} sıra`
+        `Sadece ${maxOfferRange} sıra üstündeki oyunculara meydan okuyabilirsiniz.\n\nMevcut sıranız: #${currentUser.position}\nHedef sıra: #${player.position}\nFark: ${positionDifference} sıra`
       );
       return;
     }
@@ -448,6 +467,29 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
     }
   };
 
+  // Pagination helper functions
+  const getTotalPages = () => {
+    return Math.ceil(players.length / itemsPerPage);
+  };
+
+  const getCurrentPagePlayers = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return players.slice(startIndex, endIndex);
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < getTotalPages()) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
   const renderPlayerCard = (player: any) => {
     if (!currentUser) return null;
     
@@ -462,22 +504,17 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                         && currentUser.position < player.position; // Ben üst sıradaysam, bana meydan okunmuş demektir
     
     const canChallenge = !isCurrentUser 
-      && positionDifference <= 3 
+      && positionDifference <= maxOfferRange 
       && positionDifference > 0 
       && player.challengeStatus !== 'challengePending' // Challenge bekleyen kullanıcılara istek gönderilemez
       && player.challengeStatus !== 'challengeAccepted' // Challenge kabul edilmiş kullanıcılara istek gönderilemez
       && currentUser.challengeStatus !== 'challengePending' // Kendi challengeStatus'i PENDING olan kullanıcı meydan okuyamaz
       && currentUser.challengeStatus !== 'challengeAccepted'; // Kendi challengeStatus'i ACCEPTED olan kullanıcı meydan okuyamaz
     
-    // Kullanıcı kendini gösterme, zaten "Senin Sıran" bölümünde gösteriliyor
-    if (isCurrentUser) {
-      return null;
-    }
-    
     return (
       <Card 
         key={player.user.id} 
-        style={styles.playerCard}
+        style={[styles.playerCard, isCurrentUser && styles.currentUserCard]}
       >
         <Card.Content>
           <View style={styles.playerHeader}>
@@ -499,7 +536,10 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
             />
             
             <View style={styles.playerInfo}>
-              <Text style={styles.playerName}>{player.user.name}</Text>
+              <Text style={styles.playerName}>
+                {player.user.name}
+                {isCurrentUser && ' (Siz)'}
+              </Text>
               <Text style={styles.playerLevel}>{player.user.name} - {player.position}. sırada</Text>
               {player.challengeStatus === 'challengePending' && (
                 <Chip 
@@ -514,7 +554,17 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
             </View>
             
             <View style={styles.playerActions}>
-              {isChallenger ? (
+              {isCurrentUser ? (
+                // Kullanıcının kendi kartı - buton gösterme
+                <Chip 
+                  icon="account-check" 
+                  style={styles.currentUserChip}
+                  textStyle={styles.currentUserChipText}
+                  compact
+                >
+                  Sizsiniz
+                </Chip>
+              ) : isChallenger ? (
                 // Bu oyuncu bana meydan okudu - Kabul/Reddet butonları
                 <View style={styles.challengeResponseButtons}>
                   <Button
@@ -671,8 +721,47 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
 
         {/* Players List */}
         <View style={styles.playersSection}>
-          <Title style={styles.sectionTitle}>Rakip Oyuncular</Title>
-          {players.map(renderPlayerCard)}
+          <View style={styles.sectionHeader}>
+            <Title style={styles.sectionTitle}>Rakip Oyuncular</Title>
+            <Text style={styles.paginationInfo}>
+              Sayfa {currentPage} / {getTotalPages()}
+            </Text>
+          </View>
+          {getCurrentPagePlayers().map(renderPlayerCard)}
+          
+          {/* Pagination Controls */}
+          {getTotalPages() > 1 && (
+            <View style={styles.paginationContainer}>
+              <Button
+                mode="outlined"
+                onPress={goToPreviousPage}
+                disabled={currentPage === 1}
+                style={styles.paginationButton}
+                icon="chevron-left"
+                compact
+              >
+                Önceki
+              </Button>
+              
+              <View style={styles.pageIndicator}>
+                <Text style={styles.pageText}>
+                  {currentPage} / {getTotalPages()}
+                </Text>
+              </View>
+              
+              <Button
+                mode="outlined"
+                onPress={goToNextPage}
+                disabled={currentPage === getTotalPages()}
+                style={styles.paginationButton}
+                icon="chevron-right"
+                contentStyle={{ flexDirection: 'row-reverse' }}
+                compact
+              >
+                Sonraki
+              </Button>
+            </View>
+          )}
         </View>
 
         {/* Quick Actions */}
@@ -1225,11 +1314,45 @@ const styles = StyleSheet.create({
   playersSection: {
     padding: 20,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#1B1B1B',
-    marginBottom: 15,
+    margin: 0,
+  },
+  paginationInfo: {
+    fontSize: 14,
+    color: '#6C757D',
+    fontWeight: '500',
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E9ECEF',
+  },
+  paginationButton: {
+    flex: 1,
+    marginHorizontal: 5,
+    borderRadius: 8,
+    borderColor: '#2E7D32',
+  },
+  pageIndicator: {
+    paddingHorizontal: 15,
+  },
+  pageText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2E7D32',
   },
   playerCard: {
     backgroundColor: '#FFFFFF',
@@ -1298,6 +1421,17 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#F57C00',
     marginVertical: 0,
+  },
+  currentUserChip: {
+    marginTop: 5,
+    backgroundColor: '#E8F5E9',
+    height: 24,
+  },
+  currentUserChipText: {
+    fontSize: 10,
+    color: '#2E7D32',
+    marginVertical: 0,
+    fontWeight: 'bold',
   },
   playerActions: {
     alignItems: 'flex-end',

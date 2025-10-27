@@ -2,6 +2,7 @@ import {
     Entity, PrimaryGeneratedColumn, Column,
     UpdateDateColumn, CreateDateColumn, DeleteDateColumn
   } from "typeorm";
+  import { UserType } from "../enum/userType.enum";
   
   @Entity("user")
   export class User {
@@ -20,11 +21,14 @@ import {
     @Column({ nullable: true })
     surname: string;
   
-    @Column( {type: "varchar", nullable: true })
-    gender: string | null;
-  
-    @Column()
-    password: string;
+  @Column( {type: "varchar", nullable: true })
+  gender: string | null;
+
+  @Column({ type: "int", nullable: true })
+  age: number | null;
+
+  @Column()
+  password: string;
   
     @CreateDateColumn()
     createdAt: Date;
@@ -38,6 +42,13 @@ import {
     //TODO: Temporarly will be used as Role, later need to implement role.entity
     @Column({ type: 'varchar', length: 100, nullable: true })
     title: string;
+    
+    @Column({ 
+      type: 'enum',
+      enum: UserType,
+      default: UserType.STANDARD
+    })
+    userType: UserType;
     
   }
   

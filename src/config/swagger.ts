@@ -70,10 +70,6 @@ const options: swaggerJsdoc.Options = {
         LeagueSettings: {
           type: 'object',
           properties: {
-            code: {
-              type: 'string',
-              description: 'Lig kodu',
-            },
             description: {
               type: 'string',
               description: 'Lig açıklaması',
@@ -96,6 +92,14 @@ const options: swaggerJsdoc.Options = {
               type: 'number',
               description: 'Eleme için minimum maç sayısı',
             },
+            minAge: {
+              type: 'number',
+              description: 'Minimum yaş',
+            },
+            maxAge: {
+              type: 'number',
+              description: 'Maximum yaş',
+            },
           },
         },
         League: {
@@ -109,12 +113,9 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               description: 'Lig açıklaması',
             },
-            leagueSettingsTemplates: {
-              type: 'array',
-              items: {
-                $ref: '#/components/schemas/LeagueSettingsTemplate',
-              },
-              description: 'Lig ayar şablonları',
+            settings: {
+              $ref: '#/components/schemas/LeagueSettings',
+              description: 'Lig ayarları',
             },
           },
         },
@@ -138,20 +139,42 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
-        LeagueSettingsTemplate: {
+        LeagueSettingsSchema: {
           type: 'object',
           properties: {
             id: {
               type: 'number',
               description: 'Şablon ID',
             },
-            code: {
-              type: 'string',
-              description: 'Şablon kodu',
-            },
             description: {
               type: 'string',
               description: 'Şablon açıklaması',
+            },
+            leagueStartDate: {
+              type: 'string',
+              format: 'date',
+              description: 'Lig başlangıç tarihi',
+            },
+            leagueEndDate: {
+              type: 'string',
+              format: 'date',
+              description: 'Lig bitiş tarihi',
+            },
+            registrationFee: {
+              type: 'number',
+              description: 'Kayıt ücreti',
+            },
+            minMatchCountForElimination: {
+              type: 'number',
+              description: 'Eleme için minimum maç sayısı',
+            },
+            minAge: {
+              type: 'number',
+              description: 'Minimum yaş sınırı',
+            },
+            maxAge: {
+              type: 'number',
+              description: 'Maksimum yaş sınırı',
             },
           },
         },

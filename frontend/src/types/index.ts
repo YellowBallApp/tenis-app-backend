@@ -6,6 +6,7 @@ export interface User {
   title?: string;
   phone?: string;
   gender?: string | null;
+  age?: number | null;
 }
 
 export interface AuthTokens {
@@ -34,10 +35,37 @@ export interface ApiError {
   message: string;
 }
 
+export interface LeagueSettings {
+  id: number;
+  description: string;
+  leagueStartDate: string;
+  leagueEndDate: string;
+  eliminationStartDate: string;
+  eliminationEndDate: string;
+  finalDate: string;
+  registrationFee: number;
+  minMatchCountForElimination: number;
+  minAge: number | null;
+  maxAge: number | null;
+  gamesPerSet: number;
+  setsCount: number;
+  gameTiebreakPoints: number;
+  matchTiebreakPoints: number;
+  offerResponseDays: number;
+  matchCompletionDays: number;
+  postMatchCooldownHours: number;
+  reofferCooldownDays: number;
+  consecutiveWOLimit: number;
+  offerLimitsByRank: { range: string; limit: number }[];
+  responseTimeHour: number;
+}
+
 export interface League {
   id: number;
+  name: string;
   code: string;
   description?: string;
+  settings?: LeagueSettings;
 }
 
 export type ChallengeStatus = 'challengePending' | 'challengeAccepted';

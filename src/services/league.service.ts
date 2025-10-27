@@ -1,18 +1,15 @@
 import { AppDataSource } from '../config/data-source';
-import { LeagueSettings } from '../entities/leagueSettings';
-import { LeagueSettingsTemplate } from '../entities/leagueSettingsTemplate';
+import { LeagueSettings } from '../entities/leagueSettings.entity';
 import { League } from '../entities/league.entity';
 import leagueRepository from '../repositories/league.repository';
 import { AppError } from '../utils/error/app.error';
 
 export class LeagueService {
   private leagueSettingsRepository;
-  private leagueSettingsTemplateRepository;
   private leagueRepository;
 
   constructor() {
     this.leagueSettingsRepository = AppDataSource.getRepository(LeagueSettings);
-    this.leagueSettingsTemplateRepository = AppDataSource.getRepository(LeagueSettingsTemplate);
     this.leagueRepository = leagueRepository;
   }
 
@@ -50,30 +47,57 @@ export class LeagueService {
     await this.leagueRepository.delete(id);
   }
 
-  // Lig ayarlarını getir
-  async getLeagueSettings() {
+  // Lig ayarlarını getir (leagueId'ye göre)
+  async getLeagueSettings(leagueId?: number) {
     try {
+      if (leagueId) {
+        const settings = await this.leagueSettingsRepository.findOne({
+          where: { league: { id: leagueId } },
+          relations: ['league'],
+        });
+        
+        if (!settings) {
+          throw new AppError('LEAGUE_NOT_FOUND');
+        }
+        
+        return settings;
+      }
+      
+      // LeagueId verilmemişse ilk settings'i döndür
       const settings = await this.leagueSettingsRepository.find({
-        relations: ['leagueSettingsTemplate'],
+        relations: ['league'],
       });
       
       if (!settings || settings.length === 0) {
-        // Varsayılan ayarları oluştur
-        return this.createDefaultSettings();
+        throw new AppError('LEAGUE_NOT_FOUND');
       }
       
       return settings[0];
     } catch (error) {
-      throw new Error('Lig ayarları alınırken bir hata oluştu');
+      throw error;
     }
   }
 
-  // Varsayılan ayarları oluştur
-  private async createDefaultSettings() {
-    const defaultSettings = this.leagueSettingsRepository.create({
-      code: 'EGEV_DEFI_LEAGUE_2025',
-      description: 'EGEV TK Defi Ligi 2025 Sezon Ayarları',
+  // Lig ayarlarını güncelle
+  async updateLeagueSettings(leagueId: number, settingsData: Partial<LeagueSettings>) {
+    try {
+      const existingSettings = await this.getLeagueSettings(leagueId);
+      
+      Object.assign(existingSettings, settingsData);
+      existingSettings.updater = 'admin'; // Bu kısmı authentication'dan alınacak
+      
+      return await this.leagueSettingsRepository.save(existingSettings);
+    } catch (error) {
+      throw new Error('Lig ayarları güncellenirken bir hata oluştu');
+    }
+  }
+
+  // Yeni lig settings oluştur
+  async createLeagueSettings(league: League, settingsData?: Partial<LeagueSettings>): Promise<LeagueSettings> {
+    const defaultData = {
+      description: `${league.name} Sezon Ayarları`,
       creator: 'system',
+      league: league,
       
       // Lig dönemleri
       leagueStartDate: new Date('2025-02-01'),
@@ -85,9 +109,10 @@ export class LeagueService {
       // Katılım bilgileri
       registrationFee: 150,
       minMatchCountForElimination: 15,
+      minAge: 18,
+      maxAge: 65,
       
       // Maç formatı
-      warmupTimeMinutes: 5,
       gamesPerSet: 4,
       setsCount: 2,
       gameTiebreakPoints: 7,
@@ -99,7 +124,6 @@ export class LeagueService {
       postMatchCooldownHours: 24,
       reofferCooldownDays: 15,
       consecutiveWOLimit: 3,
-      lateArrivalMinutes: 10,
       
       // Sıra bazlı teklif limitleri
       offerLimitsByRank: [
@@ -110,30 +134,12 @@ export class LeagueService {
         { range: '40+', limit: 10 },
       ],
       
-      // Eski alanlar (geriye dönük uyumluluk)
-      offerValue: 3,
-      offerEverywhere: false,
-      shieldIntervalHour: 24,
-      userShieldHour: 168,
-      userShieldAmount: 3,
       responseTimeHour: 72,
-    });
+      ...settingsData,
+    };
 
-    return await this.leagueSettingsRepository.save(defaultSettings);
-  }
-
-  // Lig ayarlarını güncelle
-  async updateLeagueSettings(settings: Partial<LeagueSettings>) {
-    try {
-      const existingSettings = await this.getLeagueSettings();
-      
-      Object.assign(existingSettings, settings);
-      existingSettings.updater = 'admin'; // Bu kısmı authentication'dan alınacak
-      
-      return await this.leagueSettingsRepository.save(existingSettings);
-    } catch (error) {
-      throw new Error('Lig ayarları güncellenirken bir hata oluştu');
-    }
+    const settings = this.leagueSettingsRepository.create(defaultData);
+    return await this.leagueSettingsRepository.save(settings);
   }
 }
 

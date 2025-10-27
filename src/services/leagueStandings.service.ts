@@ -5,6 +5,7 @@ import { AppDataSource } from '../config/data-source';
 import { User } from '../entities/user.entity';
 import { MatchHistory } from '../entities/matchHistory.entity';
 import { Court } from '../entities/court.entity';
+import { LeagueSettings } from '../entities/leagueSettings.entity';
 import matchHistoryService from './matchHistory.service';
 import { ChallengeStatus } from '../enum/challengeStatus.enum';
 import notificationService from './notification.service';
@@ -13,11 +14,13 @@ export class LeagueStandingsService {
   private userRepository;
   private matchHistoryRepository;
   private courtRepository;
+  private leagueSettingsRepository;
 
   constructor() {
     this.userRepository = AppDataSource.getRepository(User);
     this.matchHistoryRepository = AppDataSource.getRepository(MatchHistory);
     this.courtRepository = AppDataSource.getRepository(Court);
+    this.leagueSettingsRepository = AppDataSource.getRepository(LeagueSettings);
   }
   async findAll(): Promise<LeagueStandings[]> {
     try {
@@ -246,13 +249,51 @@ export class LeagueStandingsService {
     }
   }
 
-  // Sıra bazlı maksimum teklif aralığını hesapla
-  private getMaxOfferRange(position: number): number {
-    if (position <= 11) return 3;
-    if (position <= 19) return 4;
-    if (position <= 27) return 5;
-    if (position <= 40) return 6;
-    return 10;
+  // Sıra bazlı maksimum teklif aralığını hesapla (League settings'ten)
+  private async getMaxOfferRange(position: number, leagueId: number): Promise<number> {
+    try {
+      // League settings'i getir
+      const settings = await this.leagueSettingsRepository.findOne({
+        where: { league: { id: leagueId } },
+      });
+
+      if (!settings || !settings.offerLimitsByRank) {
+        // Varsayılan değerler
+        if (position <= 11) return 3;
+        if (position <= 19) return 4;
+        if (position <= 27) return 5;
+        if (position <= 40) return 6;
+        return 10;
+      }
+
+      // offerLimitsByRank'e göre limite  bul
+      for (const rule of settings.offerLimitsByRank) {
+        const rangeMatch = rule.range.match(/^(\d+)-(\d+)$/);
+        const plusMatch = rule.range.match(/^(\d+)\+$/);
+        
+        if (rangeMatch) {
+          const [, minStr, maxStr] = rangeMatch;
+          const min = parseInt(minStr);
+          const max = parseInt(maxStr);
+          if (position >= min && position <= max) {
+            return rule.limit;
+          }
+        } else if (plusMatch) {
+          const [, minStr] = plusMatch;
+          const min = parseInt(minStr);
+          if (position >= min) {
+            return rule.limit;
+          }
+        }
+      }
+
+      // Hiçbir kurala uymuyorsa varsayılan
+      return 3;
+    } catch (error) {
+      console.error('getMaxOfferRange error:', error);
+      // Hata durumunda varsayılan değer
+      return 3;
+    }
   }
 
   // Maç teklifi gönderme kurallarını kontrol et
@@ -280,7 +321,7 @@ export class LeagueStandingsService {
       const rankDifference = challengerStanding.leagueRanking - opponentStanding.leagueRanking;
       
       // Sıra bazlı teklif limiti kontrolü
-      const maxOfferRange = this.getMaxOfferRange(challengerStanding.leagueRanking);
+      const maxOfferRange = await this.getMaxOfferRange(challengerStanding.leagueRanking, leagueId);
       
       if (rankDifference > maxOfferRange) {
         throw new Error(`Sadece ${maxOfferRange} sıra yukarıdaki oyunculara meydan okuyabilirsiniz`);
@@ -546,7 +587,11 @@ export class LeagueStandingsService {
         throw new Error('Kullanıcı lige kayıtlı değil');
       }
 
-      const maxOfferRange = this.getMaxOfferRange(userStanding.leagueRanking);
+      if (!userStanding.league) {
+        throw new Error('Kullanıcının lig bilgisi bulunamadı');
+      }
+
+      const maxOfferRange = await this.getMaxOfferRange(userStanding.leagueRanking, userStanding.league.id);
       const minRank = Math.max(1, userStanding.leagueRanking - maxOfferRange);
       const maxRank = userStanding.leagueRanking - 1;
 
@@ -555,25 +600,29 @@ export class LeagueStandingsService {
         ? await leagueStandingsRepository.findByLeagueId(userStanding.league.id)
         : await leagueStandingsRepository.findAll();
 
-      return opponents
-        .filter((standing) => 
-          standing.leagueRanking >= minRank && 
-          standing.leagueRanking <= maxRank &&
-          standing.user.id !== userId
-        )
-        .map((standing) => ({
-          userId: standing.user.id,
-          name: standing.user.name,
-          position: standing.leagueRanking,
-          challengeStatus: standing.challengeStatus,
-          challengePendingDate: standing.challengePendingDate,
-          challengeAcceptedDate: standing.challengeAcceptedDate,
-          canChallenge: standing.challengeStatus !== ChallengeStatus.PENDING, // PENDING ise challenge yapılamaz
-          league: standing.league ? {
-            id: standing.league.id,
-            description: standing.league.description,
-          } : null,
-        }));
+      return {
+        maxOfferRange,
+        currentUserPosition: userStanding.leagueRanking,
+        opponents: opponents
+          .filter((standing) => 
+            standing.leagueRanking >= minRank && 
+            standing.leagueRanking <= maxRank &&
+            standing.user.id !== userId
+          )
+          .map((standing) => ({
+            userId: standing.user.id,
+            name: standing.user.name,
+            position: standing.leagueRanking,
+            challengeStatus: standing.challengeStatus,
+            challengePendingDate: standing.challengePendingDate,
+            challengeAcceptedDate: standing.challengeAcceptedDate,
+            canChallenge: standing.challengeStatus !== ChallengeStatus.PENDING, // PENDING ise challenge yapılamaz
+            league: standing.league ? {
+              id: standing.league.id,
+              description: standing.league.description,
+            } : null,
+          }))
+      };
     } catch (error: any) {
       throw new Error(error.message || 'Rakip listesi alınırken bir hata oluştu');
     }
