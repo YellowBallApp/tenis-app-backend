@@ -124,6 +124,10 @@ export const leagueService = {
     const response = await api.get('/league/all');
     const leagues = response.data.data;
     
+    if (!leagues || leagues.length === 0) {
+      return [];
+    }
+    
     // Her lig için settings'i de çek
     const leaguesWithSettings = await Promise.all(
       leagues.map(async (league: any) => {
@@ -279,49 +283,6 @@ export const leagueStandingsService = {
   getAvailableOpponents: async (userId: string, leagueId?: number) => {
     const params = leagueId ? { leagueId } : {};
     const response = await api.get(`/league/available-opponents/${userId}`, { params });
-    return response.data.data;
-  },
-
-  // Maç teklifi gönder
-  sendMatchChallenge: async (challengerId: string, opponentId: string, message: string, leagueId: number) => {
-    const response = await api.post('/league/challenge', {
-      challengerId,
-      opponentId,
-      message,
-      leagueId,
-    });
-    console.log(response);
-    return response.data.data;
-  },
-
-  // Maç kabul et
-  matchAccepted: async (userId: string, challengerId: string, leagueId: number) => {
-    const response = await api.post('/league/match-accepted', {
-      userId,
-      challengerId,
-      leagueId,
-    });
-    return response.data.data;
-  },
-
-  // Maç reddet
-  matchRejected: async (userId: string, challengerId: string, leagueId: number) => {
-    const response = await api.post('/league/match-rejected', {
-      userId,
-      challengerId,
-      leagueId,
-    });
-    return response.data.data;
-  },
-
-  // Maç sonucu kaydet
-  recordMatchResult: async (matchId: number, winnerId: string, loserId: string, score: string) => {
-    const response = await api.post('/league/match-result', {
-      matchId,
-      winnerId,
-      loserId,
-      score,
-    });
     return response.data.data;
   },
 };
@@ -580,6 +541,75 @@ export const notificationService = {
   // Tüm notification'ları sil
   deleteAllNotifications: async () => {
     const response = await api.delete('/notifications/delete-all');
+    return response.data;
+  },
+};
+
+// Match Challenge servisleri
+export const matchChallengeService = {
+  // Yeni maç teklifi oluştur
+  createChallenge: async (data: {
+    challengedId: string;
+    leagueId: number;
+    message?: string;
+    proposedDate?: string;
+    expiresInDays?: number;
+  }) => {
+    const response = await api.post('/match-challenges', data);
+    return response.data.data;
+  },
+
+  // Kullanıcının aldığı bekleyen teklifleri getir
+  getPendingChallenges: async () => {
+    const response = await api.get('/match-challenges/pending');
+    return response.data.data;
+  },
+
+  // Kullanıcının gönderdiği teklifleri getir
+  getSentChallenges: async () => {
+    const response = await api.get('/match-challenges/sent');
+    return response.data.data;
+  },
+
+  // Kullanıcının tüm challengelarını getir
+  getUserChallenges: async () => {
+    const response = await api.get('/match-challenges/my');
+    return response.data.data;
+  },
+
+  // Tüm challengeları getir (admin)
+  getAllChallenges: async () => {
+    const response = await api.get('/match-challenges/all');
+    return response.data.data;
+  },
+
+  // ID'ye göre challenge detayını getir
+  getChallengeById: async (id: number) => {
+    const response = await api.get(`/match-challenges/${id}`);
+    return response.data.data;
+  },
+
+  // Challenge'ı kabul et
+  acceptChallenge: async (id: number) => {
+    const response = await api.put(`/match-challenges/${id}/accept`);
+    return response.data.data;
+  },
+
+  // Challenge'ı reddet
+  rejectChallenge: async (id: number) => {
+    const response = await api.put(`/match-challenges/${id}/reject`);
+    return response.data.data;
+  },
+
+  // Challenge'ı iptal et
+  cancelChallenge: async (id: number) => {
+    const response = await api.put(`/match-challenges/${id}/cancel`);
+    return response.data.data;
+  },
+
+  // Challenge'ı sil
+  deleteChallenge: async (id: number) => {
+    const response = await api.delete(`/match-challenges/${id}`);
     return response.data;
   },
 };

@@ -1,3 +1,8 @@
+import { NotificationType } from '../enums/notificationType.enum';
+import { ChallengeStatus } from '../enums/challengeStatus.enum';
+
+export { NotificationType, ChallengeStatus };
+
 export interface User {
   id: string;
   name: string;
@@ -68,29 +73,35 @@ export interface League {
   settings?: LeagueSettings;
 }
 
-export type ChallengeStatus = 'challengePending' | 'challengeAccepted';
+export interface MatchChallenge {
+  id: number;
+  challenger: User;
+  challenged: User;
+  league: League;
+  status: ChallengeStatus;
+  message?: string;
+  proposedDate?: string;
+  respondedAt?: string;
+  expiresAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface LeagueStandings {
   id: number;
   description?: string;
   leagueRanking: number;
-  challengeStatus?: ChallengeStatus;
-  challengePendingDate?: string;
-  challengeAcceptedDate?: string;
   user: User;
-  challengedUser?: User;
   league: League;
 }
-
-export type NotificationType = 'pendingMatchRequest' | 'systemNotification';
 
 export interface Notification {
   id: number;
   type: NotificationType;
   message?: string;
   isRead: boolean;
-  notificationReceivedDate: string;
+  createdAt: string;
   recipient: User;
-  challenger?: User;
-  league?: League;
+  relatedEntityId?: number;
+  relatedEntityType?: string;
 }

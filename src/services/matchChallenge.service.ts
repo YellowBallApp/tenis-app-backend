@@ -1,0 +1,316 @@
+import { MatchChallenge, ChallengeStatus } from '../entities/matchChallenge.entity';
+import matchChallengeRepository from '../repositories/matchChallenge.repository';
+import leagueRepository from '../repositories/league.repository';
+import notificationService from './notification.service';
+import { AppError } from '../utils/error/app.error';
+import { NotificationType } from '../enum/notificationType.enum';
+
+export class MatchChallengeService {
+  
+  // Tüm challenge'ları getir (admin için)
+  async getAllChallenges(): Promise<MatchChallenge[]> {
+    try {
+      return await matchChallengeRepository.findAll();
+    } catch (error) {
+      throw new AppError('UNKNOWN_ERROR');
+    }
+  }
+
+  // ID'ye göre challenge getir
+  async getChallengeById(id: number): Promise<MatchChallenge> {
+    try {
+      const challenge = await matchChallengeRepository.findById(id);
+      if (!challenge) {
+        throw new AppError('CHALLENGE_NOT_FOUND');
+      }
+      return challenge;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError('UNKNOWN_ERROR');
+    }
+  }
+
+  // Maç teklifi oluştur
+  async createChallenge(data: {
+    challengerId: string;
+    challengedId: string;
+    leagueId: number;
+    message?: string;
+    proposedDate?: Date;
+    expiresInDays?: number;
+  }): Promise<MatchChallenge> {
+    try {
+      // Kendine challenge gönderemez
+      if (data.challengerId === data.challengedId) {
+        throw new AppError('CANNOT_CHALLENGE_YOURSELF');
+      }
+
+      // Challenger'ın bu ligde aktif bir challenge'ı var mı kontrol et
+      const challengerHasActiveChallenge = await matchChallengeRepository.hasActiveChallengeInLeague(
+        data.challengerId,
+        data.leagueId
+      );
+
+      if (challengerHasActiveChallenge) {
+        throw new AppError('CHALLENGER_HAS_ACTIVE_CHALLENGE');
+      }
+
+      // Challenged kullanıcının bu ligde aktif bir challenge'ı var mı kontrol et
+      const challengedHasActiveChallenge = await matchChallengeRepository.hasActiveChallengeInLeague(
+        data.challengedId,
+        data.leagueId
+      );
+
+      if (challengedHasActiveChallenge) {
+        throw new AppError('CHALLENGED_HAS_ACTIVE_CHALLENGE');
+      }
+
+      // Aynı challenge var mı kontrol et (ekstra güvenlik)
+      const existingChallenge = await matchChallengeRepository.findPendingChallenge(
+        data.challengerId,
+        data.challengedId,
+        data.leagueId
+      );
+
+      if (existingChallenge) {
+        throw new AppError('CHALLENGE_ALREADY_EXISTS');
+      }
+
+      // Geçerlilik süresi belirleme (varsayılan 7 gün)
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + (data.expiresInDays || 7));
+
+      // proposedDate yoksa şu anki zamanı kullan
+      const proposedDate = data.proposedDate || new Date();
+
+      const challenge = await matchChallengeRepository.create({
+        challengerId: data.challengerId,
+        challengedId: data.challengedId,
+        leagueId: data.leagueId,
+        message: data.message,
+        proposedDate: proposedDate,
+        expiresAt,
+        status: ChallengeStatus.PENDING
+      });
+
+      // Notification oluştur
+    await notificationService.createNotification({
+      recipientId: data.challengedId,
+      type: NotificationType.MATCH_CHALLENGE,
+      message: data.message || 'Yeni bir maç teklifi aldınız',
+      relatedEntityId: challenge.id,
+      relatedEntityType: 'challenge'
+    });
+
+      return challenge;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError('UNKNOWN_ERROR');
+    }
+  }
+
+  // Challenge'ı kabul et
+  async acceptChallenge(challengeId: number, userId: string): Promise<MatchChallenge> {
+    try {
+      const challenge = await matchChallengeRepository.findById(challengeId);
+      
+      if (!challenge) {
+        throw new AppError('CHALLENGE_NOT_FOUND');
+      }
+
+      // Sadece teklif edilen kişi kabul edebilir
+      if (challenge.challenged.id !== userId) {
+        throw new AppError('UNAUTHORIZED');
+      }
+
+      // Sadece pending durumundaysa kabul edilebilir
+      if (challenge.status !== ChallengeStatus.PENDING) {
+        throw new AppError('CHALLENGE_NOT_PENDING');
+      }
+
+      // Geçerlilik kontrolü
+      if (new Date() > challenge.expiresAt) {
+        await matchChallengeRepository.expireChallenge(challengeId);
+        throw new AppError('CHALLENGE_EXPIRED');
+      }
+
+      const updatedChallenge = await matchChallengeRepository.acceptChallenge(challengeId);
+
+      // Kabul eden kullanıcının bu ligdeki reddedilmiş challenge'larını temizle
+      await matchChallengeRepository.deleteRejectedChallengesByUserInLeague(
+        userId,
+        challenge.league.id
+      );
+
+      // Challenger'a bildirim gönder
+      await notificationService.createNotification({
+        recipientId: challenge.challenger.id,
+        type: NotificationType.MATCH_ACCEPTED,
+        message: `${challenge.challenged.name || 'Kullanıcı'} maç teklifinizi kabul etti`,
+        relatedEntityId: challenge.id,
+        relatedEntityType: 'challenge'
+      });
+
+      return updatedChallenge;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError('UNKNOWN_ERROR');
+    }
+  }
+
+  // Challenge'ı reddet
+  async rejectChallenge(challengeId: number, userId: string): Promise<MatchChallenge> {
+    try {
+      const challenge = await matchChallengeRepository.findById(challengeId);
+      
+      if (!challenge) {
+        throw new AppError('CHALLENGE_NOT_FOUND');
+      }
+
+      // Sadece teklif edilen kişi reddedebilir
+      if (challenge.challenged.id !== userId) {
+        throw new AppError('UNAUTHORIZED');
+      }
+
+      // Sadece pending durumundaysa reddedilebilir
+      if (challenge.status !== ChallengeStatus.PENDING) {
+        throw new AppError('CHALLENGE_NOT_PENDING');
+      }
+
+      // Ligin ayarlarını getir
+      const league = await leagueRepository.findById(challenge.league.id);
+      
+      if (league?.settings?.consecutiveWOLimit) {
+        // Kullanıcının bu ligde kaç tane maç reddettiğini kontrol et
+        const rejectedCount = await matchChallengeRepository.countRejectedChallengesByUserInLeague(
+          userId,
+          challenge.league.id
+        );
+
+        // Limit aşıldıysa hata fırlat
+        if (rejectedCount >= league.settings.consecutiveWOLimit) {
+          throw new AppError('CONSECUTIVE_WO_LIMIT_EXCEEDED');
+        }
+      }
+
+      const updatedChallenge = await matchChallengeRepository.rejectChallenge(challengeId);
+
+      // Challenger'a bildirim gönder
+      await notificationService.createNotification({
+        recipientId: challenge.challenger.id,
+        type: NotificationType.MATCH_REJECTED,
+        message: `${challenge.challenged.name || 'Kullanıcı'} maç teklifinizi reddetti`,
+        relatedEntityId: challenge.id,
+        relatedEntityType: 'challenge'
+      });
+
+      return updatedChallenge;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError('UNKNOWN_ERROR');
+    }
+  }
+
+  // Challenge'ı iptal et (teklif eden iptal edebilir)
+  async cancelChallenge(challengeId: number, userId: string): Promise<MatchChallenge> {
+    try {
+      const challenge = await matchChallengeRepository.findById(challengeId);
+      
+      if (!challenge) {
+        throw new AppError('CHALLENGE_NOT_FOUND');
+      }
+
+      // Sadece teklif eden iptal edebilir
+      if (challenge.challenger.id !== userId) {
+        throw new AppError('UNAUTHORIZED');
+      }
+
+      // Sadece pending durumundaysa iptal edilebilir
+      if (challenge.status !== ChallengeStatus.PENDING) {
+        throw new AppError('CHALLENGE_NOT_PENDING');
+      }
+
+      const updatedChallenge = await matchChallengeRepository.cancelChallenge(challengeId);
+
+      // Challenged kişiye bildirim gönder
+      await notificationService.createNotification({
+        recipientId: challenge.challenged.id,
+        type: NotificationType.SYSTEM_NOTIFICATION,
+        message: `${challenge.challenger.name || 'Kullanıcı'} maç teklifini iptal etti`,
+        relatedEntityId: challenge.id,
+        relatedEntityType: 'challenge'
+      });
+
+      return updatedChallenge;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError('UNKNOWN_ERROR');
+    }
+  }
+
+  // Kullanıcının aldığı challengeları getir
+  async getUserChallenges(userId: string): Promise<MatchChallenge[]> {
+    try {
+      return await matchChallengeRepository.findByUserId(userId);
+    } catch (error) {
+      throw new AppError('UNKNOWN_ERROR');
+    }
+  }
+
+  // Kullanıcının pending challengelarını getir
+  async getPendingChallenges(userId: string): Promise<MatchChallenge[]> {
+    try {
+      return await matchChallengeRepository.findPendingByUserId(userId);
+    } catch (error) {
+      throw new AppError('UNKNOWN_ERROR');
+    }
+  }
+
+  // Kullanıcının gönderdiği challengeları getir
+  async getSentChallenges(userId: string): Promise<MatchChallenge[]> {
+    try {
+      return await matchChallengeRepository.findSentChallenges(userId);
+    } catch (error) {
+      throw new AppError('UNKNOWN_ERROR');
+    }
+  }
+
+  // Süresi dolmuş challengeları expire olarak işaretle
+  async expireOldChallenges(): Promise<number> {
+    try {
+      const expiredChallenges = await matchChallengeRepository.findExpiredChallenges();
+      
+      for (const challenge of expiredChallenges) {
+        await matchChallengeRepository.expireChallenge(challenge.id);
+      }
+
+      return expiredChallenges.length;
+    } catch (error) {
+      throw new AppError('UNKNOWN_ERROR');
+    }
+  }
+
+  // Challenge sil
+  async deleteChallenge(challengeId: number, userId: string): Promise<void> {
+    try {
+      const challenge = await matchChallengeRepository.findById(challengeId);
+      
+      if (!challenge) {
+        throw new AppError('CHALLENGE_NOT_FOUND');
+      }
+
+      // Sadece ilgili kullanıcılar silebilir
+      if (challenge.challenger.id !== userId && challenge.challenged.id !== userId) {
+        throw new AppError('UNAUTHORIZED');
+      }
+
+      await matchChallengeRepository.delete(challengeId);
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError('UNKNOWN_ERROR');
+    }
+  }
+}
+
+export default new MatchChallengeService();
+
