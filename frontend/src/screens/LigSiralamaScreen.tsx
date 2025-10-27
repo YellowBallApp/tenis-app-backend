@@ -229,10 +229,10 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
       return;
     }
     
-    // Kullanıcının bu ligde aktif bir challenge'ı var mı kontrol et
+    // Kullanıcının bu ligde aktif bir challenge'ı var mı kontrol et (pending veya accepted)
     const userHasActiveChallengeInLeague = userPendingChallenges.some(
       (c: any) => c.league.id === lig.id
-    );
+    ) || (acceptedChallenge && acceptedChallenge.league.id === lig.id);
     
     if (userHasActiveChallengeInLeague) {
       Alert.alert(
@@ -553,10 +553,10 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
     const isCurrentUser = player.user.id === currentUser.id;
     const positionDifference = currentUser.position - player.position;
     
-    // Kullanıcının bu ligde aktif bir challenge'ı var mı? (hem gönderdiği hem aldığı)
+    // Kullanıcının bu ligde aktif bir challenge'ı var mı? (hem gönderdiği hem aldığı, pending veya accepted)
     const userHasActiveChallengeInLeague = userPendingChallenges.some(
       (c: any) => c.league.id === lig.id
-    );
+    ) || (acceptedChallenge && acceptedChallenge.league.id === lig.id);
     
     // Bu oyuncuya zaten bekleyen bir challenge gönderilmiş mi?
     const hasPendingChallengeToThisPlayer = userPendingChallenges.some(
@@ -571,7 +571,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
     const canChallenge = !isCurrentUser 
       && positionDifference <= maxOfferRange 
       && positionDifference > 0 
-      && !userHasActiveChallengeInLeague // Kullanıcının bu ligde aktif challenge'ı olmamalı
+      && !userHasActiveChallengeInLeague // Kullanıcının bu ligde aktif challenge'ı olmamalı (pending veya accepted)
       && !hasPendingChallengeToThisPlayer; // Bu oyuncuya zaten pending challenge gönderilmemiş olmalı
     
     return (

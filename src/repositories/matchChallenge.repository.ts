@@ -149,8 +149,8 @@ class MatchChallengeRepository {
       .getMany();
   }
 
-  // Kullanıcının belirli bir ligde aktif (pending) challenge'ı var mı kontrol et
-  // Hem gönderdiği hem de aldığı pending challenge'ları kontrol eder
+  // Kullanıcının belirli bir ligde aktif (pending veya accepted) challenge'ı var mı kontrol et
+  // Hem gönderdiği hem de aldığı pending/accepted challenge'ları kontrol eder
   async hasActiveChallengeInLeague(userId: string, leagueId: number): Promise<boolean> {
     const count = await this.repository
       .createQueryBuilder('challenge')
@@ -159,7 +159,7 @@ class MatchChallengeRepository {
       .leftJoinAndSelect('challenge.league', 'league')
       .where('(challenger.id = :userId OR challenged.id = :userId)', { userId })
       .andWhere('league.id = :leagueId', { leagueId })
-      .andWhere('challenge.status = :status', { status: ChallengeStatus.PENDING })
+      .andWhere('challenge.status IN (:...statuses)', { statuses: [ChallengeStatus.PENDING, ChallengeStatus.ACCEPTED] })
       .andWhere('challenge.expiresAt > :now', { now: new Date() })
       .getCount();
     
