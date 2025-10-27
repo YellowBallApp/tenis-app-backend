@@ -53,6 +53,7 @@ const ReservationScreen = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [users, setUsers] = useState<any[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserType, setCurrentUserType] = useState<string | null>(null);
   const [courts, setCourts] = useState<any[]>([]);
   const [courtReservations, setCourtReservations] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -73,6 +74,7 @@ const ReservationScreen = () => {
       try {
         const profile = await authService.getProfile();
         setCurrentUserId(profile.id);
+        setCurrentUserType(profile.userType);
       } catch (error) {
         console.error('Kullanıcı profili yüklenirken hata:', error);
       }
@@ -213,8 +215,37 @@ const ReservationScreen = () => {
 
   const availableTimes = [
     '09:00', '10:00', '11:00', '12:00', '13:00', 
-    '14:00', '15:00', '16:00', '17:00', '18:00'
+    '14:00', '15:00', '16:00', '17:00', '18:00',
+    '19:00', '20:00', '21:00', '22:00', '23:00'
   ];
+
+  // Kullanıcı tipine göre saatin disabled olup olmadığını kontrol et
+  const isTimeSlotDisabledForUser = (timeSlot: string): boolean => {
+    // RESTRICTED kullanıcı değilse, tüm saatler müsait
+    if (currentUserType !== 'restricted') {
+      return false;
+    }
+
+    // Tarih seçilmemişse kontrol yapma
+    if (!selectedDate) {
+      return false;
+    }
+
+    const selectedDateObj = new Date(selectedDate);
+    const dayOfWeek = selectedDateObj.getDay(); // 0 = Pazar, 6 = Cumartesi
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+    // Saati parse et
+    const hour = parseInt(timeSlot.split(':')[0]);
+
+    if (isWeekend) {
+      // Hafta sonu: Sadece 18:00-24:00 arası izinli
+      return hour < 18;
+    } else {
+      // Hafta içi: Sadece 9:00-18:00 arası izinli
+      return hour < 9 || hour >= 18;
+    }
+  };
 
   // Belirli bir saatin rezerve olup olmadığını kontrol et
   const getReservationForTime = (timeSlot: string) => {
@@ -612,17 +643,19 @@ const ReservationScreen = () => {
                   {availableTimes.map((time) => {
                     const reservation = getReservationForTime(time);
                     const isReserved = !!reservation;
+                    const isDisabledForUserType = isTimeSlotDisabledForUser(time);
+                    const isDisabled = isReserved || isDisabledForUserType;
                     
                     return (
                       <TouchableOpacity
                         key={time}
-                        onPress={() => !isReserved && handleTimeSelect(time)}
+                        onPress={() => !isDisabled && handleTimeSelect(time)}
                         style={styles.timeChipContainer}
-                        disabled={isReserved}
+                        disabled={isDisabled}
                       >
                         <LinearGradient
                           colors={
-                            isReserved 
+                            isDisabled 
                               ? ['#E0E0E0', '#BDBDBD']
                               : selectedTime === time 
                                 ? ['#2E7D32', '#1B5E20'] 
@@ -631,16 +664,16 @@ const ReservationScreen = () => {
                           style={[
                             styles.timeChip,
                             selectedTime === time && styles.selectedTimeChip,
-                            isReserved && styles.disabledTimeChip
+                            isDisabled && styles.disabledTimeChip
                           ]}
                         >
                           <View style={styles.timeChipContent}>
                             <View style={styles.timeRow}>
                               <MaterialCommunityIcons 
-                                name={isReserved ? "lock" : "clock"} 
+                                name={isDisabled ? "lock" : "clock"} 
                                 size={16} 
                                 color={
-                                  isReserved 
+                                  isDisabled 
                                     ? "#757575" 
                                     : selectedTime === time 
                                       ? "#FFFFFF" 
@@ -650,7 +683,7 @@ const ReservationScreen = () => {
                               <Text style={[
                                 styles.timeChipText,
                                 selectedTime === time && styles.selectedTimeChipText,
-                                isReserved && styles.disabledTimeChipText
+                                isDisabled && styles.disabledTimeChipText
                               ]}>
                                 {time}
                               </Text>
@@ -658,6 +691,11 @@ const ReservationScreen = () => {
                             {isReserved && reservation && (
                               <Text style={styles.reservedByText}>
                                 {reservation.user.name}
+                              </Text>
+                            )}
+                            {isDisabledForUserType && !isReserved && (
+                              <Text style={styles.reservedByText}>
+                                İzin yok
                               </Text>
                             )}
                           </View>

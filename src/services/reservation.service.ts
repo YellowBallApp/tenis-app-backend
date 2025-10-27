@@ -2,6 +2,7 @@ import { AppDataSource } from '../config/data-source';
 import { Reservation } from '../entities/reservation.entity';
 import { User } from '../entities/user.entity';
 import { Court } from '../entities/court.entity';
+import { UserType } from '../enum/userType.enum';
 
 export class ReservationService {
   private reservationRepository;
@@ -86,6 +87,28 @@ export class ReservationService {
 
       if (court.closed) {
         throw new Error('Bu kort şu anda kapalı');
+      }
+
+      // Kullanıcı tipi kontrolü - RESTRICTED kullanıcılar için zaman kısıtlaması
+      if (user.userType === UserType.RESTRICTED) {
+        const startTime = new Date(data.startTime);
+        const dayOfWeek = startTime.getDay(); // 0 = Pazar, 6 = Cumartesi
+        const hour = startTime.getHours();
+        
+        // Hafta sonu kontrolü (Cumartesi ve Pazar)
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        
+        if (isWeekend) {
+          // Hafta sonu: Sadece 18:00-24:00 arası
+          if (hour < 18 || hour >= 24) {
+            throw new Error('Kullanıcı tipiniz hafta sonları sadece 18:00-24:00 arası rezervasyon yapabilir');
+          }
+        } else {
+          // Hafta içi: Sadece 9:00-18:00 arası
+          if (hour < 9 || hour >= 18) {
+            throw new Error('Kullanıcı tipiniz hafta içi sadece 09:00-18:00 arası rezervasyon yapabilir');
+          }
+        }
       }
 
       // Çakışma kontrolü

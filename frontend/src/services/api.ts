@@ -119,10 +119,28 @@ export const coachService = {
 export const leagueService = {
   // ==================== League Entity CRUD ====================
   
-  // Tüm ligleri getir
+  // Tüm ligleri getir (settings ile birlikte)
   getAllLeagues: async () => {
     const response = await api.get('/league/all');
-    return response.data.data;
+    const leagues = response.data.data;
+    
+    // Her lig için settings'i de çek
+    const leaguesWithSettings = await Promise.all(
+      leagues.map(async (league: any) => {
+        try {
+          const settingsResponse = await api.get('/league/settings', { params: { leagueId: league.id } });
+          return {
+            ...league,
+            settings: settingsResponse.data.data
+          };
+        } catch (error) {
+          console.error(`League ${league.id} settings fetch error:`, error);
+          return league;
+        }
+      })
+    );
+    
+    return leaguesWithSettings;
   },
 
   // Belirli bir ligi getir

@@ -11,7 +11,11 @@ const authService = {
   register: async (
     name: string,
     email: string,
-    password: string
+    password: string,
+    surname?: string,
+    phone?: string,
+    gender?: string,
+    age?: number
   ): Promise<{ accessToken: string; refreshToken: string }> => {
     // Check if user already exists
     const existingUser = await userService.findByEmail(email).catch(() => null);
@@ -27,6 +31,10 @@ const authService = {
       name,
       email,
       password: hashedPassword,
+      surname,
+      phone,
+      gender,
+      age,
     });
 
     // Generate tokens

@@ -84,6 +84,7 @@ const DefiLigScreen = ({ navigation }: any) => {
         id: profileData.id,
         name: profileData.name || 'Oyuncu',
         email: profileData.email,
+        age: profileData.age,
         level: 'Üye',
         rank: 'Altın', // TODO: Rank sistemi eklenecek
         points: 0, // TODO: Match history'den hesaplanacak
@@ -118,6 +119,7 @@ const DefiLigScreen = ({ navigation }: any) => {
             description: league.description || 'Rekabetçi oyuncularla karşılaşın ve lig sıralamasında yükselin',
             playerCount: standings.length || 0,
             isUserInLeague: isUserInThisLeague,
+            settings: league.settings,
             color: leagueColors[index % leagueColors.length],
             icon: leagueIcons[index % leagueIcons.length],
             rewards: ['Lig rozetleri', 'Puan bonusları', 'Özel ödüller'],
@@ -149,6 +151,42 @@ const DefiLigScreen = ({ navigation }: any) => {
     try {
       // Eğer kullanıcı ligde değilse, önce lige katıl
       if (!selectedLig.isUserInLeague) {
+        // Yaş kontrolü yap
+        const settings = selectedLig.settings;
+        const userAge = currentUser.age;
+        
+        if (settings && (settings.minAge !== null || settings.maxAge !== null)) {
+          if (!userAge) {
+            Alert.alert(
+              'Yaş Bilgisi Gerekli',
+              'Bu lige katılmak için yaş bilgisi gereklidir. Lütfen profilinizi güncelleyin.',
+              [{ text: 'Tamam' }]
+            );
+            setShowLigModal(false);
+            return;
+          }
+          
+          if (settings.minAge !== null && userAge < settings.minAge) {
+            Alert.alert(
+              'Yaş Uyumsuzluğu',
+              `Bu lige katılmak için minimum ${settings.minAge} yaşında olmanız gerekmektedir. Sizin yaşınız: ${userAge}`,
+              [{ text: 'Tamam' }]
+            );
+            setShowLigModal(false);
+            return;
+          }
+          
+          if (settings.maxAge !== null && userAge > settings.maxAge) {
+            Alert.alert(
+              'Yaş Uyumsuzluğu',
+              `Bu lige katılmak için maksimum ${settings.maxAge} yaşında olmanız gerekmektedir. Sizin yaşınız: ${userAge}`,
+              [{ text: 'Tamam' }]
+            );
+            setShowLigModal(false);
+            return;
+          }
+        }
+        
         setLoading(true);
         
         await leagueStandingsService.joinLeague(currentUser.id, selectedLig.id);
@@ -477,13 +515,26 @@ const DefiLigScreen = ({ navigation }: any) => {
                       <Text style={styles.detailLabel}>Oyuncu Sayısı:</Text>
                       <Text style={styles.detailValue}>{selectedLig.playerCount}</Text>
                     </View>
-                    <View style={styles.detailRow}>
-                      <MaterialCommunityIcons name="trophy" size={20} color="#FFD700" />
-                      <Text style={styles.detailLabel}>Puan Aralığı:</Text>
-                      <Text style={styles.detailValue}>
-                        {selectedLig.minPoints} - {selectedLig.maxPoints === 999999 ? '∞' : selectedLig.maxPoints}
-                      </Text>
-                    </View>
+                    {selectedLig.settings && (selectedLig.settings.minAge !== null || selectedLig.settings.maxAge !== null) && (
+                      <View style={styles.detailRow}>
+                        <MaterialCommunityIcons name="calendar-account" size={20} color="#1976D2" />
+                        <Text style={styles.detailLabel}>Yaş Aralığı:</Text>
+                        <Text style={styles.detailValue}>
+                          {selectedLig.settings.minAge !== null && selectedLig.settings.maxAge !== null
+                            ? `${selectedLig.settings.minAge} - ${selectedLig.settings.maxAge}`
+                            : selectedLig.settings.minAge !== null
+                            ? `${selectedLig.settings.minAge}+`
+                            : `${selectedLig.settings.maxAge} ve altı`}
+                        </Text>
+                      </View>
+                    )}
+                    {selectedLig.settings && (
+                      <View style={styles.detailRow}>
+                        <MaterialCommunityIcons name="currency-try" size={20} color="#FF9800" />
+                        <Text style={styles.detailLabel}>Kayıt Ücreti:</Text>
+                        <Text style={styles.detailValue}>{selectedLig.settings.registrationFee} ₺</Text>
+                      </View>
+                    )}
                   </View>
 
                   <View style={styles.modalRewards}>
@@ -495,6 +546,27 @@ const DefiLigScreen = ({ navigation }: any) => {
                       </View>
                     ))}
                   </View>
+
+                  {!selectedLig.isUserInLeague && selectedLig.settings && (selectedLig.settings.minAge !== null || selectedLig.settings.maxAge !== null) && (() => {
+                    const userAge = currentUser.age;
+                    const settings = selectedLig.settings;
+                    const isAgeValid = userAge && 
+                      (settings.minAge === null || userAge >= settings.minAge) &&
+                      (settings.maxAge === null || userAge <= settings.maxAge);
+                    
+                    if (!isAgeValid) {
+                      return (
+                        <View style={styles.ageWarning}>
+                          <MaterialCommunityIcons name="alert-circle" size={20} color="#D32F2F" />
+                          <Text style={styles.ageWarningText}>
+                            {!userAge 
+                              ? 'Bu lige katılmak için yaş bilgisi gereklidir.'
+                              : 'Yaşınız bu ligin yaş aralığına uymuyor.'}
+                          </Text>
+                        </View>
+                      );
+                    }
+                  })()}
 
                   <View style={styles.modalButtons}>
                     <Button
@@ -889,6 +961,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6C757D',
     marginLeft: 10,
+  },
+  ageWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFEBEE',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 15,
+    borderLeftWidth: 3,
+    borderLeftColor: '#D32F2F',
+  },
+  ageWarningText: {
+    fontSize: 13,
+    color: '#C62828',
+    marginLeft: 10,
+    flex: 1,
+    fontWeight: '500',
   },
   modalButtons: {
     flexDirection: 'row',

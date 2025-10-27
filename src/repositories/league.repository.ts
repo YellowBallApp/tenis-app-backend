@@ -13,7 +13,7 @@ const leagueRepository = {
   findById: async (id: number): Promise<League> => {
     const league = await repository.findOne({
       where: { id },
-      relations: ['leagueSettingsTemplates', 'standings'],
+      relations: ['settings', 'standings'],
     });
     if (!league) throw new AppError("LEAGUE_NOT_FOUND");
     return league;
@@ -22,7 +22,7 @@ const leagueRepository = {
   findByCode: async (code: string): Promise<League> => {
     const league = await repository.findOne({
       where: { code },
-      relations: ['leagueSettingsTemplates', 'standings'],
+      relations: ['settings', 'standings'],
     });
     if (!league) throw new AppError("LEAGUE_NOT_FOUND");
     return league;
@@ -30,7 +30,7 @@ const leagueRepository = {
 
   findAll: async (): Promise<League[]> => {
     return await repository.find({
-      relations: ['leagueSettingsTemplates', 'standings'],
+      relations: ['settings', 'standings'],
       order: {
         id: 'DESC'
       }

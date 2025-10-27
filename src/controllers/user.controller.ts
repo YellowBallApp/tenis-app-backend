@@ -16,7 +16,9 @@ const userController = {
           phone: user.phone,
           surname: user.surname,
           gender: user.gender,
+          age: user.age,
           title: user.title,
+          userType: user.userType,
           createdAt: user.createdAt,
         },
       });
@@ -46,7 +48,9 @@ const userController = {
           email: user.email,
           phone: user.phone,
           gender: user.gender,
+          age: user.age,
           title: user.title,
+          userType: user.userType,
           createdAt: user.createdAt,
         })),
       });
@@ -93,7 +97,9 @@ const userController = {
           email: user.email,
           phone: user.phone,
           gender: user.gender,
+          age: user.age,
           title: user.title,
+          userType: user.userType,
         })),
       });
     } catch (err) {

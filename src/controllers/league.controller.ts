@@ -157,7 +157,8 @@ export class LeagueController {
   // Lig ayarlarını getir
   getLeagueSettings = async (req: Request, res: Response) => {
     try {
-      const settings = await this.leagueService.getLeagueSettings();
+      const leagueId = req.query.leagueId ? parseInt(req.query.leagueId as string) : undefined;
+      const settings = await this.leagueService.getLeagueSettings(leagueId);
       return res.status(200).json({
         success: true,
         data: settings,
@@ -173,8 +174,9 @@ export class LeagueController {
   // Lig ayarlarını güncelle
   updateLeagueSettings = async (req: Request, res: Response) => {
     try {
-      const settings = req.body;
-      const updatedSettings = await this.leagueService.updateLeagueSettings(settings);
+      const leagueId = parseInt(req.params.leagueId);
+      const settingsData = req.body;
+      const updatedSettings = await this.leagueService.updateLeagueSettings(leagueId, settingsData);
       return res.status(200).json({
         success: true,
         message: 'Lig ayarları başarıyla güncellendi',

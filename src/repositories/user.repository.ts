@@ -5,7 +5,15 @@ import { User } from "../entities/user.entity";
 const repository = AppDataSource.getRepository(User);
 
 const userRepository = {
-  create: async (userData: { name: string; email: string; password: string }): Promise<User> => {
+  create: async (userData: { 
+    name: string; 
+    email: string; 
+    password: string;
+    surname?: string;
+    phone?: string;
+    gender?: string;
+    age?: number;
+  }): Promise<User> => {
     const user = repository.create(userData);
     return await repository.save(user);
   },

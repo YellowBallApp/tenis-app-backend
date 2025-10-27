@@ -48,14 +48,6 @@ export const matchHistoryController = {
       const { userId } = req.params;
       const matchHistories = await matchHistoryService.findByUserId(userId);
       
-      console.log('\n=== API RESPONSE CHECK ===');
-      matchHistories.forEach((match, index) => {
-        console.log(`Match ${index + 1} (ID: ${match.id}):`);
-        console.log(`  Winners (${match.winners?.length || 0}):`, match.winners?.map(w => w.name) || []);
-        console.log(`  Losers (${match.losers?.length || 0}):`, match.losers?.map(l => l.name) || []);
-      });
-      console.log('========================\n');
-      
       return res.status(200).json({
         success: true,
         data: matchHistories,

@@ -5,7 +5,15 @@ import { AppDataSource } from "../config/data-source";
 import { Reservation } from "../entities/reservation.entity";
 
 const userService = {
-  create: async (userData: { name: string; email: string; password: string }): Promise<User> => {
+  create: async (userData: { 
+    name: string; 
+    email: string; 
+    password: string;
+    surname?: string;
+    phone?: string;
+    gender?: string;
+    age?: number;
+  }): Promise<User> => {
     return await userRepository.create(userData);
   },
 
