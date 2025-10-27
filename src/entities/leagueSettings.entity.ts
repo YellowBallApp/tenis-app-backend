@@ -64,6 +64,14 @@ export class LeagueSettings {
   @Column({ type: 'int', nullable: true })
   maxAge: number | null;
 
+  // === ELO RATING KISITLAMALARI ===
+
+  @Column({ type: 'decimal', precision: 3, scale: 1, nullable: true })
+  minStarRating: number | null; // Minimum yıldız seviyesi (örn: 1.5)
+
+  @Column({ type: 'decimal', precision: 3, scale: 1, nullable: true })
+  maxStarRating: number | null; // Maximum yıldız seviyesi (örn: 2.5)
+
   // === MAÇ FORMATI ===
 
   @Column('int')

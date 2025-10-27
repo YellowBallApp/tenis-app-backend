@@ -5,14 +5,17 @@ import { AppDataSource } from '../config/data-source';
 import { User } from '../entities/user.entity';
 import { LeagueStandings } from '../entities/leagueStandings.entity';
 import { GroundType } from '../enum/groundType.enum';
+import { EloService } from './elo.service';
 
 export class MatchHistoryService {
   private userRepository;
   private leagueStandingsRepository;
+  private eloService: EloService;
 
   constructor() {
     this.userRepository = AppDataSource.getRepository(User);
     this.leagueStandingsRepository = AppDataSource.getRepository(LeagueStandings);
+    this.eloService = new EloService();
   }
 
   async findAll(): Promise<MatchHistory[]> {
@@ -60,6 +63,8 @@ export class MatchHistoryService {
     leagueStandingId?: number;
     indoorCourt?: boolean;
     courtGround?: GroundType;
+    affectsEloRating?: boolean;
+    isTournament?: boolean;
   }): Promise<MatchHistory> {
     try {
       // Kullanıcıları bul
@@ -82,6 +87,7 @@ export class MatchHistoryService {
         leagueStanding = foundStanding || undefined;
       }
 
+      // Maç geçmişini oluştur
       const matchHistory = await matchHistoryRepository.create({
         winners,
         losers,
@@ -92,10 +98,88 @@ export class MatchHistoryService {
         courtGround: data.courtGround || GroundType.HARD,
       });
 
+      // ELO hesaplama ve güncelleme (sadece 1v1 için şimdilik)
+      const affectsElo = data.affectsEloRating !== false; // Varsayılan true
+      
+      if (affectsElo && data.winnerIds.length === 1 && data.loserIds.length === 1) {
+        try {
+          // Set farkını hesapla (score'dan parse et)
+          const setDifference = this.calculateSetDifference(data.score);
+
+          // ELO değişimlerini hesapla
+          const eloChanges = await this.eloService.calculate1v1Match(
+            data.winnerIds[0],
+            data.loserIds[0],
+            {
+              matchId: matchHistory.id,
+              isTournament: data.isTournament || false,
+              setDifference,
+              affectsRating: true
+            }
+          );
+
+          // ELO değişimlerini uygula
+          if (eloChanges.length > 0) {
+            await this.eloService.applyEloChanges(
+              eloChanges,
+              matchHistory.id,
+              'match_win'
+            );
+
+            // MatchHistory'ye ELO değişimlerini kaydet
+            matchHistory.eloChanges = eloChanges.map(c => ({
+              userId: c.userId,
+              previousRating: c.previousRating,
+              newRating: c.newRating,
+              change: c.change
+            }));
+            matchHistory.affectsEloRating = true;
+
+            await matchHistoryRepository.update(matchHistory.id, {
+              eloChanges: matchHistory.eloChanges,
+              affectsEloRating: true
+            });
+          }
+        } catch (eloError) {
+          console.error('ELO hesaplama hatası:', eloError);
+          // ELO hatası maç kaydını engellememeli
+        }
+      } else {
+        matchHistory.affectsEloRating = false;
+      }
+
       return matchHistory;
     } catch (error) {
       if (error instanceof AppError) throw error;
       throw new AppError('UNKNOWN_ERROR');
+    }
+  }
+
+  /**
+   * Score string'inden set farkını hesaplar
+   * Örnek: "6-4, 6-3" -> 2 (kazanan 2 set aldı)
+   * Örnek: "6-4, 3-6, 6-2" -> 1 (3 set, kazanan 2 aldı)
+   */
+  private calculateSetDifference(score: string): number {
+    try {
+      const sets = score.split(',').map(s => s.trim());
+      let winnerSets = 0;
+      let loserSets = 0;
+
+      for (const set of sets) {
+        const games = set.split('-').map(g => parseInt(g.trim()));
+        if (games.length === 2 && !isNaN(games[0]) && !isNaN(games[1])) {
+          if (games[0] > games[1]) {
+            winnerSets++;
+          } else {
+            loserSets++;
+          }
+        }
+      }
+
+      return winnerSets - loserSets;
+    } catch {
+      return 0; // Parse edilemezse 0 döndür
     }
   }
 

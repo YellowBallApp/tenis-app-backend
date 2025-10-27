@@ -27,7 +27,14 @@ export const seedUsers = async () => {
         gender: "MALE",
         age: 45,
         title: "Kulüp Yöneticisi",
-        userType: UserType.STANDARD, // Admin kısıtsız
+        userType: UserType.STANDARD,
+        // ELO: Elite seviye
+        eloRating: 2250,
+        peakEloRating: 2300,
+        starRating: 5.0,
+        rankedMatchesPlayed: 87,
+        confidenceInterval: 25,
+        lastMatchDate: new Date('2025-10-25'),
       },
       {
         email: "ahmet@example.com",
@@ -38,7 +45,14 @@ export const seedUsers = async () => {
         gender: "MALE",
         age: 28,
         title: "Üye",
-        userType: UserType.RESTRICTED, // Kısıtlı kullanıcı
+        userType: UserType.RESTRICTED,
+        // ELO: İleri seviye
+        eloRating: 2100,
+        peakEloRating: 2120,
+        starRating: 4.5,
+        rankedMatchesPlayed: 54,
+        confidenceInterval: 25,
+        lastMatchDate: new Date('2025-10-26'),
       },
       {
         email: "mehmet@example.com",
@@ -49,7 +63,14 @@ export const seedUsers = async () => {
         gender: "MALE",
         age: 32,
         title: "Üye",
-        userType: UserType.RESTRICTED, // Kısıtlı kullanıcı
+        userType: UserType.RESTRICTED,
+        // ELO: Çok iyi
+        eloRating: 1980,
+        peakEloRating: 2000,
+        starRating: 4.0,
+        rankedMatchesPlayed: 42,
+        confidenceInterval: 40,
+        lastMatchDate: new Date('2025-10-24'),
       },
       {
         email: "ayse@example.com",
@@ -60,7 +81,14 @@ export const seedUsers = async () => {
         gender: "FEMALE",
         age: 26,
         title: "Üye",
-        userType: UserType.STANDARD, // Standart kullanıcı
+        userType: UserType.STANDARD,
+        // ELO: İyi
+        eloRating: 1820,
+        peakEloRating: 1850,
+        starRating: 3.5,
+        rankedMatchesPlayed: 35,
+        confidenceInterval: 40,
+        lastMatchDate: new Date('2025-10-27'),
       },
       {
         email: "fatma@example.com",
@@ -71,7 +99,14 @@ export const seedUsers = async () => {
         gender: "FEMALE",
         age: 35,
         title: "Üye",
-        userType: UserType.STANDARD, // Standart kullanıcı
+        userType: UserType.STANDARD,
+        // ELO: Orta üst
+        eloRating: 1680,
+        peakEloRating: 1700,
+        starRating: 3.0,
+        rankedMatchesPlayed: 28,
+        confidenceInterval: 60,
+        lastMatchDate: new Date('2025-10-20'),
       },
       {
         email: "ali@example.com",
@@ -82,7 +117,14 @@ export const seedUsers = async () => {
         gender: "MALE",
         age: 29,
         title: "Üye",
-        userType: UserType.RESTRICTED, // Kısıtlı kullanıcı
+        userType: UserType.RESTRICTED,
+        // ELO: Orta
+        eloRating: 1520,
+        peakEloRating: 1550,
+        starRating: 2.5,
+        rankedMatchesPlayed: 18,
+        confidenceInterval: 90,
+        lastMatchDate: new Date('2025-10-22'),
       },
       {
         email: "zeynep@example.com",
@@ -93,7 +135,14 @@ export const seedUsers = async () => {
         gender: "FEMALE",
         age: 24,
         title: "Üye",
-        userType: UserType.STANDARD, // Standart kullanıcı
+        userType: UserType.STANDARD,
+        // ELO: Orta alt
+        eloRating: 1380,
+        peakEloRating: 1400,
+        starRating: 2.0,
+        rankedMatchesPlayed: 12,
+        confidenceInterval: 120,
+        lastMatchDate: new Date('2025-10-15'),
       },
       {
         email: "can@example.com",
@@ -104,7 +153,14 @@ export const seedUsers = async () => {
         gender: "MALE",
         age: 31,
         title: "Üye",
-        userType: UserType.STANDARD, // Standart kullanıcı
+        userType: UserType.STANDARD,
+        // ELO: Başlangıç
+        eloRating: 1220,
+        peakEloRating: 1250,
+        starRating: 1.5,
+        rankedMatchesPlayed: 8,
+        confidenceInterval: 150,
+        lastMatchDate: new Date('2025-10-10'),
       },
     ];
 

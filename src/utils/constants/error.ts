@@ -101,6 +101,16 @@ const rawErrors = {
         code: 1020,
         key: "NOTIFICATION_NOT_FOUND",
         message: "Notification not found"
+    },
+    USER_STAR_RATING_TOO_LOW: {
+        code: 1021,
+        key: "USER_STAR_RATING_TOO_LOW",
+        message: "User's star rating is too low for this league"
+    },
+    USER_STAR_RATING_TOO_HIGH: {
+        code: 1022,
+        key: "USER_STAR_RATING_TOO_HIGH",
+        message: "User's star rating is too high for this league"
     }
 } as const;
 
