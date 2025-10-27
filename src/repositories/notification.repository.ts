@@ -12,15 +12,15 @@ export class NotificationRepository {
 
   async findAll(): Promise<Notification[]> {
     return this.repository.find({
-      relations: ['recipient', 'challenger', 'league'],
-      order: { notificationReceivedDate: 'DESC' },
+      relations: ['recipient'],
+      order: { createdAt: 'DESC' },
     });
   }
 
   async findById(id: number): Promise<Notification | null> {
     return this.repository.findOne({
       where: { id },
-      relations: ['recipient', 'challenger', 'league'],
+      relations: ['recipient'],
     });
   }
 
@@ -33,8 +33,8 @@ export class NotificationRepository {
     
     const [notifications, total] = await this.repository.findAndCount({
       where: { recipient: { id: recipientId } },
-      relations: ['recipient', 'challenger', 'league'],
-      order: { notificationReceivedDate: 'DESC' },
+      relations: ['recipient'],
+      order: { createdAt: 'DESC' },
       skip,
       take: limit,
     });
@@ -84,21 +84,15 @@ export class NotificationRepository {
     await this.repository.delete({ recipient: { id: recipientId } });
   }
 
-  async findPendingChallengeNotifications(
-    recipientId: string, 
-    challengerId: string, 
-    leagueId: number
-  ): Promise<Notification[]> {
-    return this.repository.find({
-      where: {
-        recipient: { id: recipientId },
-        challenger: { id: challengerId },
-        league: { id: leagueId },
-        type: NotificationType.PENDING_MATCH_REQUEST,
-      },
-      relations: ['recipient', 'challenger', 'league'],
-    });
-  }
+  // Bu metod artık kullanılmıyor - challenge sistemi ayrıldı
+  // async findPendingChallengeNotifications(
+  //   recipientId: string, 
+  //   challengerId: string, 
+  //   leagueId: number
+  // ): Promise<Notification[]> {
+  //   // Challenge sistemi artık ayrı bir entity olarak yönetiliyor
+  //   return [];
+  // }
 }
 
 export default new NotificationRepository();

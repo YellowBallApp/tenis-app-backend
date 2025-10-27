@@ -111,6 +111,51 @@ const rawErrors = {
         code: 1022,
         key: "USER_STAR_RATING_TOO_HIGH",
         message: "User's star rating is too high for this league"
+    },
+    MISSING_REQUIRED_FIELDS: {
+        code: 1023,
+        key: "MISSING_REQUIRED_FIELDS",
+        message: "Required fields are missing"
+    },
+    CANNOT_CHALLENGE_YOURSELF: {
+        code: 1024,
+        key: "CANNOT_CHALLENGE_YOURSELF",
+        message: "You cannot challenge yourself"
+    },
+    CHALLENGE_ALREADY_EXISTS: {
+        code: 1025,
+        key: "CHALLENGE_ALREADY_EXISTS",
+        message: "A pending challenge already exists"
+    },
+    CHALLENGE_NOT_FOUND: {
+        code: 1026,
+        key: "CHALLENGE_NOT_FOUND",
+        message: "Challenge not found"
+    },
+    CHALLENGE_NOT_PENDING: {
+        code: 1027,
+        key: "CHALLENGE_NOT_PENDING",
+        message: "Challenge is not in pending status"
+    },
+    CHALLENGE_EXPIRED: {
+        code: 1028,
+        key: "CHALLENGE_EXPIRED",
+        message: "Challenge has expired"
+    },
+    CHALLENGER_HAS_ACTIVE_CHALLENGE: {
+        code: 1029,
+        key: "CHALLENGER_HAS_ACTIVE_CHALLENGE",
+        message: "You already have an active challenge in this league"
+    },
+    CHALLENGED_HAS_ACTIVE_CHALLENGE: {
+        code: 1030,
+        key: "CHALLENGED_HAS_ACTIVE_CHALLENGE",
+        message: "This user already has an active challenge in this league"
+    },
+    CONSECUTIVE_WO_LIMIT_EXCEEDED: {
+        code: 1031,
+        key: "CONSECUTIVE_WO_LIMIT_EXCEEDED",
+        message: "Bu ligde arka arkaya red limitini aştınız. Maç kabul etmeden daha fazla red yapamazsınız."
     }
 } as const;
 

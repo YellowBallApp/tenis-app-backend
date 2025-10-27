@@ -3,7 +3,6 @@ import { Notification } from '../entities/notification.entity';
 import { AppError } from '../utils/error/app.error';
 import { NotificationType } from '../enum/notificationType.enum';
 import { User } from '../entities/user.entity';
-import { League } from '../entities/league.entity';
 
 export class NotificationService {
   async getAllNotifications(): Promise<Notification[]> {
@@ -61,9 +60,9 @@ export class NotificationService {
   async createNotification(data: {
     recipientId: string;
     type: NotificationType;
-    message?: string;
-    challengerId?: string;
-    leagueId?: number;
+    message: string;
+    relatedEntityId?: number;
+    relatedEntityType?: string;
   }): Promise<Notification> {
     try {
       const recipient = new User();
@@ -74,19 +73,9 @@ export class NotificationService {
         type: data.type,
         message: data.message,
         isRead: false,
+        relatedEntityId: data.relatedEntityId,
+        relatedEntityType: data.relatedEntityType,
       };
-
-      if (data.challengerId) {
-        const challenger = new User();
-        challenger.id = data.challengerId;
-        notificationData.challenger = challenger;
-      }
-
-      if (data.leagueId) {
-        const league = new League();
-        league.id = data.leagueId;
-        notificationData.league = league;
-      }
 
       return await notificationRepository.create(notificationData);
     } catch (error) {
@@ -95,24 +84,6 @@ export class NotificationService {
     }
   }
 
-  async createMatchChallengeNotification(
-    recipientId: string,
-    challengerId: string,
-    leagueId: number
-  ): Promise<Notification> {
-    try {
-      return await this.createNotification({
-        recipientId,
-        type: NotificationType.PENDING_MATCH_REQUEST,
-        challengerId,
-        leagueId,
-        message: 'Yeni bir meydan okuma isteği aldınız',
-      });
-    } catch (error) {
-      if (error instanceof AppError) throw error;
-      throw new AppError('UNKNOWN_ERROR');
-    }
-  }
 
   async createSystemNotification(
     recipientId: string,

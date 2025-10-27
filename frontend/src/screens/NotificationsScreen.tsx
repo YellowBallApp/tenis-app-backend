@@ -7,7 +7,6 @@ import {
   Alert,
   TouchableOpacity,
   StatusBar,
-  Platform,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import {
@@ -22,8 +21,8 @@ import {
   Appbar,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { notificationService, leagueStandingsService, authService } from '../services/api';
-import { Notification } from '../types';
+import { notificationService, matchChallengeService, authService } from '../services/api';
+import { Notification, NotificationType } from '../types';
 
 const NotificationsScreen = ({ navigation }: any) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -32,6 +31,7 @@ const NotificationsScreen = ({ navigation }: any) => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [processingNotification, setProcessingNotification] = useState<number | null>(null);
+  const [challengeDetails, setChallengeDetails] = useState<{[key: number]: any}>({});
 
   // Sayfa her odaklandığında bildirimleri yeniden yükle
   useFocusEffect(
@@ -46,6 +46,20 @@ const NotificationsScreen = ({ navigation }: any) => {
       const result = await notificationService.getUserNotifications(page, 20);
       setNotifications(result.notifications);
       setTotalPages(result.totalPages);
+      
+      // Match challenge notifications için challenge detaylarını çek
+      const challengeDetailsMap: {[key: number]: any} = {};
+      for (const notif of result.notifications) {
+        if ((notif.type === NotificationType.MATCH_CHALLENGE || notif.type === NotificationType.PENDING_MATCH_REQUEST) && notif.relatedEntityId) {
+          try {
+            const challenge = await matchChallengeService.getChallengeById(notif.relatedEntityId);
+            challengeDetailsMap[notif.id] = challenge;
+          } catch (error) {
+            console.error(`Challenge ${notif.relatedEntityId} detayları yüklenemedi:`, error);
+          }
+        }
+      }
+      setChallengeDetails(challengeDetailsMap);
     } catch (error) {
       console.error('Bildirimler yüklenirken hata:', error);
       Alert.alert('Hata', 'Bildirimler yüklenemedi');
@@ -86,31 +100,21 @@ const NotificationsScreen = ({ navigation }: any) => {
   };
 
   const handleDeleteNotification = async (notificationId: number) => {
-    Alert.alert(
-      'Bildirimi Sil',
-      'Bu bildirimi silmek istediğinize emin misiniz?',
-      [
-        { text: 'İptal', style: 'cancel' },
-        {
-          text: 'Sil',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await notificationService.deleteNotification(notificationId);
-              setNotifications((prev) => prev.filter((notif) => notif.id !== notificationId));
-              Alert.alert('Başarılı', 'Bildirim silindi');
-            } catch (error) {
-              console.error('Bildirim silinemedi:', error);
-              Alert.alert('Hata', 'Bildirim silinemedi');
-            }
-          },
-        },
-      ]
-    );
+    try {
+      await notificationService.deleteNotification(notificationId);
+      setNotifications((prev) => prev.filter((notif) => notif.id !== notificationId));
+    } catch (error: any) {
+      console.error('Bildirim silinemedi:', error);
+      Alert.alert('Hata', error.response?.data?.message || 'Bildirim silinemedi');
+    }
   };
 
   const handleAcceptChallenge = async (notification: Notification) => {
-    if (!notification.challenger || !notification.league) return;
+    // relatedEntityId challenge ID'si olmalı
+    if (!notification.relatedEntityId) {
+      Alert.alert('Hata', 'Challenge ID bulunamadı');
+      return;
+    }
 
     // Zaten işleniyor mu kontrol et
     if (processingNotification === notification.id) {
@@ -120,21 +124,16 @@ const NotificationsScreen = ({ navigation }: any) => {
     setProcessingNotification(notification.id);
     
     try {
-      // Kullanıcı bilgilerini al
-      const profile = await authService.getProfile();
+      // Yeni endpoint kullanarak challenge'ı kabul et
+      await matchChallengeService.acceptChallenge(notification.relatedEntityId);
       
-      // Maç kabul et - challengeStatus'leri ACCEPTED olarak güncelle
-      // Backend notification'ı otomatik olarak siler
-      await leagueStandingsService.matchAccepted(
-        profile.id,
-        notification.challenger.id,
-        notification.league.id
-      );
+      // Notification'ı sil
+      await notificationService.deleteNotification(notification.id);
       
-      // Listeyi güncelle (backend notification'ı sildi)
+      // Listeyi güncelle
       setNotifications((prev) => prev.filter((notif) => notif.id !== notification.id));
       
-      Alert.alert('Başarılı', 'Maç kabul edildi');
+      Alert.alert('Başarılı', 'Meydan okuma kabul edildi');
     } catch (error: any) {
       Alert.alert('Hata', error.response?.data?.message || 'İşlem başarısız oldu');
     } finally {
@@ -143,8 +142,9 @@ const NotificationsScreen = ({ navigation }: any) => {
   };
 
   const handleRejectChallenge = async (notification: Notification) => {
-    if (!notification.challenger || !notification.league) {
-      Alert.alert('Hata', 'Gerekli bilgiler eksik');
+    // relatedEntityId challenge ID'si olmalı
+    if (!notification.relatedEntityId) {
+      Alert.alert('Hata', 'Challenge ID bulunamadı');
       return;
     }
 
@@ -155,18 +155,13 @@ const NotificationsScreen = ({ navigation }: any) => {
 
     setProcessingNotification(notification.id);
     try {
-      // Kullanıcı bilgilerini al
-      const profile = await authService.getProfile();
+      // Yeni endpoint kullanarak challenge'ı reddet
+      await matchChallengeService.rejectChallenge(notification.relatedEntityId);
       
-      // Maç reddet - challengeStatus'leri temizle
-      // Backend notification'ı otomatik olarak siler
-      await leagueStandingsService.matchRejected(
-        profile.id,
-        notification.challenger.id,
-        notification.league.id
-      );
+      // Notification'ı sil
+      await notificationService.deleteNotification(notification.id);
       
-      // Listeyi güncelle (backend notification'ı sildi)
+      // Listeyi güncelle
       setNotifications((prev) => prev.filter((notif) => notif.id !== notification.id));
       
       Alert.alert('Başarılı', 'Meydan okuma reddedildi');
@@ -199,8 +194,9 @@ const NotificationsScreen = ({ navigation }: any) => {
   };
 
   const renderNotification = (notification: Notification) => {
-    const isPendingMatch = notification.type === 'pendingMatchRequest';
+    const isPendingMatch = notification.type === NotificationType.PENDING_MATCH_REQUEST || notification.type === NotificationType.MATCH_CHALLENGE;
     const isProcessing = processingNotification === notification.id;
+    const challenge = challengeDetails[notification.id];
 
     return (
       <Card
@@ -224,7 +220,7 @@ const NotificationsScreen = ({ navigation }: any) => {
                 {isPendingMatch ? 'Yeni Meydan Okuma' : 'Sistem Bildirimi'}
               </Text>
               <Text style={styles.notificationDate}>
-                {formatDate(notification.notificationReceivedDate)}
+                {formatDate(notification.createdAt)}
               </Text>
             </View>
             {!notification.isRead && (
@@ -247,12 +243,12 @@ const NotificationsScreen = ({ navigation }: any) => {
 
           <Divider style={styles.divider} />
 
-          {isPendingMatch && notification.challenger && notification.league ? (
+          {isPendingMatch && challenge ? (
             <View style={styles.matchChallengeContent}>
               <Text style={styles.challengeText}>
-                <Text style={styles.challengerName}>{notification.challenger.name}</Text>
+                <Text style={styles.challengerName}>{challenge.challenger.name}</Text>
                 {' '}
-                <Text style={styles.leagueName}>{notification.league.description}</Text>
+                <Text style={styles.leagueName}>{challenge.league.description}</Text>
                 {' liginde sana meydan okudu!'}
               </Text>
 
@@ -285,6 +281,10 @@ const NotificationsScreen = ({ navigation }: any) => {
                   <Text style={styles.processingText}>İşleniyor...</Text>
                 </View>
               )}
+            </View>
+          ) : isPendingMatch ? (
+            <View style={styles.systemNotificationContent}>
+              <Text style={styles.notificationMessage}>Maç detayları yükleniyor...</Text>
             </View>
           ) : (
             <View style={styles.systemNotificationContent}>

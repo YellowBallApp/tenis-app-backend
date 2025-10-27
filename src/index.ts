@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import swaggerUi from "swagger-ui-express";
 import { AppDataSource } from "./config/data-source";
 import { swaggerSpec } from "./config/swagger";
+import { initializeCronJobs, stopAllCronJobs } from "./cron/cronManager";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import leagueRoutes from "./routes/league.routes";
@@ -17,7 +18,9 @@ import matchHistoryRoutes from "./routes/matchHistory.routes";
 import courtRoutes from "./routes/court.routes";
 import commentRoutes from "./routes/comment.routes";
 import notificationRoutes from "./routes/notification.routes";
+import matchChallengeRoutes from "./routes/matchChallenge.routes";
 import eloRoutes from "./routes/elo.routes";
+import cronRoutes from "./routes/cron.routes";
 
 const app = express();
 
@@ -64,7 +67,9 @@ app.use("/api/match-history", matchHistoryRoutes);
 app.use("/api/courts", courtRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/match-challenges", matchChallengeRoutes);
 app.use("/api/elo", eloRoutes);
+app.use("/api/cron", cronRoutes);
 
 const authMiddleware = express.Router();
 
@@ -78,8 +83,25 @@ const PORT = process.env.PORT;
 AppDataSource.initialize()
   .then(() => {
     console.log("Database connection successful");
+    
+    // Cron job'ları başlat
+    initializeCronJobs();
+    
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
   })
   .catch((error) => console.error(" Database connection error:", error));
+
+// Graceful shutdown
+process.on("SIGINT", () => {
+  console.log("\n⚠️  Sunucu kapatılıyor...");
+  stopAllCronJobs();
+  process.exit(0);
+});
+
+process.on("SIGTERM", () => {
+  console.log("\n⚠️  Sunucu kapatılıyor...");
+  stopAllCronJobs();
+  process.exit(0);
+});

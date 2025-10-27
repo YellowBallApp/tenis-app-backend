@@ -225,75 +225,8 @@ export class LeagueController {
     }
   };
 
-  // Maç teklifi gönder
-  sendMatchChallenge = async (req: Request, res: Response) => {
-    try {
-      const { challengerId, opponentId, message, leagueId } = req.body;
-      const challenge = await this.leagueStandingsService.sendMatchChallenge(
-        challengerId,
-        opponentId,
-        message,
-        leagueId
-      );
-      return res.status(201).json({
-        success: true,
-        message: 'Meydan okuma başarıyla gönderildi',
-        data: challenge,
-      });
-    } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error.message || 'Meydan okuma gönderilirken bir hata oluştu',
-      });
-    }
-  };
-
-  // Maç kabul et
-  matchAccepted = async (req: Request, res: Response) => {
-    try {
-      const { userId, challengerId, leagueId } = req.body;
-      
-      const result = await this.leagueStandingsService.matchAccepted(
-        userId,
-        challengerId,
-        leagueId
-      );
-      return res.status(200).json({
-        success: true,
-        message: 'Maç kabul edildi',
-        data: result,
-      });
-    } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error.message || 'Maç kabul edilirken bir hata oluştu',
-      });
-    }
-  };
-
-  // Maç reddet
-  matchRejected = async (req: Request, res: Response) => {
-    try {
-      const { userId, challengerId, leagueId } = req.body;
-      
-      const result = await this.leagueStandingsService.matchRejected(
-        userId,
-        challengerId,
-        leagueId
-      );
-      
-      return res.status(200).json({
-        success: true,
-        message: 'Maç reddedildi',
-        data: result,
-      });
-    } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error.message || 'Maç reddedilirken bir hata oluştu',
-      });
-    }
-  };
+  // DEPRECATED: Bu endpoint'ler artık kullanılmıyor.
+  // Challenge işlemleri için /api/match-challenges endpoint'lerini kullanın.
 
   // Maç sonucunu kaydet
   recordMatchResult = async (req: Request, res: Response) => {
