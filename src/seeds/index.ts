@@ -8,6 +8,7 @@ import { seedAnnouncements } from "./announcement.seed";
 import { seedComments } from "./comment.seed";
 import { seedCoaches } from "./coach.seed";
 import { seedCourts } from "./court.seed";
+import { seedEloHistory } from "./eloHistory.seed";
 
 async function runSeeds() {
     const queryRunner = AppDataSource.createQueryRunner();
@@ -22,6 +23,7 @@ async function runSeeds() {
         await seedLeagues();
         await seedLeagueStandings();
         await seedMatches();
+        await seedEloHistory(); // ELO geçmişi
         await seedReservations();
         await seedAnnouncements();
         await seedComments();

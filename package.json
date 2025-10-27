@@ -12,9 +12,10 @@
     "migration:new": "npm run migration:generate && npm run migration:clean",
     "migration:run": "npm run typeorm migration:run -- -d src/config/data-source.ts",
     "migration:revert": "npm run typeorm migration:revert -- -d src/config/data-source.ts",
+    "migration:show": "npm run typeorm migration:show -- -d src/config/data-source.ts",
     "seed:create": "ts-node ./node_modules/typeorm-extension/dist/cli/index.js seed:create",
     "seed:run": "ts-node ./src/seeds/index.ts",
-    "seed:reset": "npm run schema:drop && npm run migration:run && npm run seed:run",
+    "seed:reset": "npm run schema:drop && npm run seed:run",
     "restart": "rm -rf src/migrations && npm run schema:drop && npm run migration:generate && npm run migration:run && npm run seed:run && npm run dev",
     "dev": "nodemon src/index.ts",
     "build": "tsc"

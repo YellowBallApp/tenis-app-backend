@@ -17,6 +17,7 @@ import matchHistoryRoutes from "./routes/matchHistory.routes";
 import courtRoutes from "./routes/court.routes";
 import commentRoutes from "./routes/comment.routes";
 import notificationRoutes from "./routes/notification.routes";
+import eloRoutes from "./routes/elo.routes";
 
 const app = express();
 
@@ -63,6 +64,7 @@ app.use("/api/match-history", matchHistoryRoutes);
 app.use("/api/courts", courtRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/elo", eloRoutes);
 
 const authMiddleware = express.Router();
 

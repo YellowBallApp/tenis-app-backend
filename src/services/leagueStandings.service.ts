@@ -108,6 +108,24 @@ export class LeagueStandingsService {
         throw new AppError('USER_NOT_FOUND');
       }
 
+      // Lig ayarlarını kontrol et (star rating kısıtlamaları için)
+      const leagueSettings = await this.leagueSettingsRepository.findOne({
+        where: { league: { id: leagueId } },
+        relations: ['league']
+      });
+
+      if (leagueSettings) {
+        // Minimum star rating kontrolü
+        if (leagueSettings.minStarRating !== null && user.starRating < leagueSettings.minStarRating) {
+          throw new AppError('USER_STAR_RATING_TOO_LOW');
+        }
+
+        // Maximum star rating kontrolü
+        if (leagueSettings.maxStarRating !== null && user.starRating > leagueSettings.maxStarRating) {
+          throw new AppError('USER_STAR_RATING_TOO_HIGH');
+        }
+      }
+
       // Mevcut standings'leri al ve son sırayı bul
       const currentStandings = await leagueStandingsRepository.findByLeagueId(leagueId);
       const lastRank = currentStandings.length > 0 

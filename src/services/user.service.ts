@@ -3,6 +3,7 @@ import { User } from "../entities/user.entity";
 import { AppError } from "../utils/error/app.error";
 import { AppDataSource } from "../config/data-source";
 import { Reservation } from "../entities/reservation.entity";
+import { EloService } from "./elo.service";
 
 const userService = {
   create: async (userData: { 
@@ -77,6 +78,61 @@ const userService = {
 
     return availableUsers;
   },
+
+  // ELO rating decay uygular (6 ay maç yapmayan oyunculara)
+  applyEloDecay: async (): Promise<{ affectedUsers: number; message: string }> => {
+    try {
+      const eloService = new EloService();
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+      // İnaktif kullanıcıları say
+      const inactiveUsers = await AppDataSource.getRepository(User)
+        .createQueryBuilder('user')
+        .where('user.lastMatchDate < :sixMonthsAgo', { sixMonthsAgo })
+        .andWhere('user.rankedMatchesPlayed > 0')
+        .getCount();
+
+      await eloService.applyRatingDecay();
+
+      return {
+        affectedUsers: inactiveUsers,
+        message: `${inactiveUsers} oyuncuya ELO decay uygulandı`
+      };
+    } catch (error) {
+      console.error('ELO decay uygulama hatası:', error);
+      throw new AppError('UNKNOWN_ERROR');
+    }
+  },
+
+  // Kullanıcının ELO bilgilerini getirir
+  getEloStats: async (userId: string): Promise<{
+    currentRating: number;
+    peakRating: number;
+    starRating: number;
+    rankedMatchesPlayed: number;
+    confidenceInterval: number;
+    percentile: number;
+    lastMatchDate: Date | null;
+  }> => {
+    const user = await userRepository.findById(userId);
+    if (!user) {
+      throw new AppError('USER_NOT_FOUND');
+    }
+
+    const eloService = new EloService();
+    const percentile = await eloService.getUserPercentile(userId);
+
+    return {
+      currentRating: user.eloRating,
+      peakRating: user.peakEloRating,
+      starRating: user.starRating,
+      rankedMatchesPlayed: user.rankedMatchesPlayed,
+      confidenceInterval: user.confidenceInterval,
+      percentile,
+      lastMatchDate: user.lastMatchDate
+    };
+  }
 };
 
 export default userService;

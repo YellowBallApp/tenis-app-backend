@@ -61,4 +61,17 @@ export class MatchHistory {
 
     @ManyToOne(() => LeagueStandings, { nullable: true })
     leagueStanding?: LeagueStandings;
+
+    // === ELO RATING DEĞIŞIMLERI ===
+    
+    @Column({ type: 'boolean', default: true })
+    affectsEloRating: boolean; // Bu maç ELO'yu etkiler mi?
+
+    @Column({ type: 'json', nullable: true })
+    eloChanges: {
+        userId: string;
+        previousRating: number;
+        newRating: number;
+        change: number;
+    }[] | null; // Her oyuncunun ELO değişimi
 }
