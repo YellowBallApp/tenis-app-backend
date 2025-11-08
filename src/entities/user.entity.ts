@@ -18,9 +18,12 @@ import {
     @Column()
     name: string;
   
-    @Column({ nullable: true })
-    surname: string;
-  
+  @Column({ nullable: true })
+  surname: string;
+
+  @Column({ type: "text", nullable: true })
+  profilePhoto: string | null; // Base64 encoded image or URL
+
   @Column( {type: "varchar", nullable: true })
   gender: string | null;
 

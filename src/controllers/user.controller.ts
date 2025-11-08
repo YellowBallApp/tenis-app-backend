@@ -19,6 +19,7 @@ const userController = {
           age: user.age,
           title: user.title,
           userType: user.userType,
+          profilePhoto: user.profilePhoto,
           createdAt: user.createdAt,
         },
       });
@@ -101,6 +102,43 @@ const userController = {
           title: user.title,
           userType: user.userType,
         })),
+      });
+    } catch (err) {
+      const error = err instanceof AppError
+        ? err
+        : new AppError("UNKNOWN_ERROR");
+
+      console.error(err);
+      return res.status(error.status).json({
+        errorKey: error.errorKey,
+        errorCode: error.errorCode,
+        message: error.message,
+      });
+    }
+  },
+
+  updateProfile: async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user.id;
+      const { name, surname, phone, profilePhoto } = req.body;
+
+      const updatedUser = await userService.updateProfile(userId, {
+        name,
+        surname,
+        phone,
+        profilePhoto,
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          id: updatedUser.id,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          phone: updatedUser.phone,
+          surname: updatedUser.surname,
+          profilePhoto: updatedUser.profilePhoto,
+        },
       });
     } catch (err) {
       const error = err instanceof AppError

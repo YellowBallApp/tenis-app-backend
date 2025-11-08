@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
   ScrollView,
   Alert,
   ActivityIndicator,
+  Animated,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import {
   Card,
@@ -18,8 +21,10 @@ import {
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { leagueService } from '../services/api';
+import { useThemedStyles } from '../hooks/useThemedStyles';
 
 const LigAyarlariScreen = ({ navigation }: any) => {
+  const { themedStyles, theme } = useThemedStyles();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settingsId, setSettingsId] = useState('');
@@ -50,6 +55,27 @@ const LigAyarlariScreen = ({ navigation }: any) => {
   
   // Sıra Bazlı Teklif Limitleri
   const [offerLimits, setOfferLimits] = useState<{ range: string; limit: string }[]>([]);
+
+  // Collapsible header animation
+  const scrollY = useRef(new Animated.Value(0)).current;
+  
+  const headerHeight = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [140, 120],
+    extrapolate: 'clamp',
+  });
+  
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+  
+  const compactOpacity = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
 
   useEffect(() => {
     loadSettings();
@@ -176,10 +202,9 @@ const LigAyarlariScreen = ({ navigation }: any) => {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Header */}
-      <View style={styles.headerSection}>
-        <View style={styles.headerTop}>
+    <View style={[styles.container, themedStyles.container]}>
+      <Animated.View style={[styles.headerSection, { backgroundColor: theme.colors.primary, height: headerHeight, overflow: 'hidden' }]}>
+        <Animated.View style={[styles.headerTop, { opacity: headerOpacity }]}>
           <IconButton
             icon="arrow-left"
             size={24}
@@ -198,21 +223,48 @@ const LigAyarlariScreen = ({ navigation }: any) => {
             iconColor="#FFFFFF"
             onPress={resetToDefaults}
           />
-        </View>
-      </View>
+        </Animated.View>
+        
+        {/* Compact Header */}
+        <Animated.View style={[styles.compactHeader, { opacity: compactOpacity }]}>
+          <IconButton
+            icon="arrow-left"
+            size={20}
+            iconColor="#FFFFFF"
+            onPress={() => navigation.goBack()}
+            style={styles.compactBackButton}
+          />
+          <Text style={styles.compactTitle}>⚙️ Lig Ayarları</Text>
+          <IconButton
+            icon="refresh"
+            size={20}
+            iconColor="#FFFFFF"
+            onPress={resetToDefaults}
+            style={styles.compactRefreshButton}
+          />
+        </Animated.View>
+      </Animated.View>
+
+      <Animated.ScrollView
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
+      >
 
       {/* Lig Dönemleri */}
       <View style={styles.section}>
-        <Title style={styles.sectionTitle}>📅 Lig Dönemleri</Title>
-        <Card style={styles.card}>
+        <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>📅 Lig Dönemleri</Title>
+        <Card style={[styles.card, themedStyles.card]}>
           <Card.Content>
             <View style={styles.infoRow}>
-              <MaterialCommunityIcons name="calendar-start" size={20} color="#2E7D32" />
-              <Text style={styles.infoLabel}>Lig Başlangıç</Text>
-              <Text style={styles.infoValue}>{leagueStartDate || 'Yükleniyor...'}</Text>
+              <MaterialCommunityIcons name="calendar-start" size={20} color={theme.colors.primary} />
+              <Text style={[styles.infoLabel, themedStyles.text]}>Lig Başlangıç</Text>
+              <Text style={[styles.infoValue, themedStyles.text]}>{leagueStartDate || 'Yükleniyor...'}</Text>
             </View>
             <View style={styles.infoRow}>
-              <MaterialCommunityIcons name="calendar-end" size={20} color="#2E7D32" />
+              <MaterialCommunityIcons name="calendar-end" size={20} color={theme.colors.primary} />
               <Text style={styles.infoLabel}>Lig Bitiş</Text>
               <Text style={styles.infoValue}>{leagueEndDate || 'Yükleniyor...'}</Text>
             </View>
@@ -569,7 +621,8 @@ const LigAyarlariScreen = ({ navigation }: any) => {
       </View>
 
       <View style={styles.bottomPadding} />
-    </ScrollView>
+      </Animated.ScrollView>
+    </View>
   );
 };
 
@@ -721,6 +774,32 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 40,
+  },
+  compactHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 100,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 30 : 30,
+  },
+  compactBackButton: {
+    margin: 0,
+  },
+  compactTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    flex: 1,
+    textAlign: 'center',
+    marginHorizontal: 5,
+  },
+  compactRefreshButton: {
+    margin: 0,
   },
 });
 

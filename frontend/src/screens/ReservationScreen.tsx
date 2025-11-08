@@ -1302,6 +1302,7 @@ const styles = StyleSheet.create({
     marginTop: -20,
   },
   stepCard: {
+    marginTop: 15,
     marginBottom: 20,
     borderRadius: 20,
     backgroundColor: '#FFFFFF',

@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 
 // Android emulator ve gerçek cihaz için IP adresi kullan
 const API_BASE_URL = Platform.OS === 'android' 
-  ? 'http://192.168.1.108:3000/api' 
+  ? 'http://10.212.136.139:3000/api' 
   : 'http://localhost:3000/api';
 
 const api = axios.create({
@@ -42,6 +42,7 @@ api.interceptors.response.use(
       try {
         const refreshToken = await AsyncStorage.getItem('refreshToken');
         if (refreshToken) {
+          console.log('Access token expired, refreshing...');
           const response = await axios.post(`${API_BASE_URL}/auth/refresh-token`, {
             refreshToken,
           });
@@ -50,16 +51,17 @@ api.interceptors.response.use(
           await AsyncStorage.setItem('accessToken', accessToken);
           await AsyncStorage.setItem('refreshToken', newRefreshToken);
           
+          console.log('Token refreshed successfully');
           // Yeni access token ile tekrar dene
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
           return api(originalRequest);
         }
       } catch (refreshError) {
         // Refresh token da geçersiz, kullanıcıyı logout yap
-        console.error('Refresh token error:', refreshError);
+        console.error('Refresh token failed, clearing tokens:', refreshError);
         await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
-        // Burada navigation ile login ekranına yönlendirme yapılabilir
-        return Promise.reject(refreshError);
+        // AuthContext yeniden yüklenecek ve kullanıcıyı login'e yönlendirecek
+        return Promise.reject(new Error('Session expired. Please login again.'));
       }
     }
     
@@ -84,6 +86,16 @@ export const authService = {
 
   getProfile: async (): Promise<User> => {
     const response = await api.get<ApiResponse<User>>('/user/profile');
+    return response.data.data;
+  },
+
+  updateProfile: async (profileData: {
+    name?: string;
+    surname?: string;
+    phone?: string;
+    profilePhoto?: string;
+  }): Promise<User> => {
+    const response = await api.put<ApiResponse<User>>('/user/profile', profileData);
     return response.data.data;
   },
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,6 +7,7 @@ import {
   StatusBar,
   ActivityIndicator,
   Alert,
+  Animated,
 } from 'react-native';
 import {
   Card,
@@ -21,15 +22,35 @@ import {
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { userService } from '../services/api';
+import { useThemedStyles } from '../hooks/useThemedStyles';
 
 const { width } = Dimensions.get('window');
 
 const MembersScreen = () => {
+  const { themedStyles, theme } = useThemedStyles();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Scroll animation
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerHeight = scrollY.interpolate({
+    inputRange: [0, 150],
+    outputRange: [160, 90],
+    extrapolate: 'clamp',
+  });
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+  const compactOpacity = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
 
   useEffect(() => {
     loadMembers();
@@ -125,12 +146,12 @@ const MembersScreen = () => {
   );
 
   const renderMemberCard = (member: any) => (
-    <Card key={member.id} style={styles.memberCard}>
+    <Card key={member.id} style={[styles.memberCard, themedStyles.card]}>
       <Card.Content>
         <View style={styles.memberHeader}>
           <Avatar.Text size={60} label={getInitials(member.name)} />
           <View style={styles.memberInfo}>
-            <Title style={styles.memberName}>{member.name}</Title>
+            <Title style={[styles.memberName, themedStyles.title]}>{member.name}</Title>
             <View style={styles.memberBadges}>
               <Chip 
                 mode="outlined" 
@@ -150,19 +171,19 @@ const MembersScreen = () => {
 
         <View style={styles.memberStats}>
           <View style={styles.statItem}>
-            <MaterialCommunityIcons name="tennis" size={20} color="#2E7D32" />
-            <Text style={styles.statNumber}>{member.matchesPlayed}</Text>
-            <Text style={styles.statLabel}>Maç</Text>
+            <MaterialCommunityIcons name="tennis" size={20} color={theme.colors.primary} />
+            <Text style={[styles.statNumber, themedStyles.statNumber]}>{member.matchesPlayed}</Text>
+            <Text style={[styles.statLabel, themedStyles.statLabel]}>Maç</Text>
           </View>
           <View style={styles.statItem}>
-            <MaterialCommunityIcons name="percent" size={20} color="#4CAF50" />
-            <Text style={styles.statNumber}>{member.winRate}%</Text>
-            <Text style={styles.statLabel}>Başarı</Text>
+            <MaterialCommunityIcons name="percent" size={20} color={theme.colors.primary} />
+            <Text style={[styles.statNumber, themedStyles.statNumber]}>{member.winRate}%</Text>
+            <Text style={[styles.statLabel, themedStyles.statLabel]}>Başarı</Text>
           </View>
           <View style={styles.statItem}>
-            <MaterialCommunityIcons name="circle" size={20} color="#81C784" />
-            <Text style={styles.statNumber}>{member.surface}</Text>
-            <Text style={styles.statLabel}>Zemin</Text>
+            <MaterialCommunityIcons name="circle" size={20} color={theme.colors.primary} />
+            <Text style={[styles.statNumber, themedStyles.statNumber]}>{member.surface}</Text>
+            <Text style={[styles.statLabel, themedStyles.statLabel]}>Zemin</Text>
           </View>
         </View>
 
@@ -175,24 +196,24 @@ const MembersScreen = () => {
         </View>
 
         <View style={styles.memberFooter}>
-          <Text style={styles.lastActive}>Son aktivite: {member.lastActive}</Text>
+          <Text style={[styles.lastActive, themedStyles.subtitle]}>Son aktivite: {member.lastActive}</Text>
           <View style={styles.actionButtons}>
             <IconButton
               icon="account"
               size={20}
-              iconColor="#2E7D32"
+              iconColor={theme.colors.primary}
               onPress={() => {}}
             />
             <IconButton
               icon="message"
               size={20}
-              iconColor="#4CAF50"
+              iconColor={theme.colors.primary}
               onPress={() => {}}
             />
             <IconButton
               icon="calendar"
               size={20}
-              iconColor="#81C784"
+              iconColor={theme.colors.primary}
               onPress={() => {}}
             />
           </View>
@@ -202,30 +223,30 @@ const MembersScreen = () => {
   );
 
   const renderMemberGrid = (member: any) => (
-    <Card key={member.id} style={styles.memberGridCard}>
+    <Card key={member.id} style={[styles.memberGridCard, themedStyles.card]}>
       <Card.Content style={styles.memberGridContent}>
         <Avatar.Text size={80} label={getInitials(member.name)} />
-        <Title style={styles.memberGridName}>{member.name}</Title>
+        <Title style={[styles.memberGridName, themedStyles.title]}>{member.name}</Title>
         <Chip 
           mode="outlined" 
           style={{ borderColor: getLevelColor(member.level), marginBottom: 8 }}
         >
           {member.level}
         </Chip>
-        <Text style={styles.memberGridStats}>
+        <Text style={[styles.memberGridStats, themedStyles.text]}>
           {member.matchesPlayed} maç • {member.winRate}% başarı
         </Text>
         <View style={styles.memberGridActions}>
           <IconButton
             icon="account"
             size={20}
-            iconColor="#2E7D32"
+            iconColor={theme.colors.primary}
             onPress={() => {}}
           />
           <IconButton
             icon="message"
             size={20}
-            iconColor="#4CAF50"
+            iconColor={theme.colors.primary}
             onPress={() => {}}
           />
         </View>
@@ -243,22 +264,45 @@ const MembersScreen = () => {
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#2E7D32" />
+    <View style={[styles.container, themedStyles.container]}>
+      <StatusBar barStyle="light-content" backgroundColor={theme.colors.primary} />
       
-      {/* Main ScrollView - Tüm içerik scrollable */}
-      <ScrollView 
-        style={styles.mainScrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Header Section */}
-        <View style={styles.headerSection}>
+      {/* Animated Header Section */}
+      <Animated.View style={[
+        styles.headerSection, 
+        { 
+          backgroundColor: theme.colors.primary,
+          height: headerHeight 
+        }
+      ]}>
+        {/* Kompakt Başlık */}
+        <Animated.View style={[
+          styles.compactHeader,
+          { opacity: compactOpacity }
+        ]}>
+          <Title style={styles.compactTitle}>👥 Üyeler ({members.length})</Title>
+        </Animated.View>
+        
+        {/* Normal İçerik */}
+        <Animated.View style={{ opacity: headerOpacity }}>
           <Title style={styles.headerTitle}>👥 Üyeler</Title>
           <Text style={styles.headerSubtitle}>
             Tenis kulübü üyelerini keşfedin ve bağlantı kurun
           </Text>
-        </View>
+        </Animated.View>
+      </Animated.View>
+      
+      {/* Main ScrollView - Tüm içerik scrollable */}
+      <Animated.ScrollView 
+        style={styles.mainScrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
+      >
 
         {/* Search and View Toggle */}
         <View style={styles.controlsContainer}>
@@ -266,15 +310,15 @@ const MembersScreen = () => {
             placeholder="Üye ara..."
             onChangeText={setSearchQuery}
             value={searchQuery}
-            style={styles.searchBar}
-            iconColor="#2E7D32"
+            style={[styles.searchBar, themedStyles.input]}
+            iconColor={theme.colors.primary}
             inputStyle={styles.searchInput}
           />
           <View style={styles.viewToggle}>
             <IconButton
               icon="view-list"
               size={24}
-              iconColor={viewMode === 'list' ? '#2E7D32' : '#6C757D'}
+              iconColor={viewMode === 'list' ? theme.colors.primary : theme.colors.placeholder}
               onPress={() => setViewMode('list')}
             />
             <IconButton
@@ -319,7 +363,7 @@ const MembersScreen = () => {
             </View>
           )}
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* FAB */}
       <FAB
@@ -347,6 +391,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -355,6 +400,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 8,
+  },
+  compactHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingTop: 40,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  compactTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
   headerTitle: {
     fontSize: 28,

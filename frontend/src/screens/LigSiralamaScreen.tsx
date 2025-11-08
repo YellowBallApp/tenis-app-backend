@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Platform,
   StatusBar,
+  Animated,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import {
@@ -35,6 +36,25 @@ const { width } = Dimensions.get('window');
 
 const LigSiralamaScreen = ({ route, navigation }: any) => {
   const { lig } = route.params;
+  
+  // Scroll animation
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerHeight = scrollY.interpolate({
+    inputRange: [0, 150],
+    outputRange: [180, 100],
+    extrapolate: 'clamp',
+  });
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+  const compactOpacity = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+  
   const [showChallengeModal, setShowChallengeModal] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
   const [challengeMessage, setChallengeMessage] = useState('');
@@ -704,9 +724,33 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
 
   return (
     <View style={styles.container}>
-      <ScrollView>
-        {/* Header Section */}
-        <View style={styles.headerSection}>
+      {/* Animated Header Section */}
+      <Animated.View style={[
+        styles.headerSection,
+        { height: headerHeight }
+      ]}>
+        {/* Kompakt Başlık */}
+        <Animated.View style={[
+          styles.compactHeader,
+          { opacity: compactOpacity }
+        ]}>
+          <TouchableOpacity 
+            onPress={() => navigation.goBack()}
+            style={styles.compactBackButton}
+          >
+            <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Title style={styles.compactTitle}>{lig.name}</Title>
+          <TouchableOpacity 
+            onPress={loadRankings}
+            style={styles.compactRefreshButton}
+          >
+            <MaterialCommunityIcons name="refresh" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+        </Animated.View>
+        
+        {/* Normal İçerik */}
+        <Animated.View style={{ opacity: headerOpacity }}>
           <View style={styles.headerTop}>
             <TouchableOpacity 
               onPress={() => navigation.goBack()}
@@ -727,7 +771,16 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
               <MaterialCommunityIcons name="refresh" size={28} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
+      </Animated.View>
+      
+      <Animated.ScrollView
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
+      >
 
         {/* Current User Status */}
         <View style={styles.userStatusSection}>
@@ -895,7 +948,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
             Maç Geçmişi
           </Button>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* Challenge Modal */}
       <Portal>
@@ -1267,6 +1320,32 @@ const styles = StyleSheet.create({
     backgroundColor: '#2E7D32',
     padding: 20,
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight ? StatusBar.currentHeight + 20 : 50 : 50,
+    overflow: 'hidden',
+  },
+  compactHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight ? StatusBar.currentHeight + 20 : 50 : 50,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  compactBackButton: {
+    width: 40,
+  },
+  compactTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    flex: 1,
+    textAlign: 'center',
+  },
+  compactRefreshButton: {
+    width: 40,
+    alignItems: 'flex-end',
   },
   headerTop: {
     flexDirection: 'row',

@@ -17,15 +17,35 @@ import {
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authService } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { useThemedStyles } from '../hooks/useThemedStyles';
+import { clearAuthTokens } from '../utils/clearStorage';
 
 const { width, height } = Dimensions.get('window');
 
 const LoginScreen = ({ navigation }: any) => {
+  const { login } = useAuth();
+  const { themedStyles, theme } = useThemedStyles();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Sayfa açıldığında token'ları kontrol et ve gerekirse temizle
+  React.useEffect(() => {
+    const initializeLogin = async () => {
+      // Eğer buraya geldiyse ama token varsa, muhtemelen geçersiz
+      // Token'ları temizle
+      const hasToken = await AsyncStorage.getItem('accessToken');
+      if (hasToken) {
+        console.log('⚠️  Login ekranında ama token var - muhtemelen geçersiz, temizleniyor...');
+        await clearAuthTokens();
+        setError('Oturumunuzun süresi dolmuş. Lütfen tekrar giriş yapın.');
+      }
+    };
+    
+    initializeLogin();
+  }, []);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -37,22 +57,12 @@ const LoginScreen = ({ navigation }: any) => {
     setError('');
 
     try {
-      console.log('Login attempt with:', { email, password });
-      
-      const tokens = await authService.login({ email, password });
-      console.log('Login successful, tokens received');
-
-      // Gerçek token'ları AsyncStorage'a kaydet
-      await AsyncStorage.setItem('accessToken', tokens.accessToken);
-      await AsyncStorage.setItem('refreshToken', tokens.refreshToken);
-
-      console.log('Tokens saved - going to Main screen');
-
-      // Main ekranına yönlendir
+      await login(email, password);
+      // Auth context otomatik olarak isAuthenticated'ı true yapacak
+      // ve AppNavigator Main ekranına yönlendirecek
       navigation.replace('Main');
     } catch (err: any) {
       console.error('Login error:', err);
-      console.error('Error response:', err.response);
       setError(err.response?.data?.message || 'Giriş yapılamadı');
     } finally {
       setLoading(false);
@@ -61,36 +71,36 @@ const LoginScreen = ({ navigation }: any) => {
 
   return (
     <KeyboardAvoidingView 
-      style={styles.container} 
+      style={[styles.container, themedStyles.container]} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.content}>
         {/* Logo Section */}
         <View style={styles.logoSection}>
           <View style={styles.logoContainer}>
-            <MaterialCommunityIcons name="tennis" size={80} color="#2E7D32" />
+            <MaterialCommunityIcons name="tennis" size={80} color={theme.colors.primary} />
           </View>
-          <Title style={styles.appTitle}>🎾 Tenis Kulübü</Title>
-          <Text style={styles.appSubtitle}>
+          <Title style={[styles.appTitle, themedStyles.title]}> Tenis Kulübü</Title>
+          <Text style={[styles.appSubtitle, themedStyles.subtitle]}>
             Profesyonel tenis deneyimi için giriş yapın
           </Text>
         </View>
 
         {/* Login Form */}
-        <Card style={styles.loginCard}>
+        <Card style={[styles.loginCard, themedStyles.card]}>
           <Card.Content>
-            <Title style={styles.formTitle}>Giriş Yap</Title>
+            <Title style={[styles.formTitle, themedStyles.title]}>Giriş Yap</Title>
             
             <TextInput
               label="E-posta"
               value={email}
               onChangeText={setEmail}
               mode="outlined"
-              style={styles.input}
+              style={[styles.input, themedStyles.input]}
               keyboardType="email-address"
               autoCapitalize="none"
-              left={<TextInput.Icon icon="email" color="#2E7D32" />}
-              theme={{ colors: { primary: '#2E7D32', placeholder: '#6C757D' } }}
+              left={<TextInput.Icon icon="email" color={theme.colors.primary} />}
+              theme={{ colors: { primary: theme.colors.primary, placeholder: theme.colors.placeholder } }}
             />
             
             <TextInput
@@ -98,10 +108,10 @@ const LoginScreen = ({ navigation }: any) => {
               value={password}
               onChangeText={setPassword}
               mode="outlined"
-              style={styles.input}
+              style={[styles.input, themedStyles.input]}
               secureTextEntry
-              left={<TextInput.Icon icon="lock" color="#2E7D32" />}
-              theme={{ colors: { primary: '#2E7D32', placeholder: '#6C757D' } }}
+              left={<TextInput.Icon icon="lock" color={theme.colors.primary} />}
+              theme={{ colors: { primary: theme.colors.primary, placeholder: theme.colors.placeholder } }}
             />
 
             {error ? (
@@ -114,7 +124,7 @@ const LoginScreen = ({ navigation }: any) => {
               loading={loading}
               disabled={loading}
               style={styles.loginButton}
-              buttonColor="#2E7D32"
+              buttonColor={theme.colors.primary}
               contentStyle={styles.loginButtonContent}
               labelStyle={styles.loginButtonLabel}
             >
@@ -137,6 +147,7 @@ const LoginScreen = ({ navigation }: any) => {
             >
               Yeni Hesap Oluştur
             </Button>
+
           </Card.Content>
         </Card>
 

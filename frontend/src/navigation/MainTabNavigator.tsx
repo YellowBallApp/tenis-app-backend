@@ -69,6 +69,7 @@ const TabNavigator = () => {
   return (
     <Tab.Navigator
       screenOptions={{
+        headerShown: false, // Tüm sayfalarda header'ı gizle
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
           borderTopColor: '#E9ECEF',
@@ -79,13 +80,6 @@ const TabNavigator = () => {
         },
         tabBarActiveTintColor: '#2E7D32',
         tabBarInactiveTintColor: '#6C757D',
-        headerStyle: {
-          backgroundColor: '#2E7D32',
-        },
-        headerTintColor: '#FFFFFF',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-        },
       }}
     >
       <Tab.Screen
@@ -144,7 +138,6 @@ const TabNavigator = () => {
         options={{
           title: 'Rezervasyon',
           tabBarButton: () => null, // Hide from tab bar but keep in navigator
-          headerShown: false, // Hide default header since we have custom header
         }}
       />
       <Tab.Screen
@@ -153,7 +146,6 @@ const TabNavigator = () => {
         options={{
           title: 'Rezervasyonlar',
           tabBarButton: () => null, // Hide from tab bar but keep in navigator
-          headerShown: false, // Hide default header since we have custom header
         }}
       />
       <Tab.Screen
@@ -162,7 +154,6 @@ const TabNavigator = () => {
         options={{
           title: 'Maç Geçmişi',
           tabBarButton: () => null, // Hide from tab bar but keep in navigator
-          headerShown: false, // Hide default header since we have custom header
         }}
       />
       <Tab.Screen

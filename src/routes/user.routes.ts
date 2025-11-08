@@ -36,6 +36,38 @@ router.get("/profile", authMiddleware, userController.getProfile);
 
 /**
  * @swagger
+ * /api/user/profile:
+ *   put:
+ *     summary: Kullanıcı profilini güncelle
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               surname:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               profilePhoto:
+ *                 type: string
+ *                 description: Base64 encoded image
+ *     responses:
+ *       200:
+ *         description: Profil güncellendi
+ *       401:
+ *         description: Yetkisiz erişim
+ */
+router.put("/profile", authMiddleware, userController.updateProfile);
+
+/**
+ * @swagger
  * /api/user/all:
  *   get:
  *     summary: Tüm kullanıcıları listele

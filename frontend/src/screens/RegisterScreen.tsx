@@ -14,9 +14,8 @@ import {
   Title,
 } from 'react-native-paper';
 import { StackNavigationProp } from '@react-navigation/stack';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { authService } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 type RegisterScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Register'>;
@@ -26,6 +25,7 @@ interface Props {
 }
 
 const RegisterScreen: React.FC<Props> = ({ navigation }) => {
+  const { register } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -53,13 +53,8 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     setError('');
 
     try {
-      const tokens = await authService.register({ name, email, password });
-      
-      // Token'ları AsyncStorage'a kaydet
-      await AsyncStorage.setItem('accessToken', tokens.accessToken);
-      await AsyncStorage.setItem('refreshToken', tokens.refreshToken);
-      
-      // Main ekranına yönlendir
+      await register(name, email, password);
+      // Auth context otomatik olarak isAuthenticated'ı true yapacak
       navigation.replace('Main');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Kayıt yapılamadı');

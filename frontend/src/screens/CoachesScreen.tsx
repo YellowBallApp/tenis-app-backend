@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,6 +8,7 @@ import {
   Alert,
   TouchableOpacity,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import {
   Card,
@@ -25,10 +26,12 @@ import {
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { coachService } from '../services/api';
+import { useThemedStyles } from '../hooks/useThemedStyles';
 
 const { width } = Dimensions.get('window');
 
 const CoachesScreen = () => {
+  const { themedStyles, theme } = useThemedStyles();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -37,6 +40,24 @@ const CoachesScreen = () => {
   const [reviewComment, setReviewComment] = useState('');
   const [coaches, setCoaches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Scroll animation
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerHeight = scrollY.interpolate({
+    inputRange: [0, 150],
+    outputRange: [160, 90],
+    extrapolate: 'clamp',
+  });
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+  const compactOpacity = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
 
   useEffect(() => {
     loadCoaches();
@@ -186,21 +207,43 @@ const CoachesScreen = () => {
   }
 
   return (
-    <View style={styles.container}>
-      {/* Main ScrollView - Tüm içerik scrollable */}
-      <ScrollView 
-        style={styles.mainScrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Header Section */}
-        <View style={styles.headerSection}>
+    <View style={[styles.container, themedStyles.container]}>
+      {/* Animated Header Section */}
+      <Animated.View style={[
+        styles.headerSection, 
+        { 
+          backgroundColor: theme.colors.primary,
+          height: headerHeight 
+        }
+      ]}>
+        {/* Kompakt Başlık */}
+        <Animated.View style={[
+          styles.compactHeader,
+          { opacity: compactOpacity }
+        ]}>
+          <Title style={styles.compactTitle}>🎾 Antrenörler ({coaches.length})</Title>
+        </Animated.View>
+        
+        {/* Normal İçerik */}
+        <Animated.View style={{ opacity: headerOpacity }}>
           <Title style={styles.headerTitle}>🎾 Antrenörler</Title>
           <Text style={styles.headerSubtitle}>
             Deneyimli antrenörlerimizle tenis becerilerinizi geliştirin
           </Text>
-        </View>
-
+        </Animated.View>
+      </Animated.View>
+      
+      {/* Main ScrollView - Tüm içerik scrollable */}
+      <Animated.ScrollView 
+        style={styles.mainScrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
+      >
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <Searchbar
@@ -239,7 +282,7 @@ const CoachesScreen = () => {
         {/* Coaches List */}
         <View style={styles.coachesList}>
           {searchFilteredCoaches.map((coach) => (
-            <Card key={coach.id} style={styles.coachCard}>
+            <Card key={coach.id} style={[styles.coachCard, themedStyles.card]}>
               <Card.Content>
                 <View style={styles.coachHeader}>
                   <Avatar.Text 
@@ -248,8 +291,8 @@ const CoachesScreen = () => {
                     style={styles.coachAvatar}
                   />
                   <View style={styles.coachInfo}>
-                    <Title style={styles.coachName}>{coach.name}</Title>
-                    <Text style={styles.coachSpecialty}>{coach.specialty}</Text>
+                    <Title style={[styles.coachName, themedStyles.title]}>{coach.name}</Title>
+                    <Text style={[styles.coachSpecialty, themedStyles.subtitle]}>{coach.specialty}</Text>
                     <View style={styles.ratingContainer}>
                       <MaterialIcons name="star" size={16} color="#FFD700" />
                       <Text style={styles.ratingText}>{coach.rating}</Text>
@@ -265,23 +308,23 @@ const CoachesScreen = () => {
 
                 <View style={styles.coachDetails}>
                   <View style={styles.detailRow}>
-                    <MaterialCommunityIcons name="clock" size={20} color="#2E7D32" />
-                    <Text style={styles.detailText}>{coach.experience} deneyim</Text>
+                    <MaterialCommunityIcons name="clock" size={20} color={theme.colors.primary} />
+                    <Text style={[styles.detailText, themedStyles.text]}>{coach.experience} deneyim</Text>
                   </View>
                   <View style={styles.detailRow}>
-                    <MaterialCommunityIcons name="currency-try" size={20} color="#4CAF50" />
-                    <Text style={styles.detailText}>{coach.hourlyRate}/saat</Text>
+                    <MaterialCommunityIcons name="currency-try" size={20} color={theme.colors.primary} />
+                    <Text style={[styles.detailText, themedStyles.text]}>{coach.hourlyRate}/saat</Text>
                   </View>
                   <View style={styles.detailRow}>
-                    <MaterialCommunityIcons name="translate" size={20} color="#81C784" />
-                    <Text style={styles.detailText}>{coach.languages.join(', ')}</Text>
+                    <MaterialCommunityIcons name="translate" size={20} color={theme.colors.primary} />
+                    <Text style={[styles.detailText, themedStyles.text]}>{coach.languages.join(', ')}</Text>
                   </View>
                 </View>
 
-                <Text style={styles.coachBio}>{coach.bio}</Text>
+                <Text style={[styles.coachBio, themedStyles.text]}>{coach.bio}</Text>
 
                 <View style={styles.certificationsContainer}>
-                  <Text style={styles.certificationsTitle}>Sertifikalar:</Text>
+                  <Text style={[styles.certificationsTitle, themedStyles.text]}>Sertifikalar:</Text>
                   {coach.certifications.map((cert: string, index: number) => (
                     <Chip key={index} mode="outlined" style={styles.certificationChip}>
                       {cert}
@@ -312,7 +355,7 @@ const CoachesScreen = () => {
                   <Button
                     mode="outlined"
                     style={styles.actionButton}
-                    textColor="#2E7D32"
+                    textColor={theme.colors.primary}
                     icon="star"
                     onPress={() => openReviewModal(coach)}
                     contentStyle={styles.buttonContent}
@@ -322,7 +365,7 @@ const CoachesScreen = () => {
                   <Button
                     mode="contained"
                     style={styles.actionButton}
-                    buttonColor="#2E7D32"
+                    buttonColor={theme.colors.primary}
                     icon="phone"
                     onPress={() => handleCallCoach(coach.phone, coach.name)}
                     contentStyle={styles.buttonContent}
@@ -334,7 +377,7 @@ const CoachesScreen = () => {
             </Card>
           ))}
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* FAB */}
       <FAB
@@ -351,20 +394,20 @@ const CoachesScreen = () => {
           onDismiss={() => setShowReviewModal(false)}
           contentContainerStyle={styles.reviewModal}
         >
-          <Card style={styles.reviewCard}>
+          <Card style={[styles.reviewCard, themedStyles.card]}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <Card.Content style={styles.reviewContent}>
                 <View style={styles.reviewModalHeader}>
                   <MaterialCommunityIcons name="star" size={32} color="#FFD700" />
-                  <Title style={styles.reviewModalTitle}>Antrenör Değerlendir</Title>
+                  <Title style={[styles.reviewModalTitle, themedStyles.title]}>Antrenör Değerlendir</Title>
                   <TouchableOpacity onPress={() => setShowReviewModal(false)}>
-                    <MaterialCommunityIcons name="close" size={24} color="#757575" />
+                    <MaterialCommunityIcons name="close" size={24} color={theme.colors.placeholder} />
                   </TouchableOpacity>
                 </View>
                 
                 {selectedCoach && (
                   <>
-                    <Text style={styles.reviewModalSubtitle}>
+                    <Text style={[styles.reviewModalSubtitle, themedStyles.subtitle]}>
                       {selectedCoach.name} için puan ve yorumunuzu paylaşın
                     </Text>
                     
@@ -430,6 +473,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -438,6 +482,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 8,
+  },
+  compactHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingTop: 40,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  compactTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
   headerTitle: {
     fontSize: 28,

@@ -132,6 +132,29 @@ const userService = {
       percentile,
       lastMatchDate: user.lastMatchDate
     };
+  },
+
+  updateProfile: async (userId: string, profileData: {
+    name?: string;
+    surname?: string;
+    phone?: string;
+    profilePhoto?: string;
+  }): Promise<User> => {
+    const user = await userRepository.findById(userId);
+    if (!user) {
+      throw new AppError('USER_NOT_FOUND');
+    }
+
+    // Sadece gönderilen alanları güncelle
+    if (profileData.name !== undefined) user.name = profileData.name;
+    if (profileData.surname !== undefined) user.surname = profileData.surname;
+    if (profileData.phone !== undefined) user.phone = profileData.phone;
+    if (profileData.profilePhoto !== undefined) user.profilePhoto = profileData.profilePhoto;
+
+    const userRepo = AppDataSource.getRepository(User);
+    await userRepo.save(user);
+
+    return user;
   }
 };
 

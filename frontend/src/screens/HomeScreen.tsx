@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,8 +6,10 @@ import {
   Dimensions,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
+  Animated,
 } from 'react-native';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, CommonActions } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { MainTabParamList } from '../navigation/MainTabNavigator';
 import {
@@ -20,6 +22,9 @@ import {
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { reservationService, announcementService, userService, courtService, coachService, notificationService } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { useThemedStyles } from '../hooks/useThemedStyles';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
@@ -27,6 +32,8 @@ type HomeScreenNavigationProp = BottomTabNavigationProp<MainTabParamList, 'Home'
 
 const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
+  const { logout } = useAuth();
+  const { themedStyles, theme } = useThemedStyles();
   const [reservations, setReservations] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,6 +43,24 @@ const HomeScreen = () => {
     coaches: 0,
   });
   const [unreadCount, setUnreadCount] = useState(0);
+  
+  // Scroll animation için
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerHeight = scrollY.interpolate({
+    inputRange: [0, 150],
+    outputRange: [200, 100],
+    extrapolate: 'clamp',
+  });
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+  const compactOpacity = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
 
   const quickActions = [
     { title: 'Rezervasyon Yap', icon: 'calendar-plus', color: '#2E7D32', action: () => navigation.navigate('Reservation') },
@@ -76,8 +101,32 @@ const HomeScreen = () => {
       });
       
       setUnreadCount(unreadNotifications);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Veri yüklenirken hata:', error);
+      
+      // Unauthorized hatası ise, session expired
+      if (error?.response?.status === 401 || error?.message?.includes('Session expired')) {
+        console.log('Session expired - logging out');
+        Alert.alert(
+          'Oturum Süresi Doldu',
+          'Güvenliğiniz için oturumunuz sonlandırıldı. Lütfen tekrar giriş yapın.',
+          [
+            {
+              text: 'Tamam',
+              onPress: async () => {
+                await logout();
+                navigation.dispatch(
+                  CommonActions.reset({
+                    index: 0,
+                    routes: [{ name: 'Login' as any }],
+                  })
+                );
+              },
+            },
+          ],
+          { cancelable: false }
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -98,10 +147,25 @@ const HomeScreen = () => {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Hero Section */}
-      <View style={styles.heroSection}>
-        <View style={styles.heroContent}>
+    <View style={[styles.container, themedStyles.container]}>
+      {/* Animated Hero Section */}
+      <Animated.View style={[
+        styles.heroSection, 
+        { 
+          backgroundColor: theme.colors.primary,
+          height: headerHeight,
+        }
+      ]}>
+        {/* Kompakt Başlık (scroll edildiğinde görünür) */}
+        <Animated.View style={[
+          styles.compactHeader,
+          { opacity: compactOpacity }
+        ]}>
+          <Text style={styles.compactTitle}>🎾 Ana Sayfa</Text>
+        </Animated.View>
+        
+        {/* Normal İçerik (scroll başta görünür) */}
+        <Animated.View style={[styles.heroContent, { opacity: headerOpacity }]}>
           <Title style={styles.heroTitle}>🎾 Tenis Kulübü</Title>
           <Text style={styles.heroSubtitle}>
             Profesyonel tenis deneyimi için doğru adres
@@ -114,8 +178,8 @@ const HomeScreen = () => {
           >
             Hemen Başla
           </Button>
-        </View>
-        <View style={styles.heroStats}>
+        </Animated.View>
+        <Animated.View style={[styles.heroStats, { opacity: headerOpacity }]}>
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>{stats.users}</Text>
             <Text style={styles.statLabel}>Aktif Üye</Text>
@@ -128,26 +192,35 @@ const HomeScreen = () => {
             <Text style={styles.statNumber}>{stats.coaches}</Text>
             <Text style={styles.statLabel}>Koç</Text>
           </View>
-        </View>
-      </View>
+        </Animated.View>
+      </Animated.View>
+      
+      <Animated.ScrollView
+        style={styles.scrollView}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
+      >
 
       {/* Quick Actions */}
       <View style={styles.section}>
-        <Title style={styles.sectionTitle}>Hızlı İşlemler</Title>
+        <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>Hızlı İşlemler</Title>
         <View style={styles.quickActionsGrid}>
           {quickActions.map((action, index) => (
             <TouchableOpacity key={index} onPress={action.action} activeOpacity={1}>
-              <Card style={styles.actionCard}>
+              <Card style={[styles.actionCard, themedStyles.card]}>
                 <Card.Content style={styles.actionContent}>
                   <View style={[styles.actionIcon, { backgroundColor: action.color }]}>
                     <MaterialCommunityIcons name={action.icon as any} size={24} color="#fff" />
-                    {action.badge && action.badge > 0 && (
+                    {action.badge !== undefined && action.badge > 0 && (
                       <View style={styles.badge}>
                         <Text style={styles.badgeText}>{action.badge > 99 ? '99+' : action.badge}</Text>
                       </View>
                     )}
                   </View>
-                  <Text style={styles.actionTitle}>{action.title}</Text>
+                  <Text style={[styles.actionTitle, themedStyles.text]}>{action.title}</Text>
                 </Card.Content>
               </Card>
             </TouchableOpacity>
@@ -157,10 +230,10 @@ const HomeScreen = () => {
 
       {/* Upcoming Matches - Yakın Zamandaki Rezervasyonlar */}
       <View style={styles.section}>
-        <Title style={styles.sectionTitle}>Yakın Zamandaki Rezervasyonlar</Title>
+        <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>Yakın Zamandaki Rezervasyonlar</Title>
         {reservations.length > 0 ? (
           reservations.map((reservation) => (
-            <Card key={reservation.id} style={styles.matchCard}>
+            <Card key={reservation.id} style={[styles.matchCard, themedStyles.card]}>
               <Card.Content>
                 <View style={styles.matchHeader}>
                   <Text style={styles.matchTime}>{formatTime(reservation.startTime)}</Text>
@@ -171,7 +244,7 @@ const HomeScreen = () => {
                 <View style={styles.matchPlayers}>
                   <View style={styles.player}>
                     <Avatar.Text size={40} label={reservation.user.name.charAt(0)} />
-                    <Text style={styles.playerName}>{reservation.user.name}</Text>
+                    <Text style={[styles.playerName, themedStyles.text]}>{reservation.user.name}</Text>
                   </View>
                   {reservation.participants && reservation.participants.length > 0 && (
                     <>
@@ -180,19 +253,19 @@ const HomeScreen = () => {
                       </View>
                       <View style={styles.player}>
                         <Avatar.Text size={40} label={reservation.participants[0].name.charAt(0)} />
-                        <Text style={styles.playerName}>{reservation.participants[0].name}</Text>
+                        <Text style={[styles.playerName, themedStyles.text]}>{reservation.participants[0].name}</Text>
                       </View>
                     </>
                   )}
                 </View>
                 {reservation.notes && (
-                  <Text style={styles.reservationNotes}>📝 {reservation.notes}</Text>
+                  <Text style={[styles.reservationNotes, themedStyles.subtitle]}>📝 {reservation.notes}</Text>
                 )}
               </Card.Content>
             </Card>
           ))
         ) : (
-          <Card style={styles.matchCard}>
+          <Card style={[styles.matchCard, themedStyles.card]}>
             <Card.Content>
               <Text style={{ textAlign: 'center', color: '#6C757D' }}>
                 Yakın zamanda rezervasyon yok
@@ -204,30 +277,30 @@ const HomeScreen = () => {
 
       {/* News & Updates */}
       <View style={styles.section}>
-        <Title style={styles.sectionTitle}>Haberler & Güncellemeler</Title>
+        <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>Haberler & Güncellemeler</Title>
         {announcements.length > 0 ? (
           announcements.map((announcement) => (
-            <Card key={announcement.id} style={styles.newsCard}>
+            <Card key={announcement.id} style={[styles.newsCard, themedStyles.card]}>
               <Card.Content>
                 <View style={styles.newsHeader}>
                   <MaterialCommunityIcons 
                     name={announcement.isPinned ? "pin" : "newspaper"} 
                     size={24} 
-                    color="#2E7D32" 
+                    color={theme.colors.primary} 
                   />
-                  <Text style={styles.newsTitle}>{announcement.title}</Text>
+                  <Text style={[styles.newsTitle, themedStyles.title]}>{announcement.title}</Text>
                 </View>
-                <Text style={styles.newsContent}>
+                <Text style={[styles.newsContent, themedStyles.text]}>
                   {announcement.content}
                 </Text>
-                <Text style={styles.newsAuthor}>
+                <Text style={[styles.newsAuthor, themedStyles.subtitle]}>
                   👤 {announcement.author.name} • {new Date(announcement.createdAt).toLocaleDateString('tr-TR')}
                 </Text>
               </Card.Content>
             </Card>
           ))
         ) : (
-          <Card style={styles.newsCard}>
+          <Card style={[styles.newsCard, themedStyles.card]}>
             <Card.Content>
               <Text style={{ textAlign: 'center', color: '#6C757D' }}>
                 Henüz duyuru bulunmuyor
@@ -236,7 +309,8 @@ const HomeScreen = () => {
           </Card>
         )}
       </View>
-    </ScrollView>
+      </Animated.ScrollView>
+    </View>
   );
 };
 
@@ -244,6 +318,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  scrollView: {
+    flex: 1,
   },
   heroSection: {
     backgroundColor: '#2E7D32',
@@ -259,6 +336,22 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 8,
+    overflow: 'hidden',
+  },
+  compactHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingTop: 40,
+    paddingHorizontal: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  compactTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
   heroContent: {
     alignItems: 'center',

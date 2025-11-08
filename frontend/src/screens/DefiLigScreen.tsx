@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -10,6 +10,7 @@ import {
   SafeAreaView,
   Platform,
   StatusBar,
+  Animated,
 } from 'react-native';
 import {
   Card,
@@ -26,10 +27,12 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { authService, leagueService, leagueStandingsService, matchHistoryService } from '../services/api';
 import { User } from '../types';
+import { useThemedStyles } from '../hooks/useThemedStyles';
 
 const { width } = Dimensions.get('window');
 
 const DefiLigScreen = ({ navigation }: any) => {
+  const { themedStyles, theme } = useThemedStyles();
   const [showLigModal, setShowLigModal] = useState(false);
   const [selectedLig, setSelectedLig] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -42,6 +45,27 @@ const DefiLigScreen = ({ navigation }: any) => {
     totalMatches: 0,
     winRate: 0,
     badges: 0,
+  });
+
+  // Collapsible header animation
+  const scrollY = useRef(new Animated.Value(0)).current;
+  
+  const headerHeight = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [180, 120],
+    extrapolate: 'clamp',
+  });
+  
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+  
+  const compactOpacity = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
   });
 
   useEffect(() => {
@@ -237,36 +261,59 @@ const DefiLigScreen = ({ navigation }: any) => {
   }
 
   return (
-    <View style={styles.container}>
-      <ScrollView>
-        {/* Header Section */}
-        <View style={styles.headerSection}>
-          <View style={styles.headerTop}>
-            <TouchableOpacity 
-              onPress={() => navigation.goBack()}
-              style={styles.backButton}
-            >
-              <MaterialCommunityIcons name="arrow-left" size={28} color="#FFFFFF" />
-            </TouchableOpacity>
-            <View style={styles.headerTextContainer}>
-              <Title style={styles.headerTitle}>🏆 Ligler</Title>
-              <Text style={styles.headerSubtitle}>
-                Rekabetçi oyuncularla karşılaşın ve lig sıralamasında yükselin
-              </Text>
-            </View>
-            <TouchableOpacity 
-              onPress={() => navigation.navigate('LigAyarlari')}
-              style={styles.settingsButton}
-            >
-              <MaterialCommunityIcons name="cog" size={28} color="#FFFFFF" />
-            </TouchableOpacity>
+    <View style={[styles.container, themedStyles.container]}>
+      <Animated.View style={[styles.headerSection, { backgroundColor: theme.colors.primary, height: headerHeight, overflow: 'hidden' }]}>
+        <Animated.View style={[styles.headerTop, { opacity: headerOpacity }]}>
+          <TouchableOpacity 
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <MaterialCommunityIcons name="arrow-left" size={28} color="#FFFFFF" />
+          </TouchableOpacity>
+          <View style={styles.headerTextContainer}>
+            <Title style={styles.headerTitle}>🏆 Ligler</Title>
+            <Text style={styles.headerSubtitle}>
+              Rekabetçi oyuncularla karşılaşın ve lig sıralamasında yükselin
+            </Text>
           </View>
-        </View>
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('LigAyarlari')}
+            style={styles.settingsButton}
+          >
+            <MaterialCommunityIcons name="cog" size={28} color="#FFFFFF" />
+          </TouchableOpacity>
+        </Animated.View>
+        
+        {/* Compact Header */}
+        <Animated.View style={[styles.compactHeader, { opacity: compactOpacity }]}>
+          <TouchableOpacity 
+            onPress={() => navigation.goBack()}
+            style={styles.compactBackButton}
+          >
+            <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.compactTitle}>🏆 Ligler</Text>
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('LigAyarlari')}
+            style={styles.compactSettingsButton}
+          >
+            <MaterialCommunityIcons name="cog" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+        </Animated.View>
+      </Animated.View>
+
+      <Animated.ScrollView
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
+      >
 
         {/* Current User Card - Belirgin Gösterim */}
         <View style={styles.currentUserSection}>
-          <Title style={styles.sectionTitle}>Sen</Title>
-          <Card style={styles.currentUserHighlightCard}>
+          <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>Sen</Title>
+          <Card style={[styles.currentUserHighlightCard, themedStyles.card]}>
             <Card.Content>
               <View style={styles.currentUserHighlightHeader}>
                 <Avatar.Text 
@@ -276,8 +323,8 @@ const DefiLigScreen = ({ navigation }: any) => {
                 />
                 
                 <View style={styles.currentUserHighlightInfo}>
-                  <Title style={styles.currentUserHighlightName}>{currentUser.name}</Title>
-                  <Text style={styles.currentUserHighlightLevel}>{currentUser.level} • {currentUser.rank}</Text>
+                  <Title style={[styles.currentUserHighlightName, themedStyles.title]}>{currentUser.name}</Title>
+                  <Text style={[styles.currentUserHighlightLevel, themedStyles.subtitle]}>{currentUser.level} • {currentUser.rank}</Text>
                 </View>
                 
                 <View style={styles.currentUserPositionContainer}>
@@ -323,7 +370,7 @@ const DefiLigScreen = ({ navigation }: any) => {
           </View>
           
           {currentLeagues.map((lig, index) => (
-            <Card key={lig.id} style={[styles.ligCard, { marginBottom: index < currentLeagues.length - 1 ? 16 : 0 }]}>
+            <Card key={lig.id} style={[styles.ligCard, themedStyles.card, { marginBottom: index < currentLeagues.length - 1 ? 16 : 0 }]}>
               <Card.Content>
                 <TouchableOpacity onPress={() => openLigModal(lig)}>
                   <View style={styles.ligHeader}>
@@ -476,7 +523,7 @@ const DefiLigScreen = ({ navigation }: any) => {
             </Card.Content>
           </Card>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* Lig Detay Modal */}
       <Portal>
@@ -485,12 +532,12 @@ const DefiLigScreen = ({ navigation }: any) => {
           onDismiss={() => setShowLigModal(false)}
           contentContainerStyle={styles.modalContainer}
         >
-          <Card style={styles.modalCard}>
+          <Card style={[styles.modalCard, themedStyles.card]}>
             <ScrollView 
               showsVerticalScrollIndicator={true}
               style={styles.modalScrollView}
             >
-              <Card.Content>
+              <Card.Content style={{ paddingHorizontal: 20, paddingVertical: 20 }}>
                 {selectedLig && (
                   <>
                     <View style={styles.modalHeader}>
@@ -502,8 +549,8 @@ const DefiLigScreen = ({ navigation }: any) => {
                       />
                     </View>
                     <View style={styles.modalInfo}>
-                      <Title style={styles.modalTitle}>{selectedLig.name}</Title>
-                      <Text style={styles.modalDescription}>{selectedLig.description}</Text>
+                      <Title style={[styles.modalTitle, themedStyles.title]}>{selectedLig.name}</Title>
+                      <Text style={[styles.modalDescription, themedStyles.subtitle]}>{selectedLig.description}</Text>
                     </View>
                   </View>
 
@@ -511,7 +558,7 @@ const DefiLigScreen = ({ navigation }: any) => {
 
                   <View style={styles.modalDetails}>
                     <View style={styles.detailRow}>
-                      <MaterialCommunityIcons name="account-group" size={20} color="#2E7D32" />
+                      <MaterialCommunityIcons name="account-group" size={20} color={theme.colors.primary} />
                       <Text style={styles.detailLabel}>Oyuncu Sayısı:</Text>
                       <Text style={styles.detailValue}>{selectedLig.playerCount}</Text>
                     </View>
@@ -873,7 +920,7 @@ const styles = StyleSheet.create({
     color: '#6C757D',
   },
   modalContainer: {
-    margin: 20,
+    margin: 16,
     flex: 1,
     justifyContent: 'center',
   },
@@ -888,7 +935,8 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.4,
     shadowRadius: 16,
-    maxHeight: '80%',
+    maxHeight: '85%',
+    paddingHorizontal: 4,
   },
   modalScrollView: {
     maxHeight: '100%',
@@ -908,17 +956,18 @@ const styles = StyleSheet.create({
   },
   modalInfo: {
     flex: 1,
+    marginLeft: 12,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#1B1B1B',
-    marginBottom: 5,
+    marginBottom: 6,
   },
   modalDescription: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#6C757D',
-    lineHeight: 20,
+    lineHeight: 22,
   },
   modalDivider: {
     backgroundColor: '#E9ECEF',
@@ -930,16 +979,17 @@ const styles = StyleSheet.create({
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
+    paddingVertical: 2,
   },
   detailLabel: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#6C757D',
-    marginLeft: 10,
+    marginLeft: 12,
     flex: 1,
   },
   detailValue: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#1B1B1B',
   },
@@ -947,50 +997,53 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalRewardsTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 'bold',
     color: '#1B1B1B',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   modalRewardItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
+    paddingVertical: 2,
   },
   modalRewardText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#6C757D',
-    marginLeft: 10,
+    marginLeft: 12,
   },
   ageWarning: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFEBEE',
-    padding: 12,
+    padding: 14,
     borderRadius: 8,
     marginBottom: 15,
     borderLeftWidth: 3,
     borderLeftColor: '#D32F2F',
   },
   ageWarningText: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#C62828',
-    marginLeft: 10,
+    marginLeft: 12,
     flex: 1,
     fontWeight: '500',
+    lineHeight: 20,
   },
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: 8,
   },
   modalCancelButton: {
     flex: 1,
-    marginRight: 10,
+    marginRight: 8,
     borderRadius: 12,
   },
   modalStartButton: {
     flex: 1,
-    marginLeft: 10,
+    marginLeft: 8,
     borderRadius: 12,
   },
   ligHeaderContainer: {
@@ -1049,6 +1102,36 @@ const styles = StyleSheet.create({
     backgroundColor: '#2E7D32',
     width: 24,
     borderRadius: 4,
+  },
+  compactHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 110,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 30 : 30,
+  },
+  compactBackButton: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  compactTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    flex: 1,
+    textAlign: 'center',
+    marginHorizontal: 10,
+  },
+  compactSettingsButton: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
 });
 

@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   View,
   StyleSheet,
   ScrollView,
   Dimensions,
+  Animated,
 } from 'react-native';
 import {
   Card,
@@ -17,6 +18,24 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 const { width } = Dimensions.get('window');
 
 const GameModesScreen = ({ navigation }: any) => {
+  // Scroll animation
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerHeight = scrollY.interpolate({
+    inputRange: [0, 150],
+    outputRange: [160, 90],
+    extrapolate: 'clamp',
+  });
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+  const compactOpacity = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+
   const gameModes = [
     {
       id: 1,
@@ -30,14 +49,37 @@ const GameModesScreen = ({ navigation }: any) => {
   ];
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Header Section */}
-      <View style={styles.headerSection}>
-        <Title style={styles.headerTitle}>🏆 Defi Lig</Title>
-        <Text style={styles.headerSubtitle}>
-          Defi Lig formatında rekabetçi maçlara katılın ve lig sıralamasında yükselin
-        </Text>
-      </View>
+    <View style={styles.container}>
+      {/* Animated Header Section */}
+      <Animated.View style={[
+        styles.headerSection,
+        { height: headerHeight }
+      ]}>
+        {/* Kompakt Başlık */}
+        <Animated.View style={[
+          styles.compactHeader,
+          { opacity: compactOpacity }
+        ]}>
+          <Title style={styles.compactTitle}>🏆 Defi Lig</Title>
+        </Animated.View>
+        
+        {/* Normal İçerik */}
+        <Animated.View style={{ opacity: headerOpacity }}>
+          <Title style={styles.headerTitle}>🏆 Defi Lig</Title>
+          <Text style={styles.headerSubtitle}>
+            Defi Lig formatında rekabetçi maçlara katılın ve lig sıralamasında yükselin
+          </Text>
+        </Animated.View>
+      </Animated.View>
+      
+      <Animated.ScrollView
+        style={styles.scrollView}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
+      >
 
       {/* Game Modes Grid */}
       <View style={styles.gameModesGrid}>
@@ -98,7 +140,8 @@ const GameModesScreen = ({ navigation }: any) => {
           </Card.Content>
         </Card>
       </View>
-    </ScrollView>
+      </Animated.ScrollView>
+    </View>
   );
 };
 
@@ -107,6 +150,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
+  scrollView: {
+    flex: 1,
+  },
   headerSection: {
     backgroundColor: '#2E7D32',
     padding: 20,
@@ -114,6 +160,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -122,6 +169,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 8,
+  },
+  compactHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingTop: 40,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  compactTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
   headerTitle: {
     fontSize: 28,
