@@ -148,53 +148,59 @@ const HomeScreen = () => {
 
   return (
     <View style={[styles.container, themedStyles.container]}>
+      {/* Animated Hero Section - Absolute position for collapsible effect */}
+      <Animated.View style={[
+        styles.heroSection, 
+        { 
+          backgroundColor: theme.colors.primary,
+          height: headerHeight,
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 10,
+        }
+      ]}>
+        {/* Kompakt Başlık (scroll edildiğinde görünür) */}
+        <Animated.View style={[
+          styles.compactHeader,
+          { opacity: compactOpacity }
+        ]}>
+          <Text style={styles.compactTitle}>🎾 Ana Sayfa</Text>
+        </Animated.View>
+        
+        {/* Normal İçerik (scroll başta görünür) */}
+        <Animated.View style={[styles.heroContent, { opacity: headerOpacity }]}>
+          <Title style={styles.heroTitle}>🎾 Tenis Kulübü</Title>
+          <Text style={styles.heroSubtitle}>
+            Profesyonel tenis deneyimi için doğru adres
+          </Text>
+        </Animated.View>
+        <Animated.View style={[styles.heroStats, { opacity: headerOpacity }]}>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{stats.users}</Text>
+            <Text style={styles.statLabel}>Aktif Üye</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{stats.courts}</Text>
+            <Text style={styles.statLabel}>Kort</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{stats.coaches}</Text>
+            <Text style={styles.statLabel}>Koç</Text>
+          </View>
+        </Animated.View>
+      </Animated.View>
+
       <Animated.ScrollView
         style={styles.scrollView}
-        contentContainerStyle={{ paddingTop: 0 }}
+        contentContainerStyle={{ paddingTop: 250 }}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: false }
         )}
         scrollEventThrottle={16}
       >
-        {/* Animated Hero Section */}
-        <Animated.View style={[
-          styles.heroSection, 
-          { 
-            backgroundColor: theme.colors.primary,
-            height: headerHeight,
-          }
-        ]}>
-          {/* Kompakt Başlık (scroll edildiğinde görünür) */}
-          <Animated.View style={[
-            styles.compactHeader,
-            { opacity: compactOpacity }
-          ]}>
-            <Text style={styles.compactTitle}>🎾 Ana Sayfa</Text>
-          </Animated.View>
-          
-          {/* Normal İçerik (scroll başta görünür) */}
-          <Animated.View style={[styles.heroContent, { opacity: headerOpacity }]}>
-            <Title style={styles.heroTitle}>🎾 Tenis Kulübü</Title>
-            <Text style={styles.heroSubtitle}>
-              Profesyonel tenis deneyimi için doğru adres
-            </Text>
-          </Animated.View>
-          <Animated.View style={[styles.heroStats, { opacity: headerOpacity }]}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{stats.users}</Text>
-              <Text style={styles.statLabel}>Aktif Üye</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{stats.courts}</Text>
-              <Text style={styles.statLabel}>Kort</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{stats.coaches}</Text>
-              <Text style={styles.statLabel}>Koç</Text>
-            </View>
-          </Animated.View>
-        </Animated.View>
 
       {/* Quick Actions */}
       <View style={styles.section}>
