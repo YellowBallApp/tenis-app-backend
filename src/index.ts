@@ -39,7 +39,10 @@ app.use(cors({
   origin: ['http://localhost:8081', 'http://localhost:3000', 'http://192.168.1.108:3000', 'http://192.168.1.108:8081'],
   credentials: true
 }));
-app.use(express.json());
+
+// Body parser limitleri - profil fotoğrafları için yüksek limit
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
