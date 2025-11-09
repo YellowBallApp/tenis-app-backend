@@ -170,14 +170,6 @@ const HomeScreen = () => {
           <Text style={styles.heroSubtitle}>
             Profesyonel tenis deneyimi için doğru adres
           </Text>
-          <Button 
-            mode="contained" 
-            style={styles.heroButton}
-            buttonColor="#FFFFFF"
-            textColor="#2E7D32"
-          >
-            Hemen Başla
-          </Button>
         </Animated.View>
         <Animated.View style={[styles.heroStats, { opacity: headerOpacity }]}>
           <View style={styles.statItem}>
@@ -369,12 +361,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#E8F5E8',
     textAlign: 'center',
-    marginBottom: 20,
-  },
-  heroButton: {
-    borderRadius: 25,
-    paddingHorizontal: 30,
-    backgroundColor: '#FFFFFF',
   },
   heroStats: {
     flexDirection: 'row',
