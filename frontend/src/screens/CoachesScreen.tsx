@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    paddingTop: 40,
+    paddingTop: 50,
     paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center',
@@ -504,6 +504,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     marginBottom: 10,
     textAlign: 'center',
+    paddingTop: 50,
   },
   headerSubtitle: {
     fontSize: 16,

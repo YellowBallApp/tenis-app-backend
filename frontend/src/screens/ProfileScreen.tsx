@@ -1122,7 +1122,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    paddingTop: 40,
+    paddingTop: 50,
     paddingHorizontal: 20,
     paddingVertical: 15,
   },
@@ -1149,6 +1149,7 @@ const styles = StyleSheet.create({
   profileInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingTop: 50,
   },
   avatar: {
     backgroundColor: '#FFFFFF',

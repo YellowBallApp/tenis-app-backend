@@ -645,7 +645,7 @@ const styles = StyleSheet.create({
   headerSection: {
     backgroundColor: '#2E7D32',
     padding: 20,
-    paddingTop: 40,
+    paddingTop: 50,
   },
   headerTop: {
     flexDirection: 'row',
@@ -785,7 +785,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 10,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 30 : 30,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 50 : 50,
   },
   compactBackButton: {
     margin: 0,
