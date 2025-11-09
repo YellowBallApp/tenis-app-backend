@@ -78,7 +78,7 @@ const authMiddleware = express.Router();
 // app.use("/api/user", authMiddleware, userRoutes);
 
 
-const PORT = process.env.PORT;
+const PORT = parseInt(process.env.PORT || '3000', 10);
 
 AppDataSource.initialize()
   .then(() => {
