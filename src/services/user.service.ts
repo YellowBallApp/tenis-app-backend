@@ -139,6 +139,7 @@ const userService = {
     surname?: string;
     phone?: string;
     profilePhoto?: string;
+    age?: number;
   }): Promise<User> => {
     const user = await userRepository.findById(userId);
     if (!user) {
@@ -150,6 +151,7 @@ const userService = {
     if (profileData.surname !== undefined) user.surname = profileData.surname;
     if (profileData.phone !== undefined) user.phone = profileData.phone;
     if (profileData.profilePhoto !== undefined) user.profilePhoto = profileData.profilePhoto;
+    if (profileData.age !== undefined) user.age = profileData.age;
 
     const userRepo = AppDataSource.getRepository(User);
     await userRepo.save(user);

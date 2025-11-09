@@ -30,6 +30,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [age, setAge] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -49,11 +50,21 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
+    // Yaş validasyonu (opsiyonel ama girilmişse kontrol et)
+    if (age && age.trim() !== '') {
+      const ageNumber = parseInt(age, 10);
+      if (isNaN(ageNumber) || ageNumber < 1 || ageNumber > 120) {
+        setError('Lütfen geçerli bir yaş girin (1-120)');
+        return;
+      }
+    }
+
     setLoading(true);
     setError('');
 
     try {
-      await register(name, email, password);
+      const ageValue = age && age.trim() !== '' ? parseInt(age, 10) : undefined;
+      await register(name, email, password, ageValue);
       // Auth context otomatik olarak isAuthenticated'ı true yapacak
       navigation.replace('Main');
     } catch (err: any) {
@@ -109,6 +120,18 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
               autoCapitalize="none"
               autoCorrect={false}
               left={<TextInput.Icon icon="email" color="#2E7D32" />}
+              theme={{ colors: { primary: '#2E7D32', placeholder: '#6C757D' } }}
+            />
+
+            <TextInput
+              label="Yaş (Opsiyonel)"
+              value={age}
+              onChangeText={setAge}
+              mode="outlined"
+              style={styles.input}
+              keyboardType="numeric"
+              placeholder="Yaşınızı girin"
+              left={<TextInput.Icon icon="calendar" color="#2E7D32" />}
               theme={{ colors: { primary: '#2E7D32', placeholder: '#6C757D' } }}
             />
 

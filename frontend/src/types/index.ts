@@ -28,6 +28,7 @@ export interface RegisterCredentials {
   name: string;
   email: string;
   password: string;
+  age?: number;
 }
 
 export interface ApiResponse<T> {
