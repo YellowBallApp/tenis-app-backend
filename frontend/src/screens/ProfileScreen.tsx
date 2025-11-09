@@ -78,6 +78,7 @@ const ProfileScreen = () => {
   // Form states
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
+  const [editAge, setEditAge] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -97,6 +98,7 @@ const ProfileScreen = () => {
         email: profileData.email,
         phone: profileData.phone,
         surname: profileData.surname,
+        age: (profileData as any).age,
         profilePhoto: (profileData as any).profilePhoto,
         level: profileData.title || 'Üye',
         rank: 'Altın', // TODO: Rank sistemi eklenecek
@@ -136,6 +138,7 @@ const ProfileScreen = () => {
     if (user) {
       setEditName(user.name);
       setEditEmail(user.email);
+      setEditAge(user.age ? user.age.toString() : '');
       setShowEditProfileModal(true);
     }
   };
@@ -594,6 +597,20 @@ const ProfileScreen = () => {
                 textColor={theme.colors.text}
                 keyboardType="email-address"
               />
+              
+              <TextInput
+                mode="outlined"
+                label="Yaş"
+                value={editAge}
+                onChangeText={setEditAge}
+                style={[styles.textInput, themedStyles.input]}
+                left={<TextInput.Icon icon="calendar" />}
+                outlineColor={theme.colors.outline}
+                activeOutlineColor={theme.colors.primary}
+                textColor={theme.colors.text}
+                keyboardType="numeric"
+                placeholder="Yaşınızı girin"
+              />
 
               <View style={styles.modalButtons}>
                 <Button
@@ -607,9 +624,31 @@ const ProfileScreen = () => {
                 </Button>
                 <Button
                   mode="contained"
-                  onPress={() => {
-                    console.log('Profil güncellendi:', { name: editName, email: editEmail });
-                    setShowEditProfileModal(false);
+                  onPress={async () => {
+                    try {
+                      const updateData: any = {
+                        name: editName,
+                      };
+                      
+                      // Yaş girilmişse ekle
+                      if (editAge && editAge.trim() !== '') {
+                        const ageNumber = parseInt(editAge, 10);
+                        if (!isNaN(ageNumber) && ageNumber > 0 && ageNumber < 150) {
+                          updateData.age = ageNumber;
+                        } else {
+                          Alert.alert('Hata', 'Lütfen geçerli bir yaş girin');
+                          return;
+                        }
+                      }
+                      
+                      await authService.updateProfile(updateData);
+                      await loadProfile(); // Profili yeniden yükle
+                      setShowEditProfileModal(false);
+                      Alert.alert('Başarılı', 'Profil bilgileriniz güncellendi');
+                    } catch (error) {
+                      console.error('Profil güncellenirken hata:', error);
+                      Alert.alert('Hata', 'Profil güncellenirken bir hata oluştu');
+                    }
                   }}
                   style={[styles.modalButton, styles.saveButton]}
                   buttonColor={theme.colors.primary}
