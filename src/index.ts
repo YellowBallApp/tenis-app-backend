@@ -87,8 +87,11 @@ AppDataSource.initialize()
     // Cron job'ları başlat
     initializeCronJobs();
     
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+    // 0.0.0.0 ile tüm network interface'lerden erişilebilir yap (mobil test için)
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`📱 Mobile access: http://192.168.1.104:${PORT}`);
+      console.log(`💻 Local access: http://localhost:${PORT}`);
     });
   })
   .catch((error) => console.error(" Database connection error:", error));

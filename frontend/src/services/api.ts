@@ -3,10 +3,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthTokens, LoginCredentials, RegisterCredentials, User, ApiResponse } from '../types';
 import { Platform } from 'react-native';
 
-// Android emulator ve gerçek cihaz için IP adresi kullan
-const API_BASE_URL = Platform.OS === 'android' 
-  ? 'http://10.212.136.139:3000/api' 
-  : 'http://localhost:3000/api';
+// Gerçek cihaz için bilgisayarın IP adresini kullan
+// WiFi üzerinden bağlantı için localhost yerine IP gerekli
+const API_BASE_URL = __DEV__ 
+  ? 'http://192.168.1.104:3000/api'  // Development - bilgisayarınızın local IP'si
+  : 'http://192.168.1.104:3000/api'; // Production - gerçek backend URL'i buraya gelecek
 
 const api = axios.create({
   baseURL: API_BASE_URL,
