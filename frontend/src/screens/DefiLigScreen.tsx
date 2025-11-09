@@ -52,7 +52,7 @@ const DefiLigScreen = ({ navigation }: any) => {
   
   const headerHeight = scrollY.interpolate({
     inputRange: [0, 100],
-    outputRange: [180, 120],
+    outputRange: [200, 130],
     extrapolate: 'clamp',
   });
   

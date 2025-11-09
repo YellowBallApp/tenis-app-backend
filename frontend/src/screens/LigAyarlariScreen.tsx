@@ -61,7 +61,7 @@ const LigAyarlariScreen = ({ navigation }: any) => {
   
   const headerHeight = scrollY.interpolate({
     inputRange: [0, 100],
-    outputRange: [140, 120],
+    outputRange: [160, 130],
     extrapolate: 'clamp',
   });
   

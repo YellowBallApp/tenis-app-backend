@@ -41,7 +41,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
   const scrollY = useRef(new Animated.Value(0)).current;
   const headerHeight = scrollY.interpolate({
     inputRange: [0, 150],
-    outputRange: [180, 100],
+    outputRange: [200, 110],
     extrapolate: 'clamp',
   });
   const headerOpacity = scrollY.interpolate({
