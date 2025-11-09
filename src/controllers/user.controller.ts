@@ -120,13 +120,14 @@ const userController = {
   updateProfile: async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user.id;
-      const { name, surname, phone, profilePhoto } = req.body;
+      const { name, surname, phone, profilePhoto, age } = req.body;
 
       const updatedUser = await userService.updateProfile(userId, {
         name,
         surname,
         phone,
         profilePhoto,
+        age,
       });
 
       return res.status(200).json({
@@ -138,6 +139,7 @@ const userController = {
           phone: updatedUser.phone,
           surname: updatedUser.surname,
           profilePhoto: updatedUser.profilePhoto,
+          age: updatedUser.age,
         },
       });
     } catch (err) {

@@ -95,6 +95,7 @@ export const authService = {
     surname?: string;
     phone?: string;
     profilePhoto?: string;
+    age?: number;
   }): Promise<User> => {
     const response = await api.put<ApiResponse<User>>('/user/profile', profileData);
     return response.data.data;
