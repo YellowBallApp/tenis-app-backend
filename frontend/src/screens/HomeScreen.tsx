@@ -48,7 +48,7 @@ const HomeScreen = () => {
   const scrollY = useRef(new Animated.Value(0)).current;
   const headerHeight = scrollY.interpolate({
     inputRange: [0, 150],
-    outputRange: [200, 100],
+    outputRange: [220, 120],
     extrapolate: 'clamp',
   });
   const headerOpacity = scrollY.interpolate({
