@@ -75,13 +75,29 @@ const CoachesScreen = () => {
       setLoading(true);
       const coachesData = await coachService.getAllCoaches();
       
-      // Backend'den gelen antrenörleri frontend formatına dönüştür
-      const formattedCoaches = coachesData.map((coach: any) => ({
-        ...coach,
-        reviews: [], // Review'lar ayrı modal'da gösterilecek
-      }));
+      // Her antrenör için review sayısını çek
+      const coachesWithReviewCounts = await Promise.all(
+        coachesData.map(async (coach: any) => {
+          try {
+            const reviews = await coachReviewService.getCoachReviews(coach.id);
+            const reviewCount = Array.isArray(reviews) ? reviews.length : (reviews?.data?.length || 0);
+            return {
+              ...coach,
+              reviews: [], // Review'lar ayrı modal'da gösterilecek
+              reviewCount: reviewCount,
+            };
+          } catch (error) {
+            console.error(`Antrenör ${coach.id} için review sayısı alınamadı:`, error);
+            return {
+              ...coach,
+              reviews: [],
+              reviewCount: 0,
+            };
+          }
+        })
+      );
       
-      setCoaches(formattedCoaches);
+      setCoaches(coachesWithReviewCounts);
     } catch (error) {
       console.error('Antrenörler yüklenirken hata:', error);
       Alert.alert(t('common.error'), t('coaches.loadError'));
@@ -392,8 +408,20 @@ const CoachesScreen = () => {
                     <Title style={[styles.coachName, themedStyles.title]}>{coach.name}</Title>
                     <Text style={[styles.coachSpecialty, themedStyles.subtitle]}>{translateSpecialty(coach.specialty)}</Text>
                     <View style={styles.ratingContainer}>
-                      <MaterialIcons name="star" size={16} color="#FFD700" />
-                      <Text style={styles.ratingText}>{coach.rating}</Text>
+                      <View style={styles.ratingBadgeContainer}>
+                        <MaterialIcons name="star" size={16} color="#FFD700" />
+                        <View style={styles.badge}>
+                          <Text style={styles.badgeText}>{coach.rating || '0.0'}</Text>
+                        </View>
+                      </View>
+                      {coach.reviewCount > 0 && (
+                        <View style={styles.reviewCountBadgeContainer}>
+                          <MaterialCommunityIcons name="comment-text" size={16} color="#2E7D32" />
+                          <View style={styles.badge}>
+                            <Text style={styles.badgeText}>{coach.reviewCount}</Text>
+                          </View>
+                        </View>
+                      )}
                       <Chip 
                         mode="outlined" 
                         style={[styles.availabilityChip, { borderColor: getAvailabilityColor(coach.availability) }]}
@@ -762,13 +790,31 @@ const styles = StyleSheet.create({
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
   },
-  ratingText: {
-    fontSize: 16,
+  ratingBadgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  reviewCountBadgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  badge: {
+    backgroundColor: '#2E7D32',
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
     fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginLeft: 5,
-    marginRight: 15,
   },
   availabilityChip: {
     backgroundColor: '#F8F9FA',
