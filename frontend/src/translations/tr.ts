@@ -375,6 +375,7 @@ export default {
     commentRequired: 'Lütfen bir yorum yazın.',
     reviewSuccess: 'Yorumunuz başarıyla gönderildi!',
     loadError: 'Antrenörler yüklenemedi',
+    noReviews: 'Henüz yorum yapılmamış',
     available: 'Müsait',
     limited: 'Sınırlı',
     notAvailable: 'Müsait Değil',

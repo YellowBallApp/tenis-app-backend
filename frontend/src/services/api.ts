@@ -2,12 +2,76 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthTokens, LoginCredentials, RegisterCredentials, User, ApiResponse } from '../types';
 import { Platform } from 'react-native';
+import { AppState } from 'react-native';
+
+// Logout callback - AuthContext set edecek
+let logoutCallback: (() => void) | null = null;
+
+export const setLogoutCallback = (callback: () => void) => {
+  logoutCallback = callback;
+};
+
+export const triggerLogout = () => {
+  if (logoutCallback) {
+    logoutCallback();
+  }
+};
 
 // API Base URL yapılandırması
 // Ngrok kullanıyorsanız: NGROK_URL değişkenini ayarlayın
 // Local network kullanıyorsanız: LOCAL_IP değişkenini ayarlayın
 const NGROK_URL = ''; // Örnek: 'https://abc123.ngrok-free.app'
-const LOCAL_IP = '10.209.250.139'; // Local WiFi IP'si
+const LOCAL_IP = '192.168.1.107'; // Local WiFi IP'si (gerçek cihaz için)
+const EMULATOR_IP = '10.0.2.2'; // Android emülatör için özel IP
+
+// Android emülatörü algıla
+const isAndroidEmulator = (): boolean => {
+  if (Platform.OS !== 'android') {
+    return false;
+  }
+  
+  try {
+    // Platform constants kontrolü
+    const constants = Platform.constants as any;
+    const brand = (constants?.Brand || constants?.brand || '').toLowerCase();
+    const model = (constants?.Model || constants?.model || '').toLowerCase();
+    const manufacturer = (constants?.Manufacturer || constants?.manufacturer || '').toLowerCase();
+    const fingerprint = (constants?.Fingerprint || constants?.fingerprint || '').toLowerCase();
+    
+    // Emülatör belirteçleri
+    const emulatorIndicators = [
+      'google_sdk',
+      'sdk',
+      'emulator',
+      'android sdk',
+      'genymotion',
+      'unknown',
+      'generic',
+      'goldfish',
+      'ranchu',
+    ];
+    
+    // Tüm alanları kontrol et
+    const allFields = `${brand} ${model} ${manufacturer} ${fingerprint}`;
+    
+    const isEmulator = 
+      emulatorIndicators.some(indicator => allFields.includes(indicator)) ||
+      model.includes('emulator') ||
+      brand === 'unknown' ||
+      fingerprint.includes('generic') ||
+      fingerprint.includes('unknown');
+    
+    if (isEmulator) {
+      console.log('📱 Emülatör algılama:', { brand, model, manufacturer, fingerprint });
+    }
+    
+    return isEmulator;
+  } catch (error) {
+    console.warn('Emülatör algılama hatası:', error);
+    // Hata durumunda false döndür (güvenli taraf - gerçek cihaz gibi davran)
+    return false;
+  }
+};
 
 const getApiBaseUrl = () => {
   // Ngrok URL varsa onu kullan (farklı ağlardan erişim için)
@@ -25,11 +89,15 @@ const getApiBaseUrl = () => {
   }
   
   // Development veya production URL yoksa local IP kullan
-  // Android emülatör için özel IP, gerçek cihaz için WiFi IP
   if (Platform.OS === 'android') {
-    // Emülatör kontrolü - genellikle emülatörde __DEV__ true olur
-    // Ama production build'de de local IP kullanmak istiyoruz
-    return `http://${LOCAL_IP}:3000/api`;
+    // Android emülatör kontrolü
+    if (isAndroidEmulator()) {
+      console.log('📱 Android emülatör algılandı - 10.0.2.2 kullanılıyor');
+      return `http://${EMULATOR_IP}:3000/api`;
+    } else {
+      console.log('📱 Gerçek Android cihaz algılandı - WiFi IP kullanılıyor');
+      return `http://${LOCAL_IP}:3000/api`;
+    }
   } else {
     // iOS simulator veya gerçek cihaz için
     return `http://${LOCAL_IP}:3000/api`;
@@ -43,11 +111,13 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 saniye timeout
+  timeout: 30000, // 30 saniye timeout (backend yavaş yanıt veriyorsa artırıldı)
 });
 
 // API base URL'i logla
-console.log('API Base URL:', API_BASE_URL, 'Platform:', Platform.OS);
+const isEmulator = Platform.OS === 'android' ? isAndroidEmulator() : false;
+console.log('API Base URL:', API_BASE_URL);
+console.log('Platform:', Platform.OS, isEmulator ? '(Emülatör)' : '(Gerçek Cihaz)');
 
 // Request interceptor - token ekleme
 api.interceptors.request.use(
@@ -93,6 +163,14 @@ api.interceptors.response.use(
         url: originalRequest?.url,
       });
       
+      // Token varsa ama network hatası alınıyorsa, logout yap
+      const hasToken = await AsyncStorage.getItem('accessToken');
+      if (hasToken && (error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK')) {
+        console.log('Token var ama servis çalışmıyor - logout yapılıyor');
+        await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
+        triggerLogout();
+      }
+      
       // Network hatası için daha açıklayıcı mesaj
       const networkError = new Error(
         error.message || 'Network error. Please check your internet connection.'
@@ -133,18 +211,30 @@ api.interceptors.response.use(
             throw new Error('Invalid refresh token response');
           }
         } else {
-          console.log('No refresh token found');
+          console.log('No refresh token found - logout yapılıyor');
           await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
+          triggerLogout();
           return Promise.reject(new Error('Session expired. Please login again.'));
         }
       } catch (refreshError: any) {
         // Refresh token da geçersiz, kullanıcıyı logout yap
-        console.error('Refresh token failed:', {
+        console.error('Refresh token failed - logout yapılıyor:', {
           error: refreshError.message,
           response: refreshError.response?.data,
         });
         await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
+        triggerLogout();
         return Promise.reject(new Error('Session expired. Please login again.'));
+      }
+    }
+    
+    // 403 Forbidden - token geçersiz veya yetkisiz
+    if (error.response?.status === 403) {
+      const hasToken = await AsyncStorage.getItem('accessToken');
+      if (hasToken) {
+        console.log('403 Forbidden - token geçersiz, logout yapılıyor');
+        await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
+        triggerLogout();
       }
     }
     
@@ -217,6 +307,39 @@ export const coachService = {
   getCoachById: async (id: string) => {
     const response = await api.get(`/coaches/${id}`);
     return response.data.data;
+  },
+};
+
+export const coachReviewService = {
+  // Antrenöre review oluştur
+  createReview: async (coachId: string, rating: number, comment: string) => {
+    const response = await api.post('/coach-reviews', {
+      coachId,
+      rating,
+      comment,
+    });
+    return response.data.data;
+  },
+
+  // Antrenörün tüm review'larını getir
+  getCoachReviews: async (coachId: string) => {
+    const response = await api.get(`/coach-reviews/coach/${coachId}`);
+    return response.data.data;
+  },
+
+  // Kullanıcının review'ını güncelle
+  updateReview: async (reviewId: number, rating: number, comment: string) => {
+    const response = await api.put(`/coach-reviews/${reviewId}`, {
+      rating,
+      comment,
+    });
+    return response.data.data;
+  },
+
+  // Review sil
+  deleteReview: async (reviewId: number) => {
+    const response = await api.delete(`/coach-reviews/${reviewId}`);
+    return response.data;
   },
 };
 

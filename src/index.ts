@@ -21,6 +21,7 @@ import notificationRoutes from "./routes/notification.routes";
 import matchChallengeRoutes from "./routes/matchChallenge.routes";
 import eloRoutes from "./routes/elo.routes";
 import cronRoutes from "./routes/cron.routes";
+import coachReviewRoutes from "./routes/coachReview.routes";
 
 const app = express();
 
@@ -117,6 +118,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/match-challenges", matchChallengeRoutes);
 app.use("/api/elo", eloRoutes);
 app.use("/api/cron", cronRoutes);
+app.use("/api/coach-reviews", coachReviewRoutes);
 
 const authMiddleware = express.Router();
 
@@ -137,7 +139,7 @@ AppDataSource.initialize()
     // 0.0.0.0 ile tüm network interface'lerden erişilebilir yap (mobil test için)
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📱 Mobile access: http://10.209.250.139:${PORT}`);
+      console.log(`📱 Mobile access: http://192.168.1.107:${PORT}`);
       console.log(`💻 Local access: http://localhost:${PORT}`);
     });
   })

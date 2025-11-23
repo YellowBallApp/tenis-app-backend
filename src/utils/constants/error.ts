@@ -156,6 +156,21 @@ const rawErrors = {
         code: 1031,
         key: "CONSECUTIVE_WO_LIMIT_EXCEEDED",
         message: "Bu ligde arka arkaya red limitini aştınız. Maç kabul etmeden daha fazla red yapamazsınız."
+    },
+    INVALID_RATING: {
+        code: 1032,
+        key: "INVALID_RATING",
+        message: "Rating must be between 1 and 5"
+    },
+    COMMENT_REQUIRED: {
+        code: 1033,
+        key: "COMMENT_REQUIRED",
+        message: "Comment is required"
+    },
+    REVIEW_NOT_FOUND: {
+        code: 1034,
+        key: "REVIEW_NOT_FOUND",
+        message: "Review not found"
     }
 } as const;
 

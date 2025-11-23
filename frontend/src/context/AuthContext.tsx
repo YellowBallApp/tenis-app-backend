@@ -1,6 +1,6 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authService } from '../services/api';
+import { authService, setLogoutCallback } from '../services/api';
 import api from '../services/api';
 import { AppState } from 'react-native';
 
@@ -30,10 +30,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       if (accessToken && refreshToken) {
-        // Token var, authenticated olarak işaretle
-        // Eğer token geçersizse, API interceptor otomatik temizleyecek
-        console.log('Token bulundu - kullanıcı authenticated');
-        setIsAuthenticated(true);
+        // Token var, gerçek bir API isteği yaparak doğrula
+        try {
+          await authService.getProfile();
+          console.log('Token geçerli - kullanıcı authenticated');
+          setIsAuthenticated(true);
+        } catch (error: any) {
+          // Token geçersiz veya servis çalışmıyor
+          console.log('Token geçersiz veya servis çalışmıyor - logout yapılıyor:', error.message);
+          // Token'ları sil ve authenticated durumunu false yap
+          await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
+          setIsAuthenticated(false);
+        }
       } else {
         console.log('Token bulunamadı - login gerekli');
         setIsAuthenticated(false);
@@ -49,6 +57,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     checkAuth();
     
+    // API interceptor'dan gelen logout callback'ini kaydet
+    setLogoutCallback(() => {
+      console.log('API interceptor logout tetiklendi');
+      logout();
+    });
+    
     // Uygulama ön plana geldiğinde token kontrolü yap
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active') {
@@ -58,16 +72,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       subscription.remove();
+      setLogoutCallback(() => {}); // Cleanup
     };
-  }, []);
+  }, [logout]);
 
   const login = async (email: string, password: string) => {
     try {
+      console.log('🔐 Login başlatılıyor:', { email, apiUrl: 'http://192.168.1.107:3000/api' });
       const tokens = await authService.login({ email, password });
+      console.log('✅ Login başarılı, token kaydediliyor');
       await AsyncStorage.setItem('accessToken', tokens.accessToken);
       await AsyncStorage.setItem('refreshToken', tokens.refreshToken);
       setIsAuthenticated(true);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ Login hatası:', {
+        message: error.message,
+        code: error.code,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
       throw error;
     }
   };
@@ -83,7 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       const refreshToken = await AsyncStorage.getItem('refreshToken');
       if (refreshToken) {
@@ -96,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
       setIsAuthenticated(false);
     }
-  };
+  }, []);
 
   return (
     <AuthContext.Provider

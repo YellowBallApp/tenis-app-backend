@@ -19,8 +19,9 @@ export const AppDataSource = new DataSource({
   extra: {
     max: Number(process.env.DB_POOL_MAX) || 20,
     min: Number(process.env.DB_POOL_MIN) || 5,
-    acquireTimeoutMillis: 60000,
+    acquireTimeoutMillis: 30000, // 30 saniye - connection pool'dan bağlantı alma timeout'u
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: Number(process.env.DB_CONNECTION_TIMEOUT) || 10000,
+    statement_timeout: 30000, // 30 saniye - SQL sorgu timeout'u
   },
 });

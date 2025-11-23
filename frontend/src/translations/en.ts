@@ -374,6 +374,7 @@ export default {
     ratingRequired: 'Please give a star rating.',
     commentRequired: 'Please write a comment.',
     reviewSuccess: 'Your review has been submitted successfully!',
+    noReviews: 'No reviews yet',
     loadError: 'Could not load coaches',
     available: 'Available',
     limited: 'Limited',

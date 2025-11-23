@@ -18,7 +18,6 @@ import {
   Avatar,
   Chip,
   Searchbar,
-  FAB,
   Portal,
   Modal,
   TextInput,
@@ -26,14 +25,16 @@ import {
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useLanguage } from '../context/LanguageContext';
-import { coachService } from '../services/api';
+import { coachService, coachReviewService } from '../services/api';
 import { useThemedStyles } from '../hooks/useThemedStyles';
+import { useAuth } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 
 const CoachesScreen = () => {
   const { themedStyles, theme } = useThemedStyles();
   const { t } = useLanguage();
+  const { isAuthenticated } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -42,6 +43,10 @@ const CoachesScreen = () => {
   const [reviewComment, setReviewComment] = useState('');
   const [coaches, setCoaches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showReviewsModal, setShowReviewsModal] = useState(false);
+  const [selectedCoachForReviews, setSelectedCoachForReviews] = useState<any>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
   
   // Scroll animation
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -73,7 +78,7 @@ const CoachesScreen = () => {
       // Backend'den gelen antrenörleri frontend formatına dönüştür
       const formattedCoaches = coachesData.map((coach: any) => ({
         ...coach,
-        reviews: [], // TODO: Review sistemi eklendiğinde buraya eklenecek
+        reviews: [], // Review'lar ayrı modal'da gösterilecek
       }));
       
       setCoaches(formattedCoaches);
@@ -83,6 +88,42 @@ const CoachesScreen = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const openReviewsModal = async (coach: any) => {
+    setSelectedCoachForReviews(coach);
+    setShowReviewsModal(true);
+    setLoadingReviews(true);
+    
+    try {
+      const coachReviews = await coachReviewService.getCoachReviews(coach.id);
+      // Backend'den gelen response'u kontrol et
+      const reviewsData = Array.isArray(coachReviews) ? coachReviews : (coachReviews?.data || []);
+      setReviews(reviewsData);
+    } catch (error) {
+      console.error('Yorumlar yüklenirken hata:', error);
+      Alert.alert(t('common.error'), 'Yorumlar yüklenirken bir hata oluştu');
+      setReviews([]);
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
+
+  const closeReviewsModal = () => {
+    setShowReviewsModal(false);
+    setSelectedCoachForReviews(null);
+    setReviews([]);
+  };
+
+  const formatReviewDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('tr-TR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
   const filters = [
@@ -192,7 +233,7 @@ const CoachesScreen = () => {
     setShowReviewModal(true);
   };
 
-  const submitReview = () => {
+  const submitReview = async () => {
     if (reviewRating === 0) {
       Alert.alert(t('common.error'), t('coaches.ratingRequired'));
       return;
@@ -202,18 +243,33 @@ const CoachesScreen = () => {
       return;
     }
 
-    // Burada review'ı backend'e gönderebiliriz
-    console.log('Review submitted:', {
-      coachId: selectedCoach.id,
-      rating: reviewRating,
-      comment: reviewComment,
-    });
+    if (!selectedCoach) {
+      Alert.alert(t('common.error'), 'Antrenör seçilmedi');
+      return;
+    }
 
-    Alert.alert(t('common.success'), t('coaches.reviewSuccess'));
-    setShowReviewModal(false);
-    setReviewRating(0);
-    setReviewComment('');
-    setSelectedCoach(null);
+    try {
+      await coachReviewService.createReview(
+        selectedCoach.id,
+        reviewRating,
+        reviewComment.trim()
+      );
+
+      // Antrenörleri yeniden yükle (rating güncellenmiş olabilir)
+      await loadCoaches();
+
+      Alert.alert(t('common.success'), t('coaches.reviewSuccess'));
+      setShowReviewModal(false);
+      setReviewRating(0);
+      setReviewComment('');
+      setSelectedCoach(null);
+    } catch (error: any) {
+      console.error('Review submit error:', error);
+      Alert.alert(
+        t('common.error'),
+        error.response?.data?.message || 'Değerlendirme kaydedilirken bir hata oluştu'
+      );
+    }
   };
 
 
@@ -405,6 +461,16 @@ const CoachesScreen = () => {
                     {t('coaches.rate')}
                   </Button>
                   <Button
+                    mode="outlined"
+                    style={styles.actionButton}
+                    textColor={theme.colors.primary}
+                    icon="comment-text"
+                    onPress={() => openReviewsModal(coach)}
+                    contentStyle={styles.buttonContent}
+                  >
+                    {t('coaches.reviews')}
+                  </Button>
+                  <Button
                     mode="contained"
                     style={styles.actionButton}
                     buttonColor={theme.colors.primary}
@@ -421,13 +487,70 @@ const CoachesScreen = () => {
         </View>
       </Animated.ScrollView>
 
-      {/* FAB */}
-      <FAB
-        icon="plus"
-        style={styles.fab}
-        onPress={() => {}}
-        color="#FFFFFF"
-      />
+      {/* Reviews List Modal */}
+      <Portal>
+        <Modal
+          visible={showReviewsModal}
+          onDismiss={closeReviewsModal}
+          contentContainerStyle={styles.reviewModal}
+        >
+          <Card style={[styles.reviewCard, themedStyles.card]}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Card.Content style={styles.reviewContent}>
+                <View style={styles.reviewModalHeader}>
+                  <MaterialCommunityIcons name="comment-text" size={32} color="#2E7D32" />
+                  <Title style={[styles.reviewModalTitle, themedStyles.title]}>
+                    {selectedCoachForReviews?.name} - {t('coaches.reviews')}
+                  </Title>
+                  <TouchableOpacity onPress={closeReviewsModal}>
+                    <MaterialCommunityIcons name="close" size={24} color={theme.colors.placeholder} />
+                  </TouchableOpacity>
+                </View>
+                
+                {loadingReviews ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" color="#2E7D32" />
+                    <Text style={styles.loadingText}>{t('common.loading')}</Text>
+                  </View>
+                ) : reviews.length > 0 ? (
+                  <View style={styles.reviewsListContainer}>
+                    {reviews.map((review) => (
+                      <View key={review.id} style={styles.reviewListItem}>
+                        <View style={styles.reviewListItemHeader}>
+                          <View style={styles.reviewListUserInfo}>
+                            <MaterialCommunityIcons name="account-circle" size={32} color="#2E7D32" />
+                            <View style={styles.reviewListUserDetails}>
+                              <Text style={[styles.reviewListUserName, themedStyles.title]}>
+                                {review.user?.name || 'Kullanıcı'}
+                              </Text>
+                              <Text style={[styles.reviewListDate, themedStyles.subtitle]}>
+                                {formatReviewDate(review.createdAt)}
+                              </Text>
+                            </View>
+                          </View>
+                          <View style={styles.reviewListRatingStars}>
+                            {renderStars(review.rating, 20)}
+                          </View>
+                        </View>
+                        <Text style={[styles.reviewListComment, themedStyles.text]}>
+                          {review.comment}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <View style={styles.emptyReviewsContainer}>
+                    <MaterialCommunityIcons name="comment-off-outline" size={48} color="#BDBDBD" />
+                    <Text style={[styles.emptyReviewsText, themedStyles.subtitle]}>
+                      {t('coaches.noReviews')}
+                    </Text>
+                  </View>
+                )}
+              </Card.Content>
+            </ScrollView>
+          </Card>
+        </Modal>
+      </Portal>
 
       {/* Review Modal */}
       <Portal>
@@ -596,7 +719,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   scrollContent: {
-    paddingBottom: 100, // Extra padding for FAB
+    paddingBottom: 20,
   },
   coachCard: {
     backgroundColor: '#FFFFFF',
@@ -686,10 +809,10 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 8,
   },
   actionButton: {
     flex: 1,
-    marginHorizontal: 5,
     borderRadius: 12,
   },
   singleActionButton: {
@@ -809,12 +932,70 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     borderRadius: 12,
   },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#2E7D32',
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#6C757D',
+    marginTop: 10,
+  },
+  reviewsListContainer: {
+    marginTop: 20,
+  },
+  reviewListItem: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  reviewListItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  reviewListUserInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 12,
+  },
+  reviewListUserDetails: {
+    flex: 1,
+  },
+  reviewListUserName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1B1B1B',
+    marginBottom: 4,
+  },
+  reviewListDate: {
+    fontSize: 12,
+    color: '#6C757D',
+  },
+  reviewListRatingStars: {
+    marginLeft: 8,
+  },
+  reviewListComment: {
+    fontSize: 14,
+    color: '#1B1B1B',
+    lineHeight: 20,
+  },
+  emptyReviewsContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyReviewsText: {
+    fontSize: 14,
+    color: '#BDBDBD',
+    marginTop: 12,
+    textAlign: 'center',
   },
 });
 

@@ -63,7 +63,20 @@ const LoginScreen = ({ navigation }: any) => {
       navigation.replace('Main');
     } catch (err: any) {
       console.error('Login error:', err);
-      setError(err.response?.data?.message || 'Giriş yapılamadı');
+      // Daha detaylı hata mesajları
+      let errorMessage = 'Giriş yapılamadı';
+      
+      if (err.message?.includes('Network') || err.message?.includes('timeout') || err.code === 'ECONNABORTED' || err.code === 'ERR_NETWORK') {
+        errorMessage = 'Sunucuya bağlanılamıyor. Lütfen internet bağlantınızı kontrol edin.';
+      } else if (err.response?.status === 401 || err.response?.status === 403) {
+        errorMessage = err.response?.data?.message || 'E-posta veya şifre hatalı';
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

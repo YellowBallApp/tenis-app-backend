@@ -17,7 +17,6 @@ import {
   Avatar,
   Chip,
   Searchbar,
-  FAB,
   IconButton,
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
@@ -371,14 +370,6 @@ const MembersScreen = () => {
           )}
         </View>
       </Animated.ScrollView>
-
-      {/* FAB */}
-      <FAB
-        icon="plus"
-        style={styles.fab}
-        onPress={() => {}}
-        color="#FFFFFF"
-      />
     </View>
   );
 };
@@ -489,7 +480,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   scrollContent: {
-    paddingBottom: 100, // Extra padding for FAB
+    paddingBottom: 20,
   },
   memberCard: {
     backgroundColor: '#FFFFFF',
@@ -609,13 +600,6 @@ const styles = StyleSheet.create({
   },
   memberGridActions: {
     flexDirection: 'row',
-  },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#2E7D32',
   },
 });
 
