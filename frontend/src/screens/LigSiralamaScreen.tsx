@@ -8,9 +8,9 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
-  StatusBar,
   Animated,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   Card,
@@ -28,6 +28,7 @@ import {
   Menu,
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
+import { useLanguage } from '../context/LanguageContext';
 import { leagueStandingsService, authService, courtService, matchChallengeService } from '../services/api';
 import { ChallengeStatus } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -36,6 +37,7 @@ const { width } = Dimensions.get('window');
 
 const LigSiralamaScreen = ({ route, navigation }: any) => {
   const { lig } = route.params;
+  const insets = useSafeAreaInsets();
   
   // Scroll animation
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -55,6 +57,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
     extrapolate: 'clamp',
   });
   
+  const { t } = useLanguage();
   const [showChallengeModal, setShowChallengeModal] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
   const [challengeMessage, setChallengeMessage] = useState('');
@@ -727,12 +730,12 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
       {/* Animated Header Section */}
       <Animated.View style={[
         styles.headerSection,
-        { height: headerHeight }
+        { height: headerHeight, paddingTop: Platform.OS === 'android' ? insets.top + 20 : 50 }
       ]}>
         {/* Kompakt Başlık */}
         <Animated.View style={[
           styles.compactHeader,
-          { opacity: compactOpacity }
+          { opacity: compactOpacity, paddingTop: Platform.OS === 'android' ? insets.top + 20 : 50 }
         ]}>
           <TouchableOpacity 
             onPress={() => navigation.goBack()}
@@ -1319,7 +1322,6 @@ const styles = StyleSheet.create({
   headerSection: {
     backgroundColor: '#2E7D32',
     padding: 20,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight ? StatusBar.currentHeight + 20 : 50 : 50,
     overflow: 'hidden',
   },
   compactHeader: {
@@ -1327,7 +1329,6 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight ? StatusBar.currentHeight + 20 : 50 : 50,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',

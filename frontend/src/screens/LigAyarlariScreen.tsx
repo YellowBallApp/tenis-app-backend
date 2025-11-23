@@ -7,8 +7,8 @@ import {
   ActivityIndicator,
   Animated,
   Platform,
-  StatusBar,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Card,
   Title,
@@ -20,11 +20,14 @@ import {
   Chip,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useLanguage } from '../context/LanguageContext';
 import { leagueService } from '../services/api';
 import { useThemedStyles } from '../hooks/useThemedStyles';
 
 const LigAyarlariScreen = ({ navigation }: any) => {
   const { themedStyles, theme } = useThemedStyles();
+  const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settingsId, setSettingsId] = useState('');
@@ -203,7 +206,7 @@ const LigAyarlariScreen = ({ navigation }: any) => {
 
   return (
     <View style={[styles.container, themedStyles.container]}>
-      <Animated.View style={[styles.headerSection, { backgroundColor: theme.colors.primary, height: headerHeight, overflow: 'hidden' }]}>
+      <Animated.View style={[styles.headerSection, { backgroundColor: theme.colors.primary, height: headerHeight, overflow: 'hidden', paddingTop: Platform.OS === 'android' ? insets.top + 10 : 50 }]}>
         <Animated.View style={[styles.headerTop, { opacity: headerOpacity }]}>
           <IconButton
             icon="arrow-left"
@@ -226,7 +229,7 @@ const LigAyarlariScreen = ({ navigation }: any) => {
         </Animated.View>
         
         {/* Compact Header */}
-        <Animated.View style={[styles.compactHeader, { opacity: compactOpacity }]}>
+        <Animated.View style={[styles.compactHeader, { opacity: compactOpacity, paddingTop: Platform.OS === 'android' ? insets.top + 10 : 50 }]}>
           <IconButton
             icon="arrow-left"
             size={20}
@@ -785,7 +788,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 10,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 50 : 50,
   },
   compactBackButton: {
     margin: 0,

@@ -6,9 +6,10 @@ import {
   Dimensions,
   TouchableOpacity,
   Platform,
-  StatusBar,
   ActivityIndicator,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Card,
   Title,
@@ -18,12 +19,40 @@ import {
   Button,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Calendar } from 'react-native-calendars';
+import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { reservationService, courtService } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
+
+// Takvim için Türkçe locale ayarları
+LocaleConfig.locales['tr'] = {
+  monthNames: [
+    'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+    'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+  ],
+  monthNamesShort: ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'],
+  dayNames: ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'],
+  dayNamesShort: ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'],
+  today: 'Bugün'
+};
+
+// İngilizce locale ayarları
+LocaleConfig.locales['en'] = {
+  monthNames: [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ],
+  monthNamesShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  dayNames: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+  dayNamesShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+  today: 'Today'
+};
+LocaleConfig.defaultLocale = 'tr';
 
 const { width } = Dimensions.get('window');
 
 const ReservationsListScreen = ({ navigation }: any) => {
+  const { t, language } = useLanguage();
+  const insets = useSafeAreaInsets();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showCalendar, setShowCalendar] = useState(false);
   const [reservations, setReservations] = useState<any[]>([]);
@@ -35,6 +64,11 @@ const ReservationsListScreen = ({ navigation }: any) => {
     '14:00', '15:00', '16:00', '17:00', '18:00',
     '19:00', '20:00', '21:00', '22:00', '23:00'
   ];
+
+  // Dil değiştiğinde takvim locale'ini ayarla
+  useEffect(() => {
+    LocaleConfig.defaultLocale = language;
+  }, [language]);
 
   useEffect(() => {
     const loadCourts = async () => {
@@ -73,7 +107,7 @@ const ReservationsListScreen = ({ navigation }: any) => {
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('tr-TR', {
+    return date.toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -106,24 +140,24 @@ const ReservationsListScreen = ({ navigation }: any) => {
     
     return (
       <View style={styles.emptyCell}>
-        <Text style={styles.emptyText}>Boş</Text>
+        <Text style={styles.emptyText}>{t('reservationsList.empty')}</Text>
       </View>
     );
   };
 
   return (
     <View style={styles.container}>
-      <StatusBar backgroundColor="#2E7D32" barStyle="light-content" />
+      <StatusBar style="light" />
       
       {/* Header */}
-      <View style={styles.headerSection}>
+      <View style={[styles.headerSection, { paddingTop: Platform.OS === 'android' ? insets.top + 20 : 50 }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
           <MaterialCommunityIcons name="arrow-left" size={28} color="#FFFFFF" />
         </TouchableOpacity>
-        <Title style={styles.headerTitle}>Rezervasyonlar</Title>
+        <Title style={styles.headerTitle}>{t('reservationsList.title')}</Title>
         <View style={styles.placeholder} />
       </View>
 
@@ -143,7 +177,7 @@ const ReservationsListScreen = ({ navigation }: any) => {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2E7D32" />
-          <Text style={styles.loadingText}>Yükleniyor...</Text>
+          <Text style={styles.loadingText}>{t('reservationsList.loading')}</Text>
         </View>
       ) : (
         <ScrollView 
@@ -155,7 +189,7 @@ const ReservationsListScreen = ({ navigation }: any) => {
             {/* Table Header */}
             <View style={styles.tableHeader}>
               <View style={[styles.headerCell, styles.timeHeaderCell]}>
-                <Text style={styles.headerCellText}>Saat</Text>
+                <Text style={styles.headerCellText}>{t('reservationsList.timeHeader')}</Text>
               </View>
               {courts.map(court => (
                 <View key={court.id} style={[styles.headerCell, court.closed && styles.closedHeaderCell]}>
@@ -168,7 +202,7 @@ const ReservationsListScreen = ({ navigation }: any) => {
                     {court.name}
                   </Text>
                   {court.closed && (
-                    <Text style={styles.closedLabel}>Bakımda</Text>
+                    <Text style={styles.closedLabel}>{t('reservation.closed')}</Text>
                   )}
                 </View>
               ))}
@@ -205,11 +239,11 @@ const ReservationsListScreen = ({ navigation }: any) => {
       <View style={styles.legendSection}>
         <View style={styles.legendItem}>
           <View style={[styles.legendBox, { backgroundColor: '#E8F5E8' }]} />
-          <Text style={styles.legendText}>Rezerve Edilmiş</Text>
+          <Text style={styles.legendText}>{t('reservationsList.legendReserved')}</Text>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendBox, { backgroundColor: '#F5F5F5' }]} />
-          <Text style={styles.legendText}>Boş</Text>
+          <Text style={styles.legendText}>{t('reservationsList.legendEmpty')}</Text>
         </View>
       </View>
 
@@ -223,7 +257,7 @@ const ReservationsListScreen = ({ navigation }: any) => {
           <Card style={styles.calendarCard}>
             <Card.Content>
               <View style={styles.calendarHeader}>
-                <Title style={styles.calendarTitle}>Tarih Seçin</Title>
+                <Title style={styles.calendarTitle}>{t('reservation.selectDate')}</Title>
                 <TouchableOpacity onPress={() => setShowCalendar(false)}>
                   <MaterialCommunityIcons name="close" size={24} color="#757575" />
                 </TouchableOpacity>
@@ -277,7 +311,6 @@ const styles = StyleSheet.create({
   },
   headerSection: {
     backgroundColor: '#2E7D32',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight ? StatusBar.currentHeight + 20 : 50 : 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',

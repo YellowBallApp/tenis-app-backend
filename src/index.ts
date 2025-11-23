@@ -35,10 +35,54 @@ app.use(helmet({
 // Gzip sıkıştırma
 app.use(compression());
 
-app.use(cors({
-  origin: ['http://localhost:8081', 'http://localhost:3000', 'http://192.168.1.108:3000', 'http://192.168.1.108:8081'],
-  credentials: true
-}));
+// Development için esnek CORS ayarları - tüm local network IP'lerine izin ver
+const corsOptions = {
+  origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+    // Development modunda tüm local network IP'lerine izin ver
+    if (process.env.NODE_ENV !== 'production') {
+      // Origin yoksa (Postman, mobile app gibi) izin ver
+      if (!origin) {
+        return callback(null, true);
+      }
+      
+      // Localhost'a izin ver
+      if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+        return callback(null, true);
+      }
+      
+      // Local network IP'lerine izin ver (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+      const localNetworkRegex = /^https?:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2[0-9]|3[01])\.\d+\.\d+)(:\d+)?$/;
+      if (localNetworkRegex.test(origin)) {
+        return callback(null, true);
+      }
+      
+      // Ngrok URL'lerine izin ver
+      if (origin && (origin.includes('ngrok') || origin.includes('ngrok-free') || origin.includes('ngrok.io'))) {
+        return callback(null, true);
+      }
+      
+      // Expo Go ve development için tüm isteklere izin ver
+      return callback(null, true);
+    }
+    
+    // Production için sadece belirli origin'lere izin ver
+    const allowedOrigins = [
+      'http://localhost:8081',
+      'http://localhost:3000',
+    ];
+    
+    if (origin && allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS policy violation'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+};
+
+app.use(cors(corsOptions));
 
 // Body parser limitleri - profil fotoğrafları için yüksek limit
 app.use(express.json({ limit: '50mb' }));
@@ -93,7 +137,7 @@ AppDataSource.initialize()
     // 0.0.0.0 ile tüm network interface'lerden erişilebilir yap (mobil test için)
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📱 Mobile access: http://192.168.1.104:${PORT}`);
+      console.log(`📱 Mobile access: http://10.209.250.139:${PORT}`);
       console.log(`💻 Local access: http://localhost:${PORT}`);
     });
   })

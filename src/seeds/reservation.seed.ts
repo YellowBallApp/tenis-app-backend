@@ -23,41 +23,86 @@ export const seedReservations = async () => {
     return;
   }
 
+  // En az 2 kullanıcı ve 1 kort olmalı
+  if (users.length < 2) {
+    console.log(`⚠️  En az 2 kullanıcı gerekli, şu anda ${users.length} kullanıcı var`);
+    return;
+  }
+
+  if (courts.length < 1) {
+    console.log(`⚠️  En az 1 kort gerekli, şu anda ${courts.length} kort var`);
+    return;
+  }
+
   // Bugün ve yarın için rezervasyonlar
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  // Güvenli array erişimi için - mevcut kullanıcı sayısına göre
+  const getSafeUser = (index: number) => {
+    if (users.length === 0) return null;
+    if (index < users.length) return users[index];
+    return users[index % users.length] || users[0];
+  };
+  
+  const getSafeCourt = (index: number) => {
+    if (courts.length === 0) return null;
+    if (index < courts.length) return courts[index];
+    return courts[index % courts.length] || courts[0];
+  };
+
+  const user0 = getSafeUser(0);
+  const user1 = getSafeUser(1);
+  const user2 = getSafeUser(2);
+  const user3 = getSafeUser(3);
+  const user4 = getSafeUser(4);
+
+  const court0 = getSafeCourt(0);
+  const court1 = getSafeCourt(1);
+
+  // Null kontrolü
+  if (!user0 || !court0) {
+    console.log('⚠️  Kullanıcı veya kort bulunamadı');
+    return;
+  }
+
   const reservations = [
     {
-      user: users[0],
-      court: courts[0], // Kort 1
+      user: user0,
+      court: court0,
       startTime: new Date(today.getTime() + 9 * 60 * 60 * 1000), // 09:00
       endTime: new Date(today.getTime() + 10 * 60 * 60 * 1000),  // 10:00
-      participants: [users[1]],
-      notes: `Defi ligi maçı - Rakip: ${users[1].name}`,
+      participants: user1 ? [user1] : [],
+      notes: user1?.name ? `Defi ligi maçı - Rakip: ${user1.name}` : 'Defi ligi maçı',
     },
     {
-      user: users[2],
-      court: courts[1], // Kort 2
+      user: user2 || user0,
+      court: court1 || court0,
       startTime: new Date(today.getTime() + 10 * 60 * 60 * 1000), // 10:00
       endTime: new Date(today.getTime() + 11 * 60 * 60 * 1000),   // 11:00
-      participants: [users[3]],
-      notes: `Antrenman - Partner: ${users[3].name}`,
+      participants: user3 ? [user3] : [],
+      notes: user3?.name ? `Antrenman - Partner: ${user3.name}` : 'Antrenman',
     },
     {
-      user: users[1],
-      court: courts[0], // Kort 1
+      user: user1 || user0,
+      court: court0,
       startTime: new Date(today.getTime() + 18 * 60 * 60 * 1000), // 18:00
       endTime: new Date(today.getTime() + 19 * 60 * 60 * 1000),   // 19:00
-      participants: [users[4]],
-      notes: `Tekler maçı- Rakip: ${users[4].name}`,
+      participants: user4 ? [user4] : [],
+      notes: user4?.name ? `Tekler maçı - Rakip: ${user4.name}` : 'Tekler maçı',
     },
   ];
 
   for (const resData of reservations) {
-    const reservation = reservationRepository.create(resData);
-    await reservationRepository.save(reservation);
-    console.log(`✅ ${resData.court.name} - ${resData.startTime.getHours()}:00 (${resData.user.name})`);
+    try {
+      const reservation = reservationRepository.create(resData);
+      await reservationRepository.save(reservation);
+      const courtName = resData.court?.name || 'Bilinmeyen Kort';
+      const userName = resData.user?.name || 'Bilinmeyen Kullanıcı';
+      console.log(`✅ ${courtName} - ${resData.startTime.getHours()}:00 (${userName})`);
+    } catch (error) {
+      console.error(`❌ Rezervasyon oluşturulurken hata:`, error);
+    }
   }
 
   console.log('✅ Rezervasyon verileri oluşturuldu!');

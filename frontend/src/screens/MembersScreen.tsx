@@ -4,11 +4,11 @@ import {
   StyleSheet,
   ScrollView,
   Dimensions,
-  StatusBar,
   ActivityIndicator,
   Alert,
   Animated,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import {
   Card,
   Title,
@@ -21,6 +21,7 @@ import {
   IconButton,
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
+import { useLanguage } from '../context/LanguageContext';
 import { userService } from '../services/api';
 import { useThemedStyles } from '../hooks/useThemedStyles';
 
@@ -28,6 +29,7 @@ const { width } = Dimensions.get('window');
 
 const MembersScreen = () => {
   const { themedStyles, theme } = useThemedStyles();
+  const { t, language } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
@@ -56,6 +58,13 @@ const MembersScreen = () => {
     loadMembers();
   }, []);
 
+  // Dil değiştiğinde üyeleri yeniden yükle
+  useEffect(() => {
+    if (members.length > 0) {
+      loadMembers();
+    }
+  }, [language]);
+
   const loadMembers = async () => {
     try {
       setLoading(true);
@@ -65,12 +74,12 @@ const MembersScreen = () => {
       const formattedMembers = usersData.map((user: any) => ({
         id: user.id,
         name: user.name + (user.surname ? ` ${user.surname}` : ''),
-        level: user.title || 'Üye',
-        status: 'Aktif',
+        level: user.title || t('members.member'),
+        status: t('members.active'),
         surface: 'Sert',
         matchesPlayed: 0, // TODO: Match history'den hesaplanacak
         winRate: 0, // TODO: Match history'den hesaplanacak
-        lastActive: new Date(user.createdAt).toLocaleDateString('tr-TR'),
+        lastActive: new Date(user.createdAt).toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US'),
         email: user.email,
         phone: user.phone,
         gender: user.gender,
@@ -80,7 +89,7 @@ const MembersScreen = () => {
       setMembers(formattedMembers);
     } catch (error) {
       console.error('Üyeler yüklenirken hata:', error);
-      Alert.alert('Hata', 'Üyeler yüklenemedi');
+      Alert.alert(t('common.error'), t('members.notLoaded'));
     } finally {
       setLoading(false);
     }
@@ -96,27 +105,25 @@ const MembersScreen = () => {
   };
 
   const filters = [
-    { key: 'all', label: 'Tümü' },
-    { key: 'beginner', label: 'Başlangıç' },
-    { key: 'intermediate', label: 'Orta' },
-    { key: 'advanced', label: 'İleri' },
-    { key: 'expert', label: 'Uzman' },
+    { key: 'all', label: t('members.all') },
+    { key: 'beginner', label: t('members.beginner') },
+    { key: 'intermediate', label: t('members.intermediate') },
+    { key: 'advanced', label: t('members.advanced') },
+    { key: 'expert', label: t('members.expert') },
   ];
 
   const getLevelColor = (level: string) => {
-    switch (level) {
-      case 'Başlangıç': return '#4CAF50';
-      case 'Orta': return '#FF9800';
-      case 'İleri': return '#F44336';
-      case 'Uzman': return '#9C27B0';
-      default: return '#6C757D';
-    }
+    if (level === t('members.beginner')) return '#4CAF50';
+    if (level === t('members.intermediate')) return '#FF9800';
+    if (level === t('members.advanced')) return '#F44336';
+    if (level === t('members.expert')) return '#9C27B0';
+    return '#6C757D';
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Aktif': return '#4CAF50';
-      case 'Yeni': return '#2196F3';
+      case t('members.active'): return '#4CAF50';
+      case t('members.new'): return '#2196F3';
       case 'Pasif': return '#9E9E9E';
       default: return '#6C757D';
     }
@@ -133,10 +140,10 @@ const MembersScreen = () => {
 
   const filteredMembers = members.filter(member => {
     if (selectedFilter === 'all') return true;
-    if (selectedFilter === 'beginner' && member.level === 'Başlangıç') return true;
-    if (selectedFilter === 'intermediate' && member.level === 'Orta') return true;
-    if (selectedFilter === 'advanced' && member.level === 'İleri') return true;
-    if (selectedFilter === 'expert' && member.level === 'Uzman') return true;
+    if (selectedFilter === 'beginner' && member.level === t('members.beginner')) return true;
+    if (selectedFilter === 'intermediate' && member.level === t('members.intermediate')) return true;
+    if (selectedFilter === 'advanced' && member.level === t('members.advanced')) return true;
+    if (selectedFilter === 'expert' && member.level === t('members.expert')) return true;
     return false;
   });
 
@@ -173,17 +180,17 @@ const MembersScreen = () => {
           <View style={styles.statItem}>
             <MaterialCommunityIcons name="tennis" size={20} color={theme.colors.primary} />
             <Text style={[styles.statNumber, themedStyles.statNumber]}>{member.matchesPlayed}</Text>
-            <Text style={[styles.statLabel, themedStyles.statLabel]}>Maç</Text>
+            <Text style={[styles.statLabel, themedStyles.statLabel]}>{t('members.matches')}</Text>
           </View>
           <View style={styles.statItem}>
             <MaterialCommunityIcons name="percent" size={20} color={theme.colors.primary} />
             <Text style={[styles.statNumber, themedStyles.statNumber]}>{member.winRate}%</Text>
-            <Text style={[styles.statLabel, themedStyles.statLabel]}>Başarı</Text>
+            <Text style={[styles.statLabel, themedStyles.statLabel]}>{t('members.successRate')}</Text>
           </View>
           <View style={styles.statItem}>
             <MaterialCommunityIcons name="circle" size={20} color={theme.colors.primary} />
             <Text style={[styles.statNumber, themedStyles.statNumber]}>{member.surface}</Text>
-            <Text style={[styles.statLabel, themedStyles.statLabel]}>Zemin</Text>
+            <Text style={[styles.statLabel, themedStyles.statLabel]}>{t('members.surface')}</Text>
           </View>
         </View>
 
@@ -196,7 +203,7 @@ const MembersScreen = () => {
         </View>
 
         <View style={styles.memberFooter}>
-          <Text style={[styles.lastActive, themedStyles.subtitle]}>Son aktivite: {member.lastActive}</Text>
+          <Text style={[styles.lastActive, themedStyles.subtitle]}>{t('members.lastActive')} {member.lastActive}</Text>
           <View style={styles.actionButtons}>
             <IconButton
               icon="account"
@@ -234,7 +241,7 @@ const MembersScreen = () => {
           {member.level}
         </Chip>
         <Text style={[styles.memberGridStats, themedStyles.text]}>
-          {member.matchesPlayed} maç • {member.winRate}% başarı
+          {member.matchesPlayed} {t('members.matchCount')} • {member.winRate}% {t('members.successRate')}
         </Text>
         <View style={styles.memberGridActions}>
           <IconButton
@@ -258,14 +265,14 @@ const MembersScreen = () => {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="#2E7D32" />
-        <Text style={{ marginTop: 10, color: '#6C757D' }}>Yükleniyor...</Text>
+        <Text style={{ marginTop: 10, color: '#6C757D' }}>{t('common.loading')}</Text>
       </View>
     );
   }
 
   return (
     <View style={[styles.container, themedStyles.container]}>
-      <StatusBar barStyle="light-content" backgroundColor={theme.colors.primary} />
+      <StatusBar style="light" />
       
       {/* Animated Header Section */}
       <Animated.View style={[
@@ -280,14 +287,14 @@ const MembersScreen = () => {
           styles.compactHeader,
           { opacity: compactOpacity }
         ]}>
-          <Title style={styles.compactTitle}>👥 Üyeler ({members.length})</Title>
+          <Title style={styles.compactTitle}>👥 {t('members.title')} ({members.length})</Title>
         </Animated.View>
         
         {/* Normal İçerik */}
         <Animated.View style={{ opacity: headerOpacity }}>
-          <Title style={styles.headerTitle}>👥 Üyeler</Title>
+          <Title style={styles.headerTitle}>👥 {t('members.title')}</Title>
           <Text style={styles.headerSubtitle}>
-            Tenis kulübü üyelerini keşfedin ve bağlantı kurun
+            {t('members.subtitle')}
           </Text>
         </Animated.View>
       </Animated.View>
@@ -307,7 +314,7 @@ const MembersScreen = () => {
         {/* Search and View Toggle */}
         <View style={styles.controlsContainer}>
           <Searchbar
-            placeholder="Üye ara..."
+            placeholder={t('members.searchPlaceholder')}
             onChangeText={setSearchQuery}
             value={searchQuery}
             style={[styles.searchBar, themedStyles.input]}

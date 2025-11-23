@@ -23,6 +23,7 @@ import {
 import { MaterialCommunityIcons, MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { reservationService, announcementService, userService, courtService, coachService, notificationService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useThemedStyles } from '../hooks/useThemedStyles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -33,6 +34,7 @@ type HomeScreenNavigationProp = BottomTabNavigationProp<MainTabParamList, 'Home'
 const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const { logout } = useAuth();
+  const { t, language } = useLanguage();
   const { themedStyles, theme } = useThemedStyles();
   const [reservations, setReservations] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -46,6 +48,7 @@ const HomeScreen = () => {
   
   // Scroll animation için
   const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollViewRef = useRef<any>(null);
   const headerHeight = scrollY.interpolate({
     inputRange: [0, 150],
     outputRange: [250, 100],
@@ -63,16 +66,25 @@ const HomeScreen = () => {
   });
 
   const quickActions = [
-    { title: 'Rezervasyon Yap', icon: 'calendar-plus', color: '#2E7D32', action: () => navigation.navigate('Reservation') },
-    { title: 'Rezervasyonlar', icon: 'calendar-text', color: '#1B5E20', action: () => navigation.navigate('ReservationsList') },
-    { title: 'Maç Geçmişi', icon: 'history', color: '#FF9800', action: () => navigation.navigate('MatchHistory') },
-    { title: 'Bildirimler', icon: 'bell', color: '#1976D2', action: () => navigation.navigate('Notifications'), badge: unreadCount },
+    { title: t('home.reservationMake'), icon: 'calendar-plus', color: '#2E7D32', action: () => navigation.navigate('Reservation') },
+    { title: t('home.reservationsList'), icon: 'calendar-text', color: '#1B5E20', action: () => navigation.navigate('ReservationsList') },
+    { title: t('home.matchHistory'), icon: 'history', color: '#FF9800', action: () => navigation.navigate('MatchHistory') },
+    { title: t('home.notifications'), icon: 'bell', color: '#1976D2', action: () => navigation.navigate('Notifications'), badge: unreadCount },
   ];
 
-  // Ekran her görünür olduğunda rezervasyonları yenile
+  // İlk yüklemede veri çek
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // Ekran her görünür olduğunda sadece scroll pozisyonunu sıfırla (veri yükleme)
   useFocusEffect(
     React.useCallback(() => {
-      loadData();
+      // Scroll pozisyonunu en üste al
+      scrollY.setValue(0);
+      if (scrollViewRef.current) {
+        scrollViewRef.current.scrollTo({ y: 0, animated: false });
+      }
     }, [])
   );
 
@@ -134,14 +146,14 @@ const HomeScreen = () => {
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString(language === 'tr' ? 'tr-TR' : 'en-US', { hour: '2-digit', minute: '2-digit' });
   };
 
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="#2E7D32" />
-        <Text style={{ marginTop: 10, color: '#6C757D' }}>Yükleniyor...</Text>
+        <Text style={{ marginTop: 10, color: '#6C757D' }}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -166,33 +178,34 @@ const HomeScreen = () => {
           styles.compactHeader,
           { opacity: compactOpacity }
         ]}>
-          <Text style={styles.compactTitle}>🎾 Ana Sayfa</Text>
+          <Text style={styles.compactTitle}>{t('home.homePage')}</Text>
         </Animated.View>
         
         {/* Normal İçerik (scroll başta görünür) */}
         <Animated.View style={[styles.heroContent, { opacity: headerOpacity }]}>
-          <Title style={styles.heroTitle}>🎾 Tenis Kulübü</Title>
+          <Title style={styles.heroTitle}>🎾 {t('home.tennisClub')}</Title>
           <Text style={styles.heroSubtitle}>
-            Profesyonel tenis deneyimi için doğru adres
+            {t('home.subtitle')}
           </Text>
         </Animated.View>
         <Animated.View style={[styles.heroStats, { opacity: headerOpacity }]}>
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>{stats.users}</Text>
-            <Text style={styles.statLabel}>Aktif Üye</Text>
+            <Text style={styles.statLabel}>{t('home.activeMembers')}</Text>
           </View>
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>{stats.courts}</Text>
-            <Text style={styles.statLabel}>Kort</Text>
+            <Text style={styles.statLabel}>{t('home.courts')}</Text>
           </View>
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>{stats.coaches}</Text>
-            <Text style={styles.statLabel}>Koç</Text>
+            <Text style={styles.statLabel}>{t('home.coaches')}</Text>
           </View>
         </Animated.View>
       </Animated.View>
 
       <Animated.ScrollView
+        ref={scrollViewRef}
         style={styles.scrollView}
         contentContainerStyle={{ paddingTop: 250 }}
         onScroll={Animated.event(
@@ -204,7 +217,7 @@ const HomeScreen = () => {
 
       {/* Quick Actions */}
       <View style={styles.section}>
-        <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>Hızlı İşlemler</Title>
+        <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>{t('home.quickActions')}</Title>
         <View style={styles.quickActionsGrid}>
           {quickActions.map((action, index) => (
             <TouchableOpacity key={index} onPress={action.action} activeOpacity={1}>
@@ -228,7 +241,7 @@ const HomeScreen = () => {
 
       {/* Upcoming Matches - Yakın Zamandaki Rezervasyonlar */}
       <View style={styles.section}>
-        <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>Yakın Zamandaki Rezervasyonlar</Title>
+        <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>{t('home.upcomingReservationsTitle')}</Title>
         {reservations.length > 0 ? (
           reservations.map((reservation) => (
             <Card key={reservation.id} style={[styles.matchCard, themedStyles.card]}>
@@ -236,7 +249,7 @@ const HomeScreen = () => {
                 <View style={styles.matchHeader}>
                   <Text style={styles.matchTime}>{formatTime(reservation.startTime)}</Text>
                   <View style={styles.courtChip}>
-                    <Text style={styles.courtText}>{reservation.court?.name || 'Kort'}</Text>
+                    <Text style={styles.courtText}>{reservation.court?.name || t('home.courts')}</Text>
                   </View>
                 </View>
                 <View style={styles.matchPlayers}>
@@ -266,7 +279,7 @@ const HomeScreen = () => {
           <Card style={[styles.matchCard, themedStyles.card]}>
             <Card.Content>
               <Text style={{ textAlign: 'center', color: '#6C757D' }}>
-                Yakın zamanda rezervasyon yok
+                {t('home.noUpcomingReservations')}
               </Text>
             </Card.Content>
           </Card>
@@ -275,7 +288,7 @@ const HomeScreen = () => {
 
       {/* News & Updates */}
       <View style={styles.section}>
-        <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>Haberler & Güncellemeler</Title>
+        <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>{t('home.newsUpdates')}</Title>
         {announcements.length > 0 ? (
           announcements.map((announcement) => (
             <Card key={announcement.id} style={[styles.newsCard, themedStyles.card]}>
@@ -292,7 +305,7 @@ const HomeScreen = () => {
                   {announcement.content}
                 </Text>
                 <Text style={[styles.newsAuthor, themedStyles.subtitle]}>
-                  👤 {announcement.author.name} • {new Date(announcement.createdAt).toLocaleDateString('tr-TR')}
+                  👤 {announcement.author.name} • {new Date(announcement.createdAt).toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US')}
                 </Text>
               </Card.Content>
             </Card>
@@ -301,7 +314,7 @@ const HomeScreen = () => {
           <Card style={[styles.newsCard, themedStyles.card]}>
             <Card.Content>
               <Text style={{ textAlign: 'center', color: '#6C757D' }}>
-                Henüz duyuru bulunmuyor
+                {t('home.noAnnouncements')}
               </Text>
             </Card.Content>
           </Card>

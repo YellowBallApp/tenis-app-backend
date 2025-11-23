@@ -6,8 +6,8 @@ import {
   RefreshControl,
   Alert,
   TouchableOpacity,
-  StatusBar,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   Card,
@@ -21,10 +21,12 @@ import {
   Appbar,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { notificationService, matchChallengeService, authService } from '../services/api';
+import { notificationService, matchChallengeService } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
 import { Notification, NotificationType } from '../types';
 
 const NotificationsScreen = ({ navigation }: any) => {
+  const { t, language } = useLanguage();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -62,7 +64,7 @@ const NotificationsScreen = ({ navigation }: any) => {
       setChallengeDetails(challengeDetailsMap);
     } catch (error) {
       console.error('Bildirimler yüklenirken hata:', error);
-      Alert.alert('Hata', 'Bildirimler yüklenemedi');
+      Alert.alert(t('common.error'), t('notifications.loadError'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -92,10 +94,10 @@ const NotificationsScreen = ({ navigation }: any) => {
     try {
       await notificationService.markAllAsRead();
       setNotifications((prev) => prev.map((notif) => ({ ...notif, isRead: true })));
-      Alert.alert('Başarılı', 'Tüm bildirimler okundu olarak işaretlendi');
+      Alert.alert(t('common.success'), t('notifications.markAllSuccess'));
     } catch (error) {
       console.error('Tüm bildirimler okundu işaretlenemedi:', error);
-      Alert.alert('Hata', 'İşlem başarısız oldu');
+      Alert.alert(t('common.error'), t('notifications.markAllError'));
     }
   };
 
@@ -105,14 +107,14 @@ const NotificationsScreen = ({ navigation }: any) => {
       setNotifications((prev) => prev.filter((notif) => notif.id !== notificationId));
     } catch (error: any) {
       console.error('Bildirim silinemedi:', error);
-      Alert.alert('Hata', error.response?.data?.message || 'Bildirim silinemedi');
+      Alert.alert(t('common.error'), error.response?.data?.message || t('notifications.deleteError'));
     }
   };
 
   const handleAcceptChallenge = async (notification: Notification) => {
     // relatedEntityId challenge ID'si olmalı
     if (!notification.relatedEntityId) {
-      Alert.alert('Hata', 'Challenge ID bulunamadı');
+      Alert.alert(t('common.error'), t('notifications.challengeIdMissing'));
       return;
     }
 
@@ -133,9 +135,9 @@ const NotificationsScreen = ({ navigation }: any) => {
       // Listeyi güncelle
       setNotifications((prev) => prev.filter((notif) => notif.id !== notification.id));
       
-      Alert.alert('Başarılı', 'Meydan okuma kabul edildi');
+      Alert.alert(t('common.success'), t('notifications.challengeAcceptSuccess'));
     } catch (error: any) {
-      Alert.alert('Hata', error.response?.data?.message || 'İşlem başarısız oldu');
+      Alert.alert(t('common.error'), error.response?.data?.message || t('notifications.actionError'));
     } finally {
       setProcessingNotification(null);
     }
@@ -144,7 +146,7 @@ const NotificationsScreen = ({ navigation }: any) => {
   const handleRejectChallenge = async (notification: Notification) => {
     // relatedEntityId challenge ID'si olmalı
     if (!notification.relatedEntityId) {
-      Alert.alert('Hata', 'Challenge ID bulunamadı');
+      Alert.alert(t('common.error'), t('notifications.challengeIdMissing'));
       return;
     }
 
@@ -164,9 +166,9 @@ const NotificationsScreen = ({ navigation }: any) => {
       // Listeyi güncelle
       setNotifications((prev) => prev.filter((notif) => notif.id !== notification.id));
       
-      Alert.alert('Başarılı', 'Meydan okuma reddedildi');
+      Alert.alert(t('common.success'), t('notifications.challengeRejectSuccess'));
     } catch (error: any) {
-      Alert.alert('Hata', error.response?.data?.message || 'İşlem başarısız oldu');
+      Alert.alert(t('common.error'), error.response?.data?.message || t('notifications.actionError'));
     } finally {
       setProcessingNotification(null);
     }
@@ -175,22 +177,30 @@ const NotificationsScreen = ({ navigation }: any) => {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+    const diffInHours = Math.floor(diffInMinutes / 60);
 
-    if (diffInHours < 1) {
-      const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-      return `${diffInMinutes} dakika önce`;
-    } else if (diffInHours < 24) {
-      return `${diffInHours} saat önce`;
-    } else if (diffInHours < 48) {
-      return 'Dün';
-    } else {
-      return date.toLocaleDateString('tr-TR', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      });
+    if (diffInMinutes < 60) {
+      return diffInMinutes === 1
+        ? `1 ${t('notifications.minuteAgo')}`
+        : `${diffInMinutes} ${t('notifications.minutesAgo')}`;
     }
+
+    if (diffInHours < 24) {
+      return diffInHours === 1
+        ? `1 ${t('notifications.hourAgo')}`
+        : `${diffInHours} ${t('notifications.hoursAgo')}`;
+    }
+
+    if (diffInHours < 48) {
+      return t('notifications.yesterday');
+    }
+
+    return date.toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
   };
 
   const renderNotification = (notification: Notification) => {
@@ -217,7 +227,7 @@ const NotificationsScreen = ({ navigation }: any) => {
             </View>
             <View style={styles.notificationHeaderText}>
               <Text style={styles.notificationTitle}>
-                {isPendingMatch ? 'Yeni Meydan Okuma' : 'Sistem Bildirimi'}
+                {isPendingMatch ? t('notifications.challengeTitle') : t('notifications.systemTitle')}
               </Text>
               <Text style={styles.notificationDate}>
                 {formatDate(notification.createdAt)}
@@ -230,7 +240,7 @@ const NotificationsScreen = ({ navigation }: any) => {
                 textStyle={styles.unreadChipText}
                 compact
               >
-                Yeni
+              {t('notifications.newLabel')}
               </Chip>
             )}
             <IconButton
@@ -248,8 +258,20 @@ const NotificationsScreen = ({ navigation }: any) => {
               <Text style={styles.challengeText}>
                 <Text style={styles.challengerName}>{challenge.challenger.name}</Text>
                 {' '}
-                <Text style={styles.leagueName}>{challenge.league.description}</Text>
-                {' liginde sana meydan okudu!'}
+                {language === 'tr' ? (
+                  <>
+                    <Text style={styles.leagueName}>{challenge.league.description}</Text>
+                    {' '}
+                    {t('notifications.challengeOutro')}
+                  </>
+                ) : (
+                  <>
+                    {t('notifications.challengeIntro')} {' '}
+                    <Text style={styles.leagueName}>{challenge.league.description}</Text>
+                    {' '}
+                    {t('notifications.challengeOutro')}
+                  </>
+                )}
               </Text>
 
               {!isProcessing && (
@@ -261,7 +283,7 @@ const NotificationsScreen = ({ navigation }: any) => {
                     onPress={() => handleAcceptChallenge(notification)}
                     style={styles.acceptButton}
                   >
-                    Kabul Et
+                    {t('notifications.accept')}
                   </Button>
                   <Button
                     mode="outlined"
@@ -270,7 +292,7 @@ const NotificationsScreen = ({ navigation }: any) => {
                     onPress={() => handleRejectChallenge(notification)}
                     style={styles.rejectButton}
                   >
-                    Reddet
+                    {t('notifications.reject')}
                   </Button>
                 </View>
               )}
@@ -278,13 +300,13 @@ const NotificationsScreen = ({ navigation }: any) => {
               {isProcessing && (
                 <View style={styles.processingContainer}>
                   <ActivityIndicator size="small" color="#2E7D32" />
-                  <Text style={styles.processingText}>İşleniyor...</Text>
+                  <Text style={styles.processingText}>{t('notifications.processing')}</Text>
                 </View>
               )}
             </View>
           ) : isPendingMatch ? (
             <View style={styles.systemNotificationContent}>
-              <Text style={styles.notificationMessage}>Maç detayları yükleniyor...</Text>
+              <Text style={styles.notificationMessage}>{t('notifications.loadingDetails')}</Text>
             </View>
           ) : (
             <View style={styles.systemNotificationContent}>
@@ -295,7 +317,7 @@ const NotificationsScreen = ({ navigation }: any) => {
                   onPress={() => handleMarkAsRead(notification.id)}
                   style={styles.markReadButton}
                 >
-                  Okundu İşaretle
+                  {t('notifications.markAsRead')}
                 </Button>
               )}
             </View>
@@ -316,14 +338,14 @@ const NotificationsScreen = ({ navigation }: any) => {
   if (loading && !refreshing) {
     return (
       <>
-        <StatusBar barStyle="light-content" backgroundColor="#2E7D32" />
+        <StatusBar style="light" />
         <Appbar.Header style={styles.appbarHeader}>
           <Appbar.BackAction onPress={() => navigation.goBack()} color="#FFFFFF" />
-          <Appbar.Content title="Bildirimler" titleStyle={styles.appbarTitle} />
+        <Appbar.Content title={t('notifications.title')} titleStyle={styles.appbarTitle} />
         </Appbar.Header>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2E7D32" />
-          <Text style={styles.loadingText}>Bildirimler yükleniyor...</Text>
+          <Text style={styles.loadingText}>{t('notifications.loading')}</Text>
         </View>
       </>
     );
@@ -331,11 +353,11 @@ const NotificationsScreen = ({ navigation }: any) => {
 
   return (
     <>
-      <StatusBar barStyle="light-content" backgroundColor="#2E7D32" />
+      <StatusBar style="light" />
       <View style={styles.container}>
         <Appbar.Header style={styles.appbarHeader}>
           <Appbar.BackAction onPress={() => navigation.goBack()} color="#FFFFFF" />
-          <Appbar.Content title="Bildirimler" titleStyle={styles.appbarTitle} />
+          <Appbar.Content title={t('notifications.title')} titleStyle={styles.appbarTitle} />
           {notifications.some((n) => !n.isRead) && (
             <Appbar.Action 
               icon="check-all" 
@@ -356,7 +378,7 @@ const NotificationsScreen = ({ navigation }: any) => {
             <Card.Content>
               <View style={styles.emptyContainer}>
                 <MaterialCommunityIcons name="bell-off" size={64} color="#CED4DA" />
-                <Text style={styles.emptyText}>Henüz bildiriminiz yok</Text>
+                <Text style={styles.emptyText}>{t('notifications.empty')}</Text>
               </View>
             </Card.Content>
           </Card>
@@ -372,10 +394,10 @@ const NotificationsScreen = ({ navigation }: any) => {
               disabled={page === 1}
               icon="chevron-left"
             >
-              Önceki
+              {t('notifications.previous')}
             </Button>
             <Text style={styles.pageInfo}>
-              Sayfa {page} / {totalPages}
+              {t('notifications.page')} {page} / {totalPages}
             </Text>
             <Button
               mode="outlined"
@@ -383,7 +405,7 @@ const NotificationsScreen = ({ navigation }: any) => {
               disabled={page === totalPages}
               icon="chevron-right"
             >
-              Sonraki
+              {t('notifications.next')}
             </Button>
           </View>
         )}

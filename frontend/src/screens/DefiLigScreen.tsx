@@ -9,9 +9,9 @@ import {
   Alert,
   SafeAreaView,
   Platform,
-  StatusBar,
   Animated,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Card,
   Title,
@@ -25,6 +25,7 @@ import {
   Divider,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useLanguage } from '../context/LanguageContext';
 import { authService, leagueService, leagueStandingsService, matchHistoryService } from '../services/api';
 import { User } from '../types';
 import { useThemedStyles } from '../hooks/useThemedStyles';
@@ -33,6 +34,8 @@ const { width } = Dimensions.get('window');
 
 const DefiLigScreen = ({ navigation }: any) => {
   const { themedStyles, theme } = useThemedStyles();
+  const { t, language } = useLanguage();
+  const insets = useSafeAreaInsets();
   const [showLigModal, setShowLigModal] = useState(false);
   const [selectedLig, setSelectedLig] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -70,7 +73,7 @@ const DefiLigScreen = ({ navigation }: any) => {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [language]);
 
   const loadData = async () => {
     try {
@@ -106,11 +109,11 @@ const DefiLigScreen = ({ navigation }: any) => {
       // Backend'den gelen profil verisini UI formatına dönüştür
       const formattedUser = {
         id: profileData.id,
-        name: profileData.name || 'Oyuncu',
+        name: profileData.name || t('defiLeague.defaultPlayerName'),
         email: profileData.email,
         age: profileData.age,
-        level: 'Üye',
-        rank: 'Altın', // TODO: Rank sistemi eklenecek
+        level: profileData.title || t('profile.member'),
+        rank: t('profile.gold'), // TODO: Rank sistemi eklenecek
         points: 0, // TODO: Match history'den hesaplanacak
         position: 0, // TODO: League ranking'den alınacak
         winRate: winRate,
@@ -127,6 +130,19 @@ const DefiLigScreen = ({ navigation }: any) => {
       const leagueIcons = ['trophy', 'weather-sunny', 'account-multiple'];
       
       // Her lig için standings'leri çek ve format düzenle
+      const defaultDescription = t('defiLeague.defaultDescription');
+      const defaultRewards = [
+        t('defiLeague.rewards.badges'),
+        t('defiLeague.rewards.points'),
+        t('defiLeague.rewards.special'),
+      ];
+      const defaultRules = [
+        t('defiLeague.rules.format'),
+        t('defiLeague.rules.challenge'),
+        t('defiLeague.rules.score'),
+        t('defiLeague.rules.update'),
+      ];
+
       const formattedLeagues = await Promise.all(
         allLeagues.map(async (league: any, index: number) => {
           const standings = await leagueStandingsService.getStandingsByLeagueId(league.id);
@@ -140,19 +156,14 @@ const DefiLigScreen = ({ navigation }: any) => {
             id: league.id,
             name: league.name || league.code,
             code: league.code,
-            description: league.description || 'Rekabetçi oyuncularla karşılaşın ve lig sıralamasında yükselin',
+            description: league.description || defaultDescription,
             playerCount: standings.length || 0,
             isUserInLeague: isUserInThisLeague,
             settings: league.settings,
             color: leagueColors[index % leagueColors.length],
             icon: leagueIcons[index % leagueIcons.length],
-            rewards: ['Lig rozetleri', 'Puan bonusları', 'Özel ödüller'],
-            rules: [
-              '1v1 maç formatı',
-              'Sadece 3 sıra üstüne meydan okuma',
-              'Puan bazlı sıralama',
-              'Haftalık lig güncellemeleri'
-            ],
+            rewards: defaultRewards,
+            rules: defaultRules,
           };
         })
       );
@@ -160,7 +171,7 @@ const DefiLigScreen = ({ navigation }: any) => {
       setLeagues(formattedLeagues);
     } catch (error) {
       console.error('Veri yüklenirken hata:', error);
-      Alert.alert('Hata', 'Veriler yüklenemedi');
+      Alert.alert(t('common.error'), t('defiLeague.loadError'));
     } finally {
       setLoading(false);
     }
@@ -182,9 +193,9 @@ const DefiLigScreen = ({ navigation }: any) => {
         if (settings && (settings.minAge !== null || settings.maxAge !== null)) {
           if (!userAge) {
             Alert.alert(
-              'Yaş Bilgisi Gerekli',
-              'Bu lige katılmak için yaş bilgisi gereklidir. Lütfen profilinizi güncelleyin.',
-              [{ text: 'Tamam' }]
+              t('defiLeague.alerts.ageInfoTitle'),
+              t('defiLeague.alerts.ageInfoMessage'),
+              [{ text: t('common.ok') }]
             );
             setShowLigModal(false);
             return;
@@ -192,9 +203,11 @@ const DefiLigScreen = ({ navigation }: any) => {
           
           if (settings.minAge !== null && userAge < settings.minAge) {
             Alert.alert(
-              'Yaş Uyumsuzluğu',
-              `Bu lige katılmak için minimum ${settings.minAge} yaşında olmanız gerekmektedir. Sizin yaşınız: ${userAge}`,
-              [{ text: 'Tamam' }]
+              t('defiLeague.alerts.ageMismatchTitle'),
+              t('defiLeague.alerts.minAgeMessage')
+                .replace('{{min}}', String(settings.minAge))
+                .replace('{{age}}', String(userAge)),
+              [{ text: t('common.ok') }]
             );
             setShowLigModal(false);
             return;
@@ -202,9 +215,11 @@ const DefiLigScreen = ({ navigation }: any) => {
           
           if (settings.maxAge !== null && userAge > settings.maxAge) {
             Alert.alert(
-              'Yaş Uyumsuzluğu',
-              `Bu lige katılmak için maksimum ${settings.maxAge} yaşında olmanız gerekmektedir. Sizin yaşınız: ${userAge}`,
-              [{ text: 'Tamam' }]
+              t('defiLeague.alerts.ageMismatchTitle'),
+              t('defiLeague.alerts.maxAgeMessage')
+                .replace('{{max}}', String(settings.maxAge))
+                .replace('{{age}}', String(userAge)),
+              [{ text: t('common.ok') }]
             );
             setShowLigModal(false);
             return;
@@ -215,7 +230,10 @@ const DefiLigScreen = ({ navigation }: any) => {
         
         await leagueStandingsService.joinLeague(currentUser.id, selectedLig.id);
         
-        Alert.alert('Başarılı', `${selectedLig.name} ligine katıldınız!`);
+        Alert.alert(
+          t('defiLeague.alerts.joinSuccessTitle'),
+          t('defiLeague.alerts.joinSuccessMessage').replace('{{league}}', selectedLig.name)
+        );
         
         // Ligleri yeniden yükle
         await loadData();
@@ -227,8 +245,8 @@ const DefiLigScreen = ({ navigation }: any) => {
       navigation.navigate('LigSiralama', { lig: selectedLig });
     } catch (error: any) {
       console.error('Lige katılma hatası:', error);
-      const errorMessage = error.response?.data?.message || 'Lige katılırken bir hata oluştu';
-      Alert.alert('Hata', errorMessage);
+      const errorMessage = error.response?.data?.message || t('defiLeague.alerts.joinErrorMessage');
+      Alert.alert(t('common.error'), errorMessage);
       setLoading(false);
     }
   };
@@ -238,6 +256,9 @@ const DefiLigScreen = ({ navigation }: any) => {
   const startIndex = currentPage * leaguesPerPage;
   const endIndex = startIndex + leaguesPerPage;
   const currentLeagues = leagues.slice(startIndex, endIndex);
+  const pageIndicatorText = t('defiLeague.pageIndicator')
+    .replace('{{current}}', String(totalPages === 0 ? 0 : currentPage + 1))
+    .replace('{{total}}', String(totalPages));
 
   const goToNextPage = () => {
     if (currentPage < totalPages - 1) {
@@ -251,18 +272,41 @@ const DefiLigScreen = ({ navigation }: any) => {
     }
   };
 
+  const formatAgeRange = (settings?: any) => {
+    if (!settings || (settings.minAge === null && settings.maxAge === null)) {
+      return t('defiLeague.modal.noAgeLimit');
+    }
+
+    if (settings.minAge !== null && settings.maxAge !== null) {
+      return `${settings.minAge} - ${settings.maxAge}`;
+    }
+
+    if (settings.minAge !== null) {
+      return t('defiLeague.ageRangeUnlimited.min').replace('{{min}}', String(settings.minAge));
+    }
+
+    if (settings.maxAge !== null) {
+      return t('defiLeague.ageRangeUnlimited.max').replace('{{max}}', String(settings.maxAge));
+    }
+
+    return t('defiLeague.modal.noAgeLimit');
+  };
+
+  const currentUserLevelLabel = currentUser?.level || t('profile.member');
+  const currentUserRankLabel = currentUser?.rank || t('profile.gold');
+
   if (loading || !currentUser) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="#2E7D32" />
-        <Text style={{ marginTop: 10, color: '#6C757D' }}>Yükleniyor...</Text>
+        <Text style={{ marginTop: 10, color: '#6C757D' }}>{t('defiLeague.loadingText')}</Text>
       </View>
     );
   }
 
   return (
     <View style={[styles.container, themedStyles.container]}>
-      <Animated.View style={[styles.headerSection, { backgroundColor: theme.colors.primary, height: headerHeight, overflow: 'hidden' }]}>
+      <Animated.View style={[styles.headerSection, { backgroundColor: theme.colors.primary, height: headerHeight, overflow: 'hidden', paddingTop: Platform.OS === 'android' ? insets.top + 20 : 50 }]}>
         <Animated.View style={[styles.headerTop, { opacity: headerOpacity }]}>
           <TouchableOpacity 
             onPress={() => navigation.goBack()}
@@ -271,9 +315,9 @@ const DefiLigScreen = ({ navigation }: any) => {
             <MaterialCommunityIcons name="arrow-left" size={28} color="#FFFFFF" />
           </TouchableOpacity>
           <View style={styles.headerTextContainer}>
-            <Title style={styles.headerTitle}>🏆 Ligler</Title>
+            <Title style={styles.headerTitle}>{t('defiLeague.headerTitle')}</Title>
             <Text style={styles.headerSubtitle}>
-              Rekabetçi oyuncularla karşılaşın ve lig sıralamasında yükselin
+              {t('defiLeague.headerSubtitle')}
             </Text>
           </View>
           <TouchableOpacity 
@@ -285,14 +329,14 @@ const DefiLigScreen = ({ navigation }: any) => {
         </Animated.View>
         
         {/* Compact Header */}
-        <Animated.View style={[styles.compactHeader, { opacity: compactOpacity }]}>
+        <Animated.View style={[styles.compactHeader, { opacity: compactOpacity, paddingTop: Platform.OS === 'android' ? insets.top + 10 : 50 }]}>
           <TouchableOpacity 
             onPress={() => navigation.goBack()}
             style={styles.compactBackButton}
           >
             <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.compactTitle}>🏆 Ligler</Text>
+          <Text style={styles.compactTitle}>{t('defiLeague.compactTitle')}</Text>
           <TouchableOpacity 
             onPress={() => navigation.navigate('LigAyarlari')}
             style={styles.compactSettingsButton}
@@ -312,7 +356,7 @@ const DefiLigScreen = ({ navigation }: any) => {
 
         {/* Current User Card - Belirgin Gösterim */}
         <View style={styles.currentUserSection}>
-          <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>Sen</Title>
+          <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>{t('defiLeague.you')}</Title>
           <Card style={[styles.currentUserHighlightCard, themedStyles.card]}>
             <Card.Content>
               <View style={styles.currentUserHighlightHeader}>
@@ -324,7 +368,7 @@ const DefiLigScreen = ({ navigation }: any) => {
                 
                 <View style={styles.currentUserHighlightInfo}>
                   <Title style={[styles.currentUserHighlightName, themedStyles.title]}>{currentUser.name}</Title>
-                  <Text style={[styles.currentUserHighlightLevel, themedStyles.subtitle]}>{currentUser.level} • {currentUser.rank}</Text>
+                  <Text style={[styles.currentUserHighlightLevel, themedStyles.subtitle]}>{currentUserLevelLabel} • {currentUserRankLabel}</Text>
                 </View>
                 
                 <View style={styles.currentUserPositionContainer}>
@@ -343,17 +387,17 @@ const DefiLigScreen = ({ navigation }: any) => {
                 <View style={styles.currentUserHighlightStatItem}>
                   <MaterialCommunityIcons name="percent" size={20} color="#4CAF50" />
                   <Text style={styles.currentUserHighlightStatNumber}>{currentUser.winRate}%</Text>
-                  <Text style={styles.currentUserHighlightStatLabel}>Galibiyet</Text>
+                  <Text style={styles.currentUserHighlightStatLabel}>{t('defiLeague.currentUserStats.win')}</Text>
                 </View>
                 <View style={styles.currentUserHighlightStatItem}>
                   <MaterialCommunityIcons name="tennis" size={20} color="#2E7D32" />
                   <Text style={styles.currentUserHighlightStatNumber}>{currentUser.matchesPlayed}</Text>
-                  <Text style={styles.currentUserHighlightStatLabel}>Maç</Text>
+                  <Text style={styles.currentUserHighlightStatLabel}>{t('defiLeague.currentUserStats.matches')}</Text>
                 </View>
                 <View style={styles.currentUserHighlightStatItem}>
                   <MaterialCommunityIcons name="star" size={20} color="#FFD700" />
                   <Text style={styles.currentUserHighlightStatNumber}>{currentUser.points}</Text>
-                  <Text style={styles.currentUserHighlightStatLabel}>Puan</Text>
+                  <Text style={styles.currentUserHighlightStatLabel}>{t('defiLeague.currentUserStats.points')}</Text>
                 </View>
               </View>
             </Card.Content>
@@ -363,9 +407,9 @@ const DefiLigScreen = ({ navigation }: any) => {
         {/* Ligler Listesi */}
         <View style={styles.ligSection}>
           <View style={styles.ligHeaderContainer}>
-            <Title style={styles.sectionTitle}>Aktif Ligler</Title>
+            <Title style={styles.sectionTitle}>{t('defiLeague.activeLeagues')}</Title>
             <Text style={styles.pageIndicator}>
-              {currentPage + 1} / {totalPages}
+              {pageIndicatorText}
             </Text>
           </View>
           
@@ -385,7 +429,7 @@ const DefiLigScreen = ({ navigation }: any) => {
                       <Title style={styles.ligName}>{lig.name}</Title>
                       <Text style={styles.ligPlayers}>
                         <MaterialCommunityIcons name="account-group" size={16} color={lig.color} />
-                        {' '}{lig.playerCount} oyuncu aktif
+                        {' '}{lig.playerCount} {t('defiLeague.playerCountSuffix')}
                       </Text>
                     </View>
                     <MaterialCommunityIcons 
@@ -398,15 +442,15 @@ const DefiLigScreen = ({ navigation }: any) => {
                   <View style={styles.ligQuickInfo}>
                     <View style={styles.quickInfoItem}>
                       <MaterialCommunityIcons name="tennis" size={20} color={lig.color} />
-                      <Text style={styles.quickInfoText}>1v1 Format</Text>
+                      <Text style={styles.quickInfoText}>{t('defiLeague.quickInfo.format')}</Text>
                     </View>
                     <View style={styles.quickInfoItem}>
                       <MaterialCommunityIcons name="trophy" size={20} color="#FFD700" />
-                      <Text style={styles.quickInfoText}>Rozetler</Text>
+                      <Text style={styles.quickInfoText}>{t('defiLeague.quickInfo.badges')}</Text>
                     </View>
                     <View style={styles.quickInfoItem}>
                       <MaterialCommunityIcons name="chart-line" size={20} color="#4CAF50" />
-                      <Text style={styles.quickInfoText}>Puan Sistemi</Text>
+                      <Text style={styles.quickInfoText}>{t('defiLeague.quickInfo.points')}</Text>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -428,7 +472,7 @@ const DefiLigScreen = ({ navigation }: any) => {
                   color={currentPage === 0 ? '#CCCCCC' : '#2E7D32'} 
                 />
                 <Text style={[styles.paginationButtonText, currentPage === 0 && styles.paginationButtonTextDisabled]}>
-                  Önceki
+                  {t('defiLeague.pagination.previous')}
                 </Text>
               </TouchableOpacity>
 
@@ -450,7 +494,7 @@ const DefiLigScreen = ({ navigation }: any) => {
                 style={[styles.paginationButton, currentPage === totalPages - 1 && styles.paginationButtonDisabled]}
               >
                 <Text style={[styles.paginationButtonText, currentPage === totalPages - 1 && styles.paginationButtonTextDisabled]}>
-                  Sonraki
+                  {t('defiLeague.pagination.next')}
                 </Text>
                 <MaterialCommunityIcons 
                   name="chevron-right" 
@@ -464,34 +508,34 @@ const DefiLigScreen = ({ navigation }: any) => {
 
         {/* Quick Stats */}
         <View style={styles.statsSection}>
-          <Title style={styles.sectionTitle}>İstatistikler</Title>
+          <Title style={styles.sectionTitle}>{t('defiLeague.statsTitle')}</Title>
           <View style={styles.statsGrid}>
             <Card style={styles.statCard}>
               <Card.Content style={styles.statContent}>
                 <MaterialCommunityIcons name="trophy" size={32} color="#FFD700" />
                 <Text style={styles.statNumber}>{matchStats.leagueWins}</Text>
-                <Text style={styles.statLabel}>Lig Galibiyeti</Text>
+                <Text style={styles.statLabel}>{t('defiLeague.stats.leagueWins')}</Text>
               </Card.Content>
             </Card>
             <Card style={styles.statCard}>
               <Card.Content style={styles.statContent}>
                 <MaterialCommunityIcons name="tennis" size={32} color="#4CAF50" />
                 <Text style={styles.statNumber}>{matchStats.totalMatches}</Text>
-                <Text style={styles.statLabel}>Toplam Maç</Text>
+                <Text style={styles.statLabel}>{t('defiLeague.stats.totalMatches')}</Text>
               </Card.Content>
             </Card>
             <Card style={styles.statCard}>
               <Card.Content style={styles.statContent}>
                 <MaterialCommunityIcons name="percent" size={32} color="#81C784" />
                 <Text style={styles.statNumber}>{matchStats.winRate}%</Text>
-                <Text style={styles.statLabel}>Galibiyet Oranı</Text>
+                <Text style={styles.statLabel}>{t('defiLeague.stats.winRate')}</Text>
               </Card.Content>
             </Card>
             <Card style={styles.statCard}>
               <Card.Content style={styles.statContent}>
                 <MaterialCommunityIcons name="medal" size={32} color="#FF9800" />
                 <Text style={styles.statNumber}>{matchStats.badges}</Text>
-                <Text style={styles.statLabel}>Rozet</Text>
+                <Text style={styles.statLabel}>{t('defiLeague.stats.badges')}</Text>
               </Card.Content>
             </Card>
           </View>
@@ -499,14 +543,14 @@ const DefiLigScreen = ({ navigation }: any) => {
 
         {/* Recent Achievements */}
         <View style={styles.achievementsSection}>
-          <Title style={styles.sectionTitle}>Son Başarılar</Title>
+          <Title style={styles.sectionTitle}>{t('defiLeague.achievementsTitle')}</Title>
           <Card style={styles.achievementCard}>
             <Card.Content>
               <View style={styles.achievementItem}>
                 <MaterialCommunityIcons name="trophy-award" size={40} color="#FFD700" />
                 <View style={styles.achievementInfo}>
-                  <Text style={styles.achievementTitle}>İlk Zafer!</Text>
-                  <Text style={styles.achievementDescription}>İlk Defi Lig maçını kazandınız</Text>
+                  <Text style={styles.achievementTitle}>{t('defiLeague.achievements.firstWinTitle')}</Text>
+                  <Text style={styles.achievementDescription}>{t('defiLeague.achievements.firstWinDescription')}</Text>
                 </View>
               </View>
             </Card.Content>
@@ -516,8 +560,8 @@ const DefiLigScreen = ({ navigation }: any) => {
               <View style={styles.achievementItem}>
                 <MaterialCommunityIcons name="fire" size={40} color="#FF6B35" />
                 <View style={styles.achievementInfo}>
-                  <Text style={styles.achievementTitle}>Seri Kazanan</Text>
-                  <Text style={styles.achievementDescription}>3 maç üst üste kazandınız</Text>
+                  <Text style={styles.achievementTitle}>{t('defiLeague.achievements.streakTitle')}</Text>
+                  <Text style={styles.achievementDescription}>{t('defiLeague.achievements.streakDescription')}</Text>
                 </View>
               </View>
             </Card.Content>
@@ -559,33 +603,31 @@ const DefiLigScreen = ({ navigation }: any) => {
                   <View style={styles.modalDetails}>
                     <View style={styles.detailRow}>
                       <MaterialCommunityIcons name="account-group" size={20} color={theme.colors.primary} />
-                      <Text style={styles.detailLabel}>Oyuncu Sayısı:</Text>
+                      <Text style={styles.detailLabel}>{t('defiLeague.modal.playerCount')}</Text>
                       <Text style={styles.detailValue}>{selectedLig.playerCount}</Text>
                     </View>
                     {selectedLig.settings && (selectedLig.settings.minAge !== null || selectedLig.settings.maxAge !== null) && (
                       <View style={styles.detailRow}>
                         <MaterialCommunityIcons name="calendar-account" size={20} color="#1976D2" />
-                        <Text style={styles.detailLabel}>Yaş Aralığı:</Text>
+                        <Text style={styles.detailLabel}>{t('defiLeague.modal.ageRange')}</Text>
                         <Text style={styles.detailValue}>
-                          {selectedLig.settings.minAge !== null && selectedLig.settings.maxAge !== null
-                            ? `${selectedLig.settings.minAge} - ${selectedLig.settings.maxAge}`
-                            : selectedLig.settings.minAge !== null
-                            ? `${selectedLig.settings.minAge}+`
-                            : `${selectedLig.settings.maxAge} ve altı`}
+                          {formatAgeRange(selectedLig.settings)}
                         </Text>
                       </View>
                     )}
                     {selectedLig.settings && (
                       <View style={styles.detailRow}>
                         <MaterialCommunityIcons name="currency-try" size={20} color="#FF9800" />
-                        <Text style={styles.detailLabel}>Kayıt Ücreti:</Text>
-                        <Text style={styles.detailValue}>{selectedLig.settings.registrationFee} ₺</Text>
+                        <Text style={styles.detailLabel}>{t('defiLeague.modal.fee')}</Text>
+                        <Text style={styles.detailValue}>
+                          {selectedLig.settings.registrationFee != null ? `${selectedLig.settings.registrationFee} ₺` : '-'}
+                        </Text>
                       </View>
                     )}
                   </View>
 
                   <View style={styles.modalRewards}>
-                    <Text style={styles.modalRewardsTitle}>Ödüller:</Text>
+                    <Text style={styles.modalRewardsTitle}>{t('defiLeague.rewardsTitle')}</Text>
                     {selectedLig.rewards.map((reward: string, index: number) => (
                       <View key={index} style={styles.modalRewardItem}>
                         <MaterialCommunityIcons name="gift" size={16} color="#2E7D32" />
@@ -607,8 +649,8 @@ const DefiLigScreen = ({ navigation }: any) => {
                           <MaterialCommunityIcons name="alert-circle" size={20} color="#D32F2F" />
                           <Text style={styles.ageWarningText}>
                             {!userAge 
-                              ? 'Bu lige katılmak için yaş bilgisi gereklidir.'
-                              : 'Yaşınız bu ligin yaş aralığına uymuyor.'}
+                              ? t('defiLeague.ageWarnings.infoRequired')
+                              : t('defiLeague.ageWarnings.notEligible')}
                           </Text>
                         </View>
                       );
@@ -621,7 +663,7 @@ const DefiLigScreen = ({ navigation }: any) => {
                       onPress={() => setShowLigModal(false)}
                       style={styles.modalCancelButton}
                     >
-                      İptal
+                      {t('common.cancel')}
                     </Button>
                     <Button
                       mode="contained"
@@ -630,7 +672,7 @@ const DefiLigScreen = ({ navigation }: any) => {
                       buttonColor="#2E7D32"
                       icon={selectedLig.isUserInLeague ? "eye" : "account-plus"}
                     >
-                      {selectedLig.isUserInLeague ? "Ligi Görüntüle" : "Lige Katıl"}
+                      {selectedLig.isUserInLeague ? t('defiLeague.modal.view') : t('defiLeague.modal.join')}
                     </Button>
                   </View>
                 </>
@@ -652,7 +694,6 @@ const styles = StyleSheet.create({
   headerSection: {
     backgroundColor: '#2E7D32',
     padding: 20,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight ? StatusBar.currentHeight + 20 : 50 : 50,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
     shadowColor: '#000',
@@ -1113,7 +1154,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 50 : 50,
   },
   compactBackButton: {
     padding: 6,

@@ -3,38 +3,102 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthTokens, LoginCredentials, RegisterCredentials, User, ApiResponse } from '../types';
 import { Platform } from 'react-native';
 
-// Gerçek cihaz için bilgisayarın IP adresini kullan
-// WiFi üzerinden bağlantı için localhost yerine IP gerekli
-const API_BASE_URL = __DEV__ 
-  ? 'http://192.168.1.104:3000/api'  // Development - bilgisayarınızın local IP'si
-  : 'http://192.168.1.104:3000/api'; // Production - gerçek backend URL'i buraya gelecek
+// API Base URL yapılandırması
+// Ngrok kullanıyorsanız: NGROK_URL değişkenini ayarlayın
+// Local network kullanıyorsanız: LOCAL_IP değişkenini ayarlayın
+const NGROK_URL = ''; // Örnek: 'https://abc123.ngrok-free.app'
+const LOCAL_IP = '10.209.250.139'; // Local WiFi IP'si
+
+const getApiBaseUrl = () => {
+  // Ngrok URL varsa onu kullan (farklı ağlardan erişim için)
+  if (NGROK_URL) {
+    return `${NGROK_URL}/api`;
+  }
+  
+  // Production build için environment variable veya sabit URL kullan
+  // Eğer backend'i cloud'a deploy ettiyseniz, buraya o URL'yi yazın
+  const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || ''; // Örnek: 'https://your-backend.com'
+  
+  // Production URL varsa ve production build ise onu kullan
+  if (PRODUCTION_API_URL && !__DEV__) {
+    return `${PRODUCTION_API_URL}/api`;
+  }
+  
+  // Development veya production URL yoksa local IP kullan
+  // Android emülatör için özel IP, gerçek cihaz için WiFi IP
+  if (Platform.OS === 'android') {
+    // Emülatör kontrolü - genellikle emülatörde __DEV__ true olur
+    // Ama production build'de de local IP kullanmak istiyoruz
+    return `http://${LOCAL_IP}:3000/api`;
+  } else {
+    // iOS simulator veya gerçek cihaz için
+    return `http://${LOCAL_IP}:3000/api`;
+  }
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 10000, // 10 saniye timeout
 });
+
+// API base URL'i logla
+console.log('API Base URL:', API_BASE_URL, 'Platform:', Platform.OS);
 
 // Request interceptor - token ekleme
 api.interceptors.request.use(
   async (config) => {
-    const token = await AsyncStorage.getItem('accessToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    try {
+      const token = await AsyncStorage.getItem('accessToken');
+      if (token) {
+        // Token'ı temizle (boşluk, satır sonu vs. varsa)
+        const cleanToken = token.trim();
+        config.headers.Authorization = `Bearer ${cleanToken}`;
+        console.log('Request interceptor: Token eklendi', { 
+          hasToken: !!cleanToken,
+          tokenLength: cleanToken.length,
+          url: config.url 
+        });
+      } else {
+        console.log('Request interceptor: Token bulunamadı', { url: config.url });
+      }
+    } catch (error) {
+      console.error('Request interceptor error:', error);
     }
     return config;
   },
   (error) => {
+    console.error('Request interceptor setup error:', error);
     return Promise.reject(error);
   }
 );
 
-// Response interceptor - token refresh
+// Response interceptor - token refresh ve error handling
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
+    
+    // Network hatası kontrolü
+    if (!error.response) {
+      console.error('Network Error:', {
+        message: error.message,
+        code: error.code,
+        url: originalRequest?.url,
+      });
+      
+      // Network hatası için daha açıklayıcı mesaj
+      const networkError = new Error(
+        error.message || 'Network error. Please check your internet connection.'
+      );
+      return Promise.reject(networkError);
+    }
     
     // Token expired veya unauthorized durumunda
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -44,27 +108,53 @@ api.interceptors.response.use(
         const refreshToken = await AsyncStorage.getItem('refreshToken');
         if (refreshToken) {
           console.log('Access token expired, refreshing...');
-          const response = await axios.post(`${API_BASE_URL}/auth/refresh-token`, {
-            refreshToken,
-          });
           
-          const { accessToken, refreshToken: newRefreshToken } = response.data.data;
-          await AsyncStorage.setItem('accessToken', accessToken);
-          await AsyncStorage.setItem('refreshToken', newRefreshToken);
+          // Refresh token isteği için axios kullan (interceptor olmadan)
+          const response = await axios.post(
+            `${API_BASE_URL}/auth/refresh-token`,
+            { refreshToken: refreshToken.trim() },
+            {
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            }
+          );
           
-          console.log('Token refreshed successfully');
-          // Yeni access token ile tekrar dene
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-          return api(originalRequest);
+          if (response.data?.data) {
+            const { accessToken, refreshToken: newRefreshToken } = response.data.data;
+            await AsyncStorage.setItem('accessToken', accessToken.trim());
+            await AsyncStorage.setItem('refreshToken', newRefreshToken.trim());
+            
+            console.log('Token refreshed successfully');
+            // Yeni access token ile tekrar dene
+            originalRequest.headers.Authorization = `Bearer ${accessToken.trim()}`;
+            return api(originalRequest);
+          } else {
+            throw new Error('Invalid refresh token response');
+          }
+        } else {
+          console.log('No refresh token found');
+          await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
+          return Promise.reject(new Error('Session expired. Please login again.'));
         }
-      } catch (refreshError) {
+      } catch (refreshError: any) {
         // Refresh token da geçersiz, kullanıcıyı logout yap
-        console.error('Refresh token failed, clearing tokens:', refreshError);
+        console.error('Refresh token failed:', {
+          error: refreshError.message,
+          response: refreshError.response?.data,
+        });
         await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
-        // AuthContext yeniden yüklenecek ve kullanıcıyı login'e yönlendirecek
         return Promise.reject(new Error('Session expired. Please login again.'));
       }
     }
+    
+    // Diğer HTTP hataları için detaylı log
+    console.error('API Error:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      url: originalRequest?.url,
+    });
     
     return Promise.reject(error);
   }

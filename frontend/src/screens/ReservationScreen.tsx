@@ -6,11 +6,11 @@ import {
   Dimensions,
   Animated,
   TouchableOpacity,
-  StatusBar,
   FlatList,
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { MainTabParamList } from '../navigation/MainTabNavigator';
@@ -29,10 +29,56 @@ import {
   Snackbar,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Calendar } from 'react-native-calendars';
+import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { LinearGradient } from 'expo-linear-gradient';
+
+// Takvim için Türkçe locale ayarları
+LocaleConfig.locales['tr'] = {
+  monthNames: [
+    'Ocak',
+    'Şubat',
+    'Mart',
+    'Nisan',
+    'Mayıs',
+    'Haziran',
+    'Temmuz',
+    'Ağustos',
+    'Eylül',
+    'Ekim',
+    'Kasım',
+    'Aralık'
+  ],
+  monthNamesShort: ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'],
+  dayNames: ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'],
+  dayNamesShort: ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'],
+  today: 'Bugün'
+};
+
+// İngilizce locale ayarları
+LocaleConfig.locales['en'] = {
+  monthNames: [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December'
+  ],
+  monthNamesShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  dayNames: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+  dayNamesShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+  today: 'Today'
+};
+LocaleConfig.defaultLocale = 'tr';
 import { userService, reservationService, authService, courtService } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLanguage } from '../context/LanguageContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -40,6 +86,7 @@ type ReservationScreenNavigationProp = BottomTabNavigationProp<MainTabParamList,
 
 const ReservationScreen = () => {
   const navigation = useNavigation<ReservationScreenNavigationProp>();
+  const { t, language } = useLanguage();
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [selectedCourt, setSelectedCourt] = useState('');
@@ -67,6 +114,11 @@ const ReservationScreen = () => {
   const step2Ref = useRef<View>(null);
   const step3Ref = useRef<View>(null);
   const step4Ref = useRef<View>(null);
+
+  // Dil değiştiğinde takvim locale'ini ayarla
+  useEffect(() => {
+    LocaleConfig.defaultLocale = language;
+  }, [language]);
 
   // Mevcut kullanıcıyı yükle
   useEffect(() => {
@@ -262,16 +314,16 @@ const ReservationScreen = () => {
   // Kort bilgilerini zenginleştir (UI için gradient ve icon)
   const getCourtDisplayInfo = (court: any) => {
     const surfaceMap: any = {
-      grass: { surface: 'Çim', gradient: ['#4CAF50', '#2E7D32'] },
-      clay: { surface: 'Kil', gradient: ['#FF9800', '#F57C00'] },
-      hard: { surface: 'Sert', gradient: ['#2196F3', '#1976D2'] },
+      grass: { surface: t('reservation.grass'), gradient: ['#4CAF50', '#2E7D32'] },
+      clay: { surface: t('reservation.clay'), gradient: ['#FF9800', '#F57C00'] },
+      hard: { surface: t('reservation.hard'), gradient: ['#2196F3', '#1976D2'] },
     };
 
     const surfaceInfo = surfaceMap[court.groundType] || surfaceMap.hard;
 
     return {
       ...court,
-      type: court.indoors ? 'Kapalı' : 'Açık',
+      type: court.indoors ? t('reservation.indoor') : t('reservation.outdoor'),
       surface: surfaceInfo.surface,
       gradient: surfaceInfo.gradient,
       icon: court.indoors ? 'home-roof' : 'weather-sunny',
@@ -351,8 +403,8 @@ const ReservationScreen = () => {
 
       // Notes oluştur
       const notes = playerType === 'single' 
-        ? `Tekler maçı${selectedPartner ? ` - Rakip: ${selectedPartner.name}` : ''}` 
-        : `Çiftler maçı${selectedPartner ? ` - Partner: ${selectedPartner.name}` : ''}${selectedOpponents.length > 0 ? ` - Rakipler: ${selectedOpponents.map(o => o.name).join(', ')}` : ''}`;
+        ? `${t('reservation.singlesMatch')}${selectedPartner ? ` - ${t('reservation.opponent')} ${selectedPartner.name}` : ''}` 
+        : `${t('reservation.doublesMatch')}${selectedPartner ? ` - ${t('reservation.partner')} ${selectedPartner.name}` : ''}${selectedOpponents.length > 0 ? ` - ${t('reservation.opponents')} ${selectedOpponents.map(o => o.name).join(', ')}` : ''}`;
 
       // Backend'e gönder
       const reservation = await reservationService.createReservation({
@@ -386,9 +438,9 @@ const ReservationScreen = () => {
       setIsLoading(false);
       console.error('Rezervasyon hatası:', error);
       Alert.alert(
-        'Hata',
-        error.response?.data?.message || 'Rezervasyon oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.',
-        [{ text: 'Tamam' }]
+        t('common.error'),
+        error.response?.data?.message || t('reservation.errorCreating'),
+        [{ text: t('common.ok') }]
       );
     }
   };
@@ -437,7 +489,7 @@ const ReservationScreen = () => {
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('tr-TR', { 
+    return date.toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US', { 
       weekday: 'long', 
       year: 'numeric', 
       month: 'long', 
@@ -447,7 +499,7 @@ const ReservationScreen = () => {
 
   return (
     <>
-      <StatusBar backgroundColor="#1B5E20" barStyle="light-content" />
+      <StatusBar style="light" />
       <ScrollView 
         ref={scrollViewRef} 
         style={styles.container} 
@@ -469,7 +521,7 @@ const ReservationScreen = () => {
           >
             <View style={styles.backButtonContainer}>
               <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
-              <Text style={styles.backButtonText}>Geri</Text>
+              <Text style={styles.backButtonText}>{t('reservation.back')}</Text>
             </View>
           </TouchableOpacity>
 
@@ -485,9 +537,9 @@ const ReservationScreen = () => {
             <View style={styles.headerIcon}>
               <MaterialCommunityIcons name="calendar-star" size={40} color="#FFFFFF" />
             </View>
-            <Title style={styles.headerTitle}>Kort Rezervasyonu</Title>
+            <Title style={styles.headerTitle}>{t('reservation.title')}</Title>
             <Text style={styles.headerSubtitle}>
-              Mükemmel tenis deneyimi için rezervasyon yapın
+              {t('reservation.subtitle')}
             </Text>
             
             {/* Progress Bar */}
@@ -500,7 +552,7 @@ const ReservationScreen = () => {
                   ]} 
                 />
               </View>
-              <Text style={styles.progressText}>Adım {currentStep}/4</Text>
+              <Text style={styles.progressText}>{t('reservation.step')} {currentStep}/4</Text>
             </View>
           </Animated.View>
         </LinearGradient>
@@ -521,7 +573,7 @@ const ReservationScreen = () => {
                 <View style={[styles.stepNumber, currentStep >= 1 && styles.activeStepNumber]}>
                   <Text style={styles.stepNumberText}>1</Text>
                 </View>
-                <Title style={styles.stepTitle}>Tarih Seçin</Title>
+                <Title style={styles.stepTitle}>{t('reservation.selectDate')}</Title>
               </View>
               
               <TouchableOpacity 
@@ -541,7 +593,7 @@ const ReservationScreen = () => {
                     styles.dateSelectorText,
                     selectedDate && styles.selectedDateText
                   ]}>
-                    {selectedDate ? formatDate(selectedDate) : 'Tarih seçmek için tıklayın'}
+                    {selectedDate ? formatDate(selectedDate) : t('reservation.selectDatePlaceholder')}
                   </Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -557,7 +609,7 @@ const ReservationScreen = () => {
                     <View style={[styles.stepNumber, currentStep >= 2 && styles.activeStepNumber]}>
                       <Text style={styles.stepNumberText}>2</Text>
                     </View>
-                    <Title style={styles.stepTitle}>Kort Seçin</Title>
+                    <Title style={styles.stepTitle}>{t('reservation.selectCourt')}</Title>
                   </View>
                 
                 <View style={styles.courtGrid}>
@@ -610,7 +662,7 @@ const ReservationScreen = () => {
                             selectedCourt === court.id.toString() && styles.selectedCourtDetails,
                             isClosed && styles.disabledCourtText
                           ]}>
-                            {isClosed ? 'Bakımda' : `${displayCourt.type} • ${displayCourt.surface}`}
+                            {isClosed ? t('reservation.closed') : `${displayCourt.type} • ${displayCourt.surface}`}
                           </Text>
                           {selectedCourt === court.id.toString() && !isClosed && (
                             <View style={styles.selectedIcon}>
@@ -636,7 +688,7 @@ const ReservationScreen = () => {
                     <View style={[styles.stepNumber, currentStep >= 3 && styles.activeStepNumber]}>
                       <Text style={styles.stepNumberText}>3</Text>
                     </View>
-                    <Title style={styles.stepTitle}>Saat Seçin</Title>
+                    <Title style={styles.stepTitle}>{t('reservation.selectTime')}</Title>
                   </View>
                 
                 <View style={styles.timeGrid}>
@@ -695,7 +747,7 @@ const ReservationScreen = () => {
                             )}
                             {isDisabledForUserType && !isReserved && (
                               <Text style={styles.reservedByText}>
-                                İzin yok
+                                {t('reservation.noPermission')}
                               </Text>
                             )}
                           </View>
@@ -718,7 +770,7 @@ const ReservationScreen = () => {
                   <View style={[styles.stepNumber, currentStep >= 4 && styles.activeStepNumber]}>
                     <Text style={styles.stepNumberText}>4</Text>
                   </View>
-                  <Title style={styles.stepTitle}>Oyuncu Tipi</Title>
+                  <Title style={styles.stepTitle}>{t('reservation.playerType')}</Title>
                 </View>
                 
                 <RadioButton.Group onValueChange={handlePlayerTypeChange} value={playerType}>
@@ -730,7 +782,7 @@ const ReservationScreen = () => {
                       <RadioButton value="single" />
                       <View style={styles.radioContent}>
                         <MaterialCommunityIcons name="account" size={24} color="#2E7D32" />
-                        <Text style={styles.radioLabel}>Tekler (1 vs 1)</Text>
+                        <Text style={styles.radioLabel}>{t('reservation.singles')}</Text>
                       </View>
                     </TouchableOpacity>
                     
@@ -741,7 +793,7 @@ const ReservationScreen = () => {
                       <RadioButton value="double" />
                       <View style={styles.radioContent}>
                         <MaterialCommunityIcons name="account-group" size={24} color="#2E7D32" />
-                        <Text style={styles.radioLabel}>Çiftler (2 vs 2)</Text>
+                        <Text style={styles.radioLabel}>{t('reservation.doubles')}</Text>
                       </View>
                     </TouchableOpacity>
                   </Surface>
@@ -749,7 +801,7 @@ const ReservationScreen = () => {
 
                 {playerType === 'single' && (
                   <View style={styles.partnerSection}>
-                    <Text style={styles.partnerLabel}>Rakip Seç</Text>
+                    <Text style={styles.partnerLabel}>{t('reservation.selectOpponent')}</Text>
                     <TouchableOpacity 
                       style={styles.userSelector}
                       onPress={async () => {
@@ -782,7 +834,7 @@ const ReservationScreen = () => {
                           styles.userSelectorText,
                           selectedPartner && styles.selectedUserText
                         ]}>
-                          {selectedPartner ? selectedPartner.name : 'Rakip seçmek için tıklayın'}
+                          {selectedPartner ? selectedPartner.name : t('reservation.selectOpponentPlaceholder')}
                         </Text>
                       </LinearGradient>
                     </TouchableOpacity>
@@ -792,7 +844,7 @@ const ReservationScreen = () => {
                 {playerType === 'double' && (
                   <>
                     <View style={styles.partnerSection}>
-                      <Text style={styles.partnerLabel}>Partner Seç</Text>
+                      <Text style={styles.partnerLabel}>{t('reservation.selectPartner')}</Text>
                       <TouchableOpacity 
                         style={styles.userSelector}
                         onPress={async () => {
@@ -825,14 +877,14 @@ const ReservationScreen = () => {
                             styles.userSelectorText,
                             selectedPartner && styles.selectedUserText
                           ]}>
-                            {selectedPartner ? selectedPartner.name : 'Partner seçmek için tıklayın'}
+                            {selectedPartner ? selectedPartner.name : t('reservation.selectPartnerPlaceholder')}
                           </Text>
                         </LinearGradient>
                       </TouchableOpacity>
                     </View>
 
                     <View style={styles.opponentsSection}>
-                      <Text style={styles.partnerLabel}>Rakipler Seç (2 Kişi)</Text>
+                      <Text style={styles.partnerLabel}>{t('reservation.selectOpponents')}</Text>
                       <TouchableOpacity 
                         style={styles.userSelector}
                         onPress={async () => {
@@ -866,8 +918,8 @@ const ReservationScreen = () => {
                             selectedOpponents.length > 0 && styles.selectedUserText
                           ]}>
                             {selectedOpponents.length > 0 
-                              ? `${selectedOpponents.length}/2 rakip seçildi` 
-                              : 'Rakipleri seçmek için tıklayın'}
+                              ? `${selectedOpponents.length}/2 ${t('reservation.opponentsSelected')}` 
+                              : t('reservation.selectOpponentsPlaceholder')}
                           </Text>
                         </LinearGradient>
                       </TouchableOpacity>
@@ -903,7 +955,7 @@ const ReservationScreen = () => {
               >
                 <View style={styles.summaryHeader}>
                   <MaterialCommunityIcons name="clipboard-check" size={28} color="#2E7D32" />
-                  <Title style={styles.summaryTitle}>Rezervasyon Özeti</Title>
+                  <Title style={styles.summaryTitle}>{t('reservation.summary')}</Title>
                 </View>
                 
                 <View style={styles.summaryContent}>
@@ -935,7 +987,7 @@ const ReservationScreen = () => {
                       <MaterialCommunityIcons name="account-group" size={20} color="#2E7D32" />
                     </View>
                     <Text style={styles.summaryText}>
-                      {playerType === 'single' ? 'Tekler' : 'Çiftler'}
+                      {playerType === 'single' ? t('reservation.singlesShort') : t('reservation.doublesShort')}
                     </Text>
                   </View>
 
@@ -949,8 +1001,7 @@ const ReservationScreen = () => {
                         />
                       </View>
                       <Text style={styles.summaryText}>
-                        {playerType === 'single' ? 'Rakip: ' : 'Partner: '}
-                        {selectedPartner.name}
+                        {playerType === 'single' ? t('reservation.opponent') : t('reservation.partner')} {selectedPartner.name}
                       </Text>
                     </View>
                   )}
@@ -962,7 +1013,7 @@ const ReservationScreen = () => {
                       </View>
                       <View style={styles.summaryTextContainer}>
                         <Text style={styles.summaryText}>
-                          Rakipler: {selectedOpponents.map(opp => opp.name).join(', ')}
+                          {t('reservation.opponents')} {selectedOpponents.map(opp => opp.name).join(', ')}
                         </Text>
                       </View>
                     </View>
@@ -991,7 +1042,7 @@ const ReservationScreen = () => {
               {isLoading ? (
                 <>
                   <ActivityIndicator size="small" color="#FFFFFF" style={styles.buttonIcon} />
-                  <Text style={styles.reservationButtonText}>İşleniyor...</Text>
+                  <Text style={styles.reservationButtonText}>{t('reservation.processing')}</Text>
                 </>
               ) : (
                 <>
@@ -1002,7 +1053,7 @@ const ReservationScreen = () => {
                     style={styles.buttonIcon}
                   />
                   <Text style={styles.reservationButtonText}>
-                    Rezervasyonu Onayla
+                    {t('reservation.confirmReservation')}
                   </Text>
                 </>
               )}
@@ -1021,7 +1072,7 @@ const ReservationScreen = () => {
           <Card style={styles.calendarCard}>
             <Card.Content>
               <View style={styles.calendarHeader}>
-                <Title style={styles.calendarTitle}>Tarih Seçin</Title>
+                <Title style={styles.calendarTitle}>{t('reservation.selectDate')}</Title>
                 <TouchableOpacity onPress={() => setShowCalendar(false)}>
                   <MaterialCommunityIcons name="close" size={24} color="#757575" />
                 </TouchableOpacity>
@@ -1078,8 +1129,8 @@ const ReservationScreen = () => {
               <View style={styles.modalHeader}>
                 <Title style={styles.modalTitle}>
                   {selectorMode === 'partner' 
-                    ? (playerType === 'single' ? 'Rakip Seç' : 'Partner Seç')
-                    : 'Rakipler Seç (2 Kişi)'}
+                    ? (playerType === 'single' ? t('reservation.selectOpponent') : t('reservation.selectPartner'))
+                    : t('reservation.selectOpponents')}
                 </Title>
                 <TouchableOpacity onPress={handleOpponentSelectorClose}>
                   <MaterialCommunityIcons name="close" size={24} color="#757575" />
@@ -1090,13 +1141,13 @@ const ReservationScreen = () => {
                 <View style={styles.selectedCountInfo}>
                   <MaterialCommunityIcons name="information" size={20} color="#FF9800" />
                   <Text style={styles.selectedCountText}>
-                    {selectedOpponents.length}/2 rakip seçildi
+                    {selectedOpponents.length}/2 {t('reservation.opponentsSelected')}
                   </Text>
                 </View>
               )}
 
               <Searchbar
-                placeholder="Kullanıcı ara..."
+                placeholder={t('reservation.searchUsers')}
                 onChangeText={setSearchQuery}
                 value={searchQuery}
                 style={styles.searchbar}
@@ -1153,8 +1204,8 @@ const ReservationScreen = () => {
                             isDisabled && styles.disabledText
                           ]}>
                             {item.name}
-                            {isDisabledInPartnerMode && ' (Rakip olarak seçili)'}
-                            {isDisabledInOpponentsMode && ' (Partner olarak seçili)'}
+                            {isDisabledInPartnerMode && ` ${t('reservation.selectedAsOpponent')}`}
+                            {isDisabledInOpponentsMode && ` ${t('reservation.selectedAsPartner')}`}
                           </Text>
                           <Text style={[
                             styles.userEmail,
@@ -1175,7 +1226,7 @@ const ReservationScreen = () => {
                 ListEmptyComponent={() => (
                   <View style={styles.emptyList}>
                     <MaterialCommunityIcons name="account-search" size={48} color="#BDBDBD" />
-                    <Text style={styles.emptyListText}>Kullanıcı bulunamadı</Text>
+                    <Text style={styles.emptyListText}>{t('reservation.noUsersFound')}</Text>
                   </View>
                 )}
               />
@@ -1190,7 +1241,7 @@ const ReservationScreen = () => {
                     style={styles.confirmButtonGradient}
                   >
                     <MaterialCommunityIcons name="check" size={24} color="#FFFFFF" />
-                    <Text style={styles.confirmButtonText}>Tamam</Text>
+                    <Text style={styles.confirmButtonText}>{t('common.ok')}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               )}
@@ -1206,7 +1257,7 @@ const ReservationScreen = () => {
         duration={2000}
         style={styles.successSnackbar}
         action={{
-          label: 'Tamam',
+          label: t('common.ok'),
           onPress: () => {
             setShowSuccessSnackbar(false);
             navigation.navigate('Home');
@@ -1215,7 +1266,7 @@ const ReservationScreen = () => {
       >
         <View style={styles.snackbarContent}>
           <MaterialCommunityIcons name="check-circle" size={24} color="#FFFFFF" />
-          <Text style={styles.snackbarText}>Rezervasyonunuz onaylandı!</Text>
+          <Text style={styles.snackbarText}>{t('reservation.success')}</Text>
         </View>
       </Snackbar>
     </>

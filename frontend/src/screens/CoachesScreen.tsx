@@ -25,6 +25,7 @@ import {
   IconButton,
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
+import { useLanguage } from '../context/LanguageContext';
 import { coachService } from '../services/api';
 import { useThemedStyles } from '../hooks/useThemedStyles';
 
@@ -32,6 +33,7 @@ const { width } = Dimensions.get('window');
 
 const CoachesScreen = () => {
   const { themedStyles, theme } = useThemedStyles();
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -77,18 +79,18 @@ const CoachesScreen = () => {
       setCoaches(formattedCoaches);
     } catch (error) {
       console.error('Antrenörler yüklenirken hata:', error);
-      Alert.alert('Hata', 'Antrenörler yüklenemedi');
+      Alert.alert(t('common.error'), t('coaches.loadError'));
     } finally {
       setLoading(false);
     }
   };
 
   const filters = [
-    { key: 'all', label: 'Tümü' },
-    { key: 'singles', label: 'Tekler' },
-    { key: 'doubles', label: 'Çiftler' },
-    { key: 'beginner', label: 'Başlangıç' },
-    { key: 'advanced', label: 'İleri Seviye' },
+    { key: 'all', label: t('coaches.all') },
+    { key: 'singles', label: t('coaches.singles') },
+    { key: 'doubles', label: t('coaches.doubles') },
+    { key: 'beginner', label: t('coaches.beginner') },
+    { key: 'advanced', label: t('coaches.advanced') },
   ];
 
   const getRatingColor = (rating: number) => {
@@ -98,21 +100,61 @@ const CoachesScreen = () => {
     return '#FF5722';
   };
 
-  const getAvailabilityColor = (availability: string) => {
+  const translateAvailability = (availability: string) => {
     switch (availability) {
-      case 'Müsait': return '#4CAF50';
-      case 'Sınırlı': return '#FF9800';
-      case 'Müsait Değil': return '#F44336';
+      case 'Müsait':
+      case 'Available':
+        return t('coaches.available');
+      case 'Sınırlı':
+      case 'Limited':
+        return t('coaches.limited');
+      case 'Müsait Değil':
+      case 'Not Available':
+      case 'NotAvailable':
+        return t('coaches.notAvailable');
+      default:
+        return availability;
+    }
+  };
+
+  const getAvailabilityColor = (availability: string) => {
+    const normalized = translateAvailability(availability);
+    switch (normalized) {
+      case t('coaches.available'): return '#4CAF50';
+      case t('coaches.limited'): return '#FF9800';
+      case t('coaches.notAvailable'): return '#F44336';
       default: return '#6C757D';
+    }
+  };
+
+  const translateSpecialty = (specialty: string) => {
+    // Backend'den gelen specialty değerlerini çevir
+    switch (specialty) {
+      case 'Tekler':
+      case 'Singles':
+        return t('coaches.singles');
+      case 'Çiftler':
+      case 'Doubles':
+        return t('coaches.doubles');
+      case 'Başlangıç':
+      case 'Beginner':
+        return t('coaches.beginner');
+      case 'İleri Seviye':
+      case 'Advanced':
+        return t('coaches.advanced');
+      default:
+        return specialty;
     }
   };
 
   const filteredCoaches = coaches.filter(coach => {
     if (selectedFilter === 'all') return true;
-    if (selectedFilter === 'singles' && coach.specialty === 'Tekler') return true;
-    if (selectedFilter === 'doubles' && coach.specialty === 'Çiftler') return true;
-    if (selectedFilter === 'beginner' && coach.specialty === 'Başlangıç') return true;
-    if (selectedFilter === 'advanced' && coach.specialty === 'İleri Seviye') return true;
+    // Backend'den gelen specialty'yi normalize et ve kontrol et
+    const normalizedSpecialty = coach.specialty.toLowerCase();
+    if (selectedFilter === 'singles' && (normalizedSpecialty === 'tekler' || normalizedSpecialty === 'singles')) return true;
+    if (selectedFilter === 'doubles' && (normalizedSpecialty === 'çiftler' || normalizedSpecialty === 'doubles')) return true;
+    if (selectedFilter === 'beginner' && (normalizedSpecialty === 'başlangıç' || normalizedSpecialty === 'beginner')) return true;
+    if (selectedFilter === 'advanced' && (normalizedSpecialty === 'i̇leri seviye' || normalizedSpecialty === 'ileri seviye' || normalizedSpecialty === 'advanced')) return true;
     return false;
   });
 
@@ -123,19 +165,19 @@ const CoachesScreen = () => {
 
   const handleCallCoach = (phone: string, name: string) => {
     Alert.alert(
-      'Arama Yap',
-      `${name} adlı antrenörü aramak istediğinizden emin misiniz?\n\nTelefon: ${phone}`,
+      t('coaches.callCoach'),
+      `${name} ${t('coaches.callConfirm')}\n\n${t('coaches.phone')} ${phone}`,
       [
         {
-          text: 'İptal',
+          text: t('common.cancel'),
           style: 'cancel',
         },
         {
-          text: 'Ara',
+          text: t('coaches.call'),
           onPress: () => {
             const phoneUrl = `tel:${phone}`;
             Linking.openURL(phoneUrl).catch(() => {
-              Alert.alert('Hata', 'Telefon uygulaması açılamadı.');
+              Alert.alert(t('common.error'), t('coaches.phoneError'));
             });
           },
         },
@@ -152,11 +194,11 @@ const CoachesScreen = () => {
 
   const submitReview = () => {
     if (reviewRating === 0) {
-      Alert.alert('Hata', 'Lütfen bir yıldız puanı verin.');
+      Alert.alert(t('common.error'), t('coaches.ratingRequired'));
       return;
     }
     if (reviewComment.trim() === '') {
-      Alert.alert('Hata', 'Lütfen bir yorum yazın.');
+      Alert.alert(t('common.error'), t('coaches.commentRequired'));
       return;
     }
 
@@ -167,11 +209,11 @@ const CoachesScreen = () => {
       comment: reviewComment,
     });
 
-    Alert.alert('Başarılı', 'Yorumunuz başarıyla gönderildi!');
+    Alert.alert(t('common.success'), t('coaches.reviewSuccess'));
     setShowReviewModal(false);
     setReviewRating(0);
     setReviewComment('');
-    setSelectedCoach(null    );
+    setSelectedCoach(null);
   };
 
 
@@ -201,7 +243,7 @@ const CoachesScreen = () => {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="#2E7D32" />
-        <Text style={{ marginTop: 10, color: '#6C757D' }}>Yükleniyor...</Text>
+        <Text style={{ marginTop: 10, color: '#6C757D' }}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -221,14 +263,14 @@ const CoachesScreen = () => {
           styles.compactHeader,
           { opacity: compactOpacity }
         ]}>
-          <Title style={styles.compactTitle}>🎾 Antrenörler ({coaches.length})</Title>
+          <Title style={styles.compactTitle}>🎾 {t('coaches.coachCount')} ({coaches.length})</Title>
         </Animated.View>
         
         {/* Normal İçerik */}
         <Animated.View style={{ opacity: headerOpacity }}>
-          <Title style={styles.headerTitle}>🎾 Antrenörler</Title>
+          <Title style={styles.headerTitle}>🎾 {t('coaches.title')}</Title>
           <Text style={styles.headerSubtitle}>
-            Deneyimli antrenörlerimizle tenis becerilerinizi geliştirin
+            {t('coaches.subtitle')}
           </Text>
         </Animated.View>
       </Animated.View>
@@ -247,7 +289,7 @@ const CoachesScreen = () => {
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <Searchbar
-            placeholder="Antrenör ara..."
+            placeholder={t('coaches.searchPlaceholder')}
             onChangeText={setSearchQuery}
             value={searchQuery}
             style={styles.searchBar}
@@ -292,7 +334,7 @@ const CoachesScreen = () => {
                   />
                   <View style={styles.coachInfo}>
                     <Title style={[styles.coachName, themedStyles.title]}>{coach.name}</Title>
-                    <Text style={[styles.coachSpecialty, themedStyles.subtitle]}>{coach.specialty}</Text>
+                    <Text style={[styles.coachSpecialty, themedStyles.subtitle]}>{translateSpecialty(coach.specialty)}</Text>
                     <View style={styles.ratingContainer}>
                       <MaterialIcons name="star" size={16} color="#FFD700" />
                       <Text style={styles.ratingText}>{coach.rating}</Text>
@@ -300,7 +342,7 @@ const CoachesScreen = () => {
                         mode="outlined" 
                         style={[styles.availabilityChip, { borderColor: getAvailabilityColor(coach.availability) }]}
                       >
-                        {coach.availability}
+                        {translateAvailability(coach.availability)}
                       </Chip>
                     </View>
                   </View>
@@ -309,11 +351,11 @@ const CoachesScreen = () => {
                 <View style={styles.coachDetails}>
                   <View style={styles.detailRow}>
                     <MaterialCommunityIcons name="clock" size={20} color={theme.colors.primary} />
-                    <Text style={[styles.detailText, themedStyles.text]}>{coach.experience} deneyim</Text>
+                    <Text style={[styles.detailText, themedStyles.text]}>{coach.experience} {t('coaches.experience')}</Text>
                   </View>
                   <View style={styles.detailRow}>
                     <MaterialCommunityIcons name="currency-try" size={20} color={theme.colors.primary} />
-                    <Text style={[styles.detailText, themedStyles.text]}>{coach.hourlyRate}/saat</Text>
+                    <Text style={[styles.detailText, themedStyles.text]}>{coach.hourlyRate}{t('coaches.perHour')}</Text>
                   </View>
                   <View style={styles.detailRow}>
                     <MaterialCommunityIcons name="translate" size={20} color={theme.colors.primary} />
@@ -324,7 +366,7 @@ const CoachesScreen = () => {
                 <Text style={[styles.coachBio, themedStyles.text]}>{coach.bio}</Text>
 
                 <View style={styles.certificationsContainer}>
-                  <Text style={[styles.certificationsTitle, themedStyles.text]}>Sertifikalar:</Text>
+                  <Text style={[styles.certificationsTitle, themedStyles.text]}>{t('coaches.certifications')}</Text>
                   {coach.certifications.map((cert: string, index: number) => (
                     <Chip key={index} mode="outlined" style={styles.certificationChip}>
                       {cert}
@@ -335,7 +377,7 @@ const CoachesScreen = () => {
                 {/* Reviews Section - Şimdilik yorumlar devre dışı */}
                 {coach.reviews && coach.reviews.length > 0 && (
                   <View style={styles.reviewsSection}>
-                    <Text style={styles.reviewsTitle}>Yorumlar ({coach.reviews.length})</Text>
+                    <Text style={styles.reviewsTitle}>{t('coaches.reviews')} ({coach.reviews.length})</Text>
                     {coach.reviews.slice(0, 2).map((review: any) => (
                       <View key={review.id} style={styles.reviewItem}>
                         <View style={styles.reviewHeader}>
@@ -346,7 +388,7 @@ const CoachesScreen = () => {
                       </View>
                     ))}
                     {coach.reviews.length > 2 && (
-                      <Text style={styles.moreReviews}>+{coach.reviews.length - 2} yorum daha</Text>
+                      <Text style={styles.moreReviews}>+{coach.reviews.length - 2} {t('coaches.moreReviews')}</Text>
                     )}
                   </View>
                 )}
@@ -360,7 +402,7 @@ const CoachesScreen = () => {
                     onPress={() => openReviewModal(coach)}
                     contentStyle={styles.buttonContent}
                   >
-                    Değerlendir
+                    {t('coaches.rate')}
                   </Button>
                   <Button
                     mode="contained"
@@ -370,7 +412,7 @@ const CoachesScreen = () => {
                     onPress={() => handleCallCoach(coach.phone, coach.name)}
                     contentStyle={styles.buttonContent}
                   >
-                    İletişim
+                    {t('coaches.contact')}
                   </Button>
                 </View>
               </Card.Content>
@@ -399,7 +441,7 @@ const CoachesScreen = () => {
               <Card.Content style={styles.reviewContent}>
                 <View style={styles.reviewModalHeader}>
                   <MaterialCommunityIcons name="star" size={32} color="#FFD700" />
-                  <Title style={[styles.reviewModalTitle, themedStyles.title]}>Antrenör Değerlendir</Title>
+                  <Title style={[styles.reviewModalTitle, themedStyles.title]}>{t('coaches.rateCoach')}</Title>
                   <TouchableOpacity onPress={() => setShowReviewModal(false)}>
                     <MaterialCommunityIcons name="close" size={24} color={theme.colors.placeholder} />
                   </TouchableOpacity>
@@ -408,18 +450,18 @@ const CoachesScreen = () => {
                 {selectedCoach && (
                   <>
                     <Text style={[styles.reviewModalSubtitle, themedStyles.subtitle]}>
-                      {selectedCoach.name} için puan ve yorumunuzu paylaşın
+                      {t('coaches.rateCoachSubtitle')} {selectedCoach.name}
                     </Text>
                     
                     <View style={styles.ratingSection}>
-                      <Text style={styles.ratingLabel}>Puanınız:</Text>
+                      <Text style={styles.ratingLabel}>{t('coaches.yourRating')}</Text>
                       {renderStars(reviewRating, 32, setReviewRating)}
                     </View>
                     
                     <TextInput
                       mode="outlined"
-                      label="Yorumunuz"
-                      placeholder="Deneyiminizi paylaşın..."
+                      label={t('coaches.yourComment')}
+                      placeholder={t('coaches.commentPlaceholder')}
                       value={reviewComment}
                       onChangeText={setReviewComment}
                       multiline
@@ -436,7 +478,7 @@ const CoachesScreen = () => {
                         style={styles.modalCancelButton}
                         textColor="#757575"
                       >
-                        İptal
+                        {t('common.cancel')}
                       </Button>
                       <Button
                         mode="contained"
@@ -444,7 +486,7 @@ const CoachesScreen = () => {
                         style={styles.modalSubmitButton}
                         buttonColor="#2E7D32"
                       >
-                        Gönder
+                        {t('coaches.send')}
                       </Button>
                     </View>
                   </>

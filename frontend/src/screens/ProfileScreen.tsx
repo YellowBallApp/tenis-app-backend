@@ -29,6 +29,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useThemedStyles } from '../hooks/useThemedStyles';
 import { authService } from '../services/api';
 import * as ImagePicker from 'expo-image-picker';
@@ -42,6 +43,7 @@ const ProfileScreen = () => {
   const navigation = useNavigation<any>();
   const { logout: authLogout } = useAuth();
   const { isDarkMode, toggleTheme, theme } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
   const { themedStyles } = useThemedStyles();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -100,15 +102,14 @@ const ProfileScreen = () => {
         surname: profileData.surname,
         age: (profileData as any).age,
         profilePhoto: (profileData as any).profilePhoto,
-        level: profileData.title || 'Üye',
-        rank: 'Altın', // TODO: Rank sistemi eklenecek
+        title: profileData.title, // Backend'den gelen ham değer
         points: 0, // TODO: Match history'den hesaplanacak
         matchesPlayed: 0, // TODO: Match history'den hesaplanacak
         matchesWon: 0, // TODO: Match history'den hesaplanacak
         winRate: 0, // TODO: Match history'den hesaplanacak
         joinDate: (profileData as any).createdAt 
-          ? new Date((profileData as any).createdAt).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })
-          : 'Bilinmiyor',
+          ? new Date((profileData as any).createdAt).toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US', { month: 'long', year: 'numeric' })
+          : t('common.loading'),
         membershipType: 'Premium',
         nextRenewal: '15 Nisan 2024',
       };
@@ -116,11 +117,15 @@ const ProfileScreen = () => {
       setUser(formattedUser);
     } catch (error) {
       console.error('Profil yüklenirken hata:', error);
-      Alert.alert('Hata', 'Profil bilgileri yüklenemedi');
+      Alert.alert(t('common.error'), t('profile.updateProfileError'));
     } finally {
       setLoading(false);
     }
   };
+
+  // Computed values - her render'da güncel çeviri ile hesaplanır
+  const userLevel = user?.title || t('profile.member');
+  const userRank = t('profile.gold'); // TODO: Rank sistemi eklenecek
 
   const achievements = [
     { id: 1, title: 'İlk Maç', description: 'İlk maçınızı oynadınız', icon: 'trophy', color: '#FFD700' },
@@ -128,10 +133,16 @@ const ProfileScreen = () => {
     { id: 3, title: 'Century Club', description: '100 maç oynadınız', icon: 'star', color: '#4CAF50' },
   ];
 
+  const handleLanguageToggle = async () => {
+    const newLanguage = language === 'tr' ? 'en' : 'tr';
+    await setLanguage(newLanguage);
+  };
+
   const preferences = [
-    { id: 1, title: 'Bildirimler', icon: 'bell', enabled: notificationsEnabled, onToggle: setNotificationsEnabled },
-    { id: 2, title: 'Karanlık Mod', icon: 'theme-light-dark', enabled: isDarkMode, onToggle: toggleTheme },
-    { id: 3, title: 'Konum Paylaşımı', icon: 'map-marker', enabled: true, onToggle: () => {} },
+    { id: 1, title: t('profile.notifications'), icon: 'bell', enabled: notificationsEnabled, onToggle: setNotificationsEnabled },
+    { id: 2, title: t('profile.darkMode'), icon: 'theme-light-dark', enabled: isDarkMode, onToggle: toggleTheme },
+    { id: 3, title: language === 'en' ? '🇬🇧 English' : '🇹🇷 Türkçe', icon: 'translate', enabled: language === 'en', onToggle: handleLanguageToggle },
+    { id: 4, title: t('profile.locationSharing'), icon: 'map-marker', enabled: true, onToggle: () => {} },
   ];
 
   const openEditProfile = () => {
@@ -297,10 +308,10 @@ const ProfileScreen = () => {
   };
 
   const quickActions = [
-    { title: 'Profil Düzenle', icon: 'account-edit', action: openEditProfile },
-    { title: 'Şifre Değiştir', icon: 'lock-reset', action: () => setShowChangePasswordModal(true) },
-    { title: 'Hesap Ayarları', icon: 'cog', action: () => setShowAccountSettingsModal(true) },
-    { title: 'Yardım', icon: 'help-circle', action: () => setShowHelpModal(true) },
+    { title: t('profile.editProfile'), icon: 'account-edit', action: openEditProfile },
+    { title: t('profile.changePassword'), icon: 'lock-reset', action: () => setShowChangePasswordModal(true) },
+    { title: t('profile.accountSettings'), icon: 'cog', action: () => setShowAccountSettingsModal(true) },
+    { title: t('profile.help'), icon: 'help-circle', action: () => setShowHelpModal(true) },
   ];
 
   const getLevelColor = (level: string) => {
@@ -327,7 +338,7 @@ const ProfileScreen = () => {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="#2E7D32" />
-        <Text style={{ marginTop: 10, color: '#6C757D' }}>Yükleniyor...</Text>
+        <Text style={{ marginTop: 10, color: '#6C757D' }}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -353,7 +364,7 @@ const ProfileScreen = () => {
             )}
             <View style={styles.compactInfo}>
               <Text style={styles.compactName}>{user.name}</Text>
-              <Text style={styles.compactLevel}>{user.level} • {user.rank}</Text>
+              <Text style={styles.compactLevel}>{userLevel} • {userRank}</Text>
             </View>
           </View>
         </Animated.View>
@@ -379,15 +390,15 @@ const ProfileScreen = () => {
             <View style={styles.levelRankContainer}>
               <Chip 
                 mode="outlined" 
-                style={{ borderColor: getLevelColor(user.level), marginRight: 10 }}
+                style={{ borderColor: getLevelColor(userLevel), marginRight: 10 }}
               >
-                {user.level}
+                {userLevel}
               </Chip>
               <Chip 
                 mode="outlined" 
-                style={{ borderColor: getRankColor(user.rank) }}
+                style={{ borderColor: getRankColor(userRank) }}
               >
-                {user.rank}
+                {userRank}
               </Chip>
             </View>
           </View>
@@ -405,34 +416,34 @@ const ProfileScreen = () => {
 
       {/* Stats Section */}
       <View style={styles.section}>
-        <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>İstatistikler</Title>
+        <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>{t('profile.statistics')}</Title>
         <View style={styles.statsGrid}>
           <Card style={[styles.statCard, themedStyles.card]}>
             <Card.Content style={styles.statCardContent}>
               <MaterialCommunityIcons name="trophy" size={32} color={theme.colors.primary} />
               <Text style={[styles.statNumber, themedStyles.statNumber]}>{user.points}</Text>
-              <Text style={[styles.statLabel, themedStyles.statLabel]}>Puan</Text>
+              <Text style={[styles.statLabel, themedStyles.statLabel]}>{t('profile.points')}</Text>
             </Card.Content>
           </Card>
           <Card style={[styles.statCard, themedStyles.card]}>
             <Card.Content style={styles.statCardContent}>
               <MaterialCommunityIcons name="tennis" size={32} color={theme.colors.primary} />
               <Text style={[styles.statNumber, themedStyles.statNumber]}>{user.matchesPlayed}</Text>
-              <Text style={[styles.statLabel, themedStyles.statLabel]}>Maç</Text>
+              <Text style={[styles.statLabel, themedStyles.statLabel]}>{t('profile.matches')}</Text>
             </Card.Content>
           </Card>
           <Card style={[styles.statCard, themedStyles.card]}>
             <Card.Content style={styles.statCardContent}>
               <MaterialCommunityIcons name="check-circle" size={32} color={theme.colors.primary} />
               <Text style={[styles.statNumber, themedStyles.statNumber]}>{user.matchesWon}</Text>
-              <Text style={[styles.statLabel, themedStyles.statLabel]}>Galibiyet</Text>
+              <Text style={[styles.statLabel, themedStyles.statLabel]}>{t('profile.wins')}</Text>
             </Card.Content>
           </Card>
           <Card style={[styles.statCard, themedStyles.card]}>
             <Card.Content style={styles.statCardContent}>
               <MaterialCommunityIcons name="percent" size={32} color={theme.colors.primary} />
               <Text style={[styles.statNumber, themedStyles.statNumber]}>{user.winRate}%</Text>
-              <Text style={[styles.statLabel, themedStyles.statLabel]}>Başarı</Text>
+              <Text style={[styles.statLabel, themedStyles.statLabel]}>{t('profile.winRate')}</Text>
             </Card.Content>
           </Card>
         </View>
@@ -440,7 +451,7 @@ const ProfileScreen = () => {
 
       {/* Achievements */}
       <View style={[styles.section, styles.achievementsSection]}>
-        <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>Başarılar</Title>
+        <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>{t('profile.achievements')}</Title>
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false}
@@ -468,13 +479,13 @@ const ProfileScreen = () => {
 
       {/* Membership Info */}
       <View style={styles.section}>
-        <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>Üyelik Bilgileri</Title>
+        <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>{t('profile.membershipInfo')}</Title>
         <Card style={[styles.membershipCard, themedStyles.card]}>
           <Card.Content>
             <View style={styles.membershipRow}>
               <MaterialCommunityIcons name="calendar" size={24} color={theme.colors.primary} />
               <View style={styles.membershipInfo}>
-                <Text style={[styles.membershipLabel, themedStyles.subtitle]}>Katılım Tarihi</Text>
+                <Text style={[styles.membershipLabel, themedStyles.subtitle]}>{t('profile.joinDate')}</Text>
                 <Text style={[styles.membershipValue, themedStyles.text]}>{user.joinDate}</Text>
               </View>
             </View>
@@ -482,7 +493,7 @@ const ProfileScreen = () => {
             <View style={styles.membershipRow}>
               <MaterialCommunityIcons name="crown" size={24} color="#FFD700" />
               <View style={styles.membershipInfo}>
-                <Text style={[styles.membershipLabel, themedStyles.subtitle]}>Üyelik Türü</Text>
+                <Text style={[styles.membershipLabel, themedStyles.subtitle]}>{t('profile.membershipType')}</Text>
                 <Text style={[styles.membershipValue, themedStyles.text]}>{user.membershipType}</Text>
               </View>
             </View>
@@ -490,7 +501,7 @@ const ProfileScreen = () => {
             <View style={styles.membershipRow}>
               <MaterialCommunityIcons name="refresh" size={24} color={theme.colors.primary} />
               <View style={styles.membershipInfo}>
-                <Text style={[styles.membershipLabel, themedStyles.subtitle]}>Sonraki Yenileme</Text>
+                <Text style={[styles.membershipLabel, themedStyles.subtitle]}>{t('profile.nextRenewal')}</Text>
                 <Text style={[styles.membershipValue, themedStyles.text]}>{user.nextRenewal}</Text>
               </View>
             </View>
@@ -500,7 +511,7 @@ const ProfileScreen = () => {
 
       {/* Preferences */}
       <View style={styles.section}>
-        <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>Tercihler</Title>
+        <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>{t('profile.preferences')}</Title>
         <Card style={[styles.preferencesCard, themedStyles.card]}>
           <Card.Content>
             {preferences.map((preference) => (
@@ -522,7 +533,7 @@ const ProfileScreen = () => {
 
       {/* Quick Actions */}
       <View style={styles.section}>
-        <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>Hızlı İşlemler</Title>
+        <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>{t('profile.quickActions')}</Title>
         <View style={styles.quickActionsGrid}>
           {quickActions.map((action, index) => (
             <Button
@@ -549,7 +560,7 @@ const ProfileScreen = () => {
           icon="logout"
           contentStyle={styles.logoutButtonContent}
         >
-          Çıkış Yap
+          {t('auth.logout')}
         </Button>
       </View>
       </Animated.ScrollView>
@@ -567,17 +578,17 @@ const ProfileScreen = () => {
             <Card.Content style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <MaterialCommunityIcons name="account-edit" size={32} color={theme.colors.primary} />
-                <Title style={[styles.modalTitle, themedStyles.title]}>Profil Düzenle</Title>
+                <Title style={[styles.modalTitle, themedStyles.title]}>{t('profile.editProfile')}</Title>
                 <TouchableOpacity onPress={() => setShowEditProfileModal(false)}>
                   <MaterialCommunityIcons name="close" size={24} color={theme.colors.text} />
                 </TouchableOpacity>
               </View>
               
-              <Text style={[styles.modalSubtitle, themedStyles.subtitle]}>Profil bilgilerinizi güncelleyin</Text>
+              <Text style={[styles.modalSubtitle, themedStyles.subtitle]}>Update your profile information</Text>
               
               <TextInput
                 mode="outlined"
-                label="Ad Soyad"
+                label={t('auth.name')}
                 value={editName}
                 onChangeText={setEditName}
                 style={[styles.textInput, themedStyles.input]}
@@ -589,7 +600,7 @@ const ProfileScreen = () => {
               
               <TextInput
                 mode="outlined"
-                label="E-posta"
+                label={t('auth.email')}
                 value={editEmail}
                 onChangeText={setEditEmail}
                 style={[styles.textInput, themedStyles.input]}
@@ -602,7 +613,7 @@ const ProfileScreen = () => {
               
               <TextInput
                 mode="outlined"
-                label="Yaş"
+                label={t('profile.age')}
                 value={editAge}
                 onChangeText={setEditAge}
                 style={[styles.textInput, themedStyles.input]}
@@ -611,7 +622,7 @@ const ProfileScreen = () => {
                 activeOutlineColor={theme.colors.primary}
                 textColor={theme.colors.text}
                 keyboardType="numeric"
-                placeholder="Yaşınızı girin"
+                placeholder={t('profile.enterAge')}
               />
 
               <View style={styles.modalButtons}>
@@ -622,7 +633,7 @@ const ProfileScreen = () => {
                   textColor={theme.colors.text}
                   contentStyle={{ paddingVertical: 12 }}
                 >
-                  İptal
+                  {t('common.cancel')}
                 </Button>
                 <Button
                   mode="contained"
@@ -638,7 +649,7 @@ const ProfileScreen = () => {
                         if (!isNaN(ageNumber) && ageNumber > 0 && ageNumber < 150) {
                           updateData.age = ageNumber;
                         } else {
-                          Alert.alert('Hata', 'Lütfen geçerli bir yaş girin');
+                          Alert.alert(t('common.error'), t('profile.invalidAge'));
                           return;
                         }
                       }
@@ -646,17 +657,17 @@ const ProfileScreen = () => {
                       await authService.updateProfile(updateData);
                       await loadProfile(); // Profili yeniden yükle
                       setShowEditProfileModal(false);
-                      Alert.alert('Başarılı', 'Profil bilgileriniz güncellendi');
+                      Alert.alert(t('common.success'), t('profile.updateProfileSuccess'));
                     } catch (error) {
                       console.error('Profil güncellenirken hata:', error);
-                      Alert.alert('Hata', 'Profil güncellenirken bir hata oluştu');
+                      Alert.alert(t('common.error'), t('profile.updateProfileError'));
                     }
                   }}
                   style={[styles.modalButton, styles.saveButton]}
                   buttonColor={theme.colors.primary}
                   contentStyle={{ paddingVertical: 12 }}
                 >
-                  Kaydet
+                  {t('common.save')}
                 </Button>
               </View>
             </Card.Content>
@@ -676,11 +687,11 @@ const ProfileScreen = () => {
           <Card.Content style={styles.photoModalContent}>
             <View style={styles.photoModalHeader}>
               <MaterialCommunityIcons name="camera" size={32} color={theme.colors.primary} />
-              <Title style={[styles.photoModalTitle, themedStyles.title]}>Profil Fotoğrafı</Title>
+              <Title style={[styles.photoModalTitle, themedStyles.title]}>{t('profile.profilePhoto')}</Title>
             </View>
             
             <Text style={[styles.photoModalSubtitle, themedStyles.subtitle]}>
-              Fotoğraf eklemek veya değiştirmek için bir seçenek seçin
+              {t('profile.photoOptionsTitle')}
             </Text>
 
             <View style={styles.photoOptionsContainer}>
@@ -693,9 +704,9 @@ const ProfileScreen = () => {
                 <View style={[styles.photoOptionIcon, { backgroundColor: theme.colors.primary }]}>
                   <MaterialCommunityIcons name="image" size={32} color="#FFFFFF" />
                 </View>
-                <Text style={[styles.photoOptionTitle, themedStyles.text]}>Galeriden Seç</Text>
+                <Text style={[styles.photoOptionTitle, themedStyles.text]}>{t('profile.selectFromGallery')}</Text>
                 <Text style={[styles.photoOptionDescription, themedStyles.subtitle]}>
-                  Mevcut fotoğraflarınızdan seçin
+                  {t('profile.galleryDescription')}
                 </Text>
               </TouchableOpacity>
 
@@ -708,9 +719,9 @@ const ProfileScreen = () => {
                 <View style={[styles.photoOptionIcon, { backgroundColor: theme.colors.primary }]}>
                   <MaterialCommunityIcons name="camera" size={32} color="#FFFFFF" />
                 </View>
-                <Text style={[styles.photoOptionTitle, themedStyles.text]}>Fotoğraf Çek</Text>
+                <Text style={[styles.photoOptionTitle, themedStyles.text]}>{t('profile.takePhoto')}</Text>
                 <Text style={[styles.photoOptionDescription, themedStyles.subtitle]}>
-                  Kameranızla yeni bir fotoğraf çekin
+                  {t('profile.cameraDescription')}
                 </Text>
               </TouchableOpacity>
 
@@ -724,9 +735,9 @@ const ProfileScreen = () => {
                   <View style={[styles.photoOptionIcon, { backgroundColor: '#DC3545' }]}>
                     <MaterialCommunityIcons name="delete" size={32} color="#FFFFFF" />
                   </View>
-                  <Text style={[styles.photoOptionTitle, { color: '#DC3545' }]}>Fotoğrafı Kaldır</Text>
+                  <Text style={[styles.photoOptionTitle, { color: '#DC3545' }]}>{t('profile.removePhoto')}</Text>
                   <Text style={[styles.photoOptionDescription, themedStyles.subtitle]}>
-                    Mevcut profil fotoğrafınızı silin
+                    {t('profile.removePhotoDescription')}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -739,7 +750,7 @@ const ProfileScreen = () => {
               style={styles.photoCancelButton}
               textColor={theme.colors.primary}
             >
-              İptal
+              {t('common.cancel')}
             </Button>
           </Card.Content>
         </Card>
@@ -768,9 +779,9 @@ const ProfileScreen = () => {
               </View>
             </View>
             
-            <Title style={[styles.logoutModalTitle, themedStyles.title]}>Profil Fotoğrafını Kaldır</Title>
+            <Title style={[styles.logoutModalTitle, themedStyles.title]}>{t('profile.removePhoto')}</Title>
             <Text style={[styles.logoutModalText, themedStyles.text]}>
-              Profil fotoğrafınızı kaldırmak istediğinizden emin misiniz? Bu işlem geri alınamaz.
+              {t('profile.removePhotoConfirm')}
             </Text>
 
             <View style={styles.logoutModalButtons}>
@@ -780,7 +791,7 @@ const ProfileScreen = () => {
                 style={styles.logoutCancelButton}
                 textColor={theme.colors.text}
               >
-                İptal
+                {t('common.cancel')}
               </Button>
               <Button
                 mode="contained"
@@ -789,7 +800,7 @@ const ProfileScreen = () => {
                 buttonColor={theme.colors.error}
                 textColor="#FFFFFF"
               >
-                Kaldır
+                {t('common.delete')}
               </Button>
             </View>
           </Card.Content>
@@ -807,19 +818,19 @@ const ProfileScreen = () => {
         <Card style={[styles.modalCard, themedStyles.card]}>
           <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScrollView}>
             <Card.Content style={styles.modalContent}>
-              <View style={[styles.modalHeader, { borderBottomColor: theme.colors.outline }]}>
-                <MaterialCommunityIcons name="lock-reset" size={32} color="#FF9800" />
-                <Title style={[styles.modalTitle, themedStyles.title]}>Şifre Değiştir</Title>
+            <View style={[styles.modalHeader, { borderBottomColor: theme.colors.outline }]}>
+              <MaterialCommunityIcons name="lock-reset" size={32} color="#FF9800" />
+              <Title style={[styles.modalTitle, themedStyles.title]}>{t('profile.changePassword')}</Title>
                 <TouchableOpacity onPress={() => setShowChangePasswordModal(false)}>
                   <MaterialCommunityIcons name="close" size={24} color={theme.colors.text} />
                 </TouchableOpacity>
               </View>
-              
-              <Text style={[styles.modalSubtitle, themedStyles.subtitle]}>Güvenliğiniz için şifrenizi güncelleyin</Text>
-              
-              <TextInput
-                mode="outlined"
-                label="Mevcut Şifre"
+            
+            <Text style={[styles.modalSubtitle, themedStyles.subtitle]}>Update your password for security</Text>
+            
+            <TextInput
+              mode="outlined"
+              label={t('profile.currentPassword')}
                 value={currentPassword}
                 onChangeText={setCurrentPassword}
                 style={[styles.textInput, { backgroundColor: theme.colors.surface }]}
@@ -829,10 +840,10 @@ const ProfileScreen = () => {
                 activeOutlineColor="#FF9800"
                 textColor={theme.colors.text}
               />
-              
-              <TextInput
-                mode="outlined"
-                label="Yeni Şifre"
+            
+            <TextInput
+              mode="outlined"
+              label={t('profile.newPassword')}
                 value={newPassword}
                 onChangeText={setNewPassword}
                 style={[styles.textInput, { backgroundColor: theme.colors.surface }]}
@@ -842,10 +853,10 @@ const ProfileScreen = () => {
                 activeOutlineColor="#FF9800"
                 textColor={theme.colors.text}
               />
-              
-              <TextInput
-                mode="outlined"
-                label="Yeni Şifre Tekrar"
+            
+            <TextInput
+              mode="outlined"
+              label={t('profile.confirmPassword')}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 style={[styles.textInput, { backgroundColor: theme.colors.surface }]}
@@ -856,50 +867,50 @@ const ProfileScreen = () => {
                 error={!!confirmPassword && newPassword !== confirmPassword}
                 textColor={theme.colors.text}
               />
-              
-              {/* Şifre Kontrol Mesajları */}
-              {confirmPassword && newPassword !== confirmPassword && (
-                <Text style={styles.errorText}>
-                  ⚠️ Şifreler uyuşmuyor
-                </Text>
-              )}
-              
-              {newPassword && confirmPassword && newPassword === confirmPassword && (
-                <Text style={styles.successText}>
-                  ✅ Şifreler uyuşuyor
-                </Text>
-              )}
+            
+            {/* Şifre Kontrol Mesajları */}
+            {confirmPassword && newPassword !== confirmPassword && (
+              <Text style={styles.errorText}>
+                {t('profile.passwordMismatch')}
+              </Text>
+            )}
+            
+            {newPassword && confirmPassword && newPassword === confirmPassword && (
+              <Text style={styles.successText}>
+                {t('profile.passwordMatch')}
+              </Text>
+            )}
 
               <View style={styles.modalButtons}>
-                <Button
-                  mode="outlined"
-                  onPress={() => setShowChangePasswordModal(false)}
-                  style={[styles.modalButton, styles.cancelButton]}
-                  textColor={theme.colors.text}
-                  contentStyle={{ paddingVertical: 12 }}
-                >
-                  İptal
-                </Button>
-                <Button
-                  mode="contained"
-                  onPress={() => {
-                    console.log('Şifre değiştirildi');
-                    setShowChangePasswordModal(false);
-                    setCurrentPassword('');
-                    setNewPassword('');
-                    setConfirmPassword('');
-                  }}
-                  style={[
-                    styles.modalButton, 
-                    styles.saveButton,
-                    (!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword) && styles.disabledButton
-                  ]}
-                  buttonColor={(!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword) ? "#CCCCCC" : "#FF9800"}
-                  contentStyle={{ paddingVertical: 12 }}
-                  disabled={!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword}
-                >
-                  Değiştir
-                </Button>
+              <Button
+                mode="outlined"
+                onPress={() => setShowChangePasswordModal(false)}
+                style={[styles.modalButton, styles.cancelButton]}
+                textColor={theme.colors.text}
+                contentStyle={{ paddingVertical: 12 }}
+              >
+                {t('common.cancel')}
+              </Button>
+              <Button
+                mode="contained"
+                onPress={() => {
+                  console.log('Şifre değiştirildi');
+                  setShowChangePasswordModal(false);
+                  setCurrentPassword('');
+                  setNewPassword('');
+                  setConfirmPassword('');
+                }}
+                style={[
+                  styles.modalButton, 
+                  styles.saveButton,
+                  (!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword) && styles.disabledButton
+                ]}
+                buttonColor={(!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword) ? "#CCCCCC" : "#FF9800"}
+                contentStyle={{ paddingVertical: 12 }}
+                disabled={!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword}
+              >
+                {t('profile.changePassword')}
+              </Button>
               </View>
             </Card.Content>
           </ScrollView>
@@ -919,13 +930,13 @@ const ProfileScreen = () => {
             <Card.Content style={styles.modalContent}>
             <View style={[styles.modalHeader, { borderBottomColor: theme.colors.outline }]}>
               <MaterialCommunityIcons name="cog" size={32} color="#4CAF50" />
-              <Title style={[styles.modalTitle, themedStyles.title]}>Hesap Ayarları</Title>
+              <Title style={[styles.modalTitle, themedStyles.title]}>{t('profile.accountSettings')}</Title>
               <TouchableOpacity onPress={() => setShowAccountSettingsModal(false)}>
                 <MaterialCommunityIcons name="close" size={24} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
             
-            <Text style={[styles.modalSubtitle, themedStyles.subtitle]}>Hesap tercihlerinizi yönetin</Text>
+            <Text style={[styles.modalSubtitle, themedStyles.subtitle]}>Manage your account preferences</Text>
             
             <List.Section>
               <List.Item
@@ -982,7 +993,7 @@ const ProfileScreen = () => {
               buttonColor="#4CAF50"
               contentStyle={{ paddingVertical: 12 }}
             >
-              Tamam
+              {t('common.ok')}
             </Button>
           </Card.Content>
           </ScrollView>
@@ -1002,13 +1013,13 @@ const ProfileScreen = () => {
             <Card.Content style={styles.modalContent}>
             <View style={[styles.modalHeader, { borderBottomColor: theme.colors.outline }]}>
               <MaterialCommunityIcons name="help-circle" size={32} color="#2196F3" />
-              <Title style={[styles.modalTitle, themedStyles.title]}>Yardım & Destek</Title>
+              <Title style={[styles.modalTitle, themedStyles.title]}>{t('profile.help')}</Title>
               <TouchableOpacity onPress={() => setShowHelpModal(false)}>
                 <MaterialCommunityIcons name="close" size={24} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
             
-            <Text style={[styles.modalSubtitle, themedStyles.subtitle]}>Size nasıl yardımcı olabiliriz?</Text>
+            <Text style={[styles.modalSubtitle, themedStyles.subtitle]}>How can we help you?</Text>
             
             <List.Section>
               <List.Item
@@ -1065,7 +1076,7 @@ const ProfileScreen = () => {
               buttonColor="#2196F3"
               contentStyle={{ paddingVertical: 12 }}
             >
-              Tamam
+              {t('common.ok')}
             </Button>
           </Card.Content>
           </ScrollView>
@@ -1084,7 +1095,7 @@ const ProfileScreen = () => {
           <Card.Content style={styles.logoutModalContent}>
             <View style={styles.logoutModalHeader}>
               <MaterialCommunityIcons name="logout" size={28} color={theme.colors.error} />
-              <Title style={[styles.logoutModalTitle, themedStyles.title]}>Çıkış Yap</Title>
+              <Title style={[styles.logoutModalTitle, themedStyles.title]}>{t('auth.logout')}</Title>
               <TouchableOpacity 
                 onPress={() => setShowLogoutModal(false)}
                 disabled={loggingOut}
@@ -1094,13 +1105,13 @@ const ProfileScreen = () => {
             </View>
             
             <Text style={[styles.logoutModalText, themedStyles.text]}>
-              Çıkış yapmak istediğinizden emin misiniz?
+              {t('auth.logoutConfirm')}
             </Text>
 
             {loggingOut ? (
               <View style={{ alignItems: 'center', paddingVertical: 15 }}>
                 <ActivityIndicator size="large" color={theme.colors.error} />
-                <Text style={{ marginTop: 8, color: theme.colors.placeholder, fontSize: 13 }}>Çıkış yapılıyor...</Text>
+                <Text style={{ marginTop: 8, color: theme.colors.placeholder, fontSize: 13 }}>{t('common.loading')}</Text>
               </View>
             ) : (
               <View style={styles.logoutModalButtons}>
@@ -1112,7 +1123,7 @@ const ProfileScreen = () => {
                   contentStyle={{ paddingVertical: 4 }}
                   labelStyle={{ fontSize: 14 }}
                 >
-                  İptal
+                  {t('common.cancel')}
                 </Button>
                 <Button
                   mode="contained"
@@ -1122,7 +1133,7 @@ const ProfileScreen = () => {
                   contentStyle={{ paddingVertical: 4 }}
                   labelStyle={{ fontSize: 14 }}
                 >
-                  Çıkış Yap
+                  {t('auth.logout')}
                 </Button>
               </View>
             )}

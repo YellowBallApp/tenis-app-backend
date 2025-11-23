@@ -4,11 +4,12 @@ import {
   StyleSheet,
   ScrollView,
   Platform,
-  StatusBar,
   ActivityIndicator,
   TouchableOpacity,
   TextInput,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Card,
   Title,
@@ -21,6 +22,7 @@ import {
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { matchHistoryService, authService, leagueService, commentService } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
 
 interface MatchHistory {
   id: number;
@@ -40,6 +42,8 @@ interface MatchHistory {
 }
 
 const MatchHistoryScreen = ({ navigation, route }: any) => {
+  const { t, language } = useLanguage();
+  const insets = useSafeAreaInsets();
   const [matches, setMatches] = useState<MatchHistory[]>([]);
   const [filteredMatches, setFilteredMatches] = useState<MatchHistory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -225,7 +229,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
 
   const formatCommentDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleString('tr-TR', {
+    return date.toLocaleString(language === 'tr' ? 'tr-TR' : 'en-US', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -324,7 +328,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
 
   const formatDate = (dateString: Date) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('tr-TR', {
+    return date.toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
@@ -357,17 +361,17 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="#2E7D32" />
-        <Text style={{ marginTop: 10, color: '#6C757D' }}>Yükleniyor...</Text>
+        <Text style={{ marginTop: 10, color: '#6C757D' }}>{t('matchHistory.loading')}</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <StatusBar backgroundColor="#2E7D32" barStyle="light-content" />
+      <StatusBar style="light" />
       
       {/* Header */}
-      <View style={styles.headerSection}>
+      <View style={[styles.headerSection, { paddingTop: Platform.OS === 'android' ? insets.top + 20 : 50 }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
@@ -375,7 +379,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
           <MaterialCommunityIcons name="arrow-left" size={28} color="#FFFFFF" />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
-          <Title style={styles.headerTitle}>Maç Geçmişi</Title>
+          <Title style={styles.headerTitle}>{t('matchHistory.title')}</Title>
           {leagueName && (
             <Text style={styles.headerSubtitle}>{leagueName}</Text>
           )}
@@ -390,27 +394,27 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
             <Card.Content>
               <View style={styles.statsHeader}>
                 <MaterialCommunityIcons name="chart-line" size={28} color="#2E7D32" />
-                <Title style={styles.statsTitle}>İstatistikler</Title>
+                <Title style={styles.statsTitle}>{t('matchHistory.statistics')}</Title>
               </View>
               <View style={styles.statsGrid}>
                 <View style={styles.statItem}>
                   <Text style={styles.statNumber}>{stats.total}</Text>
-                  <Text style={styles.statLabel}>Toplam Maç</Text>
+                  <Text style={styles.statLabel}>{t('matchHistory.totalMatches')}</Text>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.statItem}>
                   <Text style={[styles.statNumber, { color: '#2E7D32' }]}>{stats.wins}</Text>
-                  <Text style={styles.statLabel}>Galibiyet</Text>
+                  <Text style={styles.statLabel}>{t('matchHistory.wins')}</Text>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.statItem}>
                   <Text style={[styles.statNumber, { color: '#DC3545' }]}>{stats.losses}</Text>
-                  <Text style={styles.statLabel}>Mağlubiyet</Text>
+                  <Text style={styles.statLabel}>{t('matchHistory.losses')}</Text>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.statItem}>
                   <Text style={[styles.statNumber, { color: '#FF9800' }]}>%{stats.winRate}</Text>
-                  <Text style={styles.statLabel}>Kazanma Oranı</Text>
+                  <Text style={styles.statLabel}>{t('matchHistory.winRate')}</Text>
                 </View>
               </View>
             </Card.Content>
@@ -420,7 +424,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
         {/* Filtreleme */}
         <View style={styles.filterSection}>
           <Searchbar
-            placeholder="Rakip ara..."
+            placeholder={t('matchHistory.searchOpponent')}
             onChangeText={setSearchQuery}
             value={searchQuery}
             style={styles.searchbar}
@@ -432,7 +436,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
               onPress={() => setShowFilterModal(true)}
             >
               <MaterialCommunityIcons name="filter-variant" size={20} color="#2E7D32" />
-              <Text style={styles.filterButtonText}>Filtrele</Text>
+              <Text style={styles.filterButtonText}>{t('matchHistory.filter')}</Text>
               {getActiveFilterCount() > 0 && (
                 <View style={styles.filterBadge}>
                   <Text style={styles.filterBadgeText}>{getActiveFilterCount()}</Text>
@@ -444,7 +448,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                 style={styles.clearFilterButton}
                 onPress={clearFilters}
               >
-                <Text style={styles.clearFilterText}>Temizle</Text>
+                <Text style={styles.clearFilterText}>{t('matchHistory.clear')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -453,7 +457,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
         {/* Maç Listesi */}
         <View style={styles.matchesSection}>
           <Title style={styles.sectionTitle}>
-            Maçlar ({filteredMatches.length})
+            {t('matchHistory.matches')} ({filteredMatches.length})
           </Title>
           {filteredMatches.length > 0 ? (
             filteredMatches.map((match) => {
@@ -488,7 +492,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                         textStyle={styles.resultChipText}
                         compact
                       >
-                        {isMatchWinner ? 'Galip' : 'Mağlup'}
+                        {isMatchWinner ? t('matchHistory.winner') : t('matchHistory.loser')}
                       </Chip>
                     </View>
 
@@ -500,7 +504,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
 
                     {/* Rakipler */}
                     <View style={styles.playersContainer}>
-                      <Text style={styles.playersLabel}>Rakip:</Text>
+                      <Text style={styles.playersLabel}>{t('matchHistory.opponent')}</Text>
                       <Text style={styles.playersNames}>
                         {opponents.map(o => `${o.name} ${o.surname || ''}`).join(', ')}
                       </Text>
@@ -509,7 +513,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                     {/* Partner (varsa) */}
                     {partners.length > 0 && (
                       <View style={styles.playersContainer}>
-                        <Text style={styles.playersLabel}>Partner:</Text>
+                        <Text style={styles.playersLabel}>{t('matchHistory.partner')}</Text>
                         <Text style={styles.playersNames}>
                           {partners.map(p => `${p.name} ${p.surname || ''}`).join(', ')}
                         </Text>
@@ -525,7 +529,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                           color="#2E7D32" 
                         />
                         <Text style={styles.courtInfoText}>
-                          {match.indoorCourt ? 'Kapalı Saha' : 'Açık Saha'}
+                          {match.indoorCourt ? t('matchHistory.indoorCourt') : t('matchHistory.outdoorCourt')}
                         </Text>
                       </View>
                       <View style={styles.courtInfoDivider} />
@@ -536,9 +540,9 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                           color="#2E7D32" 
                         />
                         <Text style={styles.courtInfoText}>
-                          {match.courtGround === 'grass' && 'Çim Kort'}
-                          {match.courtGround === 'clay' && 'Toprak Kort'}
-                          {match.courtGround === 'hard' && 'Sert Kort'}
+                          {match.courtGround === 'grass' && t('matchHistory.grassCourt')}
+                          {match.courtGround === 'clay' && t('matchHistory.clayCourt')}
+                          {match.courtGround === 'hard' && t('matchHistory.hardCourt')}
                         </Text>
                       </View>
                     </View>
@@ -549,7 +553,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                       onPress={() => openCommentModal(match)}
                     >
                       <MaterialCommunityIcons name="comment-text-outline" size={20} color="#2E7D32" />
-                      <Text style={styles.commentButtonText}>Yorumlar</Text>
+                      <Text style={styles.commentButtonText}>{t('matchHistory.comments')}</Text>
                       {commentCounts[match.id] > 0 && (
                         <View style={styles.commentBadge}>
                           <Text style={styles.commentBadgeText}>{commentCounts[match.id]}</Text>
@@ -574,7 +578,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
             <Card style={styles.emptyCard}>
               <Card.Content>
                 <MaterialCommunityIcons name="tennis-ball" size={48} color="#BDBDBD" />
-                <Text style={styles.emptyText}>Maç geçmişi bulunamadı</Text>
+                <Text style={styles.emptyText}>{t('matchHistory.noMatches')}</Text>
               </Card.Content>
             </Card>
           )}
@@ -591,7 +595,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
           <Card style={styles.modalCard}>
             <Card.Content>
               <View style={styles.modalHeader}>
-                <Title style={styles.modalTitle}>Filtreler</Title>
+                <Title style={styles.modalTitle}>{t('matchHistory.filters')}</Title>
                 <TouchableOpacity onPress={() => setShowFilterModal(false)}>
                   <MaterialCommunityIcons name="close" size={24} color="#757575" />
                 </TouchableOpacity>
@@ -600,7 +604,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
               <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
                 {/* Lig Maçı Filtresi */}
                 <View style={styles.filterGroup}>
-                  <Text style={styles.filterGroupLabel}>Maç Tipi</Text>
+                  <Text style={styles.filterGroupLabel}>{t('matchHistory.matchType')}</Text>
                   <View style={styles.filterOptions}>
                     <TouchableOpacity
                       style={[
@@ -612,7 +616,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                       <Text style={[
                         styles.filterOptionText,
                         filterLeagueOnly === null && styles.filterOptionTextActive
-                      ]}>Tümü</Text>
+                      ]}>{t('matchHistory.all')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[
@@ -624,7 +628,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                       <Text style={[
                         styles.filterOptionText,
                         filterLeagueOnly === true && styles.filterOptionTextActive
-                      ]}>Lig Maçları</Text>
+                      ]}>{t('matchHistory.leagueMatches')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[
@@ -636,7 +640,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                       <Text style={[
                         styles.filterOptionText,
                         filterLeagueOnly === false && styles.filterOptionTextActive
-                      ]}>Normal Maçlar</Text>
+                      ]}>{t('matchHistory.normalMatches')}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -644,7 +648,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                 {/* Lig Seçimi */}
                 {filterLeagueOnly !== false && (
                   <View style={styles.filterGroup}>
-                    <Text style={styles.filterGroupLabel}>Lig</Text>
+                    <Text style={styles.filterGroupLabel}>{t('matchHistory.league')}</Text>
                     <View style={styles.filterOptions}>
                       <TouchableOpacity
                         style={[
@@ -656,7 +660,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                         <Text style={[
                           styles.filterOptionText,
                           filterLeague === null && styles.filterOptionTextActive
-                        ]}>Tüm Ligler</Text>
+                        ]}>{t('matchHistory.allLeagues')}</Text>
                       </TouchableOpacity>
                       {leagues.map(league => (
                         <TouchableOpacity
@@ -679,7 +683,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
 
                 {/* Kort Tipi Filtresi */}
                 <View style={styles.filterGroup}>
-                  <Text style={styles.filterGroupLabel}>Kort Tipi</Text>
+                  <Text style={styles.filterGroupLabel}>{t('matchHistory.courtType')}</Text>
                   <View style={styles.filterOptions}>
                     <TouchableOpacity
                       style={[
@@ -691,7 +695,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                       <Text style={[
                         styles.filterOptionText,
                         filterCourtType === 'all' && styles.filterOptionTextActive
-                      ]}>Tümü</Text>
+                      ]}>{t('matchHistory.all')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[
@@ -709,7 +713,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                       <Text style={[
                         styles.filterOptionText,
                         filterCourtType === 'outdoor' && styles.filterOptionTextActive
-                      ]}>Açık Saha</Text>
+                      ]}>{t('matchHistory.outdoorCourt')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[
@@ -727,14 +731,14 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                       <Text style={[
                         styles.filterOptionText,
                         filterCourtType === 'indoor' && styles.filterOptionTextActive
-                      ]}>Kapalı Saha</Text>
+                      ]}>{t('matchHistory.indoorCourt')}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
 
                 {/* Zemin Tipi Filtresi */}
                 <View style={styles.filterGroup}>
-                  <Text style={styles.filterGroupLabel}>Zemin Tipi</Text>
+                  <Text style={styles.filterGroupLabel}>{t('matchHistory.groundType')}</Text>
                   <View style={styles.filterOptions}>
                     <TouchableOpacity
                       style={[
@@ -746,7 +750,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                       <Text style={[
                         styles.filterOptionText,
                         filterGroundType === 'all' && styles.filterOptionTextActive
-                      ]}>Tümü</Text>
+                      ]}>{t('matchHistory.all')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[
@@ -758,7 +762,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                       <Text style={[
                         styles.filterOptionText,
                         filterGroundType === 'hard' && styles.filterOptionTextActive
-                      ]}>Sert Kort</Text>
+                      ]}>{t('matchHistory.hardCourt')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[
@@ -770,7 +774,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                       <Text style={[
                         styles.filterOptionText,
                         filterGroundType === 'clay' && styles.filterOptionTextActive
-                      ]}>Toprak Kort</Text>
+                      ]}>{t('matchHistory.clayCourt')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[
@@ -782,7 +786,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                       <Text style={[
                         styles.filterOptionText,
                         filterGroundType === 'grass' && styles.filterOptionTextActive
-                      ]}>Çim Kort</Text>
+                      ]}>{t('matchHistory.grassCourt')}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -794,7 +798,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                   onPress={clearFilters}
                   style={styles.modalClearButton}
                 >
-                  Temizle
+                  {t('matchHistory.clear')}
                 </Button>
                 <Button
                   mode="contained"
@@ -802,7 +806,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                   style={styles.modalApplyButton}
                   buttonColor="#2E7D32"
                 >
-                  Uygula
+                  {t('matchHistory.apply')}
                 </Button>
               </View>
             </Card.Content>
@@ -818,7 +822,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
           <Card style={styles.commentModalCard}>
             <Card.Content style={styles.commentModalContent}>
               <View style={styles.modalHeader}>
-                <Title style={styles.modalTitle}>Maç Yorumları</Title>
+                <Title style={styles.modalTitle}>{t('matchHistory.matchComments')}</Title>
                 <TouchableOpacity onPress={closeCommentModal}>
                   <MaterialCommunityIcons name="close" size={24} color="#757575" />
                 </TouchableOpacity>
@@ -842,7 +846,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                 {loadingComments ? (
                   <View style={styles.loadingContainer}>
                     <ActivityIndicator size="small" color="#2E7D32" />
-                    <Text style={styles.loadingText}>Yorumlar yükleniyor...</Text>
+                    <Text style={styles.loadingText}>{t('matchHistory.loadingComments')}</Text>
                   </View>
                 ) : comments.length > 0 ? (
                   comments.map((comment) => (
@@ -886,7 +890,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                             value={editingCommentText}
                             onChangeText={setEditingCommentText}
                             multiline
-                            placeholder="Yorumunuzu düzenleyin..."
+                            placeholder={t('matchHistory.editComment')}
                           />
                           <View style={styles.editCommentButtons}>
                             <TouchableOpacity
@@ -896,13 +900,13 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                                 setEditingCommentText('');
                               }}
                             >
-                              <Text style={styles.cancelEditButtonText}>İptal</Text>
+                              <Text style={styles.cancelEditButtonText}>{t('matchHistory.cancel')}</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                               style={styles.saveEditButton}
                               onPress={() => handleEditComment(comment.id)}
                             >
-                              <Text style={styles.saveEditButtonText}>Kaydet</Text>
+                              <Text style={styles.saveEditButtonText}>{t('matchHistory.save')}</Text>
                             </TouchableOpacity>
                           </View>
                         </View>
@@ -914,7 +918,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                 ) : (
                   <View style={styles.emptyCommentsContainer}>
                     <MaterialCommunityIcons name="comment-off-outline" size={48} color="#BDBDBD" />
-                    <Text style={styles.emptyCommentsText}>Henüz yorum yapılmamış</Text>
+                    <Text style={styles.emptyCommentsText}>{t('matchHistory.noComments')}</Text>
                   </View>
                 )}
               </ScrollView>
@@ -925,7 +929,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                   style={styles.commentInput}
                   value={newComment}
                   onChangeText={setNewComment}
-                  placeholder="Yorumunuzu yazın..."
+                  placeholder={t('matchHistory.writeComment')}
                   multiline
                   numberOfLines={3}
                 />
@@ -935,7 +939,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                     onPress={closeCommentModal}
                     style={styles.cancelCommentButton}
                   >
-                    İptal
+                    {t('matchHistory.cancel')}
                   </Button>
                   <Button
                     mode="contained"
@@ -944,7 +948,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                     buttonColor="#2E7D32"
                     disabled={!newComment.trim()}
                   >
-                    Gönder
+                    {t('matchHistory.send')}
                   </Button>
                 </View>
               </View>
@@ -963,7 +967,6 @@ const styles = StyleSheet.create({
   },
   headerSection: {
     backgroundColor: '#2E7D32',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight ? StatusBar.currentHeight + 20 : 50 : 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',
