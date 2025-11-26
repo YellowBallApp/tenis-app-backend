@@ -74,7 +74,13 @@ const ReservationsListScreen = ({ navigation }: any) => {
     const loadCourts = async () => {
       try {
         const courtsList = await courtService.getAllCourts();
-        setCourts(courtsList);
+        // Boolean değerleri normalize et (backend'den string olarak gelebilir)
+        const normalizedCourts = courtsList.map((court: any) => ({
+          ...court,
+          closed: Boolean(court.closed),
+          indoors: Boolean(court.indoors),
+        }));
+        setCourts(normalizedCourts);
       } catch (error) {
         console.error('Kortlar yüklenirken hata:', error);
       }
@@ -191,21 +197,24 @@ const ReservationsListScreen = ({ navigation }: any) => {
               <View style={[styles.headerCell, styles.timeHeaderCell]}>
                 <Text style={styles.headerCellText}>{t('reservationsList.timeHeader')}</Text>
               </View>
-              {courts.map(court => (
-                <View key={court.id} style={[styles.headerCell, court.closed && styles.closedHeaderCell]}>
-                  <MaterialCommunityIcons 
-                    name={court.closed ? "lock" : "tennis"} 
-                    size={20} 
-                    color={court.closed ? "#BDBDBD" : "#FFFFFF"} 
-                  />
-                  <Text style={[styles.headerCellText, court.closed && styles.closedHeaderText]}>
-                    {court.name}
-                  </Text>
-                  {court.closed && (
-                    <Text style={styles.closedLabel}>{t('reservation.closed')}</Text>
-                  )}
-                </View>
-              ))}
+              {courts.map(court => {
+                const isClosed = Boolean(court.closed);
+                return (
+                  <View key={court.id} style={[styles.headerCell, isClosed && styles.closedHeaderCell]}>
+                    <MaterialCommunityIcons 
+                      name={isClosed ? "lock" : "tennis"} 
+                      size={20} 
+                      color={isClosed ? "#BDBDBD" : "#FFFFFF"} 
+                    />
+                    <Text style={[styles.headerCellText, isClosed && styles.closedHeaderText]}>
+                      {court.name}
+                    </Text>
+                    {isClosed && (
+                      <Text style={styles.closedLabel}>{t('reservation.closed')}</Text>
+                    )}
+                  </View>
+                );
+              })}
             </View>
 
             {/* Table Body */}
@@ -216,18 +225,21 @@ const ReservationsListScreen = ({ navigation }: any) => {
                     <MaterialCommunityIcons name="clock-outline" size={16} color="#2E7D32" />
                     <Text style={styles.timeCellText}>{timeSlot}</Text>
                   </View>
-                  {courts.map(court => (
-                    <View key={`${court.id}-${timeSlot}`} style={[styles.cell, court.closed && styles.closedCell]}>
-                      {court.closed ? (
-                        <View style={styles.closedCellContent}>
-                          <MaterialCommunityIcons name="lock" size={16} color="#BDBDBD" />
-                          <Text style={styles.closedCellText}>-</Text>
-                        </View>
-                      ) : (
-                        renderCell(court.id, timeSlot)
-                      )}
-                    </View>
-                  ))}
+                  {courts.map(court => {
+                    const isClosed = Boolean(court.closed);
+                    return (
+                      <View key={`${court.id}-${timeSlot}`} style={[styles.cell, isClosed && styles.closedCell]}>
+                        {isClosed ? (
+                          <View style={styles.closedCellContent}>
+                            <MaterialCommunityIcons name="lock" size={16} color="#BDBDBD" />
+                            <Text style={styles.closedCellText}>-</Text>
+                          </View>
+                        ) : (
+                          renderCell(court.id, timeSlot)
+                        )}
+                      </View>
+                    );
+                  })}
                 </View>
               ))}
             </ScrollView>
@@ -250,7 +262,8 @@ const ReservationsListScreen = ({ navigation }: any) => {
       {/* Calendar Modal */}
       <Portal>
         <Modal
-          visible={showCalendar}
+        dismissable={false}
+          visible={!!showCalendar}
           onDismiss={() => setShowCalendar(false)}
           contentContainerStyle={styles.calendarModal}
         >

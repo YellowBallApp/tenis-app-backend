@@ -101,6 +101,13 @@ export default {
     errorCreating: 'Rezervasyon oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.',
     singlesMatch: 'Tekler maçı',
     doublesMatch: 'Çiftler maçı',
+    maxDateRange: 'Maksimum 1 hafta ileri tarih seçebilirsiniz',
+    weatherWarningTitle: 'Hava Durumu Uyarısı',
+    weatherWarningMessage: 'Bu saatte yağışlı hava bekleniyor. Rezervasyon yapmaya devam etmek istiyor musunuz?',
+    weatherWarningRainy: 'Bu saatte yağmurlu hava bekleniyor.',
+    weatherWarningSnowy: 'Bu saatte karlı hava bekleniyor.',
+    weatherWarningContinue: 'Devam Et',
+    weatherWarningCancel: 'İptal',
   },
 
   reservationsList: {
@@ -142,6 +149,8 @@ export default {
     reject: 'Reddet',
     challengeIntro: '',
     challengeOutro: 'liginde sana meydan okudu!',
+    challengeNotFound: 'Bu meydan okuma bulunamadı veya geçersiz.',
+    challengeExpired: 'Meydan Okuma Geçersiz',
   },
 
   defiLeague: {
@@ -342,6 +351,7 @@ export default {
     active: 'Aktif',
     new: 'Yeni',
     lastActive: 'Son aktivite:',
+    achievements: 'Başarılar',
   },
   
   coaches: {

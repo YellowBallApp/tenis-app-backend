@@ -518,7 +518,8 @@ const CoachesScreen = () => {
       {/* Reviews List Modal */}
       <Portal>
         <Modal
-          visible={showReviewsModal}
+        dismissable={false}
+          visible={!!showReviewsModal}
           onDismiss={closeReviewsModal}
           contentContainerStyle={styles.reviewModal}
         >
@@ -583,7 +584,8 @@ const CoachesScreen = () => {
       {/* Review Modal */}
       <Portal>
         <Modal
-          visible={showReviewModal}
+        dismissable={false}
+          visible={!!showReviewModal}
           onDismiss={() => setShowReviewModal(false)}
           contentContainerStyle={styles.reviewModal}
         >

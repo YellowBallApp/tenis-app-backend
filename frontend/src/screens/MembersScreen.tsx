@@ -20,6 +20,7 @@ import {
   IconButton,
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLanguage } from '../context/LanguageContext';
 import { userService } from '../services/api';
 import { useThemedStyles } from '../hooks/useThemedStyles';
@@ -155,19 +156,31 @@ const MembersScreen = () => {
     <Card key={member.id} style={[styles.memberCard, themedStyles.card]}>
       <Card.Content>
         <View style={styles.memberHeader}>
-          <Avatar.Text size={60} label={getInitials(member.name)} />
+          <View style={styles.avatarContainer}>
+            <LinearGradient
+              colors={[getLevelColor(member.level), getLevelColor(member.level) + 'DD']}
+              style={styles.avatarGradient}
+            >
+              <Avatar.Text 
+                size={80} 
+                label={getInitials(member.name)}
+                style={styles.memberAvatar}
+              />
+            </LinearGradient>
+          </View>
           <View style={styles.memberInfo}>
             <Title style={[styles.memberName, themedStyles.title]}>{member.name}</Title>
-            <View style={styles.memberBadges}>
+            <View style={styles.badgesContainer}>
+              <View style={styles.levelBadgeContainer}>
+                <MaterialCommunityIcons name="trophy" size={16} color={getLevelColor(member.level)} />
+                <View style={[styles.badge, { backgroundColor: getLevelColor(member.level) }]}>
+                  <Text style={styles.badgeText}>{member.level}</Text>
+                </View>
+              </View>
               <Chip 
                 mode="outlined" 
-                style={{ borderColor: getLevelColor(member.level), marginRight: 8 }}
-              >
-                {member.level}
-              </Chip>
-              <Chip 
-                mode="outlined" 
-                style={{ borderColor: getStatusColor(member.status) }}
+                style={[styles.statusChip, { borderColor: getStatusColor(member.status) }]}
+                textStyle={{ color: getStatusColor(member.status), fontSize: 12 }}
               >
                 {member.status}
               </Chip>
@@ -175,34 +188,64 @@ const MembersScreen = () => {
           </View>
         </View>
 
-        <View style={styles.memberStats}>
-          <View style={styles.statItem}>
+        <View style={styles.memberDetails}>
+          <View style={styles.detailRow}>
             <MaterialCommunityIcons name="tennis" size={20} color={theme.colors.primary} />
-            <Text style={[styles.statNumber, themedStyles.statNumber]}>{member.matchesPlayed}</Text>
-            <Text style={[styles.statLabel, themedStyles.statLabel]}>{t('members.matches')}</Text>
+            <Text style={[styles.detailText, themedStyles.text]}>
+              {member.matchesPlayed} {t('members.matches')}
+            </Text>
           </View>
-          <View style={styles.statItem}>
+          <View style={styles.detailRow}>
             <MaterialCommunityIcons name="percent" size={20} color={theme.colors.primary} />
-            <Text style={[styles.statNumber, themedStyles.statNumber]}>{member.winRate}%</Text>
-            <Text style={[styles.statLabel, themedStyles.statLabel]}>{t('members.successRate')}</Text>
+            <Text style={[styles.detailText, themedStyles.text]}>
+              {member.winRate}% {t('members.successRate')}
+            </Text>
           </View>
-          <View style={styles.statItem}>
+          <View style={styles.detailRow}>
             <MaterialCommunityIcons name="circle" size={20} color={theme.colors.primary} />
-            <Text style={[styles.statNumber, themedStyles.statNumber]}>{member.surface}</Text>
-            <Text style={[styles.statLabel, themedStyles.statLabel]}>{t('members.surface')}</Text>
+            <Text style={[styles.detailText, themedStyles.text]}>
+              {member.surface} {t('members.surface')}
+            </Text>
           </View>
         </View>
 
+        {member.email && (
+          <View style={styles.contactInfo}>
+            <View style={styles.contactRow}>
+              <MaterialCommunityIcons name="email" size={18} color="#6C757D" />
+              <Text style={[styles.contactText, themedStyles.text]}>{member.email}</Text>
+            </View>
+            {member.phone && (
+              <View style={styles.contactRow}>
+                <MaterialCommunityIcons name="phone" size={18} color="#6C757D" />
+                <Text style={[styles.contactText, themedStyles.text]}>{member.phone}</Text>
+              </View>
+            )}
+          </View>
+        )}
+
         <View style={styles.achievementsContainer}>
-          {member.achievements.map((achievement: string, index: number) => (
-            <Chip key={index} mode="outlined" style={styles.achievementChip}>
-              {achievement}
-            </Chip>
-          ))}
+          {member.achievements.length > 0 && (
+            <>
+              <Text style={[styles.achievementsTitle, themedStyles.text]}>{t('members.achievements')}</Text>
+              <View style={styles.achievementsList}>
+                {member.achievements.map((achievement: string, index: number) => (
+                  <Chip key={index} mode="outlined" style={styles.achievementChip}>
+                    {achievement}
+                  </Chip>
+                ))}
+              </View>
+            </>
+          )}
         </View>
 
         <View style={styles.memberFooter}>
-          <Text style={[styles.lastActive, themedStyles.subtitle]}>{t('members.lastActive')} {member.lastActive}</Text>
+          <View style={styles.footerLeft}>
+            <MaterialCommunityIcons name="clock-outline" size={16} color="#6C757D" />
+            <Text style={[styles.lastActive, themedStyles.subtitle]}>
+              {t('members.lastActive')} {member.lastActive}
+            </Text>
+          </View>
           <View style={styles.actionButtons}>
             <IconButton
               icon="account"
@@ -231,17 +274,39 @@ const MembersScreen = () => {
   const renderMemberGrid = (member: any) => (
     <Card key={member.id} style={[styles.memberGridCard, themedStyles.card]}>
       <Card.Content style={styles.memberGridContent}>
-        <Avatar.Text size={80} label={getInitials(member.name)} />
+        <View style={styles.gridAvatarContainer}>
+          <LinearGradient
+            colors={[getLevelColor(member.level), getLevelColor(member.level) + 'DD']}
+            style={styles.gridAvatarGradient}
+          >
+            <Avatar.Text 
+              size={70} 
+              label={getInitials(member.name)}
+              style={styles.memberGridAvatar}
+            />
+          </LinearGradient>
+        </View>
         <Title style={[styles.memberGridName, themedStyles.title]}>{member.name}</Title>
-        <Chip 
-          mode="outlined" 
-          style={{ borderColor: getLevelColor(member.level), marginBottom: 8 }}
-        >
-          {member.level}
-        </Chip>
-        <Text style={[styles.memberGridStats, themedStyles.text]}>
-          {member.matchesPlayed} {t('members.matchCount')} • {member.winRate}% {t('members.successRate')}
-        </Text>
+        <View style={styles.gridBadgesContainer}>
+          <View style={styles.gridLevelBadgeContainer}>
+            <MaterialCommunityIcons name="trophy" size={14} color={getLevelColor(member.level)} />
+            <View style={[styles.gridBadge, { backgroundColor: getLevelColor(member.level) }]}>
+              <Text style={styles.gridBadgeText}>
+                {member.level}
+              </Text>
+            </View>
+          </View>
+        </View>
+        <View style={styles.gridStats}>
+          <View style={styles.gridStatItem}>
+            <MaterialCommunityIcons name="tennis" size={16} color={theme.colors.primary} />
+            <Text style={[styles.gridStatText, themedStyles.text]}>{member.matchesPlayed}</Text>
+          </View>
+          <View style={styles.gridStatItem}>
+            <MaterialCommunityIcons name="percent" size={16} color={theme.colors.primary} />
+            <Text style={[styles.gridStatText, themedStyles.text]}>{member.winRate}%</Text>
+          </View>
+        </View>
         <View style={styles.memberGridActions}>
           <IconButton
             icon="account"
@@ -501,46 +566,101 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 20,
   },
+  avatarContainer: {
+    borderRadius: 40,
+    overflow: 'hidden',
+  },
+  avatarGradient: {
+    borderRadius: 40,
+    padding: 3,
+  },
+  memberAvatar: {
+    backgroundColor: 'transparent',
+  },
   memberInfo: {
     flex: 1,
     marginLeft: 15,
   },
   memberName: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#1B1B1B',
     marginBottom: 10,
   },
-  memberBadges: {
+  badgesContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flexWrap: 'wrap',
   },
-  memberStats: {
+  levelBadgeContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-    paddingVertical: 15,
+    alignItems: 'center',
+    gap: 6,
+  },
+  badge: {
+    borderRadius: 12,
+    minWidth: 40,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  statusChip: {
+    backgroundColor: '#F8F9FA',
+  },
+  memberDetails: {
+    marginBottom: 15,
+    paddingVertical: 12,
     backgroundColor: '#F8F9FA',
     borderRadius: 12,
-    paddingHorizontal: 15,
+    paddingHorizontal: 12,
   },
-  statItem: {
+  detailRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 8,
   },
-  statNumber: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2E7D32',
-    marginTop: 5,
-    marginBottom: 2,
-  },
-  statLabel: {
-    fontSize: 12,
+  detailText: {
+    fontSize: 14,
     color: '#6C757D',
+    marginLeft: 10,
+  },
+  contactInfo: {
+    marginBottom: 15,
+    paddingVertical: 12,
+    backgroundColor: '#FAFAFA',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+  },
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  contactText: {
+    fontSize: 13,
+    color: '#6C757D',
+    marginLeft: 10,
+    flex: 1,
   },
   achievementsContainer: {
+    marginBottom: 15,
+  },
+  achievementsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1B1B1B',
+    marginBottom: 10,
+  },
+  achievementsList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 20,
   },
   achievementChip: {
     marginRight: 8,
@@ -551,6 +671,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#E9ECEF',
+  },
+  footerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   lastActive: {
     fontSize: 12,
@@ -584,23 +712,72 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 15,
   },
+  gridAvatarContainer: {
+    borderRadius: 35,
+    overflow: 'hidden',
+    marginBottom: 10,
+  },
+  gridAvatarGradient: {
+    borderRadius: 35,
+    padding: 2,
+  },
+  memberGridAvatar: {
+    backgroundColor: 'transparent',
+  },
   memberGridName: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#1B1B1B',
-    marginTop: 10,
     marginBottom: 8,
     textAlign: 'center',
   },
-  memberGridStats: {
-    fontSize: 12,
+  gridBadgesContainer: {
+    marginBottom: 12,
+  },
+  gridLevelBadgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  gridBadge: {
+    borderRadius: 10,
+    minWidth: 40,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  gridBadgeText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  gridStats: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+    marginBottom: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 10,
+    width: '100%',
+  },
+  gridStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  gridStatText: {
+    fontSize: 13,
     color: '#6C757D',
-    textAlign: 'center',
-    marginBottom: 10,
+    fontWeight: '600',
   },
   memberGridActions: {
     flexDirection: 'row',
+    justifyContent: 'center',
   },
 });
 
 export default MembersScreen;
+

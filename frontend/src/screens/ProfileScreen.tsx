@@ -521,7 +521,7 @@ const ProfileScreen = () => {
                   <Text style={[styles.preferenceTitle, themedStyles.text]}>{preference.title}</Text>
                 </View>
                 <Switch
-                  value={preference.enabled}
+                  value={!!preference.enabled}
                   onValueChange={preference.onToggle}
                   color={theme.colors.primary}
                 />
@@ -569,7 +569,8 @@ const ProfileScreen = () => {
     {/* Profil Düzenle Modal */}
     <Portal>
       <Modal
-        visible={showEditProfileModal}
+        dismissable={false}
+        visible={!!showEditProfileModal}
         onDismiss={() => setShowEditProfileModal(false)}
         contentContainerStyle={styles.modalContainer}
       >
@@ -679,7 +680,8 @@ const ProfileScreen = () => {
     {/* Profil Fotoğrafı Seçenekleri Modal */}
     <Portal>
       <Modal
-        visible={showPhotoOptionsModal}
+        dismissable={false}
+        visible={!!showPhotoOptionsModal}
         onDismiss={() => setShowPhotoOptionsModal(false)}
         contentContainerStyle={styles.photoModalContainer}
       >
@@ -760,7 +762,8 @@ const ProfileScreen = () => {
     {/* Profil Fotoğrafını Kaldır Onay Modal */}
     <Portal>
       <Modal
-        visible={showRemovePhotoModal}
+        dismissable={false}
+        visible={!!showRemovePhotoModal}
         onDismiss={() => setShowRemovePhotoModal(false)}
         contentContainerStyle={styles.logoutModalContainer}
       >
@@ -811,7 +814,8 @@ const ProfileScreen = () => {
     {/* Şifre Değiştir Modal */}
     <Portal>
       <Modal
-        visible={showChangePasswordModal}
+        dismissable={false}
+        visible={!!showChangePasswordModal}
         onDismiss={() => setShowChangePasswordModal(false)}
         contentContainerStyle={styles.modalContainer}
       >
@@ -907,7 +911,7 @@ const ProfileScreen = () => {
                 ]}
                 buttonColor={(!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword) ? "#CCCCCC" : "#FF9800"}
                 contentStyle={{ paddingVertical: 12 }}
-                disabled={!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword}
+                disabled={Boolean(!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword)}
               >
                 {t('profile.changePassword')}
               </Button>
@@ -921,7 +925,8 @@ const ProfileScreen = () => {
     {/* Hesap Ayarları Modal */}
     <Portal>
       <Modal
-        visible={showAccountSettingsModal}
+        dismissable={false}
+        visible={!!showAccountSettingsModal}
         onDismiss={() => setShowAccountSettingsModal(false)}
         contentContainerStyle={styles.modalContainer}
       >
@@ -1004,7 +1009,8 @@ const ProfileScreen = () => {
     {/* Yardım Modal */}
     <Portal>
       <Modal
-        visible={showHelpModal}
+        dismissable={false}
+        visible={!!showHelpModal}
         onDismiss={() => setShowHelpModal(false)}
         contentContainerStyle={styles.modalContainer}
       >
@@ -1087,7 +1093,8 @@ const ProfileScreen = () => {
     {/* Logout Confirmation Modal */}
     <Portal>
       <Modal
-        visible={showLogoutModal}
+        dismissable={false}
+        visible={!!showLogoutModal}
         onDismiss={() => !loggingOut && setShowLogoutModal(false)}
         contentContainerStyle={styles.logoutModalContainer}
       >

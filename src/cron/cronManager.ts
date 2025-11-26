@@ -1,6 +1,7 @@
 import cron, { ScheduledTask } from "node-cron";
 import { cleanupOldReservations } from "./jobs/cleanupOldReservations";
 import { processPendingChallenges } from "./jobs/processPendingChallenges";
+import { updateWeatherForecast } from "./jobs/updateWeatherForecast";
 
 const cronJobs: ScheduledTask[] = [];
 
@@ -27,11 +28,22 @@ export const initializeCronJobs = () => {
   );
   cronJobs.push(processChallengesTask);
 
+  // Hava durumu güncelleme - Her gün gece 23:55'te çalışır (challenge job'undan önce)
+  const updateWeatherTask = cron.schedule(
+    "55 23 * * *",
+    updateWeatherForecast,
+    {
+      timezone: "Europe/Istanbul"
+    }
+  );
+  cronJobs.push(updateWeatherTask);
+
   console.log(`✅ ${cronJobs.length} adet cron job başarıyla yapılandırıldı.`);
   
   // Aktif job'ları listele
   console.log("📋 Aktif cron job'ları:");
   console.log("  - Rezervasyon temizleme: Her gün 02:00");
+  console.log("  - Hava durumu güncelleme: Her gün 23:55");
   console.log("  - Maç teklifi işleme: Her gün 23:55");
 };
 
@@ -51,6 +63,9 @@ export const runJobManually = async (jobName: string) => {
       break;
     case "processChallenges":
       await processPendingChallenges();
+      break;
+    case "updateWeather":
+      await updateWeatherForecast();
       break;
     default:
       console.error(`❌ Bilinmeyen job: ${jobName}`);

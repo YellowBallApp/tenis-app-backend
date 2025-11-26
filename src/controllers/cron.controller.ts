@@ -14,7 +14,7 @@ export class CronController {
     try {
       const { jobName } = req.params;
 
-      const validJobNames = ["example", "cleanup", "updateStandings", "dailyNotifications", "processChallenges"];
+      const validJobNames = ["example", "cleanup", "updateStandings", "dailyNotifications", "processChallenges", "updateWeather"];
 
       if (!validJobNames.includes(jobName)) {
         return res.status(400).json({
@@ -80,6 +80,15 @@ export class CronController {
           schedule: "0 8 * * *",
           description: "Bugünkü rezervasyonlar için kullanıcılara hatırlatma gönderir",
           nextRun: "Her gün 08:00",
+          timezone: "Europe/Istanbul",
+          active: true
+        },
+        {
+          name: "updateWeatherForecast",
+          key: "updateWeather",
+          schedule: "55 23 * * *",
+          description: "7 günlük hava durumu tahminini günceller ve cache'ler",
+          nextRun: "Her gün 23:55",
           timezone: "Europe/Istanbul",
           active: true
         },

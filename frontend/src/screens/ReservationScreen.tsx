@@ -76,7 +76,7 @@ LocaleConfig.locales['en'] = {
   today: 'Today'
 };
 LocaleConfig.defaultLocale = 'tr';
-import { userService, reservationService, authService, courtService } from '../services/api';
+import { userService, reservationService, authService, courtService, weatherService } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -107,6 +107,9 @@ const ReservationScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccessSnackbar, setShowSuccessSnackbar] = useState(false);
   const [currentScrollY, setCurrentScrollY] = useState(0);
+  const [weatherCache, setWeatherCache] = useState<{[key: string]: {isRainy: boolean, isSnowy: boolean}}>({});
+  const [showWeatherWarningModal, setShowWeatherWarningModal] = useState(false);
+  const [pendingTimeSelection, setPendingTimeSelection] = useState<string | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -140,7 +143,13 @@ const ReservationScreen = () => {
     const fetchCourts = async () => {
       try {
         const courtsList = await courtService.getActiveCourts();
-        setCourts(courtsList);
+        // Boolean değerleri normalize et (backend'den string olarak gelebilir)
+        const normalizedCourts = courtsList.map((court: any) => ({
+          ...court,
+          closed: Boolean(court.closed),
+          indoors: Boolean(court.indoors),
+        }));
+        setCourts(normalizedCourts);
       } catch (error) {
         console.error('Kortlar yüklenirken hata:', error);
       }
@@ -209,7 +218,12 @@ const ReservationScreen = () => {
           (reservation: any) => reservation.court.id === parseInt(selectedCourt)
         );
         
-        setCourtReservations(courtSpecificReservations);
+        // Reservation objelerini normalize et
+        const normalizedReservations = courtSpecificReservations.map((reservation: any) => ({
+          ...reservation,
+          // Eğer reservation içinde boolean field'lar varsa normalize et
+        }));
+        setCourtReservations(normalizedReservations);
       } catch (error) {
         console.error('Kort rezervasyonları yüklenirken hata:', error);
         setCourtReservations([]);
@@ -218,6 +232,79 @@ const ReservationScreen = () => {
 
     fetchCourtReservations();
   }, [selectedDate, selectedCourt]);
+
+  // Hava durumu bilgilerini yükle (açık kortlar için)
+  useEffect(() => {
+    const loadWeatherForTimes = async () => {
+      if (!selectedDate || !selectedCourt) {
+        setWeatherCache({});
+        return;
+      }
+
+      const selectedCourtObj = courts.find(c => c.id === parseInt(selectedCourt));
+      // Sadece açık kortlar için hava durumu kontrolü
+      if (!selectedCourtObj || Boolean(selectedCourtObj.indoors)) {
+        setWeatherCache({});
+        return;
+      }
+
+      try {
+        const cache: {[key: string]: {isRainy: boolean, isSnowy: boolean}} = {};
+        
+        // Mevcut saatleri al
+        const times = availableTimes;
+        
+        // Paralel olarak tüm saatler için hava durumu bilgisini çek (daha hızlı)
+        const weatherPromises = times.map(async (time) => {
+          try {
+            const weather = await weatherService.getWeatherForDateTime(selectedDate, time);
+            if (weather) {
+              // Debug: Yağmurlu saatleri logla
+              if (weather.isRainy || weather.isSnowy) {
+                console.log(`🌧️ Hava durumu: ${selectedDate} ${time} - Yağmur: ${weather.isRainy}, Kar: ${weather.isSnowy}, Code: ${weather.weatherCode}, Precipitation: ${weather.precipitation}`);
+              }
+              return { time, weather };
+            } else {
+              // Debug: Veri null döndü
+              if (__DEV__) {
+                console.log(`⚠️ Hava durumu verisi null: ${selectedDate} ${time}`);
+              }
+            }
+          } catch (error: any) {
+            // 404 hatası normaldir (cache'de veri yoksa), sessizce geç
+            if (error?.response?.status !== 404 && __DEV__) {
+              console.log(`❌ Hava durumu bilgisi alınamadı: ${time}`, error?.response?.status || error?.message);
+            }
+          }
+          return null;
+        });
+
+        const weatherResults = await Promise.all(weatherPromises);
+        
+        weatherResults.forEach(result => {
+          if (result && result.weather) {
+            cache[result.time] = {
+              isRainy: result.weather.isRainy,
+              isSnowy: result.weather.isSnowy,
+            };
+          }
+        });
+        
+        const rainyCount = Object.values(cache).filter(w => w.isRainy || w.isSnowy).length;
+        if (rainyCount > 0) {
+          console.log(`✅ Hava durumu cache yüklendi: ${selectedDate}, ${Object.keys(cache).length} saat için veri, ${rainyCount} yağmurlu saat`);
+        }
+        setWeatherCache(cache);
+      } catch (error) {
+        console.error('Hava durumu yüklenirken hata:', error);
+        setWeatherCache({});
+      }
+    };
+
+    loadWeatherForTimes();
+    // availableTimes sabit olduğu için dependency'den çıkarıyoruz
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate, selectedCourt, courts]);
 
   // Seçilen tarih ve saate göre müsait kullanıcıları yükle
   useEffect(() => {
@@ -320,13 +407,14 @@ const ReservationScreen = () => {
     };
 
     const surfaceInfo = surfaceMap[court.groundType] || surfaceMap.hard;
+    const isIndoor = Boolean(court.indoors);
 
     return {
       ...court,
-      type: court.indoors ? t('reservation.indoor') : t('reservation.outdoor'),
+      type: isIndoor ? t('reservation.indoor') : t('reservation.outdoor'),
       surface: surfaceInfo.surface,
       gradient: surfaceInfo.gradient,
-      icon: court.indoors ? 'home-roof' : 'weather-sunny',
+      icon: isIndoor ? 'home-roof' : 'weather-sunny',
     };
   };
 
@@ -369,6 +457,23 @@ const ReservationScreen = () => {
   };
 
   const handleTimeSelect = (time: string) => {
+    // Açık kort ise ve yağışlı hava varsa uyarı göster
+    const selectedCourtObj = courts.find(c => c.id === parseInt(selectedCourt));
+    const isOutdoor = Boolean(selectedCourtObj && !Boolean(selectedCourtObj.indoors));
+    const weatherInfo = isOutdoor ? weatherCache[time] : null;
+    const isWeatherBad = Boolean(weatherInfo && (Boolean(weatherInfo.isRainy) || Boolean(weatherInfo.isSnowy)));
+    
+    if (isWeatherBad) {
+      // Uyarı göster, kullanıcı onaylarsa devam et
+      setPendingTimeSelection(time);
+      setShowWeatherWarningModal(true);
+    } else {
+      // Normal seçim
+      confirmTimeSelection(time);
+    }
+  };
+
+  const confirmTimeSelection = (time: string) => {
     setSelectedTime(time);
     if (currentStep === 3) {
       setCurrentStep(4);
@@ -503,7 +608,7 @@ const ReservationScreen = () => {
       <ScrollView 
         ref={scrollViewRef} 
         style={styles.container} 
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={false as boolean}
         onScroll={(event) => setCurrentScrollY(event.nativeEvent.contentOffset.y)}
         scrollEventThrottle={16}
       >
@@ -602,7 +707,7 @@ const ReservationScreen = () => {
 
           {/* Step 2: Court Selection */}
           {selectedDate && (
-            <View ref={step2Ref} collapsable={false}>
+            <View ref={step2Ref}>
               <Card style={[styles.stepCard, currentStep >= 2 && styles.activeStepCard]}>
                 <Card.Content>
                   <View style={styles.stepHeader}>
@@ -615,7 +720,7 @@ const ReservationScreen = () => {
                 <View style={styles.courtGrid}>
                   {courts.map((court) => {
                     const displayCourt = getCourtDisplayInfo(court);
-                    const isClosed = court.closed;
+                    const isClosed = Boolean(court.closed);
                     return (
                       <TouchableOpacity
                         key={court.id}
@@ -681,7 +786,7 @@ const ReservationScreen = () => {
 
           {/* Step 3: Time Selection */}
           {selectedCourt && (
-            <View ref={step3Ref} collapsable={false}>
+            <View ref={step3Ref}>
               <Card style={[styles.stepCard, currentStep >= 3 && styles.activeStepCard]}>
                 <Card.Content>
                   <View style={styles.stepHeader}>
@@ -694,9 +799,15 @@ const ReservationScreen = () => {
                 <View style={styles.timeGrid}>
                   {availableTimes.map((time) => {
                     const reservation = getReservationForTime(time);
-                    const isReserved = !!reservation;
-                    const isDisabledForUserType = isTimeSlotDisabledForUser(time);
-                    const isDisabled = isReserved || isDisabledForUserType;
+                    const isReserved = Boolean(reservation);
+                    const isDisabledForUserType = Boolean(isTimeSlotDisabledForUser(time));
+                    const isDisabled = Boolean(isReserved || isDisabledForUserType);
+                    
+                    // Hava durumu bilgisini al (sadece açık kortlar için)
+                    const selectedCourtObj = courts.find(c => c.id === parseInt(selectedCourt));
+                    const isOutdoor = Boolean(selectedCourtObj && !selectedCourtObj.indoors);
+                    const weatherInfo = isOutdoor ? weatherCache[time] : null;
+                    const showWeather = Boolean(weatherInfo && (weatherInfo.isRainy || weatherInfo.isSnowy));
                     
                     return (
                       <TouchableOpacity
@@ -739,13 +850,21 @@ const ReservationScreen = () => {
                               ]}>
                                 {time}
                               </Text>
+                              {Boolean(showWeather) && Boolean(!isDisabled) && weatherInfo && (
+                                <MaterialCommunityIcons 
+                                  name={Boolean(weatherInfo.isSnowy) ? "weather-snowy" : "weather-rainy"} 
+                                  size={16} 
+                                  color={selectedTime === time ? "#FFFFFF" : "#2196F3"} 
+                                  style={{ marginLeft: 4 }}
+                                />
+                              )}
                             </View>
-                            {isReserved && reservation && (
+                            {Boolean(isReserved) && Boolean(reservation) && (
                               <Text style={styles.reservedByText}>
                                 {reservation.user.name}
                               </Text>
                             )}
-                            {isDisabledForUserType && !isReserved && (
+                            {Boolean(isDisabledForUserType) && !Boolean(isReserved) && (
                               <Text style={styles.reservedByText}>
                                 {t('reservation.noPermission')}
                               </Text>
@@ -763,7 +882,7 @@ const ReservationScreen = () => {
 
           {/* Step 4: Player Type & Final Details */}
           {selectedTime && (
-            <View ref={step4Ref} collapsable={false}>
+            <View ref={step4Ref}>
               <Card style={[styles.stepCard, currentStep >= 4 && styles.activeStepCard]}>
                 <Card.Content>
                   <View style={styles.stepHeader}>
@@ -1026,7 +1145,7 @@ const ReservationScreen = () => {
           {/* Action Button */}
           <TouchableOpacity
             onPress={handleReservation}
-            disabled={!selectedDate || !selectedTime || !selectedCourt || isLoading}
+            disabled={Boolean(!selectedDate || !selectedTime || !selectedCourt || isLoading)}
             style={[
               styles.reservationButtonContainer,
               (!selectedDate || !selectedTime || !selectedCourt || isLoading) && styles.disabledButton
@@ -1065,14 +1184,20 @@ const ReservationScreen = () => {
       {/* Calendar Modal */}
       <Portal>
         <Modal
-          visible={showCalendar}
+        dismissable={false as boolean}
+          visible={Boolean(showCalendar)}
           onDismiss={() => setShowCalendar(false)}
           contentContainerStyle={styles.calendarModal}
         >
           <Card style={styles.calendarCard}>
             <Card.Content>
               <View style={styles.calendarHeader}>
-                <Title style={styles.calendarTitle}>{t('reservation.selectDate')}</Title>
+                <View style={styles.calendarHeaderContent}>
+                  <Title style={styles.calendarTitle}>{t('reservation.selectDate')}</Title>
+                  <Text style={styles.calendarSubtitle}>
+                    {t('reservation.maxDateRange') || 'Maksimum 1 hafta ileri tarih seçebilirsiniz'}
+                  </Text>
+                </View>
                 <TouchableOpacity onPress={() => setShowCalendar(false)}>
                   <MaterialCommunityIcons name="close" size={24} color="#757575" />
                 </TouchableOpacity>
@@ -1109,6 +1234,11 @@ const ReservationScreen = () => {
                   textDayHeaderFontSize: 14
                 }}
                 minDate={new Date().toISOString().split('T')[0]}
+                maxDate={(() => {
+                  const maxDate = new Date();
+                  maxDate.setDate(maxDate.getDate() + 7); // Bugünden 7 gün sonra
+                  return maxDate.toISOString().split('T')[0];
+                })()}
                 firstDay={1}
               />
             </Card.Content>
@@ -1117,7 +1247,8 @@ const ReservationScreen = () => {
 
         {/* User Selector Modal */}
         <Modal
-          visible={showUserSelector}
+        dismissable={false as boolean}
+          visible={Boolean(showUserSelector)}
           onDismiss={() => {
             setShowUserSelector(false);
             setSearchQuery('');
@@ -1159,27 +1290,27 @@ const ReservationScreen = () => {
                 keyExtractor={(item) => item.id.toString()}
                 style={styles.userList}
                 renderItem={({ item }) => {
-                  const isSelected = selectorMode === 'partner' 
+                  const isSelected = Boolean(selectorMode === 'partner' 
                     ? selectedPartner?.id === item.id
-                    : selectedOpponents.some(opp => opp.id === item.id);
+                    : selectedOpponents.some(opp => opp.id === item.id));
                   
                   // Partner modundaysa, rakiplerde seçili olanları disable et
-                  const isDisabledInPartnerMode = selectorMode === 'partner' && 
+                  const isDisabledInPartnerMode = Boolean(selectorMode === 'partner' && 
                     playerType === 'double' && 
-                    selectedOpponents.some(opp => opp.id === item.id);
+                    selectedOpponents.some(opp => opp.id === item.id));
                   
                   // Opponents modundaysa, partner olarak seçili olanı disable et
-                  const isDisabledInOpponentsMode = selectorMode === 'opponents' && 
-                    selectedPartner?.id === item.id;
+                  const isDisabledInOpponentsMode = Boolean(selectorMode === 'opponents' && 
+                    selectedPartner?.id === item.id);
                   
                   // Opponents modunda 2 kişi seçildiyse ve bu kullanıcı seçili değilse disable et
-                  const isDisabledDueToLimit = selectorMode === 'opponents' && 
+                  const isDisabledDueToLimit = Boolean(selectorMode === 'opponents' && 
                     selectedOpponents.length >= 2 && 
-                    !isSelected;
+                    !isSelected);
                   
-                  const isDisabled = isDisabledInPartnerMode || 
+                  const isDisabled = Boolean(isDisabledInPartnerMode || 
                     isDisabledInOpponentsMode || 
-                    isDisabledDueToLimit;
+                    isDisabledDueToLimit);
                   
                   return (
                     <TouchableOpacity
@@ -1212,7 +1343,7 @@ const ReservationScreen = () => {
                             isDisabled && styles.disabledText
                           ]}>{item.email}</Text>
                         </View>
-                        {isSelected && (
+                        {Boolean(isSelected) && (
                           <MaterialCommunityIcons 
                             name={selectorMode === 'opponents' ? "checkbox-marked-circle" : "check-circle"} 
                             size={24} 
@@ -1252,7 +1383,7 @@ const ReservationScreen = () => {
 
       {/* Success Snackbar */}
       <Snackbar
-        visible={showSuccessSnackbar}
+        visible={Boolean(showSuccessSnackbar)}
         onDismiss={() => setShowSuccessSnackbar(false)}
         duration={2000}
         style={styles.successSnackbar}
@@ -1269,6 +1400,77 @@ const ReservationScreen = () => {
           <Text style={styles.snackbarText}>{t('reservation.success')}</Text>
         </View>
       </Snackbar>
+
+      {/* Weather Warning Modal */}
+      <Portal>
+        <Modal
+          visible={showWeatherWarningModal}
+          onDismiss={() => {
+            setShowWeatherWarningModal(false);
+            setPendingTimeSelection(null);
+          }}
+          contentContainerStyle={styles.weatherModalContainer}
+          dismissable={false}
+        >
+          <Card style={styles.weatherModalCard}>
+            <Card.Content style={styles.weatherModalContent}>
+              <View style={styles.weatherModalHeader}>
+                <View style={styles.weatherModalIconContainer}>
+                  <MaterialCommunityIcons 
+                    name={
+                      pendingTimeSelection && weatherCache[pendingTimeSelection]?.isSnowy
+                        ? "weather-snowy" 
+                        : "weather-rainy"
+                    } 
+                    size={48} 
+                    color="#2196F3" 
+                  />
+                </View>
+                <Title style={styles.weatherModalTitle}>
+                  {t('reservation.weatherWarningTitle')}
+                </Title>
+              </View>
+              
+              <Text style={styles.weatherModalMessage}>
+                {pendingTimeSelection && weatherCache[pendingTimeSelection]?.isSnowy
+                  ? t('reservation.weatherWarningSnowy')
+                  : t('reservation.weatherWarningRainy')}
+                {'\n\n'}
+                {t('reservation.weatherWarningMessage')}
+              </Text>
+
+              <View style={styles.weatherModalButtons}>
+                <Button
+                  mode="outlined"
+                  onPress={() => {
+                    setShowWeatherWarningModal(false);
+                    setPendingTimeSelection(null);
+                  }}
+                  style={[styles.weatherModalButton, styles.weatherModalCancelButton]}
+                  labelStyle={styles.weatherModalCancelButtonLabel}
+                >
+                  {t('reservation.weatherWarningCancel')}
+                </Button>
+                <Button
+                  mode="contained"
+                  onPress={() => {
+                    if (pendingTimeSelection) {
+                      confirmTimeSelection(pendingTimeSelection);
+                    }
+                    setShowWeatherWarningModal(false);
+                    setPendingTimeSelection(null);
+                  }}
+                  style={[styles.weatherModalButton, styles.weatherModalContinueButton]}
+                  labelStyle={styles.weatherModalContinueButtonLabel}
+                  buttonColor="#4CAF50"
+                >
+                  {t('reservation.weatherWarningContinue')}
+                </Button>
+              </View>
+            </Card.Content>
+          </Card>
+        </Modal>
+      </Portal>
     </>
   );
 };
@@ -1800,13 +2002,23 @@ const styles = StyleSheet.create({
   calendarHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 20,
+  },
+  calendarHeaderContent: {
+    flex: 1,
+    marginRight: 10,
   },
   calendarTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#1B1B1B',
+    marginBottom: 4,
+  },
+  calendarSubtitle: {
+    fontSize: 12,
+    color: '#757575',
+    fontStyle: 'italic',
   },
   successSnackbar: {
     backgroundColor: '#4CAF50',
@@ -1826,6 +2038,77 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 12,
+  },
+  weatherModalContainer: {
+    margin: 20,
+    justifyContent: 'center',
+  },
+  weatherModalCard: {
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+  },
+  weatherModalContent: {
+    padding: 24,
+  },
+  weatherModalHeader: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  weatherModalIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#E3F2FD',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  weatherModalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#1B1B1B',
+    textAlign: 'center',
+  },
+  weatherModalMessage: {
+    fontSize: 16,
+    color: '#424242',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  weatherModalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  weatherModalButton: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 4,
+  },
+  weatherModalCancelButton: {
+    borderColor: '#757575',
+  },
+  weatherModalCancelButtonLabel: {
+    color: '#757575',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  weatherModalContinueButton: {
+    elevation: 0,
+  },
+  weatherModalContinueButtonLabel: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

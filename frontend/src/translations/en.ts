@@ -101,6 +101,13 @@ export default {
     errorCreating: 'An error occurred while creating reservation. Please try again.',
     singlesMatch: 'Singles match',
     doublesMatch: 'Doubles match',
+    maxDateRange: 'Maximum 1 week advance booking allowed',
+    weatherWarningTitle: 'Weather Warning',
+    weatherWarningMessage: 'Rainy weather is expected at this time. Do you want to continue with the reservation?',
+    weatherWarningRainy: 'Rainy weather is expected at this time.',
+    weatherWarningSnowy: 'Snowy weather is expected at this time.',
+    weatherWarningContinue: 'Continue',
+    weatherWarningCancel: 'Cancel',
   },
 
   reservationsList: {
@@ -142,6 +149,8 @@ export default {
     reject: 'Decline',
     challengeIntro: 'challenged you in the',
     challengeOutro: 'league!',
+    challengeNotFound: 'This challenge could not be found or is invalid.',
+    challengeExpired: 'Challenge Invalid',
   },
 
   defiLeague: {
@@ -342,6 +351,7 @@ export default {
     active: 'Active',
     new: 'New',
     lastActive: 'Last active:',
+    achievements: 'Achievements',
   },
   
   coaches: {

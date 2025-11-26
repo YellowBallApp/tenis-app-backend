@@ -572,7 +572,8 @@ const DefiLigScreen = ({ navigation }: any) => {
       {/* Lig Detay Modal */}
       <Portal>
         <Modal
-          visible={showLigModal}
+        dismissable={false}
+          visible={!!showLigModal}
           onDismiss={() => setShowLigModal(false)}
           contentContainerStyle={styles.modalContainer}
         >

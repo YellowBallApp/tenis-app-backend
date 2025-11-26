@@ -700,7 +700,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
               ) : (
                 <Button
                   mode="outlined"
-                  disabled={true}
+                  disabled={true as boolean}
                   style={styles.disabledChallengeButton}
                   textColor="#9E9E9E"
                   icon="lock"
@@ -956,7 +956,8 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
       {/* Challenge Modal */}
       <Portal>
         <Modal
-          visible={showChallengeModal}
+        dismissable={false}
+          visible={!!showChallengeModal}
           onDismiss={() => setShowChallengeModal(false)}
           contentContainerStyle={styles.modalContainer}
         >
@@ -1042,7 +1043,8 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
       {/* Match Result Modal */}
       <Portal>
         <Modal
-          visible={showMatchResultModal}
+        dismissable={false}
+          visible={!!showMatchResultModal}
           onDismiss={() => setShowMatchResultModal(false)}
           contentContainerStyle={styles.modalContainer}
         >

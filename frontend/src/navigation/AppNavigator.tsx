@@ -18,8 +18,12 @@ const Stack = createStackNavigator<RootStackParamList>();
 const AppNavigator = () => {
   const { isAuthenticated, isLoading } = useAuth();
 
+  // iOS için agresif boolean dönüşümü - primitive boolean değerler kullan
+  const authStatus: boolean = isAuthenticated === true;
+  const loadingStatus: boolean = isLoading === true;
+
   // Yükleme ekranı
-  if (isLoading) {
+  if (loadingStatus === true) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#2E7D32" />
@@ -27,10 +31,13 @@ const AppNavigator = () => {
     );
   }
 
+  // initialRouteName için primitive boolean kullan
+  const initialRoute: 'Main' | 'Login' = authStatus === true ? 'Main' : 'Login';
+
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName={isAuthenticated ? 'Main' : 'Login'}
+        initialRouteName={initialRoute}
         screenOptions={{
           headerStyle: {
             backgroundColor: '#2E7D32',

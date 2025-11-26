@@ -21,7 +21,7 @@ export const triggerLogout = () => {
 // Ngrok kullanıyorsanız: NGROK_URL değişkenini ayarlayın
 // Local network kullanıyorsanız: LOCAL_IP değişkenini ayarlayın
 const NGROK_URL = ''; // Örnek: 'https://abc123.ngrok-free.app'
-const LOCAL_IP = '192.168.1.107'; // Local WiFi IP'si (gerçek cihaz için)
+const LOCAL_IP = '10.209.250.139'; // Local WiFi IP'si (gerçek cihaz için)
 const EMULATOR_IP = '10.0.2.2'; // Android emülatör için özel IP
 
 // Android emülatörü algıla
@@ -236,6 +236,21 @@ api.interceptors.response.use(
         await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
         triggerLogout();
       }
+    }
+    
+    // CHALLENGE_NOT_FOUND gibi normal durumlar için sessizce handle et
+    // Backend'den gelen hata yapısı: {data: {errorKey, errorCode, message}, status: 400}
+    const errorData = error.response?.data?.data || error.response?.data;
+    const errorKey = errorData?.errorKey;
+    const isChallengeEndpoint = originalRequest?.url?.includes('/match-challenges/');
+    const isChallengeNotFound = errorKey === 'CHALLENGE_NOT_FOUND' || 
+                                (error.response?.status === 400 && isChallengeEndpoint);
+    
+    // Challenge not found hatası normal bir durum (challenge silinmiş/süresi dolmuş olabilir)
+    // Bu durumda sessizce reject et, console.error log'lamayı atla
+    if (isChallengeNotFound && isChallengeEndpoint) {
+      // Sessizce reject et, log'lamayı atla (challenge bulunamadığı normal bir durum)
+      return Promise.reject(error);
     }
     
     // Diğer HTTP hataları için detaylı log
@@ -838,6 +853,21 @@ export const matchChallengeService = {
   deleteChallenge: async (id: number) => {
     const response = await api.delete(`/match-challenges/${id}`);
     return response.data;
+  },
+};
+
+// Weather Service
+export const weatherService = {
+  // Cache'den 7 günlük hava durumu tahminini getirir
+  getWeatherForecast: async (location: string = 'izmir') => {
+    const response = await api.get(`/weather/forecast?location=${location}`);
+    return response.data.data;
+  },
+
+  // Belirli bir tarih ve saat için hava durumu bilgisini getirir
+  getWeatherForDateTime: async (date: string, time: string, location: string = 'izmir') => {
+    const response = await api.get(`/weather/for-datetime?date=${date}&time=${time}&location=${location}`);
+    return response.data.data;
   },
 };
 

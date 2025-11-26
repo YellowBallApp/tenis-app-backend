@@ -34,6 +34,7 @@ const NotificationsScreen = ({ navigation }: any) => {
   const [totalPages, setTotalPages] = useState(1);
   const [processingNotification, setProcessingNotification] = useState<number | null>(null);
   const [challengeDetails, setChallengeDetails] = useState<{[key: number]: any}>({});
+  const [failedChallengeIds, setFailedChallengeIds] = useState<Set<number>>(new Set());
 
   // Sayfa her odaklandığında bildirimleri yeniden yükle
   useFocusEffect(
@@ -51,17 +52,51 @@ const NotificationsScreen = ({ navigation }: any) => {
       
       // Match challenge notifications için challenge detaylarını çek
       const challengeDetailsMap: {[key: number]: any} = {};
-      for (const notif of result.notifications) {
-        if ((notif.type === NotificationType.MATCH_CHALLENGE || notif.type === NotificationType.PENDING_MATCH_REQUEST) && notif.relatedEntityId) {
+      const failedIds = new Set<number>();
+      
+      // Challenge detaylarını paralel olarak çek (daha hızlı)
+      const challengePromises = result.notifications
+        .filter((notif) => 
+          (notif.type === NotificationType.MATCH_CHALLENGE || notif.type === NotificationType.PENDING_MATCH_REQUEST) && 
+          notif.relatedEntityId
+        )
+        .map(async (notif) => {
           try {
-            const challenge = await matchChallengeService.getChallengeById(notif.relatedEntityId);
-            challengeDetailsMap[notif.id] = challenge;
-          } catch (error) {
-            console.error(`Challenge ${notif.relatedEntityId} detayları yüklenemedi:`, error);
+            const challenge = await matchChallengeService.getChallengeById(notif.relatedEntityId!);
+            return { notificationId: notif.id, challenge, success: true };
+          } catch (error: any) {
+            // Challenge bulunamadı (silinmiş, geçersiz veya süresi dolmuş)
+            // Sadece 400/404 gibi "not found" hatalarını sessizce handle et
+            const status = error?.response?.status;
+            const errorKey = error?.response?.data?.data?.errorKey;
+            
+            // CHALLENGE_NOT_FOUND hatası normal bir durum, sessizce handle et
+            if (status === 400 && errorKey === 'CHALLENGE_NOT_FOUND') {
+              // Bu durum normal (challenge silinmiş/süresi dolmuş), sessizce handle et
+              return { notificationId: notif.id, challenge: null, success: false };
+            }
+            
+            // Diğer hatalar için de sessizce handle et ama log'la (debug için)
+            if (__DEV__) {
+              console.log(`Challenge ${notif.relatedEntityId} yüklenemedi (durum: ${status})`);
+            }
+            return { notificationId: notif.id, challenge: null, success: false };
           }
+        });
+
+      // Tüm challenge isteklerini bekle
+      const challengeResults = await Promise.all(challengePromises);
+      
+      // Sonuçları işle
+      challengeResults.forEach((result) => {
+        if (result.success && result.challenge) {
+          challengeDetailsMap[result.notificationId] = result.challenge;
+        } else {
+          failedIds.add(result.notificationId);
         }
-      }
+      });
       setChallengeDetails(challengeDetailsMap);
+      setFailedChallengeIds(failedIds);
     } catch (error) {
       console.error('Bildirimler yüklenirken hata:', error);
       Alert.alert(t('common.error'), t('notifications.loadError'));
@@ -207,6 +242,7 @@ const NotificationsScreen = ({ navigation }: any) => {
     const isPendingMatch = notification.type === NotificationType.PENDING_MATCH_REQUEST || notification.type === NotificationType.MATCH_CHALLENGE;
     const isProcessing = processingNotification === notification.id;
     const challenge = challengeDetails[notification.id];
+    const challengeFailed = failedChallengeIds.has(notification.id);
 
     return (
       <Card
@@ -304,11 +340,37 @@ const NotificationsScreen = ({ navigation }: any) => {
                 </View>
               )}
             </View>
+          ) : isPendingMatch && challengeFailed ? (
+            // Challenge yüklenemedi, notification mesajını göster
+            <View style={styles.systemNotificationContent}>
+              <Text style={styles.notificationMessage}>
+                {notification.message || t('notifications.challengeNotFound')}
+              </Text>
+              <Chip
+                mode="flat"
+                style={styles.errorChip}
+                textStyle={styles.errorChipText}
+                icon="alert-circle"
+              >
+                {t('notifications.challengeExpired')}
+              </Chip>
+              {!notification.isRead && (
+                <Button
+                  mode="text"
+                  onPress={() => handleMarkAsRead(notification.id)}
+                  style={styles.markReadButton}
+                >
+                  {t('notifications.markAsRead')}
+                </Button>
+              )}
+            </View>
           ) : isPendingMatch ? (
+            // Challenge yükleniyor
             <View style={styles.systemNotificationContent}>
               <Text style={styles.notificationMessage}>{t('notifications.loadingDetails')}</Text>
             </View>
           ) : (
+            // Normal sistem bildirimi
             <View style={styles.systemNotificationContent}>
               <Text style={styles.notificationMessage}>{notification.message}</Text>
               {!notification.isRead && (
@@ -479,6 +541,16 @@ const styles = StyleSheet.create({
   },
   unreadChipText: {
     color: '#2E7D32',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  errorChip: {
+    backgroundColor: '#F8D7DA',
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  errorChipText: {
+    color: '#DC3545',
     fontSize: 10,
     fontWeight: 'bold',
   },

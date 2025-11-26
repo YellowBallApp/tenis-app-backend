@@ -16,8 +16,9 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  // iOS için primitive boolean değerler kullan
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const checkAuth = async () => {
     try {
@@ -34,7 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           await authService.getProfile();
           console.log('Token geçerli - kullanıcı authenticated');
-          setIsAuthenticated(true);
+        setIsAuthenticated(true);
         } catch (error: any) {
           // Token geçersiz veya servis çalışmıyor
           console.log('Token geçersiz veya servis çalışmıyor - logout yapılıyor:', error.message);
@@ -78,7 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
-      console.log('🔐 Login başlatılıyor:', { email, apiUrl: 'http://192.168.1.107:3000/api' });
+      console.log('🔐 Login başlatılıyor:', { email });
       const tokens = await authService.login({ email, password });
       console.log('✅ Login başarılı, token kaydediliyor');
       await AsyncStorage.setItem('accessToken', tokens.accessToken);
@@ -121,17 +122,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  // iOS için primitive boolean değerler döndür
+  const authValue: AuthContextType = {
+    isAuthenticated: isAuthenticated === true,
+    isLoading: isLoading === true,
+    login,
+    register,
+    logout,
+    checkAuth,
+  };
+
   return (
-    <AuthContext.Provider
-      value={{
-        isAuthenticated,
-        isLoading,
-        login,
-        register,
-        logout,
-        checkAuth,
-      }}
-    >
+    <AuthContext.Provider value={authValue}>
       {children}
     </AuthContext.Provider>
   );
@@ -142,6 +144,11 @@ export const useAuth = () => {
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
-  return context;
+  // iOS için primitive boolean değerler döndür
+  return {
+    ...context,
+    isAuthenticated: context.isAuthenticated === true,
+    isLoading: context.isLoading === true,
+  };
 };
 
