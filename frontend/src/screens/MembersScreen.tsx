@@ -338,14 +338,20 @@ const MembersScreen = () => {
     <View style={[styles.container, themedStyles.container]}>
       <StatusBar style="light" />
       
-      {/* Animated Header Section */}
+      {/* Animated Header Section - Modern Gradient */}
       <Animated.View style={[
         styles.headerSection, 
         { 
-          backgroundColor: theme.colors.primary,
           height: headerHeight 
         }
       ]}>
+        <LinearGradient
+          colors={['#2E7D32', '#4CAF50', '#66BB6A']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        
         {/* Kompakt Başlık */}
         <Animated.View style={[
           styles.compactHeader,
@@ -356,7 +362,12 @@ const MembersScreen = () => {
         
         {/* Normal İçerik */}
         <Animated.View style={{ opacity: headerOpacity }}>
-          <Title style={styles.headerTitle}>👥 {t('members.title')}</Title>
+          <View style={styles.logoContainer}>
+            <View style={styles.logoCircle}>
+              <MaterialCommunityIcons name="account-group" size={40} color="#FFFFFF" />
+            </View>
+          </View>
+          <Title style={styles.headerTitle}>{t('members.title')}</Title>
           <Text style={styles.headerSubtitle}>
             {t('members.subtitle')}
           </Text>
@@ -448,21 +459,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerSection: {
-    backgroundColor: '#2E7D32',
     padding: 20,
     paddingTop: 40,
     alignItems: 'center',
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    borderBottomLeftRadius: 35,
+    borderBottomRightRadius: 35,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: '#2E7D32',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 6,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 12,
   },
   compactHeader: {
     position: 'absolute',
@@ -479,13 +489,27 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
+  logoContainer: {
+    marginBottom: 15,
+    paddingTop: 50,
+  },
+  logoCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: '800',
     color: '#FFFFFF',
     marginBottom: 10,
     textAlign: 'center',
-    paddingTop: 50,
+    letterSpacing: 0.5,
   },
   headerSubtitle: {
     fontSize: 16,
@@ -502,15 +526,15 @@ const styles = StyleSheet.create({
   searchBar: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    elevation: 4,
+    borderRadius: 16,
+    elevation: 6,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 3,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
   },
   searchInput: {
     fontSize: 16,
@@ -530,10 +554,14 @@ const styles = StyleSheet.create({
     marginRight: 10,
     backgroundColor: '#F8F9FA',
     borderColor: '#E9ECEF',
+    borderRadius: 20,
+    height: 36,
   },
   selectedFilterChip: {
     backgroundColor: '#2E7D32',
     borderColor: '#2E7D32',
+    borderRadius: 20,
+    height: 36,
   },
   filterText: {
     color: '#6C757D',
@@ -552,15 +580,16 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: '#F0F0F0',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
     elevation: 8,
+    overflow: 'hidden',
   },
   memberHeader: {
     flexDirection: 'row',

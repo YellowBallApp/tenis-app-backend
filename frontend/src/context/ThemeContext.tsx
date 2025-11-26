@@ -13,27 +13,27 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-// Light Theme - Mevcut tenis teması
+// Light Theme - Modern tenis teması
 const lightTheme = {
   ...MD3LightTheme,
   colors: {
     ...MD3LightTheme.colors,
     primary: '#2E7D32', // Koyu yeşil
     secondary: '#4CAF50',
-    background: '#FFFFFF',
-    surface: '#F8F9FA',
+    background: '#FAFAFA',
+    surface: '#FFFFFF',
     text: '#1B1B1B',
     onPrimary: '#FFFFFF',
     onSecondary: '#FFFFFF',
     onBackground: '#1B1B1B',
     onSurface: '#1B1B1B',
     error: '#DC3545',
-    placeholder: '#6C757D',
+    placeholder: '#9E9E9E',
     backdrop: 'rgba(0, 0, 0, 0.5)',
-    outline: '#E0E0E0',
-    surfaceVariant: '#F5F5F5',
+    outline: '#F0F0F0',
+    surfaceVariant: '#F8F9FA',
   },
-  roundness: 12,
+  roundness: 18,
 };
 
 // Dark Theme - Yumuşak karanlık tenis teması
