@@ -700,7 +700,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
               ) : (
                 <Button
                   mode="outlined"
-                  disabled={true as boolean}
+                  disabled={true}
                   style={styles.disabledChallengeButton}
                   textColor="#9E9E9E"
                   icon="lock"
@@ -866,7 +866,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
               <Button
                 mode="outlined"
                 onPress={goToPreviousPage}
-                disabled={currentPage === 1}
+                disabled={Boolean(currentPage === 1)}
                 style={styles.paginationButton}
                 icon="chevron-left"
                 compact
@@ -883,7 +883,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
               <Button
                 mode="outlined"
                 onPress={goToNextPage}
-                disabled={currentPage === getTotalPages()}
+                disabled={Boolean(currentPage === getTotalPages())}
                 style={styles.paginationButton}
                 icon="chevron-right"
                 contentStyle={{ flexDirection: 'row-reverse' }}
@@ -910,7 +910,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
               buttonColor={acceptedChallenge ? "#2E7D32" : "#9E9E9E"}
               icon="clipboard-check"
               onPress={openMatchResultModal}
-              disabled={!acceptedChallenge}
+              disabled={Boolean(!acceptedChallenge)}
             >
               Maç Sonucu Gir
             </Button>
@@ -1136,7 +1136,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                     <View style={styles.courtSelectionSection}>
                       <Text style={styles.sectionLabel}>Kort Seçin *</Text>
                       <Menu
-                        visible={courtMenuVisible}
+                        visible={Boolean(courtMenuVisible)}
                         onDismiss={() => setCourtMenuVisible(false)}
                         anchorPosition="bottom"
                         contentStyle={styles.menuContent}
@@ -1301,7 +1301,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
 
       {/* Başarı Bildirimi Snackbar */}
       <Snackbar
-        visible={snackbarVisible}
+        visible={Boolean(snackbarVisible)}
         onDismiss={() => setSnackbarVisible(false)}
         duration={3000}
         style={styles.snackbar}

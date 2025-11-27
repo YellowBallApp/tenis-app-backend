@@ -24,7 +24,6 @@ import {
   IconButton,
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useLanguage } from '../context/LanguageContext';
 import { coachService, coachReviewService } from '../services/api';
 import { useThemedStyles } from '../hooks/useThemedStyles';
@@ -323,20 +322,14 @@ const CoachesScreen = () => {
 
   return (
     <View style={[styles.container, themedStyles.container]}>
-      {/* Animated Header Section - Modern Gradient */}
+      {/* Animated Header Section */}
       <Animated.View style={[
         styles.headerSection, 
         { 
+          backgroundColor: theme.colors.primary,
           height: headerHeight 
         }
       ]}>
-        <LinearGradient
-          colors={['#2E7D32', '#4CAF50', '#66BB6A']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-        
         {/* Kompakt Başlık */}
         <Animated.View style={[
           styles.compactHeader,
@@ -347,12 +340,7 @@ const CoachesScreen = () => {
         
         {/* Normal İçerik */}
         <Animated.View style={{ opacity: headerOpacity }}>
-          <View style={styles.logoContainer}>
-            <View style={styles.logoCircle}>
-              <MaterialCommunityIcons name="account-tie" size={40} color="#FFFFFF" />
-            </View>
-          </View>
-          <Title style={styles.headerTitle}>{t('coaches.title')}</Title>
+          <Title style={styles.headerTitle}>🎾 {t('coaches.title')}</Title>
           <Text style={styles.headerSubtitle}>
             {t('coaches.subtitle')}
           </Text>
@@ -674,20 +662,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerSection: {
+    backgroundColor: '#2E7D32',
     padding: 20,
     paddingTop: 40,
     alignItems: 'center',
-    borderBottomLeftRadius: 35,
-    borderBottomRightRadius: 35,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
     overflow: 'hidden',
-    shadowColor: '#2E7D32',
+    shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 6,
+      height: 4,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 12,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
   },
   compactHeader: {
     position: 'absolute',
@@ -704,27 +693,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
-  logoContainer: {
-    marginBottom: 15,
-    paddingTop: 50,
-  },
-  logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
   headerTitle: {
-    fontSize: 32,
-    fontWeight: '800',
+    fontSize: 28,
+    fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 10,
     textAlign: 'center',
-    letterSpacing: 0.5,
+    paddingTop: 50,
   },
   headerSubtitle: {
     fontSize: 16,
@@ -738,15 +713,15 @@ const styles = StyleSheet.create({
   },
   searchBar: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    elevation: 6,
+    borderRadius: 12,
+    elevation: 4,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 3,
+      height: 2,
     },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   searchInput: {
     fontSize: 16,
@@ -759,14 +734,10 @@ const styles = StyleSheet.create({
     marginRight: 10,
     backgroundColor: '#F8F9FA',
     borderColor: '#E9ECEF',
-    borderRadius: 20,
-    height: 36,
   },
   selectedFilterChip: {
     backgroundColor: '#2E7D32',
     borderColor: '#2E7D32',
-    borderRadius: 20,
-    height: 36,
   },
   filterText: {
     color: '#6C757D',
@@ -785,16 +756,15 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderColor: '#E9ECEF',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
     elevation: 8,
-    overflow: 'hidden',
   },
   coachHeader: {
     flexDirection: 'row',

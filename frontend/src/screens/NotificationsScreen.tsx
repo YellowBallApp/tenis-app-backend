@@ -453,7 +453,7 @@ const NotificationsScreen = ({ navigation }: any) => {
             <Button
               mode="outlined"
               onPress={handlePreviousPage}
-              disabled={page === 1}
+              disabled={Boolean(page === 1)}
               icon="chevron-left"
             >
               {t('notifications.previous')}
@@ -464,7 +464,7 @@ const NotificationsScreen = ({ navigation }: any) => {
             <Button
               mode="outlined"
               onPress={handleNextPage}
-              disabled={page === totalPages}
+              disabled={Boolean(page === totalPages)}
               icon="chevron-right"
             >
               {t('notifications.next')}

@@ -1105,7 +1105,7 @@ const ProfileScreen = () => {
               <Title style={[styles.logoutModalTitle, themedStyles.title]}>{t('auth.logout')}</Title>
               <TouchableOpacity 
                 onPress={() => setShowLogoutModal(false)}
-                disabled={loggingOut}
+                disabled={Boolean(loggingOut)}
               >
                 <MaterialCommunityIcons name="close" size={22} color={theme.colors.text} />
               </TouchableOpacity>

@@ -608,7 +608,7 @@ const ReservationScreen = () => {
       <ScrollView 
         ref={scrollViewRef} 
         style={styles.container} 
-        showsVerticalScrollIndicator={false as boolean}
+        showsVerticalScrollIndicator={false}
         onScroll={(event) => setCurrentScrollY(event.nativeEvent.contentOffset.y)}
         scrollEventThrottle={16}
       >
@@ -726,7 +726,7 @@ const ReservationScreen = () => {
                         key={court.id}
                         onPress={() => !isClosed && handleCourtSelect(court.id.toString())}
                         style={styles.courtCardContainer}
-                        disabled={isClosed}
+                        disabled={Boolean(isClosed)}
                       >
                         <LinearGradient
                           colors={
@@ -814,7 +814,7 @@ const ReservationScreen = () => {
                         key={time}
                         onPress={() => !isDisabled && handleTimeSelect(time)}
                         style={styles.timeChipContainer}
-                        disabled={isDisabled}
+                        disabled={Boolean(isDisabled)}
                       >
                         <LinearGradient
                           colors={
@@ -1184,7 +1184,7 @@ const ReservationScreen = () => {
       {/* Calendar Modal */}
       <Portal>
         <Modal
-        dismissable={false as boolean}
+          dismissable={false}
           visible={Boolean(showCalendar)}
           onDismiss={() => setShowCalendar(false)}
           contentContainerStyle={styles.calendarModal}
@@ -1247,7 +1247,7 @@ const ReservationScreen = () => {
 
         {/* User Selector Modal */}
         <Modal
-        dismissable={false as boolean}
+          dismissable={false}
           visible={Boolean(showUserSelector)}
           onDismiss={() => {
             setShowUserSelector(false);
@@ -1316,7 +1316,7 @@ const ReservationScreen = () => {
                     <TouchableOpacity
                       style={styles.userItem}
                       onPress={() => handleUserSelect(item)}
-                      disabled={isDisabled}
+                      disabled={Boolean(isDisabled)}
                     >
                       <View style={[
                         styles.userItemContent,
@@ -1404,7 +1404,7 @@ const ReservationScreen = () => {
       {/* Weather Warning Modal */}
       <Portal>
         <Modal
-          visible={showWeatherWarningModal}
+          visible={Boolean(showWeatherWarningModal)}
           onDismiss={() => {
             setShowWeatherWarningModal(false);
             setPendingTimeSelection(null);

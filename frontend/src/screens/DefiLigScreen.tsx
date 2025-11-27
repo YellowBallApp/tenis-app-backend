@@ -463,7 +463,7 @@ const DefiLigScreen = ({ navigation }: any) => {
             <View style={styles.paginationContainer}>
               <TouchableOpacity 
                 onPress={goToPreviousPage}
-                disabled={currentPage === 0}
+                disabled={Boolean(currentPage === 0)}
                 style={[styles.paginationButton, currentPage === 0 && styles.paginationButtonDisabled]}
               >
                 <MaterialCommunityIcons 
@@ -490,7 +490,7 @@ const DefiLigScreen = ({ navigation }: any) => {
 
               <TouchableOpacity 
                 onPress={goToNextPage}
-                disabled={currentPage === totalPages - 1}
+                disabled={Boolean(currentPage === totalPages - 1)}
                 style={[styles.paginationButton, currentPage === totalPages - 1 && styles.paginationButtonDisabled]}
               >
                 <Text style={[styles.paginationButtonText, currentPage === totalPages - 1 && styles.paginationButtonTextDisabled]}>

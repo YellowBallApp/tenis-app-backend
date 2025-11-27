@@ -135,7 +135,7 @@ const LoginScreen = ({ navigation }: any) => {
               mode="contained"
               onPress={handleLogin}
               loading={loading}
-              disabled={loading}
+              disabled={Boolean(loading)}
               style={styles.loginButton}
               buttonColor={theme.colors.primary}
               contentStyle={styles.loginButtonContent}

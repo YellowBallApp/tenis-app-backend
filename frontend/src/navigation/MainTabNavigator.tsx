@@ -72,27 +72,14 @@ const TabNavigator = () => {
         headerShown: false, // Tüm sayfalarda header'ı gizle
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
-          borderTopColor: '#F0F0F0',
+          borderTopColor: '#E9ECEF',
           borderTopWidth: 1,
-          paddingBottom: 8,
-          paddingTop: 8,
-          height: 65,
-          shadowColor: '#000',
-          shadowOffset: {
-            width: 0,
-            height: -2,
-          },
-          shadowOpacity: 0.05,
-          shadowRadius: 8,
-          elevation: 10,
+          paddingBottom: 5,
+          paddingTop: 5,
+          height: 60,
         },
         tabBarActiveTintColor: '#2E7D32',
-        tabBarInactiveTintColor: '#9E9E9E',
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
-          marginTop: 2,
-        },
+        tabBarInactiveTintColor: '#6C757D',
       }}
     >
       <Tab.Screen
