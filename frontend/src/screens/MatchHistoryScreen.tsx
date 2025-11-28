@@ -953,7 +953,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                     onPress={handleAddComment}
                     style={styles.sendCommentButton}
                     buttonColor="#2E7D32"
-                    disabled={Boolean(!newComment.trim())}
+                    disabled={!!(!newComment.trim())}
                   >
                     {t('matchHistory.send')}
                   </Button>

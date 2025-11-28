@@ -102,8 +102,24 @@ const HomeScreen = () => {
         notificationService.getUnreadCount().catch(() => 0), // Hata durumunda 0 döndür
       ]);
       
-      setReservations(reservationsData);
-      setAnnouncements(announcementsData.slice(0, 1)); // İlk duyuru
+      // Boolean değerleri normalize et (API'den string olarak gelebilir)
+      const normalizedReservations = (reservationsData || []).map((reservation: any) => ({
+        ...reservation,
+        // Eğer reservation içinde boolean field'lar varsa normalize et
+        court: reservation.court ? {
+          ...reservation.court,
+          closed: !!(reservation.court.closed),
+          indoors: !!(reservation.court.indoors),
+        } : reservation.court,
+      }));
+      
+      const normalizedAnnouncements = (announcementsData || []).slice(0, 1).map((announcement: any) => ({
+        ...announcement,
+        isPinned: !!(announcement.isPinned),
+      }));
+      
+      setReservations(normalizedReservations);
+      setAnnouncements(normalizedAnnouncements);
       
       // İstatistikleri güncelle
       setStats({
@@ -221,19 +237,19 @@ const HomeScreen = () => {
         <View style={styles.quickActionsGrid}>
           {quickActions.map((action, index) => (
             <TouchableOpacity key={index} onPress={action.action} activeOpacity={1}>
-              <Card style={[styles.actionCard, themedStyles.card]}>
-                <Card.Content style={styles.actionContent}>
+              <View style={[styles.actionCard, themedStyles.card]}>
+                <View style={styles.actionContent}>
                   <View style={[styles.actionIcon, { backgroundColor: action.color }]}>
                     <MaterialCommunityIcons name={action.icon as any} size={24} color="#fff" />
-                    {action.badge !== undefined && action.badge > 0 && (
+                    {Boolean(action.badge !== undefined && action.badge > 0) && (
                       <View style={styles.badge}>
                         <Text style={styles.badgeText}>{action.badge > 99 ? '99+' : action.badge}</Text>
                       </View>
                     )}
                   </View>
                   <Text style={[styles.actionTitle, themedStyles.text]}>{action.title}</Text>
-                </Card.Content>
-              </Card>
+                </View>
+              </View>
             </TouchableOpacity>
           ))}
         </View>
@@ -244,8 +260,8 @@ const HomeScreen = () => {
         <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>{t('home.upcomingReservationsTitle')}</Title>
         {reservations.length > 0 ? (
           reservations.map((reservation) => (
-            <Card key={reservation.id} style={[styles.matchCard, themedStyles.card]}>
-              <Card.Content>
+            <View key={reservation.id} style={[styles.matchCard, themedStyles.card]}>
+              <View style={{ padding: 16 }}>
                 <View style={styles.matchHeader}>
                   <Text style={styles.matchTime}>{formatTime(reservation.startTime)}</Text>
                   <View style={styles.courtChip}>
@@ -257,7 +273,7 @@ const HomeScreen = () => {
                     <Avatar.Text size={40} label={reservation.user.name.charAt(0)} />
                     <Text style={[styles.playerName, themedStyles.text]}>{reservation.user.name}</Text>
                   </View>
-                  {reservation.participants && reservation.participants.length > 0 && (
+                  {Boolean(reservation.participants && reservation.participants.length > 0) && (
                     <>
                       <View style={styles.vsContainer}>
                         <Text style={styles.vsText}>VS</Text>
@@ -269,20 +285,20 @@ const HomeScreen = () => {
                     </>
                   )}
                 </View>
-                {reservation.notes && (
+                {Boolean(reservation.notes) && (
                   <Text style={[styles.reservationNotes, themedStyles.subtitle]}>📝 {reservation.notes}</Text>
                 )}
-              </Card.Content>
-            </Card>
+              </View>
+            </View>
           ))
         ) : (
-          <Card style={[styles.matchCard, themedStyles.card]}>
-            <Card.Content>
+          <View style={[styles.matchCard, themedStyles.card]}>
+            <View style={{ padding: 16 }}>
               <Text style={{ textAlign: 'center', color: '#6C757D' }}>
                 {t('home.noUpcomingReservations')}
               </Text>
-            </Card.Content>
-          </Card>
+            </View>
+          </View>
         )}
       </View>
 
@@ -291,11 +307,11 @@ const HomeScreen = () => {
         <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>{t('home.newsUpdates')}</Title>
         {announcements.length > 0 ? (
           announcements.map((announcement) => (
-            <Card key={announcement.id} style={[styles.newsCard, themedStyles.card]}>
-              <Card.Content>
+            <View key={announcement.id} style={[styles.newsCard, themedStyles.card]}>
+              <View style={{ padding: 16 }}>
                 <View style={styles.newsHeader}>
                   <MaterialCommunityIcons 
-                    name={announcement.isPinned ? "pin" : "newspaper"} 
+                    name={!!(announcement.isPinned) ? "pin" : "newspaper"} 
                     size={24} 
                     color={theme.colors.primary} 
                   />
@@ -305,19 +321,19 @@ const HomeScreen = () => {
                   {announcement.content}
                 </Text>
                 <Text style={[styles.newsAuthor, themedStyles.subtitle]}>
-                  👤 {announcement.author.name} • {new Date(announcement.createdAt).toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US')}
+                  👤                   {announcement.author.name} • {new Date(announcement.createdAt).toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US')}
                 </Text>
-              </Card.Content>
-            </Card>
+              </View>
+            </View>
           ))
         ) : (
-          <Card style={[styles.newsCard, themedStyles.card]}>
-            <Card.Content>
+          <View style={[styles.newsCard, themedStyles.card]}>
+            <View style={{ padding: 16 }}>
               <Text style={{ textAlign: 'center', color: '#6C757D' }}>
                 {t('home.noAnnouncements')}
               </Text>
-            </Card.Content>
-          </Card>
+            </View>
+          </View>
         )}
       </View>
       </Animated.ScrollView>

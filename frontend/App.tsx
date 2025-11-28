@@ -5,6 +5,9 @@ import { AuthProvider } from './src/context/AuthContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { LanguageProvider } from './src/context/LanguageContext';
 import AppNavigator from './src/navigation/AppNavigator';
+import './src/utils/ErrorLogger'; // Initialize error logger
+
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 
 // ThemeProvider içinde olması gerektiği için AppContent component'i oluşturuyoruz
 const AppContent = () => {
@@ -12,9 +15,11 @@ const AppContent = () => {
 
   return (
     <PaperProvider theme={theme}>
-      <AuthProvider>
-        <AppNavigator />
-      </AuthProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <AppNavigator />
+        </AuthProvider>
+      </ErrorBoundary>
     </PaperProvider>
   );
 };
@@ -24,7 +29,9 @@ export default function App() {
     <SafeAreaProvider>
       <LanguageProvider>
         <ThemeProvider>
-          <AppContent />
+          <ErrorBoundary>
+            <AppContent />
+          </ErrorBoundary>
         </ThemeProvider>
       </LanguageProvider>
     </SafeAreaProvider>

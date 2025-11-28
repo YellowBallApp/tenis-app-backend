@@ -77,8 +77,8 @@ const ReservationsListScreen = ({ navigation }: any) => {
         // Boolean değerleri normalize et (backend'den string olarak gelebilir)
         const normalizedCourts = courtsList.map((court: any) => ({
           ...court,
-          closed: Boolean(court.closed),
-          indoors: Boolean(court.indoors),
+          closed: !!(court.closed),
+          indoors: !!(court.indoors),
         }));
         setCourts(normalizedCourts);
       } catch (error) {
@@ -198,21 +198,21 @@ const ReservationsListScreen = ({ navigation }: any) => {
                 <Text style={styles.headerCellText}>{t('reservationsList.timeHeader')}</Text>
               </View>
               {courts.map(court => {
-                const isClosed = Boolean(court.closed);
+                const isClosed = !!(court.closed);
                 return (
                   <View key={court.id} style={[styles.headerCell, isClosed && styles.closedHeaderCell]}>
-                    <MaterialCommunityIcons 
+                  <MaterialCommunityIcons 
                       name={isClosed ? "lock" : "tennis"} 
-                      size={20} 
+                    size={20} 
                       color={isClosed ? "#BDBDBD" : "#FFFFFF"} 
-                    />
+                  />
                     <Text style={[styles.headerCellText, isClosed && styles.closedHeaderText]}>
-                      {court.name}
-                    </Text>
+                    {court.name}
+                  </Text>
                     {isClosed && (
-                      <Text style={styles.closedLabel}>{t('reservation.closed')}</Text>
-                    )}
-                  </View>
+                    <Text style={styles.closedLabel}>{t('reservation.closed')}</Text>
+                  )}
+                </View>
                 );
               })}
             </View>
@@ -226,18 +226,18 @@ const ReservationsListScreen = ({ navigation }: any) => {
                     <Text style={styles.timeCellText}>{timeSlot}</Text>
                   </View>
                   {courts.map(court => {
-                    const isClosed = Boolean(court.closed);
+                    const isClosed = !!(court.closed);
                     return (
                       <View key={`${court.id}-${timeSlot}`} style={[styles.cell, isClosed && styles.closedCell]}>
                         {isClosed ? (
-                          <View style={styles.closedCellContent}>
-                            <MaterialCommunityIcons name="lock" size={16} color="#BDBDBD" />
-                            <Text style={styles.closedCellText}>-</Text>
-                          </View>
-                        ) : (
-                          renderCell(court.id, timeSlot)
-                        )}
-                      </View>
+                        <View style={styles.closedCellContent}>
+                          <MaterialCommunityIcons name="lock" size={16} color="#BDBDBD" />
+                          <Text style={styles.closedCellText}>-</Text>
+                        </View>
+                      ) : (
+                        renderCell(court.id, timeSlot)
+                      )}
+                    </View>
                     );
                   })}
                 </View>

@@ -31,7 +31,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useThemedStyles } from '../hooks/useThemedStyles';
-import { authService } from '../services/api';
+import { authService, matchHistoryService, leagueStandingsService } from '../services/api';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'react-native';
 
@@ -94,6 +94,30 @@ const ProfileScreen = () => {
       setLoading(true);
       const profileData = await authService.getProfile();
       
+      // Maç istatistiklerini ve lig bilgilerini paralel olarak çek
+      const [matchStats, userStandings] = await Promise.all([
+        matchHistoryService.getUserMatchStats(profileData.id).catch(() => ({
+          totalMatches: 0,
+          wins: 0,
+          losses: 0,
+          winRate: 0,
+        })),
+        leagueStandingsService.getStandingsByUserId(profileData.id).catch(() => []),
+      ]);
+      
+      // Points hesaplama: Lig sıralamalarından toplam points (en iyi sıralama puanları)
+      // Her lig için ters sıralama puanı: 1. sıra = 100, 2. sıra = 99, vb.
+      let totalPoints = 0;
+      if (userStandings && Array.isArray(userStandings)) {
+        userStandings.forEach((standing: any) => {
+          // Her lig için maksimum 100 oyuncu varsayımıyla hesapla
+          // En iyi sıralama en yüksek puan
+          const maxPlayers = 100;
+          const rankingPoints = Math.max(0, maxPlayers - (standing.leagueRanking || maxPlayers) + 1);
+          totalPoints += rankingPoints;
+        });
+      }
+      
       // Backend'den gelen profil verisini UI formatına dönüştür
       const formattedUser = {
         name: profileData.name,
@@ -103,10 +127,10 @@ const ProfileScreen = () => {
         age: (profileData as any).age,
         profilePhoto: (profileData as any).profilePhoto,
         title: profileData.title, // Backend'den gelen ham değer
-        points: 0, // TODO: Match history'den hesaplanacak
-        matchesPlayed: 0, // TODO: Match history'den hesaplanacak
-        matchesWon: 0, // TODO: Match history'den hesaplanacak
-        winRate: 0, // TODO: Match history'den hesaplanacak
+        points: totalPoints,
+        matchesPlayed: matchStats.totalMatches || 0,
+        matchesWon: matchStats.wins || 0,
+        winRate: matchStats.winRate || 0,
         joinDate: (profileData as any).createdAt 
           ? new Date((profileData as any).createdAt).toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US', { month: 'long', year: 'numeric' })
           : t('common.loading'),
@@ -911,7 +935,7 @@ const ProfileScreen = () => {
                 ]}
                 buttonColor={(!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword) ? "#CCCCCC" : "#FF9800"}
                 contentStyle={{ paddingVertical: 12 }}
-                disabled={Boolean(!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword)}
+                disabled={!!(!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword)}
               >
                 {t('profile.changePassword')}
               </Button>
@@ -1105,7 +1129,7 @@ const ProfileScreen = () => {
               <Title style={[styles.logoutModalTitle, themedStyles.title]}>{t('auth.logout')}</Title>
               <TouchableOpacity 
                 onPress={() => setShowLogoutModal(false)}
-                disabled={Boolean(loggingOut)}
+                disabled={!!loggingOut}
               >
                 <MaterialCommunityIcons name="close" size={22} color={theme.colors.text} />
               </TouchableOpacity>

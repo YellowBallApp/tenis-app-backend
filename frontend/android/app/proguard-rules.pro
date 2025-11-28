@@ -11,4 +11,18 @@
 -keep class com.swmansion.reanimated.** { *; }
 -keep class com.facebook.react.turbomodule.** { *; }
 
+# React Native Fabric - Boolean casting protection
+# Prevent ProGuard from optimizing boolean type conversions
+-keepclassmembers class * {
+    boolean *;
+}
+-keepattributes *Annotation*
+-keepclassmembers class com.facebook.react.uimanager.** {
+    *;
+}
+
+# Prevent boolean type erasure in native bridge
+-keep class com.facebook.react.bridge.** { *; }
+-keep class com.facebook.react.uimanager.** { *; }
+
 # Add any project specific keep options here:

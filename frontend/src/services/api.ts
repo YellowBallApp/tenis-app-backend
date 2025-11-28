@@ -18,11 +18,16 @@ export const triggerLogout = () => {
 };
 
 // API Base URL yapılandırması
+// Production build için: PRODUCTION_API_URL environment variable kullanın
 // Ngrok kullanıyorsanız: NGROK_URL değişkenini ayarlayın
 // Local network kullanıyorsanız: LOCAL_IP değişkenini ayarlayın
 const NGROK_URL = ''; // Örnek: 'https://abc123.ngrok-free.app'
-const LOCAL_IP = '10.209.250.139'; // Local WiFi IP'si (gerçek cihaz için)
+const LOCAL_IP = '192.168.1.115'; // Local WiFi IP'si (gerçek cihaz için)
 const EMULATOR_IP = '10.0.2.2'; // Android emülatör için özel IP
+
+// Production API URL - Gerçek telefonda kullanılacak URL
+// Bu URL'yi backend'inizin deploy edildiği yere göre ayarlayın
+const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.115:3000';
 
 // Android emülatörü algıla
 const isAndroidEmulator = (): boolean => {
@@ -74,32 +79,34 @@ const isAndroidEmulator = (): boolean => {
 };
 
 const getApiBaseUrl = () => {
-  // Ngrok URL varsa onu kullan (farklı ağlardan erişim için)
+  // 1. Ngrok URL varsa onu kullan (farklı ağlardan erişim için)
   if (NGROK_URL) {
     return `${NGROK_URL}/api`;
   }
   
-  // Production build için environment variable veya sabit URL kullan
-  // Eğer backend'i cloud'a deploy ettiyseniz, buraya o URL'yi yazın
-  const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || ''; // Örnek: 'https://your-backend.com'
-  
-  // Production URL varsa ve production build ise onu kullan
-  if (PRODUCTION_API_URL && !__DEV__) {
-    return `${PRODUCTION_API_URL}/api`;
+  // 2. Production build için PRODUCTION_API_URL kullan
+  // Gerçek telefonda production build çalıştığında bu URL kullanılacak
+  if (!__DEV__) {
+    const prodUrl = PRODUCTION_API_URL.endsWith('/api') 
+      ? PRODUCTION_API_URL 
+      : `${PRODUCTION_API_URL}/api`;
+    console.log('📱 Production build - API URL:', prodUrl);
+    return prodUrl;
   }
   
-  // Development veya production URL yoksa local IP kullan
+  // 3. Development build için local IP kullan
   if (Platform.OS === 'android') {
     // Android emülatör kontrolü
     if (isAndroidEmulator()) {
-      console.log('📱 Android emülatör algılandı - 10.0.2.2 kullanılıyor');
+      console.log('📱 Development - Android emülatör algılandı - 10.0.2.2 kullanılıyor');
       return `http://${EMULATOR_IP}:3000/api`;
     } else {
-      console.log('📱 Gerçek Android cihaz algılandı - WiFi IP kullanılıyor');
+      console.log('📱 Development - Gerçek Android cihaz algılandı - WiFi IP kullanılıyor');
       return `http://${LOCAL_IP}:3000/api`;
     }
   } else {
     // iOS simulator veya gerçek cihaz için
+    console.log('📱 Development - iOS/Local cihaz - WiFi IP kullanılıyor');
     return `http://${LOCAL_IP}:3000/api`;
   }
 };
@@ -147,9 +154,63 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor - token refresh ve error handling
+// Helper function: API response'lardaki boolean değerleri normalize et
+// Backend'den string olarak gelebilecek boolean değerleri gerçek boolean'a çevirir
+const normalizeBooleanInResponse = (data: any): any => {
+  if (data === null || data === undefined) {
+    return data;
+  }
+  
+  // Primitive types
+  if (typeof data !== 'object') {
+    // String "true"/"false" değerlerini boolean'a çevir
+    if (typeof data === 'string') {
+      if (data.toLowerCase() === 'true') return true;
+      if (data.toLowerCase() === 'false') return false;
+    }
+    return data;
+  }
+  
+  // Array
+  if (Array.isArray(data)) {
+    return data.map(item => normalizeBooleanInResponse(item));
+  }
+  
+  // Object - tüm property'leri recursive olarak normalize et
+  const normalized: any = {};
+  for (const key in data) {
+    if (data.hasOwnProperty(key)) {
+      const value = data[key];
+      
+      // Bilinen boolean field'ları özel olarak normalize et
+      if (key === 'closed' || key === 'indoors' || key === 'isPinned' || 
+          key === 'isRainy' || key === 'isSnowy' || key === 'isIndoor' ||
+          key === 'isOutdoor' || key === 'affectsEloRating') {
+        // String "true"/"false" kontrolü
+        if (typeof value === 'string') {
+          normalized[key] = value.toLowerCase() === 'true';
+        } else {
+          // Primitive boolean'a çevir (Boolean() değil, !! kullan)
+          normalized[key] = !!value;
+        }
+      } else {
+        normalized[key] = normalizeBooleanInResponse(value);
+      }
+    }
+  }
+  
+  return normalized;
+};
+
+// Response interceptor - token refresh, error handling ve boolean normalization
 api.interceptors.response.use(
   (response) => {
+    // API response'daki boolean değerleri normalize et
+    if (response.data && response.data.data) {
+      response.data.data = normalizeBooleanInResponse(response.data.data);
+    } else if (response.data) {
+      response.data = normalizeBooleanInResponse(response.data);
+    }
     return response;
   },
   async (error) => {
@@ -696,6 +757,12 @@ export const matchHistoryService = {
   // Lige göre maç geçmişini getir
   getMatchHistoryByLeague: async (leagueId: number) => {
     const response = await api.get(`/match-history/league/${leagueId}`);
+    return response.data.data;
+  },
+
+  // Kullanıcının maç istatistiklerini getir
+  getUserMatchStats: async (userId: string) => {
+    const response = await api.get(`/match-history/user/${userId}/stats`);
     return response.data.data;
   },
 };

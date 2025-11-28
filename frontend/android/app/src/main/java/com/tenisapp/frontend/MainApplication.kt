@@ -40,6 +40,10 @@ class MainApplication : Application(), ReactApplication {
 
   override fun onCreate() {
     super.onCreate()
+    
+    // Global exception handler - Native hataları yakala
+    setupGlobalExceptionHandler()
+    
     DefaultNewArchitectureEntryPoint.releaseLevel = try {
       ReleaseLevel.valueOf(BuildConfig.REACT_NATIVE_RELEASE_LEVEL.uppercase())
     } catch (e: IllegalArgumentException) {
@@ -47,6 +51,58 @@ class MainApplication : Application(), ReactApplication {
     }
     loadReactNative(this)
     ApplicationLifecycleDispatcher.onApplicationCreate(this)
+  }
+
+  private fun setupGlobalExceptionHandler() {
+    val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
+    
+    Thread.setDefaultUncaughtExceptionHandler { thread, exception ->
+      // Boolean casting hatası kontrolü
+      val isBooleanCastingError = exception.message?.contains("Boolean") == true ||
+                                  exception.message?.contains("cast") == true ||
+                                  exception.stackTraceToString().contains("Boolean") ||
+                                  exception.stackTraceToString().contains("cast")
+      
+      // Detaylı log
+      android.util.Log.e("TENIS_APP_ERROR", "🚨 UNCAUGHT EXCEPTION:")
+      android.util.Log.e("TENIS_APP_ERROR", "Thread: ${thread.name}")
+      android.util.Log.e("TENIS_APP_ERROR", "Message: ${exception.message}")
+      
+      if (isBooleanCastingError) {
+        android.util.Log.e("TENIS_APP_ERROR", "⚠️ BOOLEAN CASTING ERROR DETECTED!")
+        android.util.Log.e("TENIS_APP_ERROR", "Error Details:")
+        android.util.Log.e("TENIS_APP_ERROR", "  - Message: ${exception.message}")
+        android.util.Log.e("TENIS_APP_ERROR", "  - Exception Type: ${exception.javaClass.name}")
+        android.util.Log.e("TENIS_APP_ERROR", "  - Full Stack Trace:")
+        exception.stackTrace.forEach { element ->
+          android.util.Log.e("TENIS_APP_ERROR", "    at ${element.className}.${element.methodName}(${element.fileName}:${element.lineNumber})")
+        }
+        android.util.Log.e("TENIS_APP_ERROR", "  - Cause: ${exception.cause?.message}")
+      } else {
+        android.util.Log.e("TENIS_APP_ERROR", "Full Stack Trace:")
+        android.util.Log.e("TENIS_APP_ERROR", exception.stackTraceToString())
+      }
+      
+      // AndroidRuntime log'larını da yakala
+      android.util.Log.e("AndroidRuntime", "FATAL EXCEPTION: ${thread.name}")
+      android.util.Log.e("AndroidRuntime", "Process: ${android.os.Process.myPid()}")
+      android.util.Log.e("AndroidRuntime", exception.toString())
+      exception.stackTrace.forEach { element ->
+        android.util.Log.e("AndroidRuntime", "    at ${element.className}.${element.methodName}(${element.fileName}:${element.lineNumber})")
+      }
+      
+      // Orijinal handler'ı çağır
+      defaultHandler?.uncaughtException(thread, exception)
+    }
+    
+    // React Native'in kendi exception handler'ını da yakalayalım
+    try {
+      val reactExceptionHandler = Class.forName("com.facebook.react.bridge.NativeModuleCallExceptionHandler")
+      // React Native exception handler varsa onu da log'la
+      android.util.Log.d("TENIS_APP_ERROR", "React Native exception handler setup başarılı")
+    } catch (e: ClassNotFoundException) {
+      android.util.Log.d("TENIS_APP_ERROR", "React Native exception handler bulunamadı (normal)")
+    }
   }
 
   override fun onConfigurationChanged(newConfig: Configuration) {

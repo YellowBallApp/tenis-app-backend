@@ -607,7 +607,7 @@ const LigAyarlariScreen = ({ navigation }: any) => {
           buttonColor="#2E7D32"
           icon="content-save"
           loading={saving}
-          disabled={Boolean(saving)}
+          disabled={!!saving}
         >
           {saving ? 'Kaydediliyor...' : 'Ayarları Kaydet'}
         </Button>
@@ -617,7 +617,7 @@ const LigAyarlariScreen = ({ navigation }: any) => {
           style={styles.resetButton}
           textColor="#D32F2F"
           icon="restore"
-          disabled={Boolean(saving)}
+          disabled={!!saving}
         >
           Yeniden Yükle
         </Button>

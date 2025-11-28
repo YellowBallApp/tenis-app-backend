@@ -167,7 +167,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
               mode="contained"
               onPress={handleRegister}
               loading={loading}
-              disabled={Boolean(loading)}
+              disabled={!!loading}
               style={styles.button}
               buttonColor="#2E7D32"
               contentStyle={styles.buttonContent}
