@@ -55,27 +55,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  useEffect(() => {
-    checkAuth();
-    
-    // API interceptor'dan gelen logout callback'ini kaydet
-    setLogoutCallback(() => {
-      console.log('API interceptor logout tetiklendi');
-      logout();
-    });
-    
-    // Uygulama ön plana geldiğinde token kontrolü yap
-    const subscription = AppState.addEventListener('change', (nextAppState) => {
-      if (nextAppState === 'active') {
-        checkAuth();
+  const logout = useCallback(async () => {
+    try {
+      const refreshToken = await AsyncStorage.getItem('refreshToken');
+      if (refreshToken) {
+        await authService.logout(refreshToken);
       }
-    });
-
-    return () => {
-      subscription.remove();
-      setLogoutCallback(() => {}); // Cleanup
-    };
-  }, [logout]);
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Token'ları sil ve durumu güncelle
+      await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
+      setIsAuthenticated(false);
+    }
+  }, []);
 
   const login = async (email: string, password: string) => {
     try {
@@ -107,20 +100,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = useCallback(async () => {
-    try {
-      const refreshToken = await AsyncStorage.getItem('refreshToken');
-      if (refreshToken) {
-        await authService.logout(refreshToken);
+  useEffect(() => {
+    checkAuth();
+    
+    // API interceptor'dan gelen logout callback'ini kaydet
+    setLogoutCallback(() => {
+      console.log('API interceptor logout tetiklendi');
+      logout();
+    });
+    
+    // Uygulama ön plana geldiğinde token kontrolü yap
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        checkAuth();
       }
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      // Token'ları sil ve durumu güncelle
-      await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
-      setIsAuthenticated(false);
-    }
-  }, []);
+    });
+
+    return () => {
+      subscription.remove();
+      setLogoutCallback(() => {}); // Cleanup
+    };
+  }, [logout]);
 
   // iOS için primitive boolean değerler döndür
   const authValue: AuthContextType = {
