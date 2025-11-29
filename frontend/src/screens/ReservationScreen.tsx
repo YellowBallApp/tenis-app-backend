@@ -79,6 +79,7 @@ LocaleConfig.defaultLocale = 'tr';
 import { userService, reservationService, authService, courtService, weatherService } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../context/LanguageContext';
+import { User } from '../types';
 
 const { width, height } = Dimensions.get('window');
 
@@ -129,7 +130,7 @@ const ReservationScreen = () => {
       try {
         const profile = await authService.getProfile();
         setCurrentUserId(profile.id);
-        setCurrentUserType(profile.userType);
+        setCurrentUserType(profile.userType || null);
       } catch (error) {
         console.error('Kullanıcı profili yüklenirken hata:', error);
       }
@@ -316,7 +317,7 @@ const ReservationScreen = () => {
           const usersList = await userService.getAllUsers();
           // Mevcut kullanıcıyı listeden çıkar
           const filteredUsers = currentUserId 
-            ? usersList.filter(user => user.id !== currentUserId)
+            ? usersList.filter((user: User) => user.id !== currentUserId)
             : usersList;
           setUsers(filteredUsers);
         } catch (error) {
@@ -342,7 +343,7 @@ const ReservationScreen = () => {
         );
         // Mevcut kullanıcıyı listeden çıkar
         const filteredUsers = currentUserId 
-          ? availableUsersList.filter(user => user.id !== currentUserId)
+          ? availableUsersList.filter((user: User) => user.id !== currentUserId)
           : availableUsersList;
         setUsers(filteredUsers);
       } catch (error) {
@@ -588,7 +589,7 @@ const ReservationScreen = () => {
     }
   };
 
-  const filteredUsers = users.filter((user) =>
+  const filteredUsers = users.filter((user: User) =>
     user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -968,7 +969,7 @@ const ReservationScreen = () => {
                           try {
                             const usersList = await userService.getAllUsers();
                             const filteredUsers = currentUserId 
-                              ? usersList.filter(user => user.id !== currentUserId)
+                              ? usersList.filter((user: User) => user.id !== currentUserId)
                               : usersList;
                             setUsers(filteredUsers);
                           } catch (error) {
@@ -1008,37 +1009,37 @@ const ReservationScreen = () => {
                           setSelectorMode('partner');
                           // Modal açılmadan önce kullanıcıları yükle
                           if (users.length === 0) {
-                            try {
-                              const usersList = await userService.getAllUsers();
-                              const filteredUsers = currentUserId 
-                                ? usersList.filter(user => user.id !== currentUserId)
-                                : usersList;
-                              setUsers(filteredUsers);
-                            } catch (error) {
-                              console.error('Kullanıcılar yüklenirken hata:', error);
-                            }
+                          try {
+                            const usersList = await userService.getAllUsers();
+                            const filteredUsers = currentUserId 
+                              ? usersList.filter((user: User) => user.id !== currentUserId)
+                              : usersList;
+                            setUsers(filteredUsers);
+                          } catch (error) {
+                            console.error('Kullanıcılar yüklenirken hata:', error);
                           }
-                          setShowUserSelector(true);
-                        }}
+                        }
+                        setShowUserSelector(true);
+                      }}
+                    >
+                      <LinearGradient
+                        colors={selectedPartner ? ['#4CAF50', '#2E7D32'] : ['#FFFFFF', '#F5F5F5']}
+                        style={styles.userSelectorGradient}
                       >
-                        <LinearGradient
-                          colors={selectedPartner ? ['#4CAF50', '#2E7D32'] : ['#FFFFFF', '#F5F5F5']}
-                          style={styles.userSelectorGradient}
-                        >
-                          <MaterialCommunityIcons 
-                            name="account-search" 
-                            size={24} 
-                            color={selectedPartner ? "#FFFFFF" : "#757575"} 
-                          />
-                          <Text style={[
-                            styles.userSelectorText,
-                            selectedPartner && styles.selectedUserText
-                          ]}>
-                            {selectedPartner ? selectedPartner.name : t('reservation.selectPartnerPlaceholder')}
-                          </Text>
-                        </LinearGradient>
-                      </TouchableOpacity>
-                    </View>
+                        <MaterialCommunityIcons 
+                          name="account-search" 
+                          size={24} 
+                          color={selectedPartner ? "#FFFFFF" : "#757575"} 
+                        />
+                        <Text style={[
+                          styles.userSelectorText,
+                          selectedPartner && styles.selectedUserText
+                        ]}>
+                          {selectedPartner ? selectedPartner.name : t('reservation.selectPartnerPlaceholder')}
+                        </Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
 
                     <View style={styles.opponentsSection}>
                       <Text style={styles.partnerLabel}>{t('reservation.selectOpponents')}</Text>
@@ -1051,7 +1052,7 @@ const ReservationScreen = () => {
                             try {
                               const usersList = await userService.getAllUsers();
                               const filteredUsers = currentUserId 
-                                ? usersList.filter(user => user.id !== currentUserId)
+                                ? usersList.filter((user: User) => user.id !== currentUserId)
                                 : usersList;
                               setUsers(filteredUsers);
                             } catch (error) {
