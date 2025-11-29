@@ -23,6 +23,7 @@ import eloRoutes from "./routes/elo.routes";
 import cronRoutes from "./routes/cron.routes";
 import coachReviewRoutes from "./routes/coachReview.routes";
 import weatherRoutes from "./routes/weather.routes";
+import { getLocalNetworkIP } from "./utils/network";
 
 const app = express();
 
@@ -105,6 +106,22 @@ app.get('/', (req, res) => {
   });
 });
 
+// Server bilgisi endpoint'i - Frontend'in IP'yi dinamik olarak alması için
+app.get('/api/server-info', (req, res) => {
+  const localIP = getLocalNetworkIP();
+  const PORT = parseInt(process.env.PORT || '3000', 10);
+  
+  res.json({
+    success: true,
+    data: {
+      ip: localIP,
+      port: PORT,
+      apiUrl: `http://${localIP}:${PORT}/api`,
+      baseUrl: `http://${localIP}:${PORT}`,
+    },
+  });
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/league", leagueRoutes);
@@ -139,10 +156,12 @@ AppDataSource.initialize()
     initializeCronJobs();
     
     // 0.0.0.0 ile tüm network interface'lerden erişilebilir yap (mobil test için)
+    const localIP = getLocalNetworkIP();
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📱 Mobile access: http://10.209.250.139:${PORT}`);
+      console.log(`📱 Mobile access: http://${localIP}:${PORT}`);
       console.log(`💻 Local access: http://localhost:${PORT}`);
+      console.log(`🌐 API endpoint: http://${localIP}:${PORT}/api`);
     });
   })
   .catch((error) => console.error(" Database connection error:", error));
