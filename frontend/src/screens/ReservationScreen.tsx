@@ -483,8 +483,24 @@ const ReservationScreen = () => {
   };
 
   const handleReservation = async () => {
+    // Validasyon kontrolü
+    if (!selectedDate || !selectedTime || !selectedCourt) {
+      Alert.alert(
+        t('common.error'),
+        'Lütfen tarih, saat ve kort seçin',
+        [{ text: t('common.ok') }]
+      );
+      return;
+    }
+
     try {
       setIsLoading(true);
+      console.log('🔐 Rezervasyon başlatılıyor...', {
+        courtId: selectedCourt,
+        date: selectedDate,
+        time: selectedTime,
+        playerType,
+      });
 
       // Tarih ve saati birleştir
       const [hours, minutes] = selectedTime.split(':');
@@ -512,15 +528,20 @@ const ReservationScreen = () => {
         ? `${t('reservation.singlesMatch')}${selectedPartner ? ` - ${t('reservation.opponent')} ${selectedPartner.name}` : ''}` 
         : `${t('reservation.doublesMatch')}${selectedPartner ? ` - ${t('reservation.partner')} ${selectedPartner.name}` : ''}${selectedOpponents.length > 0 ? ` - ${t('reservation.opponents')} ${selectedOpponents.map(o => o.name).join(', ')}` : ''}`;
 
-      // Backend'e gönder
-      const reservation = await reservationService.createReservation({
+      const reservationData = {
         courtId: parseInt(selectedCourt),
         startTime: startDateTime.toISOString(),
         endTime: endDateTime.toISOString(),
         participantIds: participantIds.length > 0 ? participantIds : undefined,
         notes,
-      });
+      };
 
+      console.log('📤 Rezervasyon verisi gönderiliyor:', reservationData);
+
+      // Backend'e gönder
+      const reservation = await reservationService.createReservation(reservationData);
+
+      console.log('✅ Rezervasyon başarılı:', reservation);
       setIsLoading(false);
 
       // Formu temizle
@@ -542,10 +563,26 @@ const ReservationScreen = () => {
       }, 2000);
     } catch (error: any) {
       setIsLoading(false);
-      console.error('Rezervasyon hatası:', error);
+      console.error('❌ Rezervasyon hatası:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        code: error.code,
+      });
+      
+      // Daha açıklayıcı hata mesajı
+      let errorMessage = t('reservation.errorCreating');
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      } else if (error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK') {
+        errorMessage = 'Sunucuya bağlanılamıyor. Lütfen internet bağlantınızı kontrol edin.';
+      }
+
       Alert.alert(
         t('common.error'),
-        error.response?.data?.message || t('reservation.errorCreating'),
+        errorMessage,
         [{ text: t('common.ok') }]
       );
     }
@@ -1146,7 +1183,7 @@ const ReservationScreen = () => {
           {/* Action Button */}
           <TouchableOpacity
             onPress={handleReservation}
-            disabled={!(!selectedDate || !selectedTime || !selectedCourt || isLoading)}
+            disabled={!selectedDate || !selectedTime || !selectedCourt || isLoading}
             style={[
               styles.reservationButtonContainer,
               (!selectedDate || !selectedTime || !selectedCourt || isLoading) && styles.disabledButton

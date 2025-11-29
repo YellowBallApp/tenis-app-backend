@@ -4,6 +4,9 @@ import { AuthTokens, LoginCredentials, RegisterCredentials, User, ApiResponse } 
 import { Platform } from 'react-native';
 import { AppState } from 'react-native';
 
+// AsyncStorage key'leri
+const CACHED_SERVER_IP_KEY = '@cached_server_ip';
+
 // Logout callback - AuthContext set edecek
 let logoutCallback: (() => void) | null = null;
 
@@ -20,14 +23,110 @@ export const triggerLogout = () => {
 // API Base URL yapılandırması
 // Production build için: PRODUCTION_API_URL environment variable kullanın
 // Ngrok kullanıyorsanız: NGROK_URL değişkenini ayarlayın
-// Local network kullanıyorsanız: LOCAL_IP değişkenini ayarlayın
 const NGROK_URL = ''; // Örnek: 'https://abc123.ngrok-free.app'
-const LOCAL_IP = '192.168.1.115'; // Local WiFi IP'si (gerçek cihaz için)
 const EMULATOR_IP = '10.0.2.2'; // Android emülatör için özel IP
+const DEFAULT_PORT = 3000;
 
 // Production API URL - Gerçek telefonda kullanılacak URL
 // Bu URL'yi backend'inizin deploy edildiği yere göre ayarlayın
-const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.115:3000';
+const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || '';
+
+// Yaygın local network IP aralıkları (fallback için)
+const COMMON_IP_RANGES = [
+  '192.168.1', // En yaygın ev ağı
+  '192.168.0',
+  '10.0.0',
+  '172.16.0',
+];
+
+/**
+ * Backend'den server IP'sini alır (cache'lenmiş veya yeni)
+ */
+async function getServerIP(): Promise<string | null> {
+  try {
+    // Önce cache'den kontrol et
+    const cachedIP = await AsyncStorage.getItem(CACHED_SERVER_IP_KEY);
+    if (cachedIP) {
+      console.log('📦 Cache\'den IP alındı:', cachedIP);
+      
+      // Cache'lenmiş IP'yi test et
+      try {
+        const testUrl = `http://${cachedIP}:${DEFAULT_PORT}/api/server-info`;
+        const response = await axios.get(testUrl, { timeout: 2000 });
+        if (response.data?.data?.ip) {
+          console.log('✅ Cache\'lenmiş IP hala geçerli:', cachedIP);
+          return cachedIP;
+        }
+      } catch (error) {
+        console.log('⚠️ Cache\'lenmiş IP geçersiz, yeni IP aranıyor...');
+        await AsyncStorage.removeItem(CACHED_SERVER_IP_KEY);
+      }
+    }
+    
+    // Cache'de yoksa veya geçersizse, server-info endpoint'ini bulmaya çalış
+    console.log('🔍 Backend IP adresi aranıyor...');
+    
+    // Önce localhost'u dene (emülatör için)
+    try {
+      const localhostUrl = `http://localhost:${DEFAULT_PORT}/api/server-info`;
+      const response = await axios.get(localhostUrl, { timeout: 2000 });
+      if (response.data?.data?.ip) {
+        const serverIP = response.data.data.ip;
+        await AsyncStorage.setItem(CACHED_SERVER_IP_KEY, serverIP);
+        console.log('✅ Localhost üzerinden IP bulundu:', serverIP);
+        return serverIP;
+      }
+    } catch (error) {
+      // Localhost başarısız, devam et
+    }
+    
+    // Yaygın IP aralıklarını dene (sadece birkaçını deneyerek hızlandırıldı)
+    // Önce 192.168.1.x aralığını daha detaylı tara (en yaygın)
+    for (let i = 1; i <= 255; i += 10) { // Her 10'da bir dene
+      const testIP = `192.168.1.${i}`;
+      try {
+        const testUrl = `http://${testIP}:${DEFAULT_PORT}/api/server-info`;
+        const response = await axios.get(testUrl, { timeout: 800 });
+        if (response.data?.data?.ip) {
+          const serverIP = response.data.data.ip;
+          await AsyncStorage.setItem(CACHED_SERVER_IP_KEY, serverIP);
+          console.log('✅ Backend IP bulundu:', serverIP);
+          return serverIP;
+        }
+      } catch (error) {
+        // Bu IP başarısız, devam et
+      }
+    }
+    
+    // Diğer yaygın IP aralıklarını dene (daha az detaylı)
+    for (const ipPrefix of COMMON_IP_RANGES) {
+      if (ipPrefix === '192.168.1') continue; // Zaten tarandı
+      
+      // 1-254 arası son byte'ları dene (sadece birkaçını)
+      for (let i = 1; i <= 254; i += 50) { // Her 50'de bir dene (hız için)
+        const testIP = `${ipPrefix}.${i}`;
+        try {
+          const testUrl = `http://${testIP}:${DEFAULT_PORT}/api/server-info`;
+          const response = await axios.get(testUrl, { timeout: 800 });
+          if (response.data?.data?.ip) {
+            const serverIP = response.data.data.ip;
+            await AsyncStorage.setItem(CACHED_SERVER_IP_KEY, serverIP);
+            console.log('✅ Backend IP bulundu:', serverIP);
+            return serverIP;
+          }
+        } catch (error) {
+          // Bu IP başarısız, devam et
+        }
+      }
+    }
+    
+    console.warn('⚠️ Backend IP otomatik olarak bulunamadı');
+    return null;
+  } catch (error) {
+    console.error('❌ Server IP alınırken hata:', error);
+    return null;
+  }
+}
 
 // Android emülatörü algıla
 const isAndroidEmulator = (): boolean => {
@@ -78,7 +177,41 @@ const isAndroidEmulator = (): boolean => {
   }
 };
 
-const getApiBaseUrl = () => {
+// Cache'lenmiş server IP
+let cachedServerIP: string | null = null;
+let isDiscoveringIP = false;
+
+/**
+ * Server IP'sini dinamik olarak alır veya cache'den döndürür
+ */
+async function getCachedOrDiscoverServerIP(): Promise<string | null> {
+  // Eğer cache'de varsa, önce onu döndür
+  if (cachedServerIP) {
+    return cachedServerIP;
+  }
+  
+  // Zaten discovery yapılıyorsa bekle
+  if (isDiscoveringIP) {
+    // Kısa bir süre bekle (max 5 saniye)
+    for (let i = 0; i < 50; i++) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      if (cachedServerIP) return cachedServerIP;
+    }
+    return null;
+  }
+  
+  // IP discovery başlat
+  isDiscoveringIP = true;
+  try {
+    const ip = await getServerIP();
+    cachedServerIP = ip;
+    return ip;
+  } finally {
+    isDiscoveringIP = false;
+  }
+}
+
+const getApiBaseUrl = async (): Promise<string> => {
   // 1. Ngrok URL varsa onu kullan (farklı ağlardan erişim için)
   if (NGROK_URL) {
     return `${NGROK_URL}/api`;
@@ -87,34 +220,57 @@ const getApiBaseUrl = () => {
   // 2. Production build için PRODUCTION_API_URL kullan
   // Gerçek telefonda production build çalıştığında bu URL kullanılacak
   if (!__DEV__) {
-    const prodUrl = PRODUCTION_API_URL.endsWith('/api') 
-      ? PRODUCTION_API_URL 
-      : `${PRODUCTION_API_URL}/api`;
-    console.log('📱 Production build - API URL:', prodUrl);
-    return prodUrl;
+    if (PRODUCTION_API_URL) {
+      const prodUrl = PRODUCTION_API_URL.endsWith('/api') 
+        ? PRODUCTION_API_URL 
+        : `${PRODUCTION_API_URL}/api`;
+      console.log('📱 Production build - API URL:', prodUrl);
+      return prodUrl;
+    }
+    // Production'da URL yoksa, server-info'dan al
+    const serverIP = await getCachedOrDiscoverServerIP();
+    if (serverIP) {
+      return `http://${serverIP}:${DEFAULT_PORT}/api`;
+    }
+    throw new Error('Production API URL not configured and server discovery failed');
   }
   
-  // 3. Development build için local IP kullan
+  // 3. Development build için
   if (Platform.OS === 'android') {
     // Android emülatör kontrolü
     if (isAndroidEmulator()) {
       console.log('📱 Development - Android emülatör algılandı - 10.0.2.2 kullanılıyor');
-      return `http://${EMULATOR_IP}:3000/api`;
-    } else {
-      console.log('📱 Development - Gerçek Android cihaz algılandı - WiFi IP kullanılıyor');
-      return `http://${LOCAL_IP}:3000/api`;
+      return `http://${EMULATOR_IP}:${DEFAULT_PORT}/api`;
     }
-  } else {
-    // iOS simulator veya gerçek cihaz için
-    console.log('📱 Development - iOS/Local cihaz - WiFi IP kullanılıyor');
-    return `http://${LOCAL_IP}:3000/api`;
   }
+  
+  // Gerçek cihaz veya iOS simulator için server IP'yi dinamik olarak al
+  const serverIP = await getCachedOrDiscoverServerIP();
+  if (serverIP) {
+    console.log(`📱 Development - Server IP kullanılıyor: ${serverIP}`);
+    return `http://${serverIP}:${DEFAULT_PORT}/api`;
+  }
+  
+  // Fallback: localhost (sadece development için)
+  console.warn('⚠️ Server IP bulunamadı, localhost kullanılıyor (çalışmayabilir)');
+  return `http://localhost:${DEFAULT_PORT}/api`;
 };
 
-const API_BASE_URL = getApiBaseUrl();
+// İlk başta base URL'i al (async)
+let API_BASE_URL: string = `http://localhost:${DEFAULT_PORT}/api`;
+
+// İlk başlatmada IP'yi al ve cache'le
+(async () => {
+  try {
+    API_BASE_URL = await getApiBaseUrl();
+    console.log('🌐 API Base URL:', API_BASE_URL);
+  } catch (error) {
+    console.error('❌ API Base URL alınamadı:', error);
+  }
+})();
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  // baseURL'i interceptor'da dinamik olarak ayarlayacağız
   headers: {
     'Content-Type': 'application/json',
   },
@@ -123,13 +279,19 @@ const api = axios.create({
 
 // API base URL'i logla
 const isEmulator = Platform.OS === 'android' ? isAndroidEmulator() : false;
-console.log('API Base URL:', API_BASE_URL);
 console.log('Platform:', Platform.OS, isEmulator ? '(Emülatör)' : '(Gerçek Cihaz)');
 
-// Request interceptor - token ekleme
+// Request interceptor - baseURL ve token ekleme
 api.interceptors.request.use(
   async (config) => {
     try {
+      // BaseURL'i dinamik olarak ayarla
+      if (!config.baseURL) {
+        const baseUrl = await getApiBaseUrl();
+        config.baseURL = baseUrl;
+      }
+      
+      // Token ekle
       const token = await AsyncStorage.getItem('accessToken');
       if (token) {
         // Token'ı temizle (boşluk, satır sonu vs. varsa)
@@ -138,10 +300,11 @@ api.interceptors.request.use(
         console.log('Request interceptor: Token eklendi', { 
           hasToken: !!cleanToken,
           tokenLength: cleanToken.length,
-          url: config.url 
+          url: config.url,
+          baseURL: config.baseURL
         });
       } else {
-        console.log('Request interceptor: Token bulunamadı', { url: config.url });
+        console.log('Request interceptor: Token bulunamadı', { url: config.url, baseURL: config.baseURL });
       }
     } catch (error) {
       console.error('Request interceptor error:', error);
@@ -611,7 +774,7 @@ export const reservationService = {
 
   // Yeni rezervasyon oluştur
   createReservation: async (data: {
-    courtNumber: number;
+    courtId: number;
     startTime: string;
     endTime: string;
     participantIds?: string[];
