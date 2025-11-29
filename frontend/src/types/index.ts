@@ -12,6 +12,7 @@ export interface User {
   phone?: string;
   gender?: string | null;
   age?: number | null;
+  userType?: 'restricted' | 'standard';
 }
 
 export interface AuthTokens {
