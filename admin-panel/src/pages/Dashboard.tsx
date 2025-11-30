@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { HiUsers, HiCalendar, HiClock, HiBan } from 'react-icons/hi';
 import Layout from '../components/Layout';
 import api from '../utils/api';
 
@@ -60,26 +61,26 @@ const Dashboard = () => {
     {
       title: 'Toplam Kullanıcı',
       value: stats.totalUsers,
-      icon: '👥',
-      color: 'bg-slate-700',
+      icon: HiUsers,
+      color: 'bg-slate-600',
     },
     {
       title: 'Toplam Rezervasyon',
       value: stats.totalReservations,
-      icon: '📅',
+      icon: HiCalendar,
       color: 'bg-slate-600',
     },
     {
       title: 'Aktif Rezervasyon',
       value: stats.activeReservations,
-      icon: '⏰',
-      color: 'bg-slate-600-light',
+      icon: HiClock,
+      color: 'bg-slate-600',
     },
     {
       title: 'Bloke Edilmiş Saat',
       value: stats.blockedSlots,
-      icon: '🚫',
-      color: 'bg-slate-600-dark',
+      icon: HiBan,
+      color: 'bg-slate-700',
     }
   ];
 
@@ -98,12 +99,12 @@ const Dashboard = () => {
             <div
               key={index}
               className="glass-strong rounded-2xl p-6 hover:scale-105 transition-all duration-300 cursor-pointer group"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-xl ${stat.color} transition-all duration-300 group-hover:scale-110`}>
-                  <span className="text-3xl">{stat.icon}</span>
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`p-3 rounded-xl ${stat.color} transition-all duration-300 group-hover:scale-110`}>
+                    <stat.icon className="text-3xl text-white" />
+                  </div>
                 </div>
-              </div>
               <p className="text-sm font-medium text-soft-white/70 mb-2">{stat.title}</p>
               <p className="text-4xl font-bold text-soft-white">{stat.value}</p>
             </div>
