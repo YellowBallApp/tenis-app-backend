@@ -31,7 +31,7 @@ const Reservations = () => {
   });
 
   // Müsait saatler (9:00 - 23:00)
-  const availableHours = Array.from({ length: 15 }, (_, i) => i + 9); // 9-23 arası saatler
+  const availableHours = Array.from({ length: 15 }, (_, i) => i + 9);
 
   useEffect(() => {
     fetchData();
@@ -89,7 +89,6 @@ const Reservations = () => {
     e.preventDefault();
     try {
       if (editingSlot) {
-        // Eski sistemle düzenleme (tek zaman dilimi)
         const payload = {
           startTime: new Date(formData.startDate).toISOString(),
           endTime: new Date(formData.endDate).toISOString(),
@@ -97,7 +96,6 @@ const Reservations = () => {
         };
         await api.put(`/admin/blocked-time-slots/${editingSlot.id}`, payload);
       } else {
-        // Yeni sistemle toplu bloklama
         if (formData.selectedHours.length === 0) {
           alert('Lütfen en az bir saat seçin');
           return;
@@ -151,125 +149,138 @@ const Reservations = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="text-center">Yükleniyor...</div>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="glass-strong rounded-2xl p-8 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-tennis-lime mx-auto mb-4"></div>
+            <p className="text-tennis-white/80">Yükleniyor...</p>
+          </div>
+        </div>
       </Layout>
     );
   }
 
   return (
     <Layout>
-      <div>
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Rezervasyon Saatleri Yönetimi</h1>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="glass-strong rounded-2xl p-6 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-tennis-white mb-2">Rezervasyon Saatleri Yönetimi</h1>
+            <p className="text-tennis-white/70">Toplam {blockedSlots.length} bloke edilmiş saat</p>
+          </div>
           <button
             onClick={handleCreate}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+            className="px-6 py-3 bg-gradient-to-r from-tennis-lime to-tennis-green text-tennis-navy font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg glow-lime"
           >
             + Saat Bloke Et
           </button>
         </div>
 
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Kort
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Başlangıç
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Bitiş
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Neden
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Durum
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  İşlemler
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {blockedSlots.map((slot) => (
-                <tr key={slot.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{slot.court.name}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
-                      {new Date(slot.startTime).toLocaleString('tr-TR')}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
-                      {new Date(slot.endTime).toLocaleString('tr-TR')}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-500">{slot.reason || '-'}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+        {/* Blocked Slots Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {blockedSlots.map((slot) => (
+            <div
+              key={slot.id}
+              className="glass-strong rounded-2xl p-6 hover:scale-105 transition-all duration-300"
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-tennis-lime to-tennis-green flex items-center justify-center text-2xl glow-lime">
+                    🎾
+                  </div>
+                  <div>
+                    <h3 className="text-tennis-white font-bold text-lg">{slot.court.name}</h3>
+                    <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full ${
                       slot.isActive 
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {slot.isActive ? 'Aktif' : 'Pasif'}
+                        ? 'bg-gradient-to-r from-red-500 to-red-700 text-white'
+                        : 'bg-gradient-to-r from-gray-500 to-gray-700 text-white'
+                    } mt-1`}>
+                      {slot.isActive ? '🚫 Aktif' : '⏸️ Pasif'}
                     </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => handleToggleActive(slot)}
-                      className={`mr-4 ${
-                        slot.isActive 
-                          ? 'text-yellow-600 hover:text-yellow-900'
-                          : 'text-green-600 hover:text-green-900'
-                      }`}
-                    >
-                      {slot.isActive ? 'Pasifleştir' : 'Aktifleştir'}
-                    </button>
-                    <button
-                      onClick={() => handleEdit(slot)}
-                      className="text-indigo-600 hover:text-indigo-900 mr-4"
-                    >
-                      Düzenle
-                    </button>
-                    <button
-                      onClick={() => handleDelete(slot.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Sil
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {blockedSlots.length === 0 && (
-            <div className="text-center py-12 text-gray-500">
-              Bloke edilmiş zaman dilimi bulunamadı
+                  </div>
+                </div>
+              </div>
+
+              {/* Time Info */}
+              <div className="space-y-3 mb-4">
+                <div className="glass rounded-lg p-3">
+                  <div className="flex items-center space-x-2 text-tennis-white/80 mb-1">
+                    <span className="text-sm">🕐</span>
+                    <span className="text-xs text-tennis-white/60">Başlangıç</span>
+                  </div>
+                  <span className="text-tennis-white font-medium">
+                    {new Date(slot.startTime).toLocaleString('tr-TR')}
+                  </span>
+                </div>
+                <div className="glass rounded-lg p-3">
+                  <div className="flex items-center space-x-2 text-tennis-white/80 mb-1">
+                    <span className="text-sm">🕐</span>
+                    <span className="text-xs text-tennis-white/60">Bitiş</span>
+                  </div>
+                  <span className="text-tennis-white font-medium">
+                    {new Date(slot.endTime).toLocaleString('tr-TR')}
+                  </span>
+                </div>
+                {slot.reason && (
+                  <div className="glass rounded-lg p-3">
+                    <div className="flex items-center space-x-2 text-tennis-white/80 mb-1">
+                      <span className="text-sm">📝</span>
+                      <span className="text-xs text-tennis-white/60">Neden</span>
+                    </div>
+                    <span className="text-tennis-white/90 text-sm">{slot.reason}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex space-x-2 pt-4 border-t border-white/10">
+                <button
+                  onClick={() => handleToggleActive(slot)}
+                  className={`flex-1 px-3 py-2 glass hover:glass-strong font-medium rounded-lg transition-all duration-300 text-sm ${
+                    slot.isActive ? 'text-yellow-400' : 'text-tennis-lime'
+                  }`}
+                >
+                  {slot.isActive ? '⏸️ Pasifleştir' : '▶️ Aktifleştir'}
+                </button>
+                <button
+                  onClick={() => handleEdit(slot)}
+                  className="flex-1 px-3 py-2 glass hover:glass-strong text-tennis-lime font-medium rounded-lg transition-all duration-300 text-sm"
+                >
+                  ✏️ Düzenle
+                </button>
+                <button
+                  onClick={() => handleDelete(slot.id)}
+                  className="flex-1 px-3 py-2 glass hover:bg-red-500/20 text-red-400 font-medium rounded-lg transition-all duration-300 text-sm"
+                >
+                  🗑️ Sil
+                </button>
+              </div>
             </div>
-          )}
+          ))}
         </div>
 
+        {blockedSlots.length === 0 && (
+          <div className="glass-strong rounded-2xl p-12 text-center">
+            <p className="text-tennis-white/60 text-lg">Bloke edilmiş zaman dilimi bulunmuyor</p>
+          </div>
+        )}
+
+        {/* Modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white my-10">
-              <h3 className="text-lg font-bold mb-4">
-                {editingSlot ? 'Bloklama Düzenle' : 'Yeni Saat Bloklama'}
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+            <div className="glass-strong rounded-2xl p-8 w-full max-w-2xl shadow-2xl border border-white/20 max-h-[90vh] overflow-y-auto">
+              <h3 className="text-2xl font-bold text-tennis-white mb-6">
+                {editingSlot ? '✏️ Bloklama Düzenle' : '➕ Yeni Saat Bloklama'}
               </h3>
-              <form onSubmit={handleSubmit}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-tennis-white/90 mb-2">
                     Kort *
                   </label>
                   <select
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className="glass w-full px-4 py-3 text-tennis-white rounded-lg focus:outline-none focus:ring-2 focus:ring-tennis-lime transition-all"
                     value={formData.courtId}
                     onChange={(e) => setFormData({ ...formData, courtId: e.target.value })}
                     disabled={!!editingSlot}
@@ -285,57 +296,66 @@ const Reservations = () => {
 
                 {!editingSlot && (
                   <>
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <div>
+                      <label className="block text-sm font-medium text-tennis-white/90 mb-2">
                         Başlangıç Tarihi *
                       </label>
                       <input
                         type="date"
                         required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        className="glass w-full px-4 py-3 text-tennis-white rounded-lg focus:outline-none focus:ring-2 focus:ring-tennis-lime transition-all"
                         value={formData.startDate}
                         onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                         min={new Date().toISOString().split('T')[0]}
                       />
                     </div>
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <div>
+                      <label className="block text-sm font-medium text-tennis-white/90 mb-2">
                         Bitiş Tarihi *
                       </label>
                       <input
                         type="date"
                         required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        className="glass w-full px-4 py-3 text-tennis-white rounded-lg focus:outline-none focus:ring-2 focus:ring-tennis-lime transition-all"
                         value={formData.endDate}
                         onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                         min={formData.startDate || new Date().toISOString().split('T')[0]}
                       />
                     </div>
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Bloke Edilecek Saatler * (Seçilen saatler belirtilen tarih aralığındaki her gün için bloke edilecektir)
+                    <div>
+                      <label className="block text-sm font-medium text-tennis-white/90 mb-2">
+                        Bloke Edilecek Saatler *
                       </label>
-                      <div className="grid grid-cols-5 gap-2 mt-2 max-h-48 overflow-y-auto border border-gray-300 rounded-md p-3">
-                        {availableHours.map((hour) => (
-                          <label
-                            key={hour}
-                            className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={formData.selectedHours.includes(hour)}
-                              onChange={() => toggleHour(hour)}
-                              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                            />
-                            <span className="text-sm text-gray-700">
-                              {hour.toString().padStart(2, '0')}:00
-                            </span>
-                          </label>
-                        ))}
+                      <p className="text-xs text-tennis-white/60 mb-3">
+                        Seçilen saatler, belirtilen tarih aralığındaki her gün için bloke edilecektir
+                      </p>
+                      <div className="glass rounded-lg p-4 max-h-64 overflow-y-auto">
+                        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                          {availableHours.map((hour) => (
+                            <label
+                              key={hour}
+                              className={`flex items-center justify-center space-x-2 cursor-pointer p-3 rounded-lg transition-all duration-300 ${
+                                formData.selectedHours.includes(hour)
+                                  ? 'bg-gradient-to-r from-tennis-lime to-tennis-green text-tennis-navy font-bold shadow-lg'
+                                  : 'glass-strong hover:glass text-tennis-white/80'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={formData.selectedHours.includes(hour)}
+                                onChange={() => toggleHour(hour)}
+                                className="hidden"
+                              />
+                              <span className="text-sm font-medium">
+                                {hour.toString().padStart(2, '0')}:00
+                              </span>
+                            </label>
+                          ))}
+                        </div>
                       </div>
                       {formData.selectedHours.length > 0 && (
-                        <p className="text-sm text-gray-500 mt-1">
-                          Seçilen saatler: {formData.selectedHours.map(h => `${h}:00`).join(', ')}
+                        <p className="text-sm text-tennis-lime mt-2">
+                          ✓ {formData.selectedHours.length} saat seçildi: {formData.selectedHours.map(h => `${h}:00`).join(', ')}
                         </p>
                       )}
                     </div>
@@ -344,26 +364,26 @@ const Reservations = () => {
 
                 {editingSlot && (
                   <>
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <div>
+                      <label className="block text-sm font-medium text-tennis-white/90 mb-2">
                         Başlangıç Zamanı *
                       </label>
                       <input
                         type="datetime-local"
                         required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        className="glass w-full px-4 py-3 text-tennis-white rounded-lg focus:outline-none focus:ring-2 focus:ring-tennis-lime transition-all"
                         value={formData.startDate}
                         onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                       />
                     </div>
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <div>
+                      <label className="block text-sm font-medium text-tennis-white/90 mb-2">
                         Bitiş Zamanı *
                       </label>
                       <input
                         type="datetime-local"
                         required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        className="glass w-full px-4 py-3 text-tennis-white rounded-lg focus:outline-none focus:ring-2 focus:ring-tennis-lime transition-all"
                         value={formData.endDate}
                         onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                       />
@@ -371,29 +391,29 @@ const Reservations = () => {
                   </>
                 )}
 
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                <div>
+                  <label className="block text-sm font-medium text-tennis-white/90 mb-2">
                     Neden
                   </label>
                   <textarea
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className="glass w-full px-4 py-3 text-tennis-white placeholder-tennis-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-tennis-lime transition-all resize-none"
                     rows={3}
                     value={formData.reason}
                     onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                     placeholder="Bloklama nedeni (opsiyonel)"
                   />
                 </div>
-                <div className="flex justify-end space-x-2">
+                <div className="flex space-x-3 pt-4">
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-md"
+                    className="flex-1 px-4 py-3 glass hover:glass-strong text-tennis-white font-medium rounded-lg transition-all"
                   >
                     İptal
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-tennis-lime to-tennis-green text-tennis-navy font-bold rounded-lg hover:scale-105 transition-all shadow-lg"
                   >
                     {editingSlot ? 'Güncelle' : 'Oluştur'}
                   </button>
@@ -408,4 +428,3 @@ const Reservations = () => {
 };
 
 export default Reservations;
-
