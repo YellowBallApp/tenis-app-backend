@@ -220,7 +220,7 @@ const Reservations = () => {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center space-x-3">
                     <div className="w-12 h-12 rounded-xl bg-slate-600 flex items-center justify-center text-2xl">
-                      🎾
+                      <IoTennisball className="text-2xl text-white" />
                     </div>
                     <div>
                       <h3 className="text-soft-white font-bold text-lg">{slot.court.name}</h3>
@@ -229,7 +229,7 @@ const Reservations = () => {
                           ? 'bg-slate-700 text-white'
                           : 'bg-slate-600 text-white'
                       } mt-1`}>
-                        {slot.isActive ? '🚫 Aktif' : '⏸️ Pasif'}
+                        {slot.isActive ? <><HiBan className="inline mr-1" /> Aktif</> : <><HiPause className="inline mr-1" /> Pasif</>}
                       </span>
                     </div>
                   </div>
@@ -239,7 +239,7 @@ const Reservations = () => {
                 <div className="space-y-3 mb-4">
                   <div className="glass rounded-lg p-3">
                     <div className="flex items-center space-x-2 text-soft-white/80 mb-1">
-                      <span className="text-sm">🕐</span>
+                      <HiClock className="text-sm" />
                       <span className="text-xs text-soft-white/60">Başlangıç</span>
                     </div>
                     <span className="text-soft-white font-medium">
@@ -248,7 +248,7 @@ const Reservations = () => {
                   </div>
                   <div className="glass rounded-lg p-3">
                     <div className="flex items-center space-x-2 text-soft-white/80 mb-1">
-                      <span className="text-sm">🕐</span>
+                      <HiClock className="text-sm" />
                       <span className="text-xs text-soft-white/60">Bitiş</span>
                     </div>
                     <span className="text-soft-white font-medium">
@@ -258,7 +258,7 @@ const Reservations = () => {
                   {slot.reason && (
                     <div className="glass rounded-lg p-3">
                       <div className="flex items-center space-x-2 text-soft-white/80 mb-1">
-                        <span className="text-sm">📝</span>
+                        <MdNoteAlt className="text-sm" />
                         <span className="text-xs text-soft-white/60">Neden</span>
                       </div>
                       <span className="text-soft-white/90 text-sm">{slot.reason}</span>
