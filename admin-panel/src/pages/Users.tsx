@@ -104,10 +104,10 @@ const Users = () => {
   };
 
   const getUserTypeBadge = (userType: string) => {
-    const types: Record<string, { label: string; gradient: string; glow: string }> = {
-      admin: { label: 'Admin', gradient: 'from-soft-purple to-soft-lavender', glow: 'glow-purple' },
-      standard: { label: 'Standart', gradient: 'from-soft-green to-soft-mint', glow: 'glow-green' },
-      restricted: { label: 'Kısıtlı', gradient: 'from-soft-sage to-soft-mint', glow: '' },
+    const types: Record<string, { label: string; color: string }> = {
+      admin: { label: 'Admin', color: 'bg-soft-purple' },
+      standard: { label: 'Standart', color: 'bg-soft-green' },
+      restricted: { label: 'Kısıtlı', color: 'bg-soft-sage' },
     };
     return types[userType] || types.standard;
   };
@@ -141,7 +141,7 @@ const Users = () => {
                 onClick={() => setViewMode('grid')}
                 className={`px-3 py-2 rounded-lg transition-all duration-300 ${
                   viewMode === 'grid'
-                    ? 'bg-gradient-to-r from-soft-purple to-soft-lavender text-soft-navy font-bold shadow-lg'
+                    ? 'bg-soft-purple text-soft-white font-bold shadow-lg'
                     : 'text-soft-white/70 hover:text-soft-white'
                 }`}
                 title="Kare Görünüm"
@@ -152,7 +152,7 @@ const Users = () => {
                 onClick={() => setViewMode('list')}
                 className={`px-3 py-2 rounded-lg transition-all duration-300 ${
                   viewMode === 'list'
-                    ? 'bg-gradient-to-r from-soft-purple to-soft-lavender text-soft-navy font-bold shadow-lg'
+                    ? 'bg-soft-green text-soft-white font-bold shadow-lg'
                     : 'text-soft-white/70 hover:text-soft-white'
                 }`}
                 title="Liste Görünüm"
@@ -162,7 +162,7 @@ const Users = () => {
             </div>
             <button
               onClick={handleCreate}
-              className="px-6 py-3 bg-gradient-to-r from-soft-green to-soft-mint text-soft-navy font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg glow-mint"
+              className="px-6 py-3 bg-soft-green hover:bg-soft-mint text-soft-white font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg"
             >
               + Yeni Kullanıcı
             </button>
@@ -182,14 +182,14 @@ const Users = () => {
                   {/* User Avatar & Badge */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center space-x-3">
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${badge.gradient} ${badge.glow} flex items-center justify-center text-2xl`}>
+                      <div className={`w-12 h-12 rounded-xl bg- ${badge.color} ${} flex items-center justify-center text-2xl`}>
                         👤
                       </div>
                       <div>
                         <h3 className="text-soft-white font-bold text-lg">
                           {user.name} {user.surname}
                         </h3>
-                        <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full bg-gradient-to-r ${badge.gradient} text-white mt-1`}>
+                        <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full  ${badge.color} text-white mt-1`}>
                           {badge.label}
                         </span>
                       </div>
@@ -271,7 +271,7 @@ const Users = () => {
                       <tr key={user.id} className="hover:bg-white/5 transition-colors duration-200">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center space-x-3">
-                            <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${badge.gradient} flex items-center justify-center text-xl`}>
+                            <div className={`w-10 h-10 rounded-lg bg- ${badge.color} flex items-center justify-center text-xl`}>
                               👤
                             </div>
                             <div>
@@ -291,7 +291,7 @@ const Users = () => {
                           <div className="text-sm text-soft-white/80">{user.title || '-'}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-3 py-1 text-xs font-bold rounded-full bg-gradient-to-r ${badge.gradient} text-white`}>
+                          <span className={`px-3 py-1 text-xs font-bold rounded-full  ${badge.color} text-white`}>
                             {badge.label}
                           </span>
                         </td>
@@ -427,7 +427,7 @@ const Users = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-soft-green to-soft-mint text-soft-navy font-bold rounded-lg hover:scale-105 transition-all shadow-lg"
+                    className="flex-1 px-4 py-3  bg-soft-green text-soft-navy font-bold rounded-lg hover:scale-105 transition-all shadow-lg"
                   >
                     {editingUser ? 'Güncelle' : 'Oluştur'}
                   </button>

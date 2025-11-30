@@ -177,7 +177,7 @@ const Reservations = () => {
                 onClick={() => setViewMode('grid')}
                 className={`px-3 py-2 rounded-lg transition-all duration-300 ${
                   viewMode === 'grid'
-                    ? 'bg-gradient-to-r from-soft-purple to-soft-lavender text-soft-navy font-bold shadow-lg'
+                    ? 'bg-soft-purple text-soft-white font-bold shadow-lg'
                     : 'text-soft-white/70 hover:text-soft-white'
                 }`}
                 title="Kare Görünüm"
@@ -188,7 +188,7 @@ const Reservations = () => {
                 onClick={() => setViewMode('list')}
                 className={`px-3 py-2 rounded-lg transition-all duration-300 ${
                   viewMode === 'list'
-                    ? 'bg-gradient-to-r from-soft-purple to-soft-lavender text-soft-navy font-bold shadow-lg'
+                    ? 'bg-soft-green text-soft-white font-bold shadow-lg'
                     : 'text-soft-white/70 hover:text-soft-white'
                 }`}
                 title="Liste Görünüm"
@@ -198,7 +198,7 @@ const Reservations = () => {
             </div>
             <button
               onClick={handleCreate}
-              className="px-6 py-3 bg-gradient-to-r from-soft-green to-soft-mint text-soft-navy font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg glow-mint"
+              className="px-6 py-3 bg-soft-green hover:bg-soft-mint text-soft-white font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg"
             >
               + Saat Bloke Et
             </button>
@@ -216,15 +216,15 @@ const Reservations = () => {
                 {/* Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-soft-purple to-soft-lavender flex items-center justify-center text-2xl glow-mint">
+                    <div className="w-12 h-12 rounded-xl bg-soft-green flex items-center justify-center text-2xl">
                       🎾
                     </div>
                     <div>
                       <h3 className="text-soft-white font-bold text-lg">{slot.court.name}</h3>
                       <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full ${
                         slot.isActive 
-                          ? 'bg-gradient-to-r from-emerald-700 to-teal-800 text-white'
-                          : 'bg-gradient-to-r from-slate-600 to-slate-700 text-white'
+                          ? 'bg-soft-purple text-white'
+                          : 'bg-slate-600 text-white'
                       } mt-1`}>
                         {slot.isActive ? '🚫 Aktif' : '⏸️ Pasif'}
                       </span>
@@ -323,7 +323,7 @@ const Reservations = () => {
                     <tr key={slot.id} className="hover:bg-white/5 transition-colors duration-200">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-soft-purple to-soft-lavender flex items-center justify-center text-xl">
+                          <div className="w-10 h-10 rounded-lg bg-soft-green flex items-center justify-center text-xl">
                             🎾
                           </div>
                           <div className="text-sm font-bold text-soft-white">{slot.court.name}</div>
@@ -345,8 +345,8 @@ const Reservations = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-3 py-1 text-xs font-bold rounded-full ${
                           slot.isActive 
-                            ? 'bg-gradient-to-r from-emerald-700 to-teal-800 text-white'
-                            : 'bg-gradient-to-r from-slate-600 to-slate-700 text-white'
+                            ? 'bg-soft-purple text-white'
+                            : 'bg-slate-600 text-white'
                         }`}>
                           {slot.isActive ? '🚫 Aktif' : '⏸️ Pasif'}
                         </span>
@@ -534,7 +534,7 @@ const Reservations = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-soft-green to-soft-mint text-soft-navy font-bold rounded-lg hover:scale-105 transition-all shadow-lg"
+                    className="flex-1 px-4 py-3 bg-soft-green hover:bg-soft-mint text-soft-white font-bold rounded-lg hover:scale-105 transition-all shadow-lg"
                   >
                     {editingSlot ? 'Güncelle' : 'Oluştur'}
                   </button>

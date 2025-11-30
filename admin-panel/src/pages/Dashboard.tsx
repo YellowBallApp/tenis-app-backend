@@ -61,29 +61,25 @@ const Dashboard = () => {
       title: 'Toplam Kullanıcı',
       value: stats.totalUsers,
       icon: '👥',
-      gradient: 'from-soft-purple to-soft-lavender',
-      glow: 'glow-purple'
+      color: 'bg-soft-purple',
     },
     {
       title: 'Toplam Rezervasyon',
       value: stats.totalReservations,
       icon: '📅',
-      gradient: 'from-soft-mint to-soft-green',
-      glow: 'glow-green'
+      color: 'bg-soft-green',
     },
     {
       title: 'Aktif Rezervasyon',
       value: stats.activeReservations,
       icon: '⏰',
-      gradient: 'from-soft-green to-soft-sage',
-      glow: 'glow-mint'
+      color: 'bg-soft-mint',
     },
     {
       title: 'Bloke Edilmiş Saat',
       value: stats.blockedSlots,
       icon: '🚫',
-      gradient: 'from-soft-sage to-emerald-600',
-      glow: ''
+      color: 'bg-soft-sage',
     }
   ];
 
@@ -104,7 +100,7 @@ const Dashboard = () => {
               className="glass-strong rounded-2xl p-6 hover:scale-105 transition-all duration-300 cursor-pointer group"
             >
               <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.gradient} ${stat.glow} transition-all duration-300 group-hover:scale-110`}>
+                <div className={`p-3 rounded-xl ${stat.color} transition-all duration-300 group-hover:scale-110`}>
                   <span className="text-3xl">{stat.icon}</span>
                 </div>
               </div>

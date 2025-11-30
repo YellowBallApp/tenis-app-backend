@@ -62,7 +62,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
             <button
               onClick={handleLogout}
-              className="w-full px-4 py-3 text-sm font-bold text-soft-navy bg-gradient-to-r from-soft-green/90 to-soft-mint/90 hover:from-soft-green hover:to-soft-mint rounded-xl transition-all duration-300 shadow-lg"
+              className="w-full px-4 py-3 text-sm font-bold text-soft-white bg-soft-green hover:bg-soft-mint rounded-xl transition-all duration-300 shadow-lg"
             >
               Çıkış Yap 🚪
             </button>
