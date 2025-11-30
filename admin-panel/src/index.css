@@ -23,7 +23,7 @@ body {
   margin: 0;
   padding: 0;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro', system-ui, sans-serif;
-  background: #2d3748;
+  background: #1a3d2e;
   color: var(--soft-white);
   min-height: 100vh;
   overflow-x: hidden;
@@ -55,17 +55,17 @@ p {
 
 /* Glassmorphism utilities */
 .glass {
-  background: rgba(126, 217, 87, 0.15);
+  background: rgba(126, 217, 87, 0.2);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(126, 217, 87, 0.3);
-  box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(126, 217, 87, 0.4);
+  box-shadow: 0 8px 24px 0 rgba(126, 217, 87, 0.3);
 }
 
 .glass-strong {
-  background: rgba(183, 148, 246, 0.25);
+  background: rgba(126, 217, 87, 0.3);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(183, 148, 246, 0.4);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(126, 217, 87, 0.5);
+  box-shadow: 0 8px 32px 0 rgba(126, 217, 87, 0.4);
 }
 
 /* Neumorphic styles */
@@ -80,7 +80,7 @@ p {
 }
 
 .glow-purple {
-  box-shadow: 0 0 20px var(--glow-purple), 0 0 40px var(--glow-purple);
+  box-shadow: 0 0 10px rgba(183, 148, 246, 0.2), 0 0 20px rgba(183, 148, 246, 0.2);
 }
 
 .glow-lime {
