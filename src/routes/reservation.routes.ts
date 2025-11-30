@@ -5,6 +5,33 @@ import { authMiddleware } from '../middleware/authMiddleware';
 const router = Router();
 const reservationController = new ReservationController();
 
+// Public endpoint - Bloke edilmiş saatleri getir (auth gerektirmez)
+/**
+ * @swagger
+ * /api/reservations/blocked-hours:
+ *   get:
+ *     summary: Belirli bir kort ve tarih için bloke edilmiş saatleri getir (Public)
+ *     tags: [Reservations]
+ *     parameters:
+ *       - in: query
+ *         name: courtId
+ *         required: true
+ *         schema:
+ *           type: number
+ *         description: Kort ID
+ *       - in: query
+ *         name: date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Tarih (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: Bloke edilmiş saatler listesi
+ */
+router.get('/blocked-hours', reservationController.getBlockedTimeSlots);
+
 // Tüm rotalar authentication gerektiriyor
 router.use(authMiddleware);
 

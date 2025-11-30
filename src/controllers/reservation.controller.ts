@@ -155,5 +155,34 @@ export class ReservationController {
       });
     }
   };
+
+  // Belirli bir kort ve tarih için bloke edilmiş saatleri getir (public endpoint)
+  getBlockedTimeSlots = async (req: Request, res: Response) => {
+    try {
+      const { courtId, date } = req.query;
+      
+      if (!courtId || !date) {
+        return res.status(400).json({
+          success: false,
+          message: 'Kort ID ve tarih parametreleri gereklidir',
+        });
+      }
+
+      const blockedHours = await this.reservationService.getBlockedTimeSlots(
+        parseInt(courtId as string),
+        date as string
+      );
+      
+      return res.status(200).json({
+        success: true,
+        data: blockedHours,
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error.message || 'Bloke edilmiş saatler alınırken bir hata oluştu',
+      });
+    }
+  };
 }
 
