@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { LayoutGrid, List } from 'lucide-react';
 import Layout from '../components/Layout';
 import api from '../utils/api';
 
@@ -138,23 +139,25 @@ const Users = () => {
             <div className="glass rounded-xl p-1 flex space-x-1">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`px-4 py-2 rounded-lg transition-all duration-300 ${
+                className={`px-3 py-2 rounded-lg transition-all duration-300 ${
                   viewMode === 'grid'
                     ? 'bg-gradient-to-r from-tennis-lime to-tennis-green text-tennis-navy font-bold shadow-lg'
                     : 'text-tennis-white/70 hover:text-tennis-white'
                 }`}
+                title="Kare Görünüm"
               >
-                🔲 Kare
+                <LayoutGrid size={20} />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`px-4 py-2 rounded-lg transition-all duration-300 ${
+                className={`px-3 py-2 rounded-lg transition-all duration-300 ${
                   viewMode === 'list'
                     ? 'bg-gradient-to-r from-tennis-lime to-tennis-green text-tennis-navy font-bold shadow-lg'
                     : 'text-tennis-white/70 hover:text-tennis-white'
                 }`}
+                title="Liste Görünüm"
               >
-                📋 Liste
+                <List size={20} />
               </button>
             </div>
             <button
