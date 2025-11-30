@@ -182,14 +182,14 @@ const Users = () => {
                   {/* User Avatar & Badge */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center space-x-3">
-                      <div className={`w-12 h-12 rounded-xl bg- ${badge.color} ${} flex items-center justify-center text-2xl`}>
+                      <div className={`w-12 h-12 rounded-xl ${badge.color} flex items-center justify-center text-2xl`}>
                         👤
                       </div>
                       <div>
                         <h3 className="text-soft-white font-bold text-lg">
                           {user.name} {user.surname}
                         </h3>
-                        <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full  ${badge.color} text-white mt-1`}>
+                        <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full ${badge.color} text-white mt-1`}>
                           {badge.label}
                         </span>
                       </div>
@@ -271,7 +271,7 @@ const Users = () => {
                       <tr key={user.id} className="hover:bg-white/5 transition-colors duration-200">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center space-x-3">
-                            <div className={`w-10 h-10 rounded-lg bg- ${badge.color} flex items-center justify-center text-xl`}>
+                            <div className={`w-10 h-10 rounded-lg ${badge.color} flex items-center justify-center text-xl`}>
                               👤
                             </div>
                             <div>
@@ -291,7 +291,7 @@ const Users = () => {
                           <div className="text-sm text-soft-white/80">{user.title || '-'}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-3 py-1 text-xs font-bold rounded-full  ${badge.color} text-white`}>
+                          <span className={`px-3 py-1 text-xs font-bold rounded-full ${badge.color} text-white`}>
                             {badge.label}
                           </span>
                         </td>
@@ -427,7 +427,7 @@ const Users = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-3  bg-soft-green text-soft-navy font-bold rounded-lg hover:scale-105 transition-all shadow-lg"
+                    className="flex-1 px-4 py-3 bg-soft-green hover:bg-soft-mint text-soft-white font-bold rounded-lg hover:scale-105 transition-all shadow-lg"
                   >
                     {editingUser ? 'Güncelle' : 'Oluştur'}
                   </button>
