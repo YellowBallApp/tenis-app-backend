@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
 import { LayoutGrid, List } from 'lucide-react';
+import { IoTennisball } from 'react-icons/io5';
+import { HiClock, HiPencil, HiTrash, HiPause, HiPlay, HiBan } from 'react-icons/hi';
+import { MdNoteAlt } from 'react-icons/md';
 import Layout from '../components/Layout';
 import api from '../utils/api';
 

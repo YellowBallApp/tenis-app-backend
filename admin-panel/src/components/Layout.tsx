@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { HiLogout } from 'react-icons/hi';
 import { useAuth } from '../context/AuthContext';
 
 interface LayoutProps {

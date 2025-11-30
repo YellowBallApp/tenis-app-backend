@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { HiUsers, HiCalendar, HiClock, HiBan } from 'react-icons/hi';
+import { HiUsers, HiCalendar, HiClock, HiBan, HiUserGroup, HiRefresh } from 'react-icons/hi';
+import { IoTennisball } from 'react-icons/io5';
 import Layout from '../components/Layout';
 import api from '../utils/api';
 
@@ -119,7 +120,7 @@ const Dashboard = () => {
               href="/users"
               className="glass p-4 rounded-xl hover:glass-strong transition-all duration-300 flex items-center space-x-3 group"
             >
-              <span className="text-2xl group-hover:scale-110 transition-transform">👤</span>
+              <HiUserGroup className="text-2xl group-hover:scale-110 transition-transform text-soft-white" />
               <div>
                 <p className="text-soft-white font-medium">Kullanıcı Yönetimi</p>
                 <p className="text-soft-white/60 text-sm">Kullanıcıları görüntüle ve düzenle</p>
@@ -130,7 +131,7 @@ const Dashboard = () => {
               href="/reservations"
               className="glass p-4 rounded-xl hover:glass-strong transition-all duration-300 flex items-center space-x-3 group"
             >
-              <span className="text-2xl group-hover:scale-110 transition-transform">🎾</span>
+              <IoTennisball className="text-2xl group-hover:scale-110 transition-transform text-soft-white" />
               <div>
                 <p className="text-soft-white font-medium">Rezervasyon Yönetimi</p>
                 <p className="text-soft-white/60 text-sm">Saatleri blokla ve yönet</p>
@@ -141,7 +142,7 @@ const Dashboard = () => {
               onClick={fetchStats}
               className="glass p-4 rounded-xl hover:glass-strong transition-all duration-300 flex items-center space-x-3 group"
             >
-              <span className="text-2xl group-hover:scale-110 transition-transform">🔄</span>
+              <HiRefresh className="text-2xl group-hover:scale-110 transition-transform text-soft-white" />
               <div className="text-left">
                 <p className="text-soft-white font-medium">Yenile</p>
                 <p className="text-soft-white/60 text-sm">İstatistikleri güncelle</p>
