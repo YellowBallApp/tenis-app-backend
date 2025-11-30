@@ -198,7 +198,7 @@ const Reservations = () => {
             </div>
             <button
               onClick={handleCreate}
-              className="px-6 py-3 bg-gradient-to-r from-soft-purple to-soft-lavender text-soft-navy font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg glow-mint"
+              className="px-6 py-3 bg-gradient-to-r from-soft-green to-soft-mint text-soft-navy font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg glow-mint"
             >
               + Saat Bloke Et
             </button>
@@ -268,14 +268,14 @@ const Reservations = () => {
                   <button
                     onClick={() => handleToggleActive(slot)}
                     className={`flex-1 px-3 py-2 glass hover:glass-strong font-medium rounded-lg transition-all duration-300 text-sm ${
-                      slot.isActive ? 'text-soft-purple' : 'text-soft-mint'
+                      slot.isActive ? 'text-soft-purple' : 'text-soft-green'
                     }`}
                   >
                     {slot.isActive ? '⏸️ Pasifleştir' : '▶️ Aktifleştir'}
                   </button>
                   <button
                     onClick={() => handleEdit(slot)}
-                    className="flex-1 px-3 py-2 glass hover:glass-strong text-soft-purple font-medium rounded-lg transition-all duration-300 text-sm"
+                    className="flex-1 px-3 py-2 glass hover:glass-strong text-soft-green font-medium rounded-lg transition-all duration-300 text-sm"
                   >
                     ✏️ Düzenle
                   </button>
@@ -354,18 +354,18 @@ const Reservations = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button
                           onClick={() => handleToggleActive(slot)}
-                          className={`mr-3 transition-colors ${
-                            slot.isActive ? 'text-soft-purple hover:text-soft-mint' : 'text-soft-mint hover:text-soft-purple'
-                          }`}
+                        className={`mr-3 transition-colors ${
+                          slot.isActive ? 'text-soft-purple hover:text-soft-lavender' : 'text-soft-green hover:text-soft-mint'
+                        }`}
                         >
                           {slot.isActive ? '⏸️' : '▶️'}
                         </button>
-                        <button
-                          onClick={() => handleEdit(slot)}
-                          className="text-soft-purple hover:text-soft-mint mr-3 transition-colors"
-                        >
-                          ✏️
-                        </button>
+                      <button
+                        onClick={() => handleEdit(slot)}
+                        className="text-soft-green hover:text-soft-mint mr-3 transition-colors"
+                      >
+                        ✏️
+                      </button>
                         <button
                           onClick={() => handleDelete(slot.id)}
                           className="text-soft-white/70 hover:text-soft-white transition-colors"
@@ -475,7 +475,7 @@ const Reservations = () => {
                         </div>
                       </div>
                       {formData.selectedHours.length > 0 && (
-                        <p className="text-sm text-soft-purple mt-2">
+                        <p className="text-sm text-soft-green mt-2">
                           ✓ {formData.selectedHours.length} saat seçildi: {formData.selectedHours.map(h => `${h}:00`).join(', ')}
                         </p>
                       )}
@@ -534,7 +534,7 @@ const Reservations = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-soft-purple to-soft-lavender text-soft-navy font-bold rounded-lg hover:scale-105 transition-all shadow-lg"
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-soft-green to-soft-mint text-soft-navy font-bold rounded-lg hover:scale-105 transition-all shadow-lg"
                   >
                     {editingSlot ? 'Güncelle' : 'Oluştur'}
                   </button>

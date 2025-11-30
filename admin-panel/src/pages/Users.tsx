@@ -106,7 +106,7 @@ const Users = () => {
   const getUserTypeBadge = (userType: string) => {
     const types: Record<string, { label: string; gradient: string; glow: string }> = {
       admin: { label: 'Admin', gradient: 'from-soft-purple to-soft-lavender', glow: 'glow-purple' },
-      standard: { label: 'Standart', gradient: 'from-soft-purple to-soft-lavender', glow: 'glow-green' },
+      standard: { label: 'Standart', gradient: 'from-soft-green to-soft-mint', glow: 'glow-green' },
       restricted: { label: 'Kısıtlı', gradient: 'from-soft-sage to-soft-mint', glow: '' },
     };
     return types[userType] || types.standard;
@@ -162,7 +162,7 @@ const Users = () => {
             </div>
             <button
               onClick={handleCreate}
-              className="px-6 py-3 bg-gradient-to-r from-soft-purple to-soft-lavender text-soft-navy font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg glow-mint"
+              className="px-6 py-3 bg-gradient-to-r from-soft-green to-soft-mint text-soft-navy font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg glow-mint"
             >
               + Yeni Kullanıcı
             </button>
@@ -218,12 +218,12 @@ const Users = () => {
 
                   {/* Actions */}
                   <div className="flex space-x-2 pt-4 border-t border-white/10">
-                    <button
-                      onClick={() => handleEdit(user)}
-                      className="flex-1 px-4 py-2 glass hover:glass-strong text-soft-purple font-medium rounded-lg transition-all duration-300"
-                    >
-                      ✏️ Düzenle
-                    </button>
+                  <button
+                    onClick={() => handleEdit(user)}
+                    className="flex-1 px-4 py-2 glass hover:glass-strong text-soft-green font-medium rounded-lg transition-all duration-300"
+                  >
+                    ✏️ Düzenle
+                  </button>
                     <button
                       onClick={() => handleDelete(user.id)}
                       className="flex-1 px-4 py-2 glass hover:glass-strong text-soft-white/80 hover:text-soft-white font-medium rounded-lg transition-all duration-300"
@@ -296,12 +296,12 @@ const Users = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button
-                            onClick={() => handleEdit(user)}
-                            className="text-soft-purple hover:text-soft-mint mr-4 transition-colors"
-                          >
-                            ✏️ Düzenle
-                          </button>
+                        <button
+                          onClick={() => handleEdit(user)}
+                          className="text-soft-green hover:text-soft-mint mr-4 transition-colors"
+                        >
+                          ✏️ Düzenle
+                        </button>
                           <button
                             onClick={() => handleDelete(user.id)}
                             className="text-soft-white/70 hover:text-soft-white transition-colors"
@@ -427,7 +427,7 @@ const Users = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-soft-purple to-soft-lavender text-soft-navy font-bold rounded-lg hover:scale-105 transition-all shadow-lg"
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-soft-green to-soft-mint text-soft-navy font-bold rounded-lg hover:scale-105 transition-all shadow-lg"
                   >
                     {editingUser ? 'Güncelle' : 'Oluştur'}
                   </button>
