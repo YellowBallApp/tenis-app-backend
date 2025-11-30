@@ -61,25 +61,25 @@ const Dashboard = () => {
       title: 'Toplam Kullanıcı',
       value: stats.totalUsers,
       icon: '👥',
-      color: 'bg-soft-purple',
+      color: 'bg-slate-700',
     },
     {
       title: 'Toplam Rezervasyon',
       value: stats.totalReservations,
       icon: '📅',
-      color: 'bg-soft-green',
+      color: 'bg-slate-600',
     },
     {
       title: 'Aktif Rezervasyon',
       value: stats.activeReservations,
       icon: '⏰',
-      color: 'bg-soft-green-light',
+      color: 'bg-slate-600-light',
     },
     {
       title: 'Bloke Edilmiş Saat',
       value: stats.blockedSlots,
       icon: '🚫',
-      color: 'bg-soft-green-dark',
+      color: 'bg-slate-600-dark',
     }
   ];
 

@@ -105,9 +105,9 @@ const Users = () => {
 
   const getUserTypeBadge = (userType: string) => {
     const types: Record<string, { label: string; color: string }> = {
-      admin: { label: 'Admin', color: 'bg-soft-purple' },
-      standard: { label: 'Standart', color: 'bg-soft-green' },
-      restricted: { label: 'Kısıtlı', color: 'bg-soft-green-dark' },
+      admin: { label: 'Admin', color: 'bg-slate-700' },
+      standard: { label: 'Standart', color: 'bg-slate-600' },
+      restricted: { label: 'Kısıtlı', color: 'bg-slate-600-dark' },
     };
     return types[userType] || types.standard;
   };
@@ -141,7 +141,7 @@ const Users = () => {
                 onClick={() => setViewMode('grid')}
                 className={`px-3 py-2 rounded-lg transition-all duration-300 ${
                   viewMode === 'grid'
-                    ? 'bg-soft-purple text-soft-white font-bold shadow-lg'
+                    ? 'bg-slate-700 text-soft-white font-bold shadow-lg'
                     : 'text-soft-white/70 hover:text-soft-white'
                 }`}
                 title="Kare Görünüm"
@@ -152,7 +152,7 @@ const Users = () => {
                 onClick={() => setViewMode('list')}
                 className={`px-3 py-2 rounded-lg transition-all duration-300 ${
                   viewMode === 'list'
-                    ? 'bg-soft-green text-soft-white font-bold shadow-lg'
+                    ? 'bg-slate-600 text-soft-white font-bold shadow-lg'
                     : 'text-soft-white/70 hover:text-soft-white'
                 }`}
                 title="Liste Görünüm"
@@ -162,7 +162,7 @@ const Users = () => {
             </div>
             <button
               onClick={handleCreate}
-              className="px-6 py-3 bg-soft-green hover:bg-soft-green-light text-soft-white font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg"
+              className="px-6 py-3 bg-slate-600 hover:bg-slate-600-light text-soft-white font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg"
             >
               + Yeni Kullanıcı
             </button>
@@ -220,7 +220,7 @@ const Users = () => {
                   <div className="flex space-x-2 pt-4 border-t border-white/10">
                   <button
                     onClick={() => handleEdit(user)}
-                    className="flex-1 px-4 py-2 glass hover:glass-strong text-soft-green font-medium rounded-lg transition-all duration-300"
+                    className="flex-1 px-4 py-2 glass hover:glass-strong text-slate-300 font-medium rounded-lg transition-all duration-300"
                   >
                     ✏️ Düzenle
                   </button>
@@ -244,22 +244,22 @@ const Users = () => {
               <table className="w-full">
                 <thead className="glass-strong border-b border-white/10">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-soft-purple uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       Kullanıcı
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-soft-purple uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       Email
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-soft-purple uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       Telefon
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-soft-purple uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       Unvan
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-soft-purple uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       Tip
                     </th>
-                    <th className="px-6 py-4 text-right text-xs font-bold text-soft-purple uppercase tracking-wider">
+                    <th className="px-6 py-4 text-right text-xs font-bold text-slate-300 uppercase tracking-wider">
                       İşlemler
                     </th>
                   </tr>
@@ -298,7 +298,7 @@ const Users = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button
                           onClick={() => handleEdit(user)}
-                          className="text-soft-green hover:text-soft-green-light mr-4 transition-colors"
+                          className="text-slate-300 hover:text-slate-300-light mr-4 transition-colors"
                         >
                           ✏️ Düzenle
                         </button>
@@ -427,7 +427,7 @@ const Users = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-3 bg-soft-green hover:bg-soft-green-light text-soft-white font-bold rounded-lg hover:scale-105 transition-all shadow-lg"
+                    className="flex-1 px-4 py-3 bg-slate-600 hover:bg-slate-600-light text-soft-white font-bold rounded-lg hover:scale-105 transition-all shadow-lg"
                   >
                     {editingUser ? 'Güncelle' : 'Oluştur'}
                   </button>

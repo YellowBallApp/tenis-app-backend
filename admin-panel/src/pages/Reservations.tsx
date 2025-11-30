@@ -177,7 +177,7 @@ const Reservations = () => {
                 onClick={() => setViewMode('grid')}
                 className={`px-3 py-2 rounded-lg transition-all duration-300 ${
                   viewMode === 'grid'
-                    ? 'bg-soft-purple text-soft-white font-bold shadow-lg'
+                    ? 'bg-slate-700 text-soft-white font-bold shadow-lg'
                     : 'text-soft-white/70 hover:text-soft-white'
                 }`}
                 title="Kare Görünüm"
@@ -188,7 +188,7 @@ const Reservations = () => {
                 onClick={() => setViewMode('list')}
                 className={`px-3 py-2 rounded-lg transition-all duration-300 ${
                   viewMode === 'list'
-                    ? 'bg-soft-green text-soft-white font-bold shadow-lg'
+                    ? 'bg-slate-600 text-soft-white font-bold shadow-lg'
                     : 'text-soft-white/70 hover:text-soft-white'
                 }`}
                 title="Liste Görünüm"
@@ -198,7 +198,7 @@ const Reservations = () => {
             </div>
             <button
               onClick={handleCreate}
-              className="px-6 py-3 bg-soft-green hover:bg-soft-green-light text-soft-white font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg"
+              className="px-6 py-3 bg-slate-600 hover:bg-slate-700 text-soft-white font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg"
             >
               + Saat Bloke Et
             </button>
@@ -216,14 +216,14 @@ const Reservations = () => {
                 {/* Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 rounded-xl bg-soft-green flex items-center justify-center text-2xl">
+                    <div className="w-12 h-12 rounded-xl bg-slate-600 flex items-center justify-center text-2xl">
                       🎾
                     </div>
                     <div>
                       <h3 className="text-soft-white font-bold text-lg">{slot.court.name}</h3>
                       <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full ${
                         slot.isActive 
-                          ? 'bg-soft-purple text-white'
+                          ? 'bg-slate-700 text-white'
                           : 'bg-slate-600 text-white'
                       } mt-1`}>
                         {slot.isActive ? '🚫 Aktif' : '⏸️ Pasif'}
@@ -268,14 +268,14 @@ const Reservations = () => {
                   <button
                     onClick={() => handleToggleActive(slot)}
                     className={`flex-1 px-3 py-2 glass hover:glass-strong font-medium rounded-lg transition-all duration-300 text-sm ${
-                      slot.isActive ? 'text-soft-purple' : 'text-soft-green'
+                      slot.isActive ? 'text-slate-300' : 'text-slate-300'
                     }`}
                   >
                     {slot.isActive ? '⏸️ Pasifleştir' : '▶️ Aktifleştir'}
                   </button>
                   <button
                     onClick={() => handleEdit(slot)}
-                    className="flex-1 px-3 py-2 glass hover:glass-strong text-soft-green font-medium rounded-lg transition-all duration-300 text-sm"
+                    className="flex-1 px-3 py-2 glass hover:glass-strong text-slate-300 font-medium rounded-lg transition-all duration-300 text-sm"
                   >
                     ✏️ Düzenle
                   </button>
@@ -298,22 +298,22 @@ const Reservations = () => {
               <table className="w-full">
                 <thead className="glass-strong border-b border-white/10">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-soft-purple uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       Kort
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-soft-purple uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       Başlangıç
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-soft-purple uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       Bitiş
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-soft-purple uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       Neden
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-soft-purple uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       Durum
                     </th>
-                    <th className="px-6 py-4 text-right text-xs font-bold text-soft-purple uppercase tracking-wider">
+                    <th className="px-6 py-4 text-right text-xs font-bold text-slate-300 uppercase tracking-wider">
                       İşlemler
                     </th>
                   </tr>
@@ -323,7 +323,7 @@ const Reservations = () => {
                     <tr key={slot.id} className="hover:bg-white/5 transition-colors duration-200">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 rounded-lg bg-soft-green flex items-center justify-center text-xl">
+                          <div className="w-10 h-10 rounded-lg bg-slate-600 flex items-center justify-center text-xl">
                             🎾
                           </div>
                           <div className="text-sm font-bold text-soft-white">{slot.court.name}</div>
@@ -345,7 +345,7 @@ const Reservations = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-3 py-1 text-xs font-bold rounded-full ${
                           slot.isActive 
-                            ? 'bg-soft-purple text-white'
+                            ? 'bg-slate-700 text-white'
                             : 'bg-slate-600 text-white'
                         }`}>
                           {slot.isActive ? '🚫 Aktif' : '⏸️ Pasif'}
@@ -355,14 +355,14 @@ const Reservations = () => {
                         <button
                           onClick={() => handleToggleActive(slot)}
                         className={`mr-3 transition-colors ${
-                          slot.isActive ? 'text-soft-purple hover:text-soft-purple-light' : 'text-soft-green hover:text-soft-green-light'
+                          slot.isActive ? 'text-slate-300 hover:text-slate-300-light' : 'text-slate-300 hover:text-slate-300-light'
                         }`}
                         >
                           {slot.isActive ? '⏸️' : '▶️'}
                         </button>
                       <button
                         onClick={() => handleEdit(slot)}
-                        className="text-soft-green hover:text-soft-green-light mr-3 transition-colors"
+                        className="text-slate-300 hover:text-slate-300-light mr-3 transition-colors"
                       >
                         ✏️
                       </button>
@@ -475,7 +475,7 @@ const Reservations = () => {
                         </div>
                       </div>
                       {formData.selectedHours.length > 0 && (
-                        <p className="text-sm text-soft-green mt-2">
+                        <p className="text-sm text-slate-300 mt-2">
                           ✓ {formData.selectedHours.length} saat seçildi: {formData.selectedHours.map(h => `${h}:00`).join(', ')}
                         </p>
                       )}
@@ -534,7 +534,7 @@ const Reservations = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-3 bg-soft-green hover:bg-soft-green-light text-soft-white font-bold rounded-lg hover:scale-105 transition-all shadow-lg"
+                    className="flex-1 px-4 py-3 bg-slate-600 hover:bg-slate-600-light text-soft-white font-bold rounded-lg hover:scale-105 transition-all shadow-lg"
                   >
                     {editingSlot ? 'Güncelle' : 'Oluştur'}
                   </button>
