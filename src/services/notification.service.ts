@@ -154,6 +154,14 @@ export class NotificationService {
       throw new AppError('UNKNOWN_ERROR');
     }
   }
+
+  async deleteByRelatedEntity(relatedEntityId: number, relatedEntityType: string): Promise<void> {
+    try {
+      await notificationRepository.deleteByRelatedEntity(relatedEntityId, relatedEntityType);
+    } catch (error) {
+      throw new AppError('UNKNOWN_ERROR');
+    }
+  }
 }
 
 export default new NotificationService();

@@ -120,6 +120,31 @@ router.put('/:id/read', authMiddleware, notificationController.markAsRead);
 
 /**
  * @swagger
+ * /api/notifications/delete-by-related-entity:
+ *   delete:
+ *     summary: Related entity'ye göre bildirimleri sil (rezervasyon için)
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: relatedEntityId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: relatedEntityType
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Başarılı
+ */
+router.delete('/delete-by-related-entity', authMiddleware, notificationController.deleteByRelatedEntity);
+
+/**
+ * @swagger
  * /api/notifications/{id}:
  *   delete:
  *     summary: Bildirimi sil

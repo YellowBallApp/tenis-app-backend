@@ -13,8 +13,9 @@ export class CronController {
   static async runJob(req: Request, res: Response): Promise<Response> {
     try {
       const { jobName } = req.params;
+      const testMode = req.query.testMode === 'true' || req.query.testMode === '1';
 
-      const validJobNames = ["example", "cleanup", "updateStandings", "dailyNotifications", "processChallenges", "updateWeather"];
+      const validJobNames = ["example", "cleanup", "updateStandings", "dailyNotifications", "processChallenges", "updateWeather", "sendMatchResultNotifications"];
 
       if (!validJobNames.includes(jobName)) {
         return res.status(400).json({
@@ -23,12 +24,13 @@ export class CronController {
         });
       }
 
-      await runJobManually(jobName);
+      await runJobManually(jobName, testMode);
 
       return res.status(200).json({
         success: true,
-        message: `${jobName} job'ı başarıyla çalıştırıldı.`,
-        timestamp: new Date().toISOString()
+        message: `${jobName} job'ı başarıyla çalıştırıldı.${testMode ? ' (TEST MODU)' : ''}`,
+        timestamp: new Date().toISOString(),
+        testMode: testMode
       });
     } catch (error) {
       console.error("Cron job çalıştırma hatası:", error);
@@ -89,6 +91,15 @@ export class CronController {
           schedule: "55 23 * * *",
           description: "7 günlük hava durumu tahminini günceller ve cache'ler",
           nextRun: "Her gün 23:55",
+          timezone: "Europe/Istanbul",
+          active: true
+        },
+        {
+          name: "sendMatchResultNotifications",
+          key: "sendMatchResultNotifications",
+          schedule: "0 * * * *",
+          description: "Randevu bitiş saatinden 1 saat sonra maç sonucu girme bildirimi gönderir",
+          nextRun: "Her saat başı",
           timezone: "Europe/Istanbul",
           active: true
         },

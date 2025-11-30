@@ -140,6 +140,10 @@ class WeatherService {
     longitude: number = DEFAULT_LONGITUDE,
     forecast: WeatherForecast[]
   ): Promise<WeatherCache> {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
     try {
       const now = new Date();
       const expiresAt = new Date(now);
@@ -147,17 +151,17 @@ class WeatherService {
 
       // Eski cache'leri temizle (izmir_sarnic gibi eski location'ları sil)
       if (location === 'izmir') {
-        const oldCache = await this.weatherRepository.findOne({
+        const oldCache = await queryRunner.manager.findOne(WeatherCache, {
           where: { location: 'izmir_sarnic' },
         });
         if (oldCache) {
-          await this.weatherRepository.remove(oldCache);
+          await queryRunner.manager.remove(WeatherCache, oldCache);
           console.log(`🗑️ Eski cache temizlendi: izmir_sarnic`);
         }
       }
 
-      // Mevcut cache'i kontrol et
-      let weatherCache = await this.weatherRepository.findOne({
+      // Transaction içinde mevcut cache'i kontrol et (race condition'ı önlemek için)
+      let weatherCache = await queryRunner.manager.findOne(WeatherCache, {
         where: { location },
       });
 
@@ -170,11 +174,11 @@ class WeatherService {
         weatherCache.forecastEndDate = new Date(forecast[forecast.length - 1].date);
         weatherCache.lastUpdated = now;
         weatherCache.expiresAt = expiresAt;
-        await this.weatherRepository.save(weatherCache);
+        weatherCache = await queryRunner.manager.save(WeatherCache, weatherCache);
         console.log(`✅ Hava durumu cache güncellendi: ${location}`);
       } else {
         // Yeni cache oluştur
-        weatherCache = this.weatherRepository.create({
+        weatherCache = queryRunner.manager.create(WeatherCache, {
           location,
           latitude,
           longitude,
@@ -184,12 +188,37 @@ class WeatherService {
           lastUpdated: now,
           expiresAt,
         });
-        await this.weatherRepository.save(weatherCache);
+        weatherCache = await queryRunner.manager.save(WeatherCache, weatherCache);
         console.log(`✅ Yeni hava durumu cache oluşturuldu: ${location}`);
       }
 
+      await queryRunner.commitTransaction();
       return weatherCache;
     } catch (error: any) {
+      await queryRunner.rollbackTransaction();
+      
+      // Duplicate key hatası ise, tekrar deneme yap (başka bir process cache oluşturmuş olabilir)
+      if (error?.code === '23505' || error?.driverError?.code === '23505') {
+        console.log(`⚠️ Duplicate key hatası, cache zaten var. Tekrar kontrol ediliyor: ${location}`);
+        // Tekrar kontrol et ve güncelle
+        const existingCache = await this.weatherRepository.findOne({
+          where: { location },
+        });
+        if (existingCache) {
+          existingCache.latitude = latitude;
+          existingCache.longitude = longitude;
+          existingCache.dailyForecast = forecast as any;
+          existingCache.forecastStartDate = new Date(forecast[0].date);
+          existingCache.forecastEndDate = new Date(forecast[forecast.length - 1].date);
+          existingCache.lastUpdated = new Date();
+          existingCache.expiresAt = new Date();
+          existingCache.expiresAt.setHours(24, 0, 0, 0);
+          const updatedCache = await this.weatherRepository.save(existingCache);
+          console.log(`✅ Cache duplicate key hatasından sonra güncellendi: ${location}`);
+          return updatedCache;
+        }
+      }
+      
       console.error('❌ Hava durumu cache kaydedilirken hata:', error);
       console.error('❌ Cache kaydetme hata detayları:', {
         message: error?.message,
@@ -198,6 +227,8 @@ class WeatherService {
         stack: error?.stack?.split('\n').slice(0, 5).join('\n')
       });
       throw error;
+    } finally {
+      await queryRunner.release();
     }
   }
 

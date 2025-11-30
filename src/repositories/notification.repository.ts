@@ -42,6 +42,28 @@ export class NotificationRepository {
     return { notifications, total };
   }
 
+  async findByRecipientIdAndType(
+    recipientId: string,
+    type: NotificationType,
+    page: number = 1,
+    limit: number = 20
+  ): Promise<{ notifications: Notification[]; total: number }> {
+    const skip = (page - 1) * limit;
+    
+    const [notifications, total] = await this.repository.findAndCount({
+      where: { 
+        recipient: { id: recipientId },
+        type: type,
+      },
+      relations: ['recipient'],
+      order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
+    });
+
+    return { notifications, total };
+  }
+
   async countUnreadByRecipientId(recipientId: string): Promise<number> {
     return this.repository.count({
       where: { 
@@ -82,6 +104,13 @@ export class NotificationRepository {
 
   async deleteByRecipientId(recipientId: string): Promise<void> {
     await this.repository.delete({ recipient: { id: recipientId } });
+  }
+
+  async deleteByRelatedEntity(relatedEntityId: number, relatedEntityType: string): Promise<void> {
+    await this.repository.delete({
+      relatedEntityId,
+      relatedEntityType,
+    });
   }
 
   // Bu metod artık kullanılmıyor - challenge sistemi ayrıldı

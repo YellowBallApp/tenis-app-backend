@@ -2,6 +2,7 @@ import cron, { ScheduledTask } from "node-cron";
 import { cleanupOldReservations } from "./jobs/cleanupOldReservations";
 import { processPendingChallenges } from "./jobs/processPendingChallenges";
 import { updateWeatherForecast } from "./jobs/updateWeatherForecast";
+import { sendMatchResultNotifications } from "./jobs/sendMatchResultNotifications";
 
 const cronJobs: ScheduledTask[] = [];
 
@@ -38,6 +39,16 @@ export const initializeCronJobs = () => {
   );
   cronJobs.push(updateWeatherTask);
 
+  // Maç sonucu bildirimi gönderme - Her saat başı çalışır (örn: 14:00, 15:00, 16:00...)
+  const sendMatchResultTask = cron.schedule(
+    "0 * * * *",
+    () => sendMatchResultNotifications(false), // Normal mod için false
+    {
+      timezone: "Europe/Istanbul"
+    }
+  );
+  cronJobs.push(sendMatchResultTask);
+
   console.log(`✅ ${cronJobs.length} adet cron job başarıyla yapılandırıldı.`);
   
   // Aktif job'ları listele
@@ -45,6 +56,7 @@ export const initializeCronJobs = () => {
   console.log("  - Rezervasyon temizleme: Her gün 02:00");
   console.log("  - Hava durumu güncelleme: Her gün 23:55");
   console.log("  - Maç teklifi işleme: Her gün 23:55");
+  console.log("  - Maç sonucu bildirimi: Her saat başı");
 };
 
 export const stopAllCronJobs = () => {
@@ -54,8 +66,8 @@ export const stopAllCronJobs = () => {
 };
 
 // Örnek: Manuel olarak bir job'ı çalıştırma
-export const runJobManually = async (jobName: string) => {
-  console.log(`🔧 Manuel job çalıştırılıyor: ${jobName}`);
+export const runJobManually = async (jobName: string, testMode: boolean = false) => {
+  console.log(`🔧 Manuel job çalıştırılıyor: ${jobName}${testMode ? ' (TEST MODU)' : ''}`);
   
   switch (jobName) {
     case "cleanup":
@@ -66,6 +78,9 @@ export const runJobManually = async (jobName: string) => {
       break;
     case "updateWeather":
       await updateWeatherForecast();
+      break;
+    case "sendMatchResultNotifications":
+      await sendMatchResultNotifications(testMode);
       break;
     default:
       console.error(`❌ Bilinmeyen job: ${jobName}`);

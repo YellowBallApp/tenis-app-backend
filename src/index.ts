@@ -24,6 +24,7 @@ import cronRoutes from "./routes/cron.routes";
 import coachReviewRoutes from "./routes/coachReview.routes";
 import weatherRoutes from "./routes/weather.routes";
 import { getLocalNetworkIP } from "./utils/network";
+import { errorHandler } from "./utils/error/app.error";
 
 const app = express();
 
@@ -138,6 +139,9 @@ app.use("/api/elo", eloRoutes);
 app.use("/api/cron", cronRoutes);
 app.use("/api/coach-reviews", coachReviewRoutes);
 app.use("/api/weather", weatherRoutes);
+
+// Error handler middleware (tüm route'lardan sonra)
+app.use(errorHandler);
 
 const authMiddleware = express.Router();
 

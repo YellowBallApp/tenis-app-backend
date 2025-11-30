@@ -45,6 +45,20 @@ router.get('/my', reservationController.getUserReservations);
 
 /**
  * @swagger
+ * /api/reservations/has-active:
+ *   get:
+ *     summary: Kullanıcının aktif rezervasyonu var mı kontrol et
+ *     tags: [Reservations]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Aktif rezervasyon kontrolü sonucu
+ */
+router.get('/has-active', reservationController.hasActiveReservation);
+
+/**
+ * @swagger
  * /api/reservations:
  *   get:
  *     summary: Tarihe göre rezervasyonları getir
@@ -104,6 +118,26 @@ router.get('/', reservationController.getReservationsByDate);
  *         description: Rezervasyon oluşturuldu
  */
 router.post('/', reservationController.createReservation);
+
+/**
+ * @swagger
+ * /api/reservations/{id}:
+ *   get:
+ *     summary: ID'ye göre rezervasyon getir
+ *     tags: [Reservations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: number
+ *     responses:
+ *       200:
+ *         description: Rezervasyon detayı
+ */
+router.get('/:id', reservationController.getReservationById);
 
 /**
  * @swagger

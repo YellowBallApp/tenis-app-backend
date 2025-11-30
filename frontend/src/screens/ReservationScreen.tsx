@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { MainTabParamList } from '../navigation/MainTabNavigator';
 import {
@@ -76,10 +76,10 @@ LocaleConfig.locales['en'] = {
   today: 'Today'
 };
 LocaleConfig.defaultLocale = 'tr';
-import { userService, reservationService, authService, courtService, weatherService } from '../services/api';
+import { userService, reservationService, authService, courtService, weatherService, notificationService } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../context/LanguageContext';
-import { User } from '../types';
+import { User, NotificationType } from '../types';
 
 const { width, height } = Dimensions.get('window');
 
@@ -87,6 +87,7 @@ type ReservationScreenNavigationProp = BottomTabNavigationProp<MainTabParamList,
 
 const ReservationScreen = () => {
   const navigation = useNavigation<ReservationScreenNavigationProp>();
+  const route = useRoute();
   const { t, language } = useLanguage();
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
@@ -111,6 +112,9 @@ const ReservationScreen = () => {
   const [weatherCache, setWeatherCache] = useState<{[key: string]: {isRainy: boolean, isSnowy: boolean}}>({});
   const [showWeatherWarningModal, setShowWeatherWarningModal] = useState(false);
   const [pendingTimeSelection, setPendingTimeSelection] = useState<string | null>(null);
+  const [reservationBlocked, setReservationBlocked] = useState(false);
+  const [blockReason, setBlockReason] = useState<string>('');
+  const [checkingBlockStatus, setCheckingBlockStatus] = useState(true);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -131,6 +135,51 @@ const ReservationScreen = () => {
         const profile = await authService.getProfile();
         setCurrentUserId(profile.id);
         setCurrentUserType(profile.userType || null);
+        
+        // Kullanıcı yüklendikten sonra rezervasyon engeli kontrolü yap
+        const checkReservationBlock = async () => {
+          try {
+            console.log('🔍 useEffect: Rezervasyon engeli kontrolü başlatılıyor...');
+            setCheckingBlockStatus(true);
+            setReservationBlocked(false);
+            
+            // Aktif rezervasyon kontrolü (hem owner hem participant olarak)
+            const hasActive = await reservationService.hasActiveReservation();
+            console.log('🔍 useEffect: Aktif rezervasyon kontrolü sonucu:', hasActive);
+            if (hasActive) {
+              console.log('🚫 useEffect: Aktif rezervasyon bulundu, engel aktif ediliyor');
+              setReservationBlocked(true);
+              setBlockReason('Şu anda aktif bir rezervasyonunuz var. Yeni rezervasyon oluşturmadan önce mevcut rezervasyonunuzun bitmesini bekleyin.');
+              setCheckingBlockStatus(false);
+              return;
+            }
+
+            // Bekleyen maç sonucu kontrolü
+            const notifications = await notificationService.getUserNotifications(1, 20);
+            const pendingMatchResult = notifications.notifications.find(
+              (notif: any) => notif.type === NotificationType.MATCH_COMPLETED
+            );
+
+            if (pendingMatchResult) {
+              console.log('🚫 useEffect: Bekleyen maç sonucu bulundu, engel aktif ediliyor');
+              setReservationBlocked(true);
+              setBlockReason('Bekleyen maç sonucu girmeniz gereken bir maç var. Yeni rezervasyon oluşturmadan önce maç sonucunu girin.');
+              setCheckingBlockStatus(false);
+              return;
+            }
+
+            console.log('✅ useEffect: Rezervasyon engeli yok, form aktif');
+            setReservationBlocked(false);
+            setBlockReason('');
+            setCheckingBlockStatus(false);
+          } catch (error) {
+            console.error('❌ useEffect: Rezervasyon engeli kontrolü hatası:', error);
+            setCheckingBlockStatus(false);
+            setReservationBlocked(false);
+          }
+        };
+        
+        checkReservationBlock();
       } catch (error) {
         console.error('Kullanıcı profili yüklenirken hata:', error);
       }
@@ -159,7 +208,9 @@ const ReservationScreen = () => {
     fetchCourts();
   }, []);
 
-  // Sayfa her açıldığında tüm seçimleri resetle
+  // Rezervasyon engeli kontrolü - sadece useFocusEffect içinde yapılıyor
+
+  // Sayfa her açıldığında tüm seçimleri resetle ve engel kontrolü yap
   useFocusEffect(
     React.useCallback(() => {
       // Tüm state'leri sıfırla
@@ -173,6 +224,62 @@ const ReservationScreen = () => {
       setCurrentStep(1);
       setSearchQuery('');
       setCurrentScrollY(0);
+      
+      // Rezervasyon engeli kontrolü - her sayfa açıldığında kontrol et
+      const checkReservationBlock = async () => {
+        try {
+          console.log('🔍 Rezervasyon engeli kontrolü başlatılıyor...');
+          setCheckingBlockStatus(true);
+          setReservationBlocked(false); // Önce sıfırla
+          
+          const profile = await authService.getProfile();
+          const userId = profile.id;
+          console.log('👤 Kullanıcı ID:', userId);
+          
+          if (!userId) {
+            console.log('⚠️ Kullanıcı ID bulunamadı');
+            setCheckingBlockStatus(false);
+            return;
+          }
+
+          // Aktif rezervasyon kontrolü (hem owner hem participant olarak)
+          const hasActive = await reservationService.hasActiveReservation();
+          console.log('🔍 Aktif rezervasyon kontrolü sonucu:', hasActive);
+          if (hasActive) {
+            console.log('🚫 Aktif rezervasyon bulundu, engel aktif ediliyor');
+            setReservationBlocked(true);
+            setBlockReason('Şu anda aktif bir rezervasyonunuz var. Yeni rezervasyon oluşturmadan önce mevcut rezervasyonunuzun bitmesini bekleyin.');
+            setCheckingBlockStatus(false);
+            return;
+          }
+
+          // Bekleyen maç sonucu kontrolü
+          const notifications = await notificationService.getUserNotifications(1, 20);
+          const pendingMatchResult = notifications.notifications.find(
+            (notif: any) => notif.type === NotificationType.MATCH_COMPLETED
+          );
+
+          if (pendingMatchResult) {
+            console.log('🚫 Bekleyen maç sonucu bulundu, engel aktif ediliyor');
+            setReservationBlocked(true);
+            setBlockReason('Bekleyen maç sonucu girmeniz gereken bir maç var. Yeni rezervasyon oluşturmadan önce maç sonucunu girin.');
+            setCheckingBlockStatus(false);
+            return;
+          }
+
+          console.log('✅ Rezervasyon engeli yok, form aktif');
+          setReservationBlocked(false);
+          setBlockReason('');
+          setCheckingBlockStatus(false);
+        } catch (error) {
+          console.error('❌ Rezervasyon engeli kontrolü hatası:', error);
+          // Hata durumunda da kontrolü bitir
+          setCheckingBlockStatus(false);
+          setReservationBlocked(false);
+        }
+      };
+
+      checkReservationBlock();
       
       // Scroll'u en üste getir
       scrollViewRef.current?.scrollTo({ y: 0, animated: false });
@@ -308,6 +415,18 @@ const ReservationScreen = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, selectedCourt, courts]);
 
+  // Route params'tan opponent bilgisini al (sadece ilk yüklemede)
+  useEffect(() => {
+    const params = route.params as { opponentId?: string; opponentName?: string; matchChallengeId?: number } | undefined;
+    const opponentId = params?.opponentId;
+    if (opponentId && !selectedPartner && users.length > 0) {
+      const opponentUser = users.find((user: User) => user.id === opponentId);
+      if (opponentUser) {
+        setSelectedPartner(opponentUser);
+      }
+    }
+  }, [users, route.params]); // Sadece users ve route.params değiştiğinde çalış
+
   // Seçilen tarih ve saate göre müsait kullanıcıları yükle
   useEffect(() => {
     const fetchAvailableUsers = async () => {
@@ -359,6 +478,40 @@ const ReservationScreen = () => {
     '14:00', '15:00', '16:00', '17:00', '18:00',
     '19:00', '20:00', '21:00', '22:00', '23:00'
   ];
+
+  // Geçmiş saatleri kontrol et
+  const isTimeSlotInPast = (timeSlot: string): boolean => {
+    // Tarih seçilmemişse false döndür
+    if (!selectedDate) {
+      return false;
+    }
+
+    const now = new Date();
+    const selectedDateObj = new Date(selectedDate);
+    const [hours, minutes] = timeSlot.split(':').map(Number);
+    
+    // Seçilen tarih ve saati birleştir
+    const selectedDateTime = new Date(selectedDateObj);
+    selectedDateTime.setHours(hours, minutes, 0, 0);
+
+    // Eğer seçilen tarih bugünden önceyse, tüm saatler geçmiş
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDateOnly = new Date(selectedDateObj);
+    selectedDateOnly.setHours(0, 0, 0, 0);
+    
+    if (selectedDateOnly < today) {
+      return true; // Geçmiş bir tarih
+    }
+    
+    // Eğer seçilen tarih bugünse, şu anki saatten önceki saatler geçmiş
+    if (selectedDateOnly.getTime() === today.getTime()) {
+      return selectedDateTime < now;
+    }
+    
+    // Gelecekteki tarihler için false
+    return false;
+  };
 
   // Kullanıcı tipine göre saatin disabled olup olmadığını kontrol et
   const isTimeSlotDisabledForUser = (timeSlot: string): boolean => {
@@ -701,14 +854,48 @@ const ReservationScreen = () => {
           </Animated.View>
         </LinearGradient>
 
+        {/* Rezervasyon Engeli Mesajı */}
+        {(checkingBlockStatus || reservationBlocked) && (
+          <Card style={styles.blockCard} elevation={5}>
+            <Card.Content style={styles.blockCardContent}>
+              {checkingBlockStatus ? (
+                <View style={styles.blockContent}>
+                  <ActivityIndicator size="large" color="#FF9800" />
+                  <Text style={styles.blockText}>Kontrol ediliyor...</Text>
+                </View>
+              ) : reservationBlocked ? (
+                <View style={styles.blockContent}>
+                  <MaterialCommunityIcons name="alert-circle" size={48} color="#DC3545" />
+                  <Title style={styles.blockTitle}>Rezervasyon Oluşturulamaz</Title>
+                  <Text style={styles.blockText}>{blockReason}</Text>
+                  {/* Sadece bekleyen maç sonucu durumunda "Bildirimlere Git" butonu göster */}
+                  {blockReason.includes('maç sonucu') && (
+                    <Button
+                      mode="contained"
+                      buttonColor="#1976D2"
+                      icon="bell"
+                      onPress={() => navigation.navigate('Notifications')}
+                      style={styles.blockButton}
+                    >
+                      Bildirimlere Git
+                    </Button>
+                  )}
+                </View>
+              ) : null}
+            </Card.Content>
+          </Card>
+        )}
+
         <Animated.View 
           style={[
             styles.contentContainer,
             {
               opacity: fadeAnim,
               transform: [{ translateY: slideAnim }]
-            }
+            },
+            (reservationBlocked || checkingBlockStatus) && styles.disabledContainer
           ]}
+          pointerEvents={reservationBlocked || checkingBlockStatus ? 'none' : 'auto'}
         >
           {/* Step 1: Date Selection */}
           <Card style={[styles.stepCard, currentStep >= 1 && styles.activeStepCard]}>
@@ -721,8 +908,9 @@ const ReservationScreen = () => {
               </View>
               
               <TouchableOpacity 
-                style={styles.dateSelector}
-                onPress={() => setShowCalendar(true)}
+                style={[styles.dateSelector, (reservationBlocked || checkingBlockStatus) && styles.disabledSelector]}
+                onPress={() => !reservationBlocked && !checkingBlockStatus && setShowCalendar(true)}
+                disabled={reservationBlocked || checkingBlockStatus}
               >
                 <LinearGradient
                   colors={selectedDate ? ['#4CAF50', '#2E7D32'] : ['#F5F5F5', '#E0E0E0']}
@@ -840,7 +1028,8 @@ const ReservationScreen = () => {
                     const reservation = getReservationForTime(time);
                     const isReserved = !!reservation;
                     const isDisabledForUserType = !!isTimeSlotDisabledForUser(time);
-                    const isDisabled = !!(isReserved || isDisabledForUserType);
+                    const isTimeInPast = isTimeSlotInPast(time);
+                    const isDisabled = !!(isReserved || isDisabledForUserType || isTimeInPast);
                     
                     // Hava durumu bilgisini al (sadece açık kortlar için)
                     const selectedCourtObj = courts.find(c => c.id === parseInt(selectedCourt));
@@ -1184,10 +1373,10 @@ const ReservationScreen = () => {
           {/* Action Button */}
           <TouchableOpacity
             onPress={handleReservation}
-            disabled={!selectedDate || !selectedTime || !selectedCourt || isLoading}
+            disabled={!selectedDate || !selectedTime || !selectedCourt || isLoading || reservationBlocked || checkingBlockStatus}
             style={[
               styles.reservationButtonContainer,
-              (!selectedDate || !selectedTime || !selectedCourt || isLoading) && styles.disabledButton
+              (!selectedDate || !selectedTime || !selectedCourt || isLoading || reservationBlocked || checkingBlockStatus) && styles.disabledButton
             ]}
           >
             <LinearGradient
@@ -2058,6 +2247,53 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#757575',
     fontStyle: 'italic',
+  },
+  blockCard: {
+    margin: 20,
+    marginTop: 20,
+    marginBottom: 20,
+    backgroundColor: '#FFF3E0',
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF9800',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    borderRadius: 12,
+  },
+  blockCardContent: {
+    padding: 20,
+  },
+  blockContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+  },
+  blockTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#DC3545',
+    marginTop: 16,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  blockText: {
+    fontSize: 16,
+    color: '#424242',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 24,
+  },
+  blockButton: {
+    marginTop: 8,
+    borderRadius: 12,
+  },
+  disabledContainer: {
+    opacity: 0.5,
+  },
+  disabledSelector: {
+    opacity: 0.5,
   },
   successSnackbar: {
     backgroundColor: '#4CAF50',

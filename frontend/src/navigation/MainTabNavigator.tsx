@@ -21,7 +21,7 @@ export type MainTabParamList = {
   Coaches: undefined;
   Members: undefined;
   Profile: undefined;
-  Reservation: undefined;
+  Reservation: { opponentId?: string; opponentName?: string; matchChallengeId?: number } | undefined;
   ReservationsList: undefined;
   MatchHistory: { leagueId?: number; leagueName?: string } | undefined;
   Notifications: undefined;
@@ -30,7 +30,7 @@ export type MainTabParamList = {
 export type GameModesStackParamList = {
   GameModesList: undefined;
   DefiLig: undefined;
-  LigSiralama: { lig: any };
+  LigSiralama: { lig: any; openMatchResultModal?: boolean; challengeId?: number };
   LigAyarlari: undefined;
 };
 

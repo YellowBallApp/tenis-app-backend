@@ -94,6 +94,28 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
     }, [])
   );
 
+  // Route params'tan modal açma işlemi (sadece route params değiştiğinde)
+  useEffect(() => {
+    if (route.params?.openMatchResultModal && route.params?.challengeId) {
+      const challengeId = route.params.challengeId;
+      // Challenge'ı yükle ve modalı aç
+      const loadChallengeAndOpenModal = async () => {
+        try {
+          const challenge = await matchChallengeService.getChallengeById(challengeId);
+          if (challenge) {
+            setAcceptedChallenge(challenge);
+            setTimeout(() => {
+              openMatchResultModal();
+            }, 500);
+          }
+        } catch (error) {
+          console.error('Challenge yüklenirken hata:', error);
+        }
+      };
+      loadChallengeAndOpenModal();
+    }
+  }, [route.params?.openMatchResultModal, route.params?.challengeId]);
+
   const loadCourts = async () => {
     try {
       const courtsList = await courtService.getActiveCourts();
@@ -344,6 +366,28 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
     ]);
     setScoreError(false);
     setShowMatchResultModal(true);
+  };
+
+  const openReservationScreen = () => {
+    if (!acceptedChallenge) {
+      Alert.alert('Uyarı', 'Kabul edilmiş bir meydan okuma bulunmuyor');
+      return;
+    }
+    
+    // Maçı kabul eden kullanıcıyı belirle
+    const opponentId = acceptedChallenge.challenger.id === currentUser.id
+      ? acceptedChallenge.challenged.id
+      : acceptedChallenge.challenger.id;
+    
+    const opponentName = acceptedChallenge.challenger.id === currentUser.id
+      ? acceptedChallenge.challenged.name
+      : acceptedChallenge.challenger.name;
+
+    navigation.navigate('Reservation', {
+      opponentId,
+      opponentName,
+      matchChallengeId: acceptedChallenge.id,
+    });
   };
 
   const updateSetScore = (setIndex: number, field: 'userScore' | 'opponentScore', value: string) => {
@@ -899,7 +943,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
         <View style={styles.quickActionsSection}>
           <Title style={styles.sectionTitle}>Hızlı İşlemler</Title>
           
-          {/* Maç Sonucu Gir Butonu */}
+          {/* Randevu Oluştur Butonu */}
           <View style={styles.matchResultButtonContainer}>
             <Button
               mode="contained"
@@ -908,11 +952,11 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                 !acceptedChallenge && styles.disabledQuickActionButton
               ]}
               buttonColor={acceptedChallenge ? "#2E7D32" : "#9E9E9E"}
-              icon="clipboard-check"
-              onPress={openMatchResultModal}
+              icon="calendar-plus"
+              onPress={openReservationScreen}
               disabled={!!(!acceptedChallenge)}
             >
-              Maç Sonucu Gir
+              Randevu Oluştur
             </Button>
             {acceptedChallenge ? (
               <View style={styles.matchInfoContainer}>

@@ -15,11 +15,31 @@ const router = Router();
  *         required: true
  *         schema:
  *           type: string
- *           enum: [example, cleanup, updateStandings, dailyNotifications]
+ *           enum: [example, cleanup, updateStandings, dailyNotifications, processChallenges, updateWeather, sendMatchResultNotifications]
  *         description: Çalıştırılacak job'ın adı
+ *       - in: query
+ *         name: testMode
+ *         required: false
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: Test modu (true ise son 24 saat içindeki verileri kontrol eder)
  *     responses:
  *       200:
  *         description: Job başarıyla çalıştırıldı
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 timestamp:
+ *                   type: string
+ *                 testMode:
+ *                   type: boolean
  *       400:
  *         description: Geçersiz job adı
  *       500:

@@ -193,5 +193,38 @@ export const notificationController = {
       });
     }
   },
+
+  // Related entity'ye göre notification'ları sil (rezervasyon için)
+  deleteByRelatedEntity: async (req: Request, res: Response) => {
+    try {
+      const relatedEntityId = req.query?.relatedEntityId || req.body?.relatedEntityId;
+      const relatedEntityType = req.query?.relatedEntityType || req.body?.relatedEntityType;
+
+      if (!relatedEntityId || !relatedEntityType) {
+        throw new AppError('VALIDATION_ERROR');
+      }
+
+      const entityId = Number(relatedEntityId);
+      const entityType = String(relatedEntityType);
+
+      if (isNaN(entityId)) {
+        throw new AppError('VALIDATION_ERROR');
+      }
+
+      await notificationService.deleteByRelatedEntity(entityId, entityType);
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Notifications deleted successfully',
+      });
+    } catch (err) {
+      const error = err instanceof AppError ? err : new AppError('UNKNOWN_ERROR');
+      return res.status(error.status).json({
+        errorKey: error.errorKey,
+        errorCode: error.errorCode,
+        message: error.message,
+      });
+    }
+  },
 };
 

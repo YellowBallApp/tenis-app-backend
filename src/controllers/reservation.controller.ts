@@ -100,6 +100,45 @@ export class ReservationController {
     }
   };
 
+  // Kullanıcının aktif rezervasyonu var mı kontrol et
+  hasActiveReservation = async (req: Request, res: Response) => {
+    try {
+      const userId = req.currentUser.id;
+      console.log(`🔍 hasActiveReservation endpoint çağrıldı - userId: ${userId}`);
+      const hasActive = await this.reservationService.hasActiveReservation(userId);
+      console.log(`🔍 hasActiveReservation endpoint sonucu: ${hasActive}`);
+      
+      return res.status(200).json({
+        success: true,
+        data: { hasActive },
+      });
+    } catch (error: any) {
+      console.error('❌ hasActiveReservation endpoint hatası:', error);
+      return res.status(500).json({
+        success: false,
+        message: error.message || 'Aktif rezervasyon kontrolü yapılırken bir hata oluştu',
+      });
+    }
+  };
+
+  // ID'ye göre rezervasyon getir
+  getReservationById = async (req: Request, res: Response) => {
+    try {
+      const reservationId = parseInt(req.params.id);
+      const reservation = await this.reservationService.getReservationById(reservationId);
+      
+      return res.status(200).json({
+        success: true,
+        data: reservation,
+      });
+    } catch (error: any) {
+      return res.status(404).json({
+        success: false,
+        message: error.message || 'Rezervasyon bulunamadı',
+      });
+    }
+  };
+
   // Rezervasyon iptal et
   cancelReservation = async (req: Request, res: Response) => {
     try {

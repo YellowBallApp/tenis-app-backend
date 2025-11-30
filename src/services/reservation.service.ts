@@ -3,6 +3,8 @@ import { Reservation } from '../entities/reservation.entity';
 import { User } from '../entities/user.entity';
 import { Court } from '../entities/court.entity';
 import { UserType } from '../enum/userType.enum';
+import notificationRepository from '../repositories/notification.repository';
+import { NotificationType } from '../enum/notificationType.enum';
 
 export class ReservationService {
   private reservationRepository;
@@ -89,6 +91,25 @@ export class ReservationService {
         throw new Error('Bu kort şu anda kapalı');
       }
 
+      // Aktif rezervasyon kontrolü - Kullanıcının bitmemiş (endTime >= now) bir rezervasyonu var mı?
+      // (Hem owner hem participant olarak) - Gelecekteki rezervasyonlar da aktif sayılır
+      const hasActive = await this.hasActiveReservation(userId);
+      if (hasActive) {
+        throw new Error('Şu anda aktif bir rezervasyonunuz var. Yeni rezervasyon oluşturmadan önce mevcut rezervasyonunuzun bitmesini bekleyin.');
+      }
+
+      // Bekleyen maç sonucu kontrolü - Kullanıcının girmesi gereken maç sonucu var mı?
+      const pendingMatchResultNotifications = await notificationRepository.findByRecipientIdAndType(
+        userId,
+        NotificationType.MATCH_COMPLETED,
+        1,
+        1
+      );
+
+      if (pendingMatchResultNotifications.notifications.length > 0) {
+        throw new Error('Bekleyen maç sonucu girmeniz gereken bir maç var. Yeni rezervasyon oluşturmadan önce maç sonucunu girin.');
+      }
+
       // Kullanıcı tipi kontrolü - RESTRICTED kullanıcılar için zaman kısıtlaması
       if (user.userType === UserType.RESTRICTED) {
         const startTime = new Date(data.startTime);
@@ -160,6 +181,58 @@ export class ReservationService {
       return reservations;
     } catch (error) {
       throw new Error('Kullanıcı rezervasyonları alınırken bir hata oluştu');
+    }
+  }
+
+  // ID'ye göre rezervasyon getir
+  async getReservationById(reservationId: number) {
+    try {
+      const reservation = await this.reservationRepository.findOne({
+        where: { id: reservationId },
+        relations: ['user', 'court', 'participants'],
+      });
+
+      if (!reservation) {
+        throw new Error('Rezervasyon bulunamadı');
+      }
+
+      return reservation;
+    } catch (error: any) {
+      throw new Error(error.message || 'Rezervasyon alınırken bir hata oluştu');
+    }
+  }
+
+  // Kullanıcının aktif rezervasyonu var mı kontrol et (hem owner hem participant olarak)
+  async hasActiveReservation(userId: string): Promise<boolean> {
+    try {
+      const now = new Date();
+      console.log(`🔍 hasActiveReservation kontrolü başlatılıyor - userId: ${userId}, now: ${now.toISOString()}`);
+      
+      // Kullanıcının (owner veya participant olarak) dahil olduğu ve bitmemiş (endTime >= now) rezervasyonu var mı?
+      // Gelecekteki rezervasyonlar da aktif sayılır, sadece geçmişte olanlar sayılmaz
+      const activeReservation = await this.reservationRepository
+        .createQueryBuilder('reservation')
+        .leftJoin('reservation.user', 'user')
+        .leftJoin('reservation.participants', 'participants')
+        .where('(user.id = :userId OR participants.id = :userId)', { userId })
+        .andWhere('reservation.endTime >= :now', { now })
+        .getOne();
+
+      console.log(`🔍 hasActiveReservation sonucu:`, activeReservation ? 'Aktif rezervasyon bulundu' : 'Aktif rezervasyon yok');
+      if (activeReservation) {
+        console.log(`📅 Aktif rezervasyon detayları:`, {
+          id: activeReservation.id,
+          startTime: activeReservation.startTime,
+          endTime: activeReservation.endTime,
+          userId: activeReservation.user?.id,
+          participants: activeReservation.participants?.map((p: any) => p.id)
+        });
+      }
+
+      return !!activeReservation;
+    } catch (error) {
+      console.error('❌ hasActiveReservation hatası:', error);
+      throw new Error('Aktif rezervasyon kontrolü yapılırken bir hata oluştu');
     }
   }
 

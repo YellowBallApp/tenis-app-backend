@@ -772,6 +772,19 @@ export const reservationService = {
     return response.data.data;
   },
 
+  // Kullanıcının aktif rezervasyonu var mı kontrol et
+  hasActiveReservation: async () => {
+    console.log('🔍 Frontend: hasActiveReservation çağrılıyor');
+    try {
+      const response = await api.get('/reservations/has-active');
+      console.log('🔍 Frontend: hasActiveReservation response:', response.data);
+      return response.data.data.hasActive;
+    } catch (error: any) {
+      console.error('❌ Frontend: hasActiveReservation hatası:', error);
+      throw error;
+    }
+  },
+
   // Yeni rezervasyon oluştur
   createReservation: async (data: {
     courtId: number;
@@ -781,6 +794,12 @@ export const reservationService = {
     notes?: string;
   }) => {
     const response = await api.post('/reservations', data);
+    return response.data.data;
+  },
+
+  // ID'ye göre rezervasyon getir
+  getReservationById: async (reservationId: number) => {
+    const response = await api.get(`/reservations/${reservationId}`);
     return response.data.data;
   },
 
@@ -928,6 +947,20 @@ export const matchHistoryService = {
     const response = await api.get(`/match-history/user/${userId}/stats`);
     return response.data.data;
   },
+
+  // Yeni maç geçmişi oluştur
+  createMatch: async (data: {
+    winnerIds: string[];
+    loserIds: string[];
+    score: string;
+    matchDate?: Date;
+    leagueStandingId?: number;
+    indoorCourt?: boolean;
+    courtGround?: 'grass' | 'clay' | 'hard';
+  }) => {
+    const response = await api.post('/match-history', data);
+    return response.data.data;
+  },
 };
 
 export const commentService = {
@@ -1013,6 +1046,17 @@ export const notificationService = {
   // Tüm notification'ları sil
   deleteAllNotifications: async () => {
     const response = await api.delete('/notifications/delete-all');
+    return response.data;
+  },
+
+  // Related entity'ye göre notification'ları sil (rezervasyon için)
+  deleteByRelatedEntity: async (relatedEntityId: number, relatedEntityType: string) => {
+    const response = await api.delete('/notifications/delete-by-related-entity', {
+      params: { 
+        relatedEntityId: String(relatedEntityId), 
+        relatedEntityType 
+      },
+    });
     return response.data;
   },
 };
