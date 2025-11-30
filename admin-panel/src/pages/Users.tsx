@@ -103,9 +103,9 @@ const Users = () => {
 
   const getUserTypeBadge = (userType: string) => {
     const types: Record<string, { label: string; gradient: string; glow: string }> = {
-      admin: { label: 'Admin', gradient: 'from-tennis-purple to-tennis-purple-dark', glow: 'glow-purple' },
+      admin: { label: 'Admin', gradient: 'from-tennis-lime to-tennis-green', glow: 'glow-lime' },
       standard: { label: 'Standart', gradient: 'from-tennis-green to-tennis-accent', glow: 'glow-green' },
-      restricted: { label: 'Kısıtlı', gradient: 'from-yellow-500 to-orange-500', glow: '' },
+      restricted: { label: 'Kısıtlı', gradient: 'from-emerald-600 to-teal-700', glow: '' },
     };
     return types[userType] || types.standard;
   };
@@ -196,7 +196,7 @@ const Users = () => {
                   </button>
                   <button
                     onClick={() => handleDelete(user.id)}
-                    className="flex-1 px-4 py-2 glass hover:bg-red-500/20 text-red-400 font-medium rounded-lg transition-all duration-300"
+                    className="flex-1 px-4 py-2 glass hover:glass-strong text-tennis-white/80 hover:text-tennis-white font-medium rounded-lg transition-all duration-300"
                   >
                     🗑️ Sil
                   </button>

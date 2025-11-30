@@ -61,14 +61,14 @@ const Dashboard = () => {
       title: 'Toplam Kullanıcı',
       value: stats.totalUsers,
       icon: '👥',
-      gradient: 'from-tennis-purple to-tennis-purple-dark',
-      glow: 'glow-purple'
+      gradient: 'from-tennis-accent to-tennis-green',
+      glow: 'glow-green'
     },
     {
       title: 'Toplam Rezervasyon',
       value: stats.totalReservations,
       icon: '📅',
-      gradient: 'from-tennis-green to-tennis-accent',
+      gradient: 'from-tennis-green to-emerald-600',
       glow: 'glow-green'
     },
     {
@@ -82,7 +82,7 @@ const Dashboard = () => {
       title: 'Bloke Edilmiş Saat',
       value: stats.blockedSlots,
       icon: '🚫',
-      gradient: 'from-red-500 to-red-700',
+      gradient: 'from-emerald-700 to-teal-800',
       glow: ''
     }
   ];

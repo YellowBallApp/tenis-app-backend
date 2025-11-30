@@ -193,8 +193,8 @@ const Reservations = () => {
                     <h3 className="text-tennis-white font-bold text-lg">{slot.court.name}</h3>
                     <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full ${
                       slot.isActive 
-                        ? 'bg-gradient-to-r from-red-500 to-red-700 text-white'
-                        : 'bg-gradient-to-r from-gray-500 to-gray-700 text-white'
+                        ? 'bg-gradient-to-r from-emerald-700 to-teal-800 text-white'
+                        : 'bg-gradient-to-r from-slate-600 to-slate-700 text-white'
                     } mt-1`}>
                       {slot.isActive ? '🚫 Aktif' : '⏸️ Pasif'}
                     </span>
@@ -238,7 +238,7 @@ const Reservations = () => {
                 <button
                   onClick={() => handleToggleActive(slot)}
                   className={`flex-1 px-3 py-2 glass hover:glass-strong font-medium rounded-lg transition-all duration-300 text-sm ${
-                    slot.isActive ? 'text-yellow-400' : 'text-tennis-lime'
+                    slot.isActive ? 'text-tennis-lime' : 'text-tennis-green'
                   }`}
                 >
                   {slot.isActive ? '⏸️ Pasifleştir' : '▶️ Aktifleştir'}
@@ -251,7 +251,7 @@ const Reservations = () => {
                 </button>
                 <button
                   onClick={() => handleDelete(slot.id)}
-                  className="flex-1 px-3 py-2 glass hover:bg-red-500/20 text-red-400 font-medium rounded-lg transition-all duration-300 text-sm"
+                  className="flex-1 px-3 py-2 glass hover:glass-strong text-tennis-white/80 hover:text-tennis-white font-medium rounded-lg transition-all duration-300 text-sm"
                 >
                   🗑️ Sil
                 </button>
