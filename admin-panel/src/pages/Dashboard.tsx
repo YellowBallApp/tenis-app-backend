@@ -46,63 +46,110 @@ const Dashboard = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="text-center">Yükleniyor...</div>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="glass-strong rounded-2xl p-8 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-tennis-lime mx-auto mb-4"></div>
+            <p className="text-tennis-white/80">Yükleniyor...</p>
+          </div>
+        </div>
       </Layout>
     );
   }
 
+  const statCards = [
+    {
+      title: 'Toplam Kullanıcı',
+      value: stats.totalUsers,
+      icon: '👥',
+      gradient: 'from-tennis-purple to-tennis-purple-dark',
+      glow: 'glow-purple'
+    },
+    {
+      title: 'Toplam Rezervasyon',
+      value: stats.totalReservations,
+      icon: '📅',
+      gradient: 'from-tennis-green to-tennis-accent',
+      glow: 'glow-green'
+    },
+    {
+      title: 'Aktif Rezervasyon',
+      value: stats.activeReservations,
+      icon: '⏰',
+      gradient: 'from-tennis-lime to-tennis-green',
+      glow: 'glow-lime'
+    },
+    {
+      title: 'Bloke Edilmiş Saat',
+      value: stats.blockedSlots,
+      icon: '🚫',
+      gradient: 'from-red-500 to-red-700',
+      glow: ''
+    }
+  ];
+
   return (
     <Layout>
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h1>
+      <div className="space-y-8">
+        {/* Header */}
+        <div className="glass-strong rounded-2xl p-6">
+          <h1 className="text-3xl font-bold text-tennis-white mb-2">Dashboard</h1>
+          <p className="text-tennis-white/70">Sistem genel durumu ve istatistikler</p>
+        </div>
         
+        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <span className="text-2xl">👥</span>
+          {statCards.map((stat, index) => (
+            <div
+              key={index}
+              className="glass-strong rounded-2xl p-6 hover:scale-105 transition-all duration-300 cursor-pointer group"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.gradient} ${stat.glow} transition-all duration-300 group-hover:scale-110`}>
+                  <span className="text-3xl">{stat.icon}</span>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Toplam Kullanıcı</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalUsers}</p>
-              </div>
+              <p className="text-sm font-medium text-tennis-white/70 mb-2">{stat.title}</p>
+              <p className="text-4xl font-bold text-tennis-white">{stat.value}</p>
             </div>
-          </div>
+          ))}
+        </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <span className="text-2xl">📅</span>
+        {/* Quick Actions */}
+        <div className="glass-strong rounded-2xl p-6">
+          <h2 className="text-xl font-bold text-tennis-white mb-4">Hızlı İşlemler</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <a
+              href="/users"
+              className="glass p-4 rounded-xl hover:glass-strong transition-all duration-300 flex items-center space-x-3 group"
+            >
+              <span className="text-2xl group-hover:scale-110 transition-transform">👤</span>
+              <div>
+                <p className="text-tennis-white font-medium">Kullanıcı Yönetimi</p>
+                <p className="text-tennis-white/60 text-sm">Kullanıcıları görüntüle ve düzenle</p>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Toplam Rezervasyon</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalReservations}</p>
-              </div>
-            </div>
-          </div>
+            </a>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-yellow-100 rounded-lg">
-                <span className="text-2xl">⏰</span>
+            <a
+              href="/reservations"
+              className="glass p-4 rounded-xl hover:glass-strong transition-all duration-300 flex items-center space-x-3 group"
+            >
+              <span className="text-2xl group-hover:scale-110 transition-transform">🎾</span>
+              <div>
+                <p className="text-tennis-white font-medium">Rezervasyon Yönetimi</p>
+                <p className="text-tennis-white/60 text-sm">Saatleri blokla ve yönet</p>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Aktif Rezervasyon</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.activeReservations}</p>
-              </div>
-            </div>
-          </div>
+            </a>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-red-100 rounded-lg">
-                <span className="text-2xl">🚫</span>
+            <button
+              onClick={fetchStats}
+              className="glass p-4 rounded-xl hover:glass-strong transition-all duration-300 flex items-center space-x-3 group"
+            >
+              <span className="text-2xl group-hover:scale-110 transition-transform">🔄</span>
+              <div className="text-left">
+                <p className="text-tennis-white font-medium">Yenile</p>
+                <p className="text-tennis-white/60 text-sm">İstatistikleri güncelle</p>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Bloke Edilmiş Saat</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.blockedSlots}</p>
-              </div>
-            </div>
+            </button>
           </div>
         </div>
       </div>
