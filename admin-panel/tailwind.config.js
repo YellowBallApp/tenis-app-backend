@@ -17,7 +17,7 @@ export default {
         'soft-navy': '#2d3748',
       },
       backgroundImage: {
-        'gradient-soft': 'linear-gradient(135deg, #2d3748 0%, #4a5568 50%, #5a67d8 100%)',
+        'gradient-soft': 'none',
       },
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'SF Pro', 'system-ui', 'sans-serif'],
