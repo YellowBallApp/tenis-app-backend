@@ -58,6 +58,7 @@ const ReservationsListScreen = ({ navigation }: any) => {
   const [reservations, setReservations] = useState<any[]>([]);
   const [courts, setCourts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [blockedHours, setBlockedHours] = useState<{[courtId: number]: Array<{hour: number, reason: string | null}>}>({});
 
   const timeSlots = [
     '09:00', '10:00', '11:00', '12:00', '13:00',
@@ -90,7 +91,8 @@ const ReservationsListScreen = ({ navigation }: any) => {
 
   useEffect(() => {
     loadReservations();
-  }, [selectedDate]);
+    loadBlockedHours();
+  }, [selectedDate, courts]);
 
   const loadReservations = async () => {
     try {
@@ -102,6 +104,32 @@ const ReservationsListScreen = ({ navigation }: any) => {
       setReservations([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadBlockedHours = async () => {
+    if (!selectedDate || courts.length === 0) {
+      return;
+    }
+
+    try {
+      const blockedHoursMap: {[courtId: number]: Array<{hour: number, reason: string | null}>} = {};
+      
+      // Her kort için bloke edilmiş saatleri yükle
+      const promises = courts.map(async (court) => {
+        try {
+          const blocked = await reservationService.getBlockedHours(court.id, selectedDate);
+          blockedHoursMap[court.id] = blocked || [];
+        } catch (error) {
+          console.error(`Kort ${court.id} için bloke saatler yüklenirken hata:`, error);
+          blockedHoursMap[court.id] = [];
+        }
+      });
+
+      await Promise.all(promises);
+      setBlockedHours(blockedHoursMap);
+    } catch (error) {
+      console.error('Bloke edilmiş saatler yüklenirken hata:', error);
     }
   };
 
@@ -132,14 +160,38 @@ const ReservationsListScreen = ({ navigation }: any) => {
     });
   };
 
+  const isTimeSlotBlocked = (courtId: number, timeSlot: string): boolean => {
+    const blocked = blockedHours[courtId] || [];
+    const hour = parseInt(timeSlot.split(':')[0]);
+    return blocked.some(bh => bh.hour === hour);
+  };
+
+  const getBlockedReason = (courtId: number, timeSlot: string): string | null => {
+    const blocked = blockedHours[courtId] || [];
+    const hour = parseInt(timeSlot.split(':')[0]);
+    const blockedHour = blocked.find(bh => bh.hour === hour);
+    return blockedHour ? blockedHour.reason : null;
+  };
+
   const renderCell = (courtId: number, timeSlot: string) => {
     const reservation = getReservationForSlot(courtId, timeSlot);
+    const isBlocked = isTimeSlotBlocked(courtId, timeSlot);
+    const blockedReason = getBlockedReason(courtId, timeSlot);
     
     if (reservation) {
       return (
         <View style={styles.reservedCell}>
           <MaterialCommunityIcons name="account-check" size={16} color="#2E7D32" />
           <Text style={styles.reservedText}>{reservation.user.name}</Text>
+        </View>
+      );
+    }
+
+    if (isBlocked) {
+      return (
+        <View style={styles.blockedCell}>
+          <MaterialCommunityIcons name="lock" size={16} color="#F44336" />
+          <Text style={styles.blockedText}>{blockedReason || t('reservation.blocked')}</Text>
         </View>
       );
     }
@@ -256,6 +308,10 @@ const ReservationsListScreen = ({ navigation }: any) => {
         <View style={styles.legendItem}>
           <View style={[styles.legendBox, { backgroundColor: '#F5F5F5' }]} />
           <Text style={styles.legendText}>{t('reservationsList.legendEmpty')}</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendBox, { backgroundColor: '#FFEBEE' }]} />
+          <Text style={styles.legendText}>{t('reservation.blocked')}</Text>
         </View>
       </View>
 
@@ -505,6 +561,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9E9E9E',
     fontStyle: 'italic',
+  },
+  blockedCell: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: '#FFEBEE',
+    borderRadius: 8,
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 4,
+    opacity: 0.8,
+  },
+  blockedText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#F44336',
+    textAlign: 'center',
   },
   legendSection: {
     flexDirection: 'row',

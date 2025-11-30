@@ -4,6 +4,7 @@ import { User } from '../entities/user.entity';
 import { Court } from '../entities/court.entity';
 import { UserType } from '../enum/userType.enum';
 import notificationRepository from '../repositories/notification.repository';
+import blockedTimeSlotRepository from '../repositories/blockedTimeSlot.repository';
 import { NotificationType } from '../enum/notificationType.enum';
 
 export class ReservationService {
@@ -132,6 +133,17 @@ export class ReservationService {
         }
       }
 
+      // Bloke edilmiş zaman dilimi kontrolü
+      const blockedSlots = await blockedTimeSlotRepository.findOverlapping(
+        data.courtId,
+        data.startTime,
+        data.endTime
+      );
+
+      if (blockedSlots.length > 0) {
+        throw new Error('Bu zaman dilimi admin tarafından bloke edilmiş');
+      }
+
       // Çakışma kontrolü
       const conflictingReservation = await this.reservationRepository
         .createQueryBuilder('reservation')
@@ -244,6 +256,45 @@ export class ReservationService {
       return { message: 'Rezervasyon iptal edildi' };
     } catch (error: any) {
       throw new Error(error.message || 'Rezervasyon iptal edilirken bir hata oluştu');
+    }
+  }
+
+  // Belirli bir kort ve tarih için bloke edilmiş saatleri getir
+  async getBlockedTimeSlots(courtId: number, date: string) {
+    try {
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const blockedSlots = await blockedTimeSlotRepository.findAll({
+        courtId,
+        isActive: true,
+        startDate: startOfDay,
+        endDate: endOfDay,
+      });
+
+      // Her bloke edilmiş saat için saat ve reason bilgisini döndür
+      const blockedHoursMap = new Map<number, string | null>();
+      blockedSlots.forEach(slot => {
+        const startTime = new Date(slot.startTime);
+        const hour = startTime.getHours();
+        // Eğer aynı saat için birden fazla reason varsa, ilkini kullan
+        // (genelde aynı saatte tek bir bloklama olur)
+        if (!blockedHoursMap.has(hour) || !blockedHoursMap.get(hour)) {
+          blockedHoursMap.set(hour, slot.reason || null);
+        }
+      });
+
+      // Map'i array'e çevir ve sırala
+      const result = Array.from(blockedHoursMap.entries())
+        .map(([hour, reason]) => ({ hour, reason }))
+        .sort((a, b) => a.hour - b.hour);
+
+      return result;
+    } catch (error) {
+      throw new Error('Bloke edilmiş saatler alınırken bir hata oluştu');
     }
   }
 }

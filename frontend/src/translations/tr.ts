@@ -108,6 +108,7 @@ export default {
     weatherWarningSnowy: 'Bu saatte karlı hava bekleniyor.',
     weatherWarningContinue: 'Devam Et',
     weatherWarningCancel: 'İptal',
+    blocked: 'Bloke edilmiş',
   },
 
   reservationsList: {

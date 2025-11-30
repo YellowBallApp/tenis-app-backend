@@ -115,6 +115,7 @@ const ReservationScreen = () => {
   const [reservationBlocked, setReservationBlocked] = useState(false);
   const [blockReason, setBlockReason] = useState<string>('');
   const [checkingBlockStatus, setCheckingBlockStatus] = useState(true);
+  const [blockedHours, setBlockedHours] = useState<Array<{hour: number, reason: string | null}>>([]);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -300,6 +301,7 @@ const ReservationScreen = () => {
     const fetchCourtReservations = async () => {
       if (!selectedDate || !selectedCourt) {
         setCourtReservations([]);
+        setBlockedHours([]);
         return;
       }
 
@@ -318,9 +320,19 @@ const ReservationScreen = () => {
           // Eğer reservation içinde boolean field'lar varsa normalize et
         }));
         setCourtReservations(normalizedReservations);
+
+        // Bloke edilmiş saatleri çek
+        try {
+          const blocked = await reservationService.getBlockedHours(parseInt(selectedCourt), selectedDate);
+          setBlockedHours(blocked || []);
+        } catch (error) {
+          console.error('Bloke edilmiş saatler yüklenirken hata:', error);
+          setBlockedHours([]);
+        }
       } catch (error) {
         console.error('Kort rezervasyonları yüklenirken hata:', error);
         setCourtReservations([]);
+        setBlockedHours([]);
       }
     };
 
@@ -499,9 +511,30 @@ const ReservationScreen = () => {
     return false;
   };
 
+  // Saatin bloke edilip edilmediğini kontrol et
+  const isTimeSlotBlocked = (timeSlot: string): boolean => {
+    if (!selectedCourt || blockedHours.length === 0) {
+      return false;
+    }
+
+    const hour = parseInt(timeSlot.split(':')[0]);
+    return blockedHours.some(bh => bh.hour === hour);
+  };
+
+  // Saatin bloke edilme nedeni
+  const getBlockedReason = (timeSlot: string): string | null => {
+    if (!selectedCourt || blockedHours.length === 0) {
+      return null;
+    }
+
+    const hour = parseInt(timeSlot.split(':')[0]);
+    const blockedHour = blockedHours.find(bh => bh.hour === hour);
+    return blockedHour ? blockedHour.reason : null;
+  };
+
   // Kullanıcı tipine göre saatin disabled olup olmadığını kontrol et
   const isTimeSlotDisabledForUser = (timeSlot: string): boolean => {
-    // RESTRICTED kullanıcı değilse, tüm saatler müsait
+    // RESTRICTED kullanıcı değilse, sadece bloke kontrolü yap
     if (currentUserType !== 'restricted') {
       return false;
     }
@@ -1015,7 +1048,8 @@ const ReservationScreen = () => {
                     const isReserved = !!reservation;
                     const isDisabledForUserType = !!isTimeSlotDisabledForUser(time);
                     const isTimeInPast = isTimeSlotInPast(time);
-                    const isDisabled = !!(isReserved || isDisabledForUserType || isTimeInPast);
+                    const isBlocked = isTimeSlotBlocked(time);
+                    const isDisabled = !!(isReserved || isDisabledForUserType || isTimeInPast || isBlocked);
                     
                     // Hava durumu bilgisini al (sadece açık kortlar için)
                     const selectedCourtObj = courts.find(c => c.id === parseInt(selectedCourt));
@@ -1081,6 +1115,11 @@ const ReservationScreen = () => {
                             {!!isDisabledForUserType && !isReserved && (
                               <Text style={styles.reservedByText}>
                                 {t('reservation.noPermission')}
+                              </Text>
+                            )}
+                            {!!isBlocked && !isReserved && !isDisabledForUserType && (
+                              <Text style={styles.reservedByText}>
+                                {getBlockedReason(time) || t('reservation.blocked')}
                               </Text>
                             )}
                           </View>

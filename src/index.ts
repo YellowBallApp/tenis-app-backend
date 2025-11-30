@@ -23,6 +23,7 @@ import eloRoutes from "./routes/elo.routes";
 import cronRoutes from "./routes/cron.routes";
 import coachReviewRoutes from "./routes/coachReview.routes";
 import weatherRoutes from "./routes/weather.routes";
+import adminRoutes from "./routes/admin.routes";
 import { getLocalNetworkIP } from "./utils/network";
 import { errorHandler } from "./utils/error/app.error";
 
@@ -49,8 +50,8 @@ const corsOptions = {
         return callback(null, true);
       }
       
-      // Localhost'a izin ver
-      if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      // Localhost'a izin ver (tüm portlar dahil - admin panel için)
+      if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
         return callback(null, true);
       }
       
@@ -73,6 +74,8 @@ const corsOptions = {
     const allowedOrigins = [
       'http://localhost:8081',
       'http://localhost:3000',
+      'http://localhost:5173', // Admin panel
+      'http://127.0.0.1:5173', // Admin panel
     ];
     
     if (origin && allowedOrigins.includes(origin)) {
@@ -139,6 +142,7 @@ app.use("/api/elo", eloRoutes);
 app.use("/api/cron", cronRoutes);
 app.use("/api/coach-reviews", coachReviewRoutes);
 app.use("/api/weather", weatherRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Error handler middleware (tüm route'lardan sonra)
 app.use(errorHandler);

@@ -801,6 +801,14 @@ export const reservationService = {
     const response = await api.delete(`/reservations/${reservationId}`);
     return response.data;
   },
+
+  // Belirli bir kort ve tarih için bloke edilmiş saatleri getir (public endpoint)
+  getBlockedHours: async (courtId: number, date: string) => {
+    const response = await api.get('/reservations/blocked-hours', { 
+      params: { courtId, date } 
+    });
+    return response.data.data || [];
+  },
 };
 
 export const courtService = {

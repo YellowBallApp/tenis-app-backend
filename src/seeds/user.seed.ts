@@ -27,7 +27,7 @@ export const seedUsers = async () => {
         gender: "MALE",
         age: 45,
         title: "Kulüp Yöneticisi",
-        userType: UserType.STANDARD,
+        userType: UserType.ADMIN,
         // ELO: Elite seviye
         eloRating: 2250,
         peakEloRating: 2300,
