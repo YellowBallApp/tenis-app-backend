@@ -153,7 +153,7 @@ const Reservations = () => {
       <Layout>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="glass-strong rounded-2xl p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-soft-green mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-green mx-auto mb-4"></div>
             <p className="text-soft-white/80">Yükleniyor...</p>
           </div>
         </div>
@@ -177,7 +177,7 @@ const Reservations = () => {
                 onClick={() => setViewMode('grid')}
                 className={`px-3 py-2 rounded-lg transition-all duration-300 ${
                   viewMode === 'grid'
-                    ? 'bg-soft-purple text-soft-white font-bold shadow-lg'
+                    ? 'bg-neon-purple text-soft-white font-bold shadow-lg'
                     : 'text-soft-white/70 hover:text-soft-white'
                 }`}
                 title="Kare Görünüm"
@@ -188,7 +188,7 @@ const Reservations = () => {
                 onClick={() => setViewMode('list')}
                 className={`px-3 py-2 rounded-lg transition-all duration-300 ${
                   viewMode === 'list'
-                    ? 'bg-soft-green text-soft-white font-bold shadow-lg'
+                    ? 'bg-neon-green text-soft-white font-bold shadow-lg'
                     : 'text-soft-white/70 hover:text-soft-white'
                 }`}
                 title="Liste Görünüm"
@@ -198,7 +198,7 @@ const Reservations = () => {
             </div>
             <button
               onClick={handleCreate}
-              className="px-6 py-3 bg-soft-green hover:bg-soft-mint text-soft-white font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg"
+              className="px-6 py-3 bg-neon-green hover:bg-neon-green-light text-soft-white font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg"
             >
               + Saat Bloke Et
             </button>
@@ -216,14 +216,14 @@ const Reservations = () => {
                 {/* Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 rounded-xl bg-soft-green flex items-center justify-center text-2xl">
+                    <div className="w-12 h-12 rounded-xl bg-neon-green flex items-center justify-center text-2xl">
                       🎾
                     </div>
                     <div>
                       <h3 className="text-soft-white font-bold text-lg">{slot.court.name}</h3>
                       <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full ${
                         slot.isActive 
-                          ? 'bg-soft-purple text-white'
+                          ? 'bg-neon-purple text-white'
                           : 'bg-slate-600 text-white'
                       } mt-1`}>
                         {slot.isActive ? '🚫 Aktif' : '⏸️ Pasif'}
@@ -268,14 +268,14 @@ const Reservations = () => {
                   <button
                     onClick={() => handleToggleActive(slot)}
                     className={`flex-1 px-3 py-2 glass hover:glass-strong font-medium rounded-lg transition-all duration-300 text-sm ${
-                      slot.isActive ? 'text-soft-purple' : 'text-soft-green'
+                      slot.isActive ? 'text-neon-purple' : 'text-neon-green'
                     }`}
                   >
                     {slot.isActive ? '⏸️ Pasifleştir' : '▶️ Aktifleştir'}
                   </button>
                   <button
                     onClick={() => handleEdit(slot)}
-                    className="flex-1 px-3 py-2 glass hover:glass-strong text-soft-green font-medium rounded-lg transition-all duration-300 text-sm"
+                    className="flex-1 px-3 py-2 glass hover:glass-strong text-neon-green font-medium rounded-lg transition-all duration-300 text-sm"
                   >
                     ✏️ Düzenle
                   </button>
@@ -298,22 +298,22 @@ const Reservations = () => {
               <table className="w-full">
                 <thead className="glass-strong border-b border-white/10">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-soft-purple uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-neon-purple uppercase tracking-wider">
                       Kort
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-soft-purple uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-neon-purple uppercase tracking-wider">
                       Başlangıç
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-soft-purple uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-neon-purple uppercase tracking-wider">
                       Bitiş
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-soft-purple uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-neon-purple uppercase tracking-wider">
                       Neden
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-soft-purple uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-neon-purple uppercase tracking-wider">
                       Durum
                     </th>
-                    <th className="px-6 py-4 text-right text-xs font-bold text-soft-purple uppercase tracking-wider">
+                    <th className="px-6 py-4 text-right text-xs font-bold text-neon-purple uppercase tracking-wider">
                       İşlemler
                     </th>
                   </tr>
@@ -323,7 +323,7 @@ const Reservations = () => {
                     <tr key={slot.id} className="hover:bg-white/5 transition-colors duration-200">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 rounded-lg bg-soft-green flex items-center justify-center text-xl">
+                          <div className="w-10 h-10 rounded-lg bg-neon-green flex items-center justify-center text-xl">
                             🎾
                           </div>
                           <div className="text-sm font-bold text-soft-white">{slot.court.name}</div>
@@ -345,7 +345,7 @@ const Reservations = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-3 py-1 text-xs font-bold rounded-full ${
                           slot.isActive 
-                            ? 'bg-soft-purple text-white'
+                            ? 'bg-neon-purple text-white'
                             : 'bg-slate-600 text-white'
                         }`}>
                           {slot.isActive ? '🚫 Aktif' : '⏸️ Pasif'}
@@ -355,14 +355,14 @@ const Reservations = () => {
                         <button
                           onClick={() => handleToggleActive(slot)}
                         className={`mr-3 transition-colors ${
-                          slot.isActive ? 'text-soft-purple hover:text-soft-lavender' : 'text-soft-green hover:text-soft-mint'
+                          slot.isActive ? 'text-neon-purple hover:text-neon-purple-light' : 'text-neon-green hover:text-neon-green-light'
                         }`}
                         >
                           {slot.isActive ? '⏸️' : '▶️'}
                         </button>
                       <button
                         onClick={() => handleEdit(slot)}
-                        className="text-soft-green hover:text-soft-mint mr-3 transition-colors"
+                        className="text-neon-green hover:text-neon-green-light mr-3 transition-colors"
                       >
                         ✏️
                       </button>
@@ -401,7 +401,7 @@ const Reservations = () => {
                   </label>
                   <select
                     required
-                    className="glass w-full px-4 py-3 text-soft-white rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all"
+                    className="glass w-full px-4 py-3 text-soft-white rounded-lg focus:outline-none focus:ring-2 focus:ring-neon-purple transition-all"
                     value={formData.courtId}
                     onChange={(e) => setFormData({ ...formData, courtId: e.target.value })}
                     disabled={!!editingSlot}
@@ -424,7 +424,7 @@ const Reservations = () => {
                       <input
                         type="date"
                         required
-                        className="glass w-full px-4 py-3 text-soft-white rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all"
+                        className="glass w-full px-4 py-3 text-soft-white rounded-lg focus:outline-none focus:ring-2 focus:ring-neon-purple transition-all"
                         value={formData.startDate}
                         onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                         min={new Date().toISOString().split('T')[0]}
@@ -437,7 +437,7 @@ const Reservations = () => {
                       <input
                         type="date"
                         required
-                        className="glass w-full px-4 py-3 text-soft-white rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all"
+                        className="glass w-full px-4 py-3 text-soft-white rounded-lg focus:outline-none focus:ring-2 focus:ring-neon-purple transition-all"
                         value={formData.endDate}
                         onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                         min={formData.startDate || new Date().toISOString().split('T')[0]}
@@ -457,7 +457,7 @@ const Reservations = () => {
                               key={hour}
                               className={`flex items-center justify-center space-x-2 cursor-pointer p-3 rounded-lg transition-all duration-300 ${
                                 formData.selectedHours.includes(hour)
-                                  ? 'bg-gradient-to-r from-soft-purple to-soft-lavender text-soft-navy font-bold shadow-lg'
+                                  ? 'bg-gradient-to-r from-neon-purple to-neon-purple-light text-soft-navy font-bold shadow-lg'
                                   : 'glass-strong hover:glass text-soft-white/80'
                               }`}
                             >
@@ -475,7 +475,7 @@ const Reservations = () => {
                         </div>
                       </div>
                       {formData.selectedHours.length > 0 && (
-                        <p className="text-sm text-soft-green mt-2">
+                        <p className="text-sm text-neon-green mt-2">
                           ✓ {formData.selectedHours.length} saat seçildi: {formData.selectedHours.map(h => `${h}:00`).join(', ')}
                         </p>
                       )}
@@ -492,7 +492,7 @@ const Reservations = () => {
                       <input
                         type="datetime-local"
                         required
-                        className="glass w-full px-4 py-3 text-soft-white rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all"
+                        className="glass w-full px-4 py-3 text-soft-white rounded-lg focus:outline-none focus:ring-2 focus:ring-neon-purple transition-all"
                         value={formData.startDate}
                         onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                       />
@@ -504,7 +504,7 @@ const Reservations = () => {
                       <input
                         type="datetime-local"
                         required
-                        className="glass w-full px-4 py-3 text-soft-white rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all"
+                        className="glass w-full px-4 py-3 text-soft-white rounded-lg focus:outline-none focus:ring-2 focus:ring-neon-purple transition-all"
                         value={formData.endDate}
                         onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                       />
@@ -517,7 +517,7 @@ const Reservations = () => {
                     Neden
                   </label>
                   <textarea
-                    className="glass w-full px-4 py-3 text-soft-white placeholder-soft-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all resize-none"
+                    className="glass w-full px-4 py-3 text-soft-white placeholder-soft-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-neon-purple transition-all resize-none"
                     rows={3}
                     value={formData.reason}
                     onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
@@ -534,7 +534,7 @@ const Reservations = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-3 bg-soft-green hover:bg-soft-mint text-soft-white font-bold rounded-lg hover:scale-105 transition-all shadow-lg"
+                    className="flex-1 px-4 py-3 bg-neon-green hover:bg-neon-green-light text-soft-white font-bold rounded-lg hover:scale-105 transition-all shadow-lg"
                   >
                     {editingSlot ? 'Güncelle' : 'Oluştur'}
                   </button>

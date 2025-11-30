@@ -7,13 +7,14 @@ export default {
   theme: {
     extend: {
       colors: {
-        'soft-green': '#7ed957',
-        'soft-mint': '#98e4b8',
-        'soft-purple': '#b794f6',
-        'soft-lavender': '#d5b4f7',
+        'neon-green': '#00FF00',
+        'neon-green-light': '#66FF66',
+        'neon-green-dark': '#00CC00',
+        'neon-purple': '#A020F0',
+        'neon-purple-light': '#C066F5',
+        'neon-purple-dark': '#8010D0',
         'soft-white': '#f8f9fa',
         'soft-navy': '#2d3748',
-        'soft-sage': '#8fbc8f',
       },
       backgroundImage: {
         'gradient-soft': 'linear-gradient(135deg, #2d3748 0%, #4a5568 50%, #5a67d8 100%)',

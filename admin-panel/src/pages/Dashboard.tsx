@@ -48,7 +48,7 @@ const Dashboard = () => {
       <Layout>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="glass-strong rounded-2xl p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-soft-green mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-green mx-auto mb-4"></div>
             <p className="text-soft-white/80">Yükleniyor...</p>
           </div>
         </div>
@@ -61,25 +61,25 @@ const Dashboard = () => {
       title: 'Toplam Kullanıcı',
       value: stats.totalUsers,
       icon: '👥',
-      color: 'bg-soft-purple',
+      color: 'bg-neon-purple',
     },
     {
       title: 'Toplam Rezervasyon',
       value: stats.totalReservations,
       icon: '📅',
-      color: 'bg-soft-green',
+      color: 'bg-neon-green',
     },
     {
       title: 'Aktif Rezervasyon',
       value: stats.activeReservations,
       icon: '⏰',
-      color: 'bg-soft-mint',
+      color: 'bg-neon-green-light',
     },
     {
       title: 'Bloke Edilmiş Saat',
       value: stats.blockedSlots,
       icon: '🚫',
-      color: 'bg-soft-sage',
+      color: 'bg-neon-green-dark',
     }
   ];
 
