@@ -48,8 +48,8 @@ const Dashboard = () => {
       <Layout>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="glass-strong rounded-2xl p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-tennis-lime mx-auto mb-4"></div>
-            <p className="text-tennis-white/80">Yükleniyor...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-soft-green mx-auto mb-4"></div>
+            <p className="text-soft-white/80">Yükleniyor...</p>
           </div>
         </div>
       </Layout>
@@ -61,28 +61,28 @@ const Dashboard = () => {
       title: 'Toplam Kullanıcı',
       value: stats.totalUsers,
       icon: '👥',
-      gradient: 'from-tennis-accent to-tennis-green',
-      glow: 'glow-green'
+      gradient: 'from-soft-purple to-soft-lavender',
+      glow: 'glow-purple'
     },
     {
       title: 'Toplam Rezervasyon',
       value: stats.totalReservations,
       icon: '📅',
-      gradient: 'from-tennis-green to-emerald-600',
+      gradient: 'from-soft-mint to-soft-green',
       glow: 'glow-green'
     },
     {
       title: 'Aktif Rezervasyon',
       value: stats.activeReservations,
       icon: '⏰',
-      gradient: 'from-tennis-lime to-tennis-green',
-      glow: 'glow-lime'
+      gradient: 'from-soft-green to-soft-sage',
+      glow: 'glow-mint'
     },
     {
       title: 'Bloke Edilmiş Saat',
       value: stats.blockedSlots,
       icon: '🚫',
-      gradient: 'from-emerald-700 to-teal-800',
+      gradient: 'from-soft-sage to-emerald-600',
       glow: ''
     }
   ];
@@ -92,8 +92,8 @@ const Dashboard = () => {
       <div className="space-y-8">
         {/* Header */}
         <div className="glass-strong rounded-2xl p-6">
-          <h1 className="text-3xl font-bold text-tennis-white mb-2">Dashboard</h1>
-          <p className="text-tennis-white/70">Sistem genel durumu ve istatistikler</p>
+          <h1 className="text-3xl font-bold text-soft-white mb-2">Dashboard</h1>
+          <p className="text-soft-white/70">Sistem genel durumu ve istatistikler</p>
         </div>
         
         {/* Stats Grid */}
@@ -108,15 +108,15 @@ const Dashboard = () => {
                   <span className="text-3xl">{stat.icon}</span>
                 </div>
               </div>
-              <p className="text-sm font-medium text-tennis-white/70 mb-2">{stat.title}</p>
-              <p className="text-4xl font-bold text-tennis-white">{stat.value}</p>
+              <p className="text-sm font-medium text-soft-white/70 mb-2">{stat.title}</p>
+              <p className="text-4xl font-bold text-soft-white">{stat.value}</p>
             </div>
           ))}
         </div>
 
         {/* Quick Actions */}
         <div className="glass-strong rounded-2xl p-6">
-          <h2 className="text-xl font-bold text-tennis-white mb-4">Hızlı İşlemler</h2>
+          <h2 className="text-xl font-bold text-soft-white mb-4">Hızlı İşlemler</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <a
               href="/users"
@@ -124,8 +124,8 @@ const Dashboard = () => {
             >
               <span className="text-2xl group-hover:scale-110 transition-transform">👤</span>
               <div>
-                <p className="text-tennis-white font-medium">Kullanıcı Yönetimi</p>
-                <p className="text-tennis-white/60 text-sm">Kullanıcıları görüntüle ve düzenle</p>
+                <p className="text-soft-white font-medium">Kullanıcı Yönetimi</p>
+                <p className="text-soft-white/60 text-sm">Kullanıcıları görüntüle ve düzenle</p>
               </div>
             </a>
 
@@ -135,8 +135,8 @@ const Dashboard = () => {
             >
               <span className="text-2xl group-hover:scale-110 transition-transform">🎾</span>
               <div>
-                <p className="text-tennis-white font-medium">Rezervasyon Yönetimi</p>
-                <p className="text-tennis-white/60 text-sm">Saatleri blokla ve yönet</p>
+                <p className="text-soft-white font-medium">Rezervasyon Yönetimi</p>
+                <p className="text-soft-white/60 text-sm">Saatleri blokla ve yönet</p>
               </div>
             </a>
 
@@ -146,8 +146,8 @@ const Dashboard = () => {
             >
               <span className="text-2xl group-hover:scale-110 transition-transform">🔄</span>
               <div className="text-left">
-                <p className="text-tennis-white font-medium">Yenile</p>
-                <p className="text-tennis-white/60 text-sm">İstatistikleri güncelle</p>
+                <p className="text-soft-white font-medium">Yenile</p>
+                <p className="text-soft-white/60 text-sm">İstatistikleri güncelle</p>
               </div>
             </button>
           </div>

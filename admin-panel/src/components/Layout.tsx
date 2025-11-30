@@ -30,7 +30,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="flex items-center justify-center h-20 border-b border-white/10">
             <div className="flex items-center space-x-3">
               <span className="text-4xl">🎾</span>
-              <h1 className="text-tennis-white text-xl font-bold">Admin Panel</h1>
+              <h1 className="text-soft-white text-xl font-bold">Admin Panel</h1>
             </div>
           </div>
           
@@ -42,8 +42,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 to={item.path}
                 className={`flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-300 ${
                   location.pathname === item.path
-                    ? 'bg-gradient-to-r from-tennis-lime to-tennis-green text-tennis-navy shadow-lg glow-lime'
-                    : 'text-tennis-white/80 hover:bg-white/10 hover:text-tennis-white'
+                    ? 'bg-gradient-to-r from-soft-purple to-soft-lavender text-soft-navy shadow-lg glow-mint'
+                    : 'text-soft-white/80 hover:bg-white/10 hover:text-soft-white'
                 }`}
               >
                 <span className="mr-3 text-xl">{item.icon}</span>
@@ -55,14 +55,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           {/* User Info & Logout */}
           <div className="p-4 border-t border-white/10">
             <div className="glass rounded-xl p-4 mb-3">
-              <div className="text-sm text-tennis-white">
+              <div className="text-sm text-soft-white">
                 <div className="font-bold mb-1">{user?.name}</div>
-                <div className="text-xs text-tennis-white/60 truncate">{user?.email}</div>
+                <div className="text-xs text-soft-white/60 truncate">{user?.email}</div>
               </div>
             </div>
             <button
               onClick={handleLogout}
-              className="w-full px-4 py-3 text-sm font-bold text-tennis-navy bg-gradient-to-r from-tennis-lime/90 to-tennis-green/90 hover:from-tennis-lime hover:to-tennis-green rounded-xl transition-all duration-300 shadow-lg"
+              className="w-full px-4 py-3 text-sm font-bold text-soft-navy bg-gradient-to-r from-soft-green/90 to-soft-mint/90 hover:from-soft-green hover:to-soft-mint rounded-xl transition-all duration-300 shadow-lg"
             >
               Çıkış Yap 🚪
             </button>

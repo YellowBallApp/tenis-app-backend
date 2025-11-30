@@ -153,8 +153,8 @@ const Reservations = () => {
       <Layout>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="glass-strong rounded-2xl p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-tennis-lime mx-auto mb-4"></div>
-            <p className="text-tennis-white/80">Yükleniyor...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-soft-green mx-auto mb-4"></div>
+            <p className="text-soft-white/80">Yükleniyor...</p>
           </div>
         </div>
       </Layout>
@@ -167,8 +167,8 @@ const Reservations = () => {
         {/* Header */}
         <div className="glass-strong rounded-2xl p-6 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-tennis-white mb-2">Rezervasyon Saatleri Yönetimi</h1>
-            <p className="text-tennis-white/70">Toplam {blockedSlots.length} bloke edilmiş saat</p>
+            <h1 className="text-3xl font-bold text-soft-white mb-2">Rezervasyon Saatleri Yönetimi</h1>
+            <p className="text-soft-white/70">Toplam {blockedSlots.length} bloke edilmiş saat</p>
           </div>
           <div className="flex space-x-3">
             {/* View Toggle */}
@@ -177,8 +177,8 @@ const Reservations = () => {
                 onClick={() => setViewMode('grid')}
                 className={`px-3 py-2 rounded-lg transition-all duration-300 ${
                   viewMode === 'grid'
-                    ? 'bg-gradient-to-r from-tennis-lime to-tennis-green text-tennis-navy font-bold shadow-lg'
-                    : 'text-tennis-white/70 hover:text-tennis-white'
+                    ? 'bg-gradient-to-r from-soft-purple to-soft-lavender text-soft-navy font-bold shadow-lg'
+                    : 'text-soft-white/70 hover:text-soft-white'
                 }`}
                 title="Kare Görünüm"
               >
@@ -188,8 +188,8 @@ const Reservations = () => {
                 onClick={() => setViewMode('list')}
                 className={`px-3 py-2 rounded-lg transition-all duration-300 ${
                   viewMode === 'list'
-                    ? 'bg-gradient-to-r from-tennis-lime to-tennis-green text-tennis-navy font-bold shadow-lg'
-                    : 'text-tennis-white/70 hover:text-tennis-white'
+                    ? 'bg-gradient-to-r from-soft-purple to-soft-lavender text-soft-navy font-bold shadow-lg'
+                    : 'text-soft-white/70 hover:text-soft-white'
                 }`}
                 title="Liste Görünüm"
               >
@@ -198,7 +198,7 @@ const Reservations = () => {
             </div>
             <button
               onClick={handleCreate}
-              className="px-6 py-3 bg-gradient-to-r from-tennis-lime to-tennis-green text-tennis-navy font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg glow-lime"
+              className="px-6 py-3 bg-gradient-to-r from-soft-purple to-soft-lavender text-soft-navy font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg glow-mint"
             >
               + Saat Bloke Et
             </button>
@@ -216,11 +216,11 @@ const Reservations = () => {
                 {/* Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-tennis-lime to-tennis-green flex items-center justify-center text-2xl glow-lime">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-soft-purple to-soft-lavender flex items-center justify-center text-2xl glow-mint">
                       🎾
                     </div>
                     <div>
-                      <h3 className="text-tennis-white font-bold text-lg">{slot.court.name}</h3>
+                      <h3 className="text-soft-white font-bold text-lg">{slot.court.name}</h3>
                       <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full ${
                         slot.isActive 
                           ? 'bg-gradient-to-r from-emerald-700 to-teal-800 text-white'
@@ -235,30 +235,30 @@ const Reservations = () => {
                 {/* Time Info */}
                 <div className="space-y-3 mb-4">
                   <div className="glass rounded-lg p-3">
-                    <div className="flex items-center space-x-2 text-tennis-white/80 mb-1">
+                    <div className="flex items-center space-x-2 text-soft-white/80 mb-1">
                       <span className="text-sm">🕐</span>
-                      <span className="text-xs text-tennis-white/60">Başlangıç</span>
+                      <span className="text-xs text-soft-white/60">Başlangıç</span>
                     </div>
-                    <span className="text-tennis-white font-medium">
+                    <span className="text-soft-white font-medium">
                       {new Date(slot.startTime).toLocaleString('tr-TR')}
                     </span>
                   </div>
                   <div className="glass rounded-lg p-3">
-                    <div className="flex items-center space-x-2 text-tennis-white/80 mb-1">
+                    <div className="flex items-center space-x-2 text-soft-white/80 mb-1">
                       <span className="text-sm">🕐</span>
-                      <span className="text-xs text-tennis-white/60">Bitiş</span>
+                      <span className="text-xs text-soft-white/60">Bitiş</span>
                     </div>
-                    <span className="text-tennis-white font-medium">
+                    <span className="text-soft-white font-medium">
                       {new Date(slot.endTime).toLocaleString('tr-TR')}
                     </span>
                   </div>
                   {slot.reason && (
                     <div className="glass rounded-lg p-3">
-                      <div className="flex items-center space-x-2 text-tennis-white/80 mb-1">
+                      <div className="flex items-center space-x-2 text-soft-white/80 mb-1">
                         <span className="text-sm">📝</span>
-                        <span className="text-xs text-tennis-white/60">Neden</span>
+                        <span className="text-xs text-soft-white/60">Neden</span>
                       </div>
-                      <span className="text-tennis-white/90 text-sm">{slot.reason}</span>
+                      <span className="text-soft-white/90 text-sm">{slot.reason}</span>
                     </div>
                   )}
                 </div>
@@ -268,20 +268,20 @@ const Reservations = () => {
                   <button
                     onClick={() => handleToggleActive(slot)}
                     className={`flex-1 px-3 py-2 glass hover:glass-strong font-medium rounded-lg transition-all duration-300 text-sm ${
-                      slot.isActive ? 'text-tennis-lime' : 'text-tennis-green'
+                      slot.isActive ? 'text-soft-purple' : 'text-soft-mint'
                     }`}
                   >
                     {slot.isActive ? '⏸️ Pasifleştir' : '▶️ Aktifleştir'}
                   </button>
                   <button
                     onClick={() => handleEdit(slot)}
-                    className="flex-1 px-3 py-2 glass hover:glass-strong text-tennis-lime font-medium rounded-lg transition-all duration-300 text-sm"
+                    className="flex-1 px-3 py-2 glass hover:glass-strong text-soft-purple font-medium rounded-lg transition-all duration-300 text-sm"
                   >
                     ✏️ Düzenle
                   </button>
                   <button
                     onClick={() => handleDelete(slot.id)}
-                    className="flex-1 px-3 py-2 glass hover:glass-strong text-tennis-white/80 hover:text-tennis-white font-medium rounded-lg transition-all duration-300 text-sm"
+                    className="flex-1 px-3 py-2 glass hover:glass-strong text-soft-white/80 hover:text-soft-white font-medium rounded-lg transition-all duration-300 text-sm"
                   >
                     🗑️ Sil
                   </button>
@@ -298,22 +298,22 @@ const Reservations = () => {
               <table className="w-full">
                 <thead className="glass-strong border-b border-white/10">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-tennis-lime uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-soft-purple uppercase tracking-wider">
                       Kort
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-tennis-lime uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-soft-purple uppercase tracking-wider">
                       Başlangıç
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-tennis-lime uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-soft-purple uppercase tracking-wider">
                       Bitiş
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-tennis-lime uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-soft-purple uppercase tracking-wider">
                       Neden
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-tennis-lime uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-soft-purple uppercase tracking-wider">
                       Durum
                     </th>
-                    <th className="px-6 py-4 text-right text-xs font-bold text-tennis-lime uppercase tracking-wider">
+                    <th className="px-6 py-4 text-right text-xs font-bold text-soft-purple uppercase tracking-wider">
                       İşlemler
                     </th>
                   </tr>
@@ -323,24 +323,24 @@ const Reservations = () => {
                     <tr key={slot.id} className="hover:bg-white/5 transition-colors duration-200">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-tennis-lime to-tennis-green flex items-center justify-center text-xl">
+                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-soft-purple to-soft-lavender flex items-center justify-center text-xl">
                             🎾
                           </div>
-                          <div className="text-sm font-bold text-tennis-white">{slot.court.name}</div>
+                          <div className="text-sm font-bold text-soft-white">{slot.court.name}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-tennis-white/80">
+                        <div className="text-sm text-soft-white/80">
                           {new Date(slot.startTime).toLocaleString('tr-TR')}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-tennis-white/80">
+                        <div className="text-sm text-soft-white/80">
                           {new Date(slot.endTime).toLocaleString('tr-TR')}
                         </div>
                       </td>
                       <td className="px-6 py-4 max-w-xs">
-                        <div className="text-sm text-tennis-white/80 truncate">{slot.reason || '-'}</div>
+                        <div className="text-sm text-soft-white/80 truncate">{slot.reason || '-'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-3 py-1 text-xs font-bold rounded-full ${
@@ -355,20 +355,20 @@ const Reservations = () => {
                         <button
                           onClick={() => handleToggleActive(slot)}
                           className={`mr-3 transition-colors ${
-                            slot.isActive ? 'text-tennis-lime hover:text-tennis-green' : 'text-tennis-green hover:text-tennis-lime'
+                            slot.isActive ? 'text-soft-purple hover:text-soft-mint' : 'text-soft-mint hover:text-soft-purple'
                           }`}
                         >
                           {slot.isActive ? '⏸️' : '▶️'}
                         </button>
                         <button
                           onClick={() => handleEdit(slot)}
-                          className="text-tennis-lime hover:text-tennis-green mr-3 transition-colors"
+                          className="text-soft-purple hover:text-soft-mint mr-3 transition-colors"
                         >
                           ✏️
                         </button>
                         <button
                           onClick={() => handleDelete(slot.id)}
-                          className="text-tennis-white/70 hover:text-tennis-white transition-colors"
+                          className="text-soft-white/70 hover:text-soft-white transition-colors"
                         >
                           🗑️
                         </button>
@@ -383,7 +383,7 @@ const Reservations = () => {
 
         {blockedSlots.length === 0 && (
           <div className="glass-strong rounded-2xl p-12 text-center">
-            <p className="text-tennis-white/60 text-lg">Bloke edilmiş zaman dilimi bulunmuyor</p>
+            <p className="text-soft-white/60 text-lg">Bloke edilmiş zaman dilimi bulunmuyor</p>
           </div>
         )}
 
@@ -391,17 +391,17 @@ const Reservations = () => {
         {showModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
             <div className="glass-strong rounded-2xl p-8 w-full max-w-2xl shadow-2xl border border-white/20 max-h-[90vh] overflow-y-auto">
-              <h3 className="text-2xl font-bold text-tennis-white mb-6">
+              <h3 className="text-2xl font-bold text-soft-white mb-6">
                 {editingSlot ? '✏️ Bloklama Düzenle' : '➕ Yeni Saat Bloklama'}
               </h3>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-tennis-white/90 mb-2">
+                  <label className="block text-sm font-medium text-soft-white/90 mb-2">
                     Kort *
                   </label>
                   <select
                     required
-                    className="glass w-full px-4 py-3 text-tennis-white rounded-lg focus:outline-none focus:ring-2 focus:ring-tennis-lime transition-all"
+                    className="glass w-full px-4 py-3 text-soft-white rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all"
                     value={formData.courtId}
                     onChange={(e) => setFormData({ ...formData, courtId: e.target.value })}
                     disabled={!!editingSlot}
@@ -418,36 +418,36 @@ const Reservations = () => {
                 {!editingSlot && (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-tennis-white/90 mb-2">
+                      <label className="block text-sm font-medium text-soft-white/90 mb-2">
                         Başlangıç Tarihi *
                       </label>
                       <input
                         type="date"
                         required
-                        className="glass w-full px-4 py-3 text-tennis-white rounded-lg focus:outline-none focus:ring-2 focus:ring-tennis-lime transition-all"
+                        className="glass w-full px-4 py-3 text-soft-white rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all"
                         value={formData.startDate}
                         onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                         min={new Date().toISOString().split('T')[0]}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-tennis-white/90 mb-2">
+                      <label className="block text-sm font-medium text-soft-white/90 mb-2">
                         Bitiş Tarihi *
                       </label>
                       <input
                         type="date"
                         required
-                        className="glass w-full px-4 py-3 text-tennis-white rounded-lg focus:outline-none focus:ring-2 focus:ring-tennis-lime transition-all"
+                        className="glass w-full px-4 py-3 text-soft-white rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all"
                         value={formData.endDate}
                         onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                         min={formData.startDate || new Date().toISOString().split('T')[0]}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-tennis-white/90 mb-2">
+                      <label className="block text-sm font-medium text-soft-white/90 mb-2">
                         Bloke Edilecek Saatler *
                       </label>
-                      <p className="text-xs text-tennis-white/60 mb-3">
+                      <p className="text-xs text-soft-white/60 mb-3">
                         Seçilen saatler, belirtilen tarih aralığındaki her gün için bloke edilecektir
                       </p>
                       <div className="glass rounded-lg p-4 max-h-64 overflow-y-auto">
@@ -457,8 +457,8 @@ const Reservations = () => {
                               key={hour}
                               className={`flex items-center justify-center space-x-2 cursor-pointer p-3 rounded-lg transition-all duration-300 ${
                                 formData.selectedHours.includes(hour)
-                                  ? 'bg-gradient-to-r from-tennis-lime to-tennis-green text-tennis-navy font-bold shadow-lg'
-                                  : 'glass-strong hover:glass text-tennis-white/80'
+                                  ? 'bg-gradient-to-r from-soft-purple to-soft-lavender text-soft-navy font-bold shadow-lg'
+                                  : 'glass-strong hover:glass text-soft-white/80'
                               }`}
                             >
                               <input
@@ -475,7 +475,7 @@ const Reservations = () => {
                         </div>
                       </div>
                       {formData.selectedHours.length > 0 && (
-                        <p className="text-sm text-tennis-lime mt-2">
+                        <p className="text-sm text-soft-purple mt-2">
                           ✓ {formData.selectedHours.length} saat seçildi: {formData.selectedHours.map(h => `${h}:00`).join(', ')}
                         </p>
                       )}
@@ -486,25 +486,25 @@ const Reservations = () => {
                 {editingSlot && (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-tennis-white/90 mb-2">
+                      <label className="block text-sm font-medium text-soft-white/90 mb-2">
                         Başlangıç Zamanı *
                       </label>
                       <input
                         type="datetime-local"
                         required
-                        className="glass w-full px-4 py-3 text-tennis-white rounded-lg focus:outline-none focus:ring-2 focus:ring-tennis-lime transition-all"
+                        className="glass w-full px-4 py-3 text-soft-white rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all"
                         value={formData.startDate}
                         onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-tennis-white/90 mb-2">
+                      <label className="block text-sm font-medium text-soft-white/90 mb-2">
                         Bitiş Zamanı *
                       </label>
                       <input
                         type="datetime-local"
                         required
-                        className="glass w-full px-4 py-3 text-tennis-white rounded-lg focus:outline-none focus:ring-2 focus:ring-tennis-lime transition-all"
+                        className="glass w-full px-4 py-3 text-soft-white rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all"
                         value={formData.endDate}
                         onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                       />
@@ -513,11 +513,11 @@ const Reservations = () => {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-tennis-white/90 mb-2">
+                  <label className="block text-sm font-medium text-soft-white/90 mb-2">
                     Neden
                   </label>
                   <textarea
-                    className="glass w-full px-4 py-3 text-tennis-white placeholder-tennis-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-tennis-lime transition-all resize-none"
+                    className="glass w-full px-4 py-3 text-soft-white placeholder-soft-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all resize-none"
                     rows={3}
                     value={formData.reason}
                     onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
@@ -528,13 +528,13 @@ const Reservations = () => {
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="flex-1 px-4 py-3 glass hover:glass-strong text-tennis-white font-medium rounded-lg transition-all"
+                    className="flex-1 px-4 py-3 glass hover:glass-strong text-soft-white font-medium rounded-lg transition-all"
                   >
                     İptal
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-tennis-lime to-tennis-green text-tennis-navy font-bold rounded-lg hover:scale-105 transition-all shadow-lg"
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-soft-purple to-soft-lavender text-soft-navy font-bold rounded-lg hover:scale-105 transition-all shadow-lg"
                   >
                     {editingSlot ? 'Güncelle' : 'Oluştur'}
                   </button>

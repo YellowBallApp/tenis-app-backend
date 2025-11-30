@@ -3,16 +3,16 @@
 @tailwind utilities;
 
 :root {
-  --tennis-green: #10b981;
-  --tennis-lime: #a8e063;
-  --tennis-purple: #a855f7;
-  --tennis-purple-dark: #7c3aed;
-  --tennis-white: #f8f9fa;
-  --tennis-navy: #0f1419;
-  --tennis-accent: #56ab2f;
-  --glow-green: rgba(168, 224, 99, 0.4);
-  --glow-purple: rgba(168, 85, 247, 0.4);
-  --glow-lime: rgba(168, 224, 99, 0.6);
+  --soft-green: #7ed957;
+  --soft-mint: #98e4b8;
+  --soft-purple: #b794f6;
+  --soft-lavender: #d5b4f7;
+  --soft-white: #f8f9fa;
+  --soft-navy: #2d3748;
+  --soft-sage: #8fbc8f;
+  --glow-green: rgba(126, 217, 87, 0.4);
+  --glow-purple: rgba(183, 148, 246, 0.4);
+  --glow-mint: rgba(152, 228, 184, 0.5);
 }
 
 * {
@@ -23,8 +23,8 @@ body {
   margin: 0;
   padding: 0;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro', system-ui, sans-serif;
-  background: linear-gradient(135deg, #0f1419 0%, #1a4d2e 100%);
-  color: var(--tennis-white);
+  background: linear-gradient(135deg, #2d3748 0%, #4a5568 50%, #5a67d8 100%);
+  color: var(--soft-white);
   min-height: 100vh;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
@@ -70,8 +70,8 @@ p {
 
 /* Neumorphic styles */
 .neumorphic {
-  background: linear-gradient(145deg, #1a5230, #153f26);
-  box-shadow: 8px 8px 16px #0d2817, -8px -8px 16px #27723f;
+  background: linear-gradient(145deg, #667eea, #5a67d8);
+  box-shadow: 8px 8px 16px #4a5568, -8px -8px 16px #7c8ba1;
 }
 
 /* Glow effects */
@@ -97,10 +97,10 @@ p {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--tennis-lime);
+  background: var(--soft-mint);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--tennis-accent);
+  background: var(--soft-green);
 }
