@@ -7,12 +7,12 @@ export default {
   theme: {
     extend: {
       colors: {
-        'neon-green': '#00FF00',
-        'neon-green-light': '#66FF66',
-        'neon-green-dark': '#00CC00',
-        'neon-purple': '#A020F0',
-        'neon-purple-light': '#C066F5',
-        'neon-purple-dark': '#8010D0',
+        'soft-green': '#7ed957',
+        'soft-green-light': '#9fe673',
+        'soft-green-dark': '#5cb83a',
+        'soft-purple': '#b794f6',
+        'soft-purple-light': '#d0b4f9',
+        'soft-purple-dark': '#9567e8',
         'soft-white': '#f8f9fa',
         'soft-navy': '#2d3748',
       },

@@ -42,7 +42,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 to={item.path}
                 className={`flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-300 ${
                   location.pathname === item.path
-                    ? 'bg-gradient-to-r from-neon-purple to-neon-purple-light text-soft-navy shadow-lg glow-mint'
+                    ? 'bg-gradient-to-r from-soft-purple to-soft-purple-light text-soft-navy shadow-lg glow-mint'
                     : 'text-soft-white/80 hover:bg-white/10 hover:text-soft-white'
                 }`}
               >
@@ -62,7 +62,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
             <button
               onClick={handleLogout}
-              className="w-full px-4 py-3 text-sm font-bold text-soft-white bg-neon-green hover:bg-neon-green-light rounded-xl transition-all duration-300 shadow-lg"
+              className="w-full px-4 py-3 text-sm font-bold text-soft-white bg-soft-green hover:bg-soft-green-light rounded-xl transition-all duration-300 shadow-lg"
             >
               Çıkış Yap 🚪
             </button>

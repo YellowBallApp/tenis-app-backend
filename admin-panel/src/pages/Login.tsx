@@ -60,7 +60,7 @@ const Login = () => {
                 type="email"
                 autoComplete="email"
                 required
-                className="glass appearance-none relative block w-full px-4 py-3 text-soft-white placeholder-soft-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-neon-purple focus:border-transparent transition-all duration-300"
+                className="glass appearance-none relative block w-full px-4 py-3 text-soft-white placeholder-soft-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple focus:border-transparent transition-all duration-300"
                 placeholder="admin@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -77,7 +77,7 @@ const Login = () => {
                 type="password"
                 autoComplete="current-password"
                 required
-                className="glass appearance-none relative block w-full px-4 py-3 text-soft-white placeholder-soft-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-neon-purple focus:border-transparent transition-all duration-300"
+                className="glass appearance-none relative block w-full px-4 py-3 text-soft-white placeholder-soft-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple focus:border-transparent transition-all duration-300"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -89,7 +89,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center items-center py-3 px-4 text-sm font-bold rounded-lg text-soft-navy bg-gradient-to-r from-neon-purple to-neon-purple-light hover:from-neon-green-light hover:to-neon-green-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neon-purple disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-neon-green/50"
+              className="group relative w-full flex justify-center items-center py-3 px-4 text-sm font-bold rounded-lg text-soft-navy bg-gradient-to-r from-soft-purple to-soft-purple-light hover:from-soft-green-light hover:to-soft-green-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-soft-purple disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-soft-green/50"
             >
               {loading ? (
                 <>
