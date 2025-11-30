@@ -139,15 +139,12 @@ const ReservationScreen = () => {
         // Kullanıcı yüklendikten sonra rezervasyon engeli kontrolü yap
         const checkReservationBlock = async () => {
           try {
-            console.log('🔍 useEffect: Rezervasyon engeli kontrolü başlatılıyor...');
             setCheckingBlockStatus(true);
             setReservationBlocked(false);
             
             // Aktif rezervasyon kontrolü (hem owner hem participant olarak)
             const hasActive = await reservationService.hasActiveReservation();
-            console.log('🔍 useEffect: Aktif rezervasyon kontrolü sonucu:', hasActive);
             if (hasActive) {
-              console.log('🚫 useEffect: Aktif rezervasyon bulundu, engel aktif ediliyor');
               setReservationBlocked(true);
               setBlockReason('Şu anda aktif bir rezervasyonunuz var. Yeni rezervasyon oluşturmadan önce mevcut rezervasyonunuzun bitmesini bekleyin.');
               setCheckingBlockStatus(false);
@@ -161,19 +158,16 @@ const ReservationScreen = () => {
             );
 
             if (pendingMatchResult) {
-              console.log('🚫 useEffect: Bekleyen maç sonucu bulundu, engel aktif ediliyor');
               setReservationBlocked(true);
               setBlockReason('Bekleyen maç sonucu girmeniz gereken bir maç var. Yeni rezervasyon oluşturmadan önce maç sonucunu girin.');
               setCheckingBlockStatus(false);
               return;
             }
 
-            console.log('✅ useEffect: Rezervasyon engeli yok, form aktif');
             setReservationBlocked(false);
             setBlockReason('');
             setCheckingBlockStatus(false);
           } catch (error) {
-            console.error('❌ useEffect: Rezervasyon engeli kontrolü hatası:', error);
             setCheckingBlockStatus(false);
             setReservationBlocked(false);
           }
@@ -228,25 +222,20 @@ const ReservationScreen = () => {
       // Rezervasyon engeli kontrolü - her sayfa açıldığında kontrol et
       const checkReservationBlock = async () => {
         try {
-          console.log('🔍 Rezervasyon engeli kontrolü başlatılıyor...');
           setCheckingBlockStatus(true);
           setReservationBlocked(false); // Önce sıfırla
           
           const profile = await authService.getProfile();
           const userId = profile.id;
-          console.log('👤 Kullanıcı ID:', userId);
           
           if (!userId) {
-            console.log('⚠️ Kullanıcı ID bulunamadı');
             setCheckingBlockStatus(false);
             return;
           }
 
           // Aktif rezervasyon kontrolü (hem owner hem participant olarak)
           const hasActive = await reservationService.hasActiveReservation();
-          console.log('🔍 Aktif rezervasyon kontrolü sonucu:', hasActive);
           if (hasActive) {
-            console.log('🚫 Aktif rezervasyon bulundu, engel aktif ediliyor');
             setReservationBlocked(true);
             setBlockReason('Şu anda aktif bir rezervasyonunuz var. Yeni rezervasyon oluşturmadan önce mevcut rezervasyonunuzun bitmesini bekleyin.');
             setCheckingBlockStatus(false);
@@ -260,19 +249,16 @@ const ReservationScreen = () => {
           );
 
           if (pendingMatchResult) {
-            console.log('🚫 Bekleyen maç sonucu bulundu, engel aktif ediliyor');
             setReservationBlocked(true);
             setBlockReason('Bekleyen maç sonucu girmeniz gereken bir maç var. Yeni rezervasyon oluşturmadan önce maç sonucunu girin.');
             setCheckingBlockStatus(false);
             return;
           }
 
-          console.log('✅ Rezervasyon engeli yok, form aktif');
           setReservationBlocked(false);
           setBlockReason('');
           setCheckingBlockStatus(false);
         } catch (error) {
-          console.error('❌ Rezervasyon engeli kontrolü hatası:', error);
           // Hata durumunda da kontrolü bitir
           setCheckingBlockStatus(false);
           setReservationBlocked(false);

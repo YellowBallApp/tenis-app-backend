@@ -774,15 +774,8 @@ export const reservationService = {
 
   // Kullanıcının aktif rezervasyonu var mı kontrol et
   hasActiveReservation: async () => {
-    console.log('🔍 Frontend: hasActiveReservation çağrılıyor');
-    try {
-      const response = await api.get('/reservations/has-active');
-      console.log('🔍 Frontend: hasActiveReservation response:', response.data);
-      return response.data.data.hasActive;
-    } catch (error: any) {
-      console.error('❌ Frontend: hasActiveReservation hatası:', error);
-      throw error;
-    }
+    const response = await api.get('/reservations/has-active');
+    return response.data.data.hasActive;
   },
 
   // Yeni rezervasyon oluştur

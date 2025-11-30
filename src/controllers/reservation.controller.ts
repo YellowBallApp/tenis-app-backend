@@ -104,16 +104,13 @@ export class ReservationController {
   hasActiveReservation = async (req: Request, res: Response) => {
     try {
       const userId = req.currentUser.id;
-      console.log(`🔍 hasActiveReservation endpoint çağrıldı - userId: ${userId}`);
       const hasActive = await this.reservationService.hasActiveReservation(userId);
-      console.log(`🔍 hasActiveReservation endpoint sonucu: ${hasActive}`);
       
       return res.status(200).json({
         success: true,
         data: { hasActive },
       });
     } catch (error: any) {
-      console.error('❌ hasActiveReservation endpoint hatası:', error);
       return res.status(500).json({
         success: false,
         message: error.message || 'Aktif rezervasyon kontrolü yapılırken bir hata oluştu',

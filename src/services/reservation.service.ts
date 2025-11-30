@@ -206,7 +206,6 @@ export class ReservationService {
   async hasActiveReservation(userId: string): Promise<boolean> {
     try {
       const now = new Date();
-      console.log(`🔍 hasActiveReservation kontrolü başlatılıyor - userId: ${userId}, now: ${now.toISOString()}`);
       
       // Kullanıcının (owner veya participant olarak) dahil olduğu ve bitmemiş (endTime >= now) rezervasyonu var mı?
       // Gelecekteki rezervasyonlar da aktif sayılır, sadece geçmişte olanlar sayılmaz
@@ -218,20 +217,8 @@ export class ReservationService {
         .andWhere('reservation.endTime >= :now', { now })
         .getOne();
 
-      console.log(`🔍 hasActiveReservation sonucu:`, activeReservation ? 'Aktif rezervasyon bulundu' : 'Aktif rezervasyon yok');
-      if (activeReservation) {
-        console.log(`📅 Aktif rezervasyon detayları:`, {
-          id: activeReservation.id,
-          startTime: activeReservation.startTime,
-          endTime: activeReservation.endTime,
-          userId: activeReservation.user?.id,
-          participants: activeReservation.participants?.map((p: any) => p.id)
-        });
-      }
-
       return !!activeReservation;
     } catch (error) {
-      console.error('❌ hasActiveReservation hatası:', error);
       throw new Error('Aktif rezervasyon kontrolü yapılırken bir hata oluştu');
     }
   }
