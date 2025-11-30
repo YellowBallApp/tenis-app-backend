@@ -18,6 +18,7 @@ const Users = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -132,79 +133,187 @@ const Users = () => {
             <h1 className="text-3xl font-bold text-tennis-white mb-2">Kullanıcı Yönetimi</h1>
             <p className="text-tennis-white/70">Toplam {users.length} kullanıcı</p>
           </div>
-          <button
-            onClick={handleCreate}
-            className="px-6 py-3 bg-gradient-to-r from-tennis-lime to-tennis-green text-tennis-navy font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg glow-lime"
-          >
-            + Yeni Kullanıcı
-          </button>
-        </div>
-
-        {/* Users Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {users.map((user) => {
-            const badge = getUserTypeBadge(user.userType);
-            return (
-              <div
-                key={user.id}
-                className="glass-strong rounded-2xl p-6 hover:scale-105 transition-all duration-300 group"
+          <div className="flex space-x-3">
+            {/* View Toggle */}
+            <div className="glass rounded-xl p-1 flex space-x-1">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`px-4 py-2 rounded-lg transition-all duration-300 ${
+                  viewMode === 'grid'
+                    ? 'bg-gradient-to-r from-tennis-lime to-tennis-green text-tennis-navy font-bold shadow-lg'
+                    : 'text-tennis-white/70 hover:text-tennis-white'
+                }`}
               >
-                {/* User Avatar & Badge */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${badge.gradient} ${badge.glow} flex items-center justify-center text-2xl`}>
-                      👤
-                    </div>
-                    <div>
-                      <h3 className="text-tennis-white font-bold text-lg">
-                        {user.name} {user.surname}
-                      </h3>
-                      <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full bg-gradient-to-r ${badge.gradient} text-white mt-1`}>
-                        {badge.label}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* User Info */}
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center space-x-2 text-tennis-white/80">
-                    <span className="text-sm">📧</span>
-                    <span className="text-sm truncate">{user.email}</span>
-                  </div>
-                  {user.phone && (
-                    <div className="flex items-center space-x-2 text-tennis-white/80">
-                      <span className="text-sm">📱</span>
-                      <span className="text-sm">{user.phone}</span>
-                    </div>
-                  )}
-                  {user.title && (
-                    <div className="flex items-center space-x-2 text-tennis-white/80">
-                      <span className="text-sm">💼</span>
-                      <span className="text-sm">{user.title}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div className="flex space-x-2 pt-4 border-t border-white/10">
-                  <button
-                    onClick={() => handleEdit(user)}
-                    className="flex-1 px-4 py-2 glass hover:glass-strong text-tennis-lime font-medium rounded-lg transition-all duration-300"
-                  >
-                    ✏️ Düzenle
-                  </button>
-                  <button
-                    onClick={() => handleDelete(user.id)}
-                    className="flex-1 px-4 py-2 glass hover:glass-strong text-tennis-white/80 hover:text-tennis-white font-medium rounded-lg transition-all duration-300"
-                  >
-                    🗑️ Sil
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+                🔲 Kare
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-4 py-2 rounded-lg transition-all duration-300 ${
+                  viewMode === 'list'
+                    ? 'bg-gradient-to-r from-tennis-lime to-tennis-green text-tennis-navy font-bold shadow-lg'
+                    : 'text-tennis-white/70 hover:text-tennis-white'
+                }`}
+              >
+                📋 Liste
+              </button>
+            </div>
+            <button
+              onClick={handleCreate}
+              className="px-6 py-3 bg-gradient-to-r from-tennis-lime to-tennis-green text-tennis-navy font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg glow-lime"
+            >
+              + Yeni Kullanıcı
+            </button>
+          </div>
         </div>
+
+        {/* Grid View */}
+        {viewMode === 'grid' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {users.map((user) => {
+              const badge = getUserTypeBadge(user.userType);
+              return (
+                <div
+                  key={user.id}
+                  className="glass-strong rounded-2xl p-6 hover:scale-105 transition-all duration-300 group"
+                >
+                  {/* User Avatar & Badge */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${badge.gradient} ${badge.glow} flex items-center justify-center text-2xl`}>
+                        👤
+                      </div>
+                      <div>
+                        <h3 className="text-tennis-white font-bold text-lg">
+                          {user.name} {user.surname}
+                        </h3>
+                        <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full bg-gradient-to-r ${badge.gradient} text-white mt-1`}>
+                          {badge.label}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* User Info */}
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center space-x-2 text-tennis-white/80">
+                      <span className="text-sm">📧</span>
+                      <span className="text-sm truncate">{user.email}</span>
+                    </div>
+                    {user.phone && (
+                      <div className="flex items-center space-x-2 text-tennis-white/80">
+                        <span className="text-sm">📱</span>
+                        <span className="text-sm">{user.phone}</span>
+                      </div>
+                    )}
+                    {user.title && (
+                      <div className="flex items-center space-x-2 text-tennis-white/80">
+                        <span className="text-sm">💼</span>
+                        <span className="text-sm">{user.title}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex space-x-2 pt-4 border-t border-white/10">
+                    <button
+                      onClick={() => handleEdit(user)}
+                      className="flex-1 px-4 py-2 glass hover:glass-strong text-tennis-lime font-medium rounded-lg transition-all duration-300"
+                    >
+                      ✏️ Düzenle
+                    </button>
+                    <button
+                      onClick={() => handleDelete(user.id)}
+                      className="flex-1 px-4 py-2 glass hover:glass-strong text-tennis-white/80 hover:text-tennis-white font-medium rounded-lg transition-all duration-300"
+                    >
+                      🗑️ Sil
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* List View */}
+        {viewMode === 'list' && (
+          <div className="glass-strong rounded-2xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="glass-strong border-b border-white/10">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-tennis-lime uppercase tracking-wider">
+                      Kullanıcı
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-tennis-lime uppercase tracking-wider">
+                      Email
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-tennis-lime uppercase tracking-wider">
+                      Telefon
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-tennis-lime uppercase tracking-wider">
+                      Unvan
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-tennis-lime uppercase tracking-wider">
+                      Tip
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-bold text-tennis-lime uppercase tracking-wider">
+                      İşlemler
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/10">
+                  {users.map((user) => {
+                    const badge = getUserTypeBadge(user.userType);
+                    return (
+                      <tr key={user.id} className="hover:bg-white/5 transition-colors duration-200">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center space-x-3">
+                            <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${badge.gradient} flex items-center justify-center text-xl`}>
+                              👤
+                            </div>
+                            <div>
+                              <div className="text-sm font-bold text-tennis-white">
+                                {user.name} {user.surname}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-tennis-white/80">{user.email}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-tennis-white/80">{user.phone || '-'}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-tennis-white/80">{user.title || '-'}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-3 py-1 text-xs font-bold rounded-full bg-gradient-to-r ${badge.gradient} text-white`}>
+                            {badge.label}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button
+                            onClick={() => handleEdit(user)}
+                            className="text-tennis-lime hover:text-tennis-green mr-4 transition-colors"
+                          >
+                            ✏️ Düzenle
+                          </button>
+                          <button
+                            onClick={() => handleDelete(user.id)}
+                            className="text-tennis-white/70 hover:text-tennis-white transition-colors"
+                          >
+                            🗑️ Sil
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {users.length === 0 && (
           <div className="glass-strong rounded-2xl p-12 text-center">
