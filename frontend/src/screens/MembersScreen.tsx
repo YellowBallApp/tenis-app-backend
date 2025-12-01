@@ -70,8 +70,13 @@ const MembersScreen = () => {
       setLoading(true);
       const usersData = await userService.getAllUsers();
       
+      // Coach ve admin kullanıcılarını filtrele
+      const filteredUsers = usersData.filter((user: any) => {
+        return user.userType !== 'coach' && user.userType !== 'admin';
+      });
+      
       // Backend'den gelen kullanıcıları members formatına dönüştür
-      const formattedMembers = usersData.map((user: any) => ({
+      const formattedMembers = filteredUsers.map((user: any) => ({
         id: user.id,
         name: user.name + (user.surname ? ` ${user.surname}` : ''),
         level: user.title || t('members.member'),
@@ -87,9 +92,18 @@ const MembersScreen = () => {
       }));
       
       setMembers(formattedMembers);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Üyeler yüklenirken hata:', error);
-      Alert.alert(t('common.error'), t('members.notLoaded'));
+      
+      // Network error için daha açıklayıcı mesaj
+      let errorMessage = t('members.notLoaded');
+      if (error.code === 'ERR_NETWORK' || error.message?.includes('Network error')) {
+        errorMessage = 'Backend sunucusuna bağlanılamıyor. Lütfen sunucunun çalıştığından emin olun.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert(t('common.error'), errorMessage);
     } finally {
       setLoading(false);
     }

@@ -1,7 +1,10 @@
 import coachReviewRepository from "../repositories/coachReview.repository";
-import coachRepository from "../repositories/coach.repository";
+import coachService from "./coach.service";
 import { CoachReview } from "../entities/coachReview.entity";
 import { AppError } from "../utils/error/app.error";
+import userRepository from "../repositories/user.repository";
+import { AppDataSource } from "../config/data-source";
+import { User } from "../entities/user.entity";
 
 const coachReviewService = {
   create: async (reviewData: {
@@ -20,8 +23,8 @@ const coachReviewService = {
       throw new AppError("COMMENT_REQUIRED");
     }
 
-    // Coach var mı kontrol et
-    await coachRepository.findById(reviewData.coachId);
+    // Coach var mı kontrol et (User tablosundan userType='coach' olanları kontrol et)
+    await coachService.findById(reviewData.coachId);
 
     // Kullanıcı daha önce bu antrenöre review yazmış mı kontrol et
     const existingReview = await coachReviewRepository.findByCoachAndUser(
@@ -51,8 +54,24 @@ const coachReviewService = {
     return review;
   },
 
-  getByCoachId: async (coachId: string): Promise<CoachReview[]> => {
-    return await coachReviewRepository.findByCoachId(coachId);
+  getByCoachId: async (coachId: string, onlyApproved: boolean = true): Promise<CoachReview[]> => {
+    return await coachReviewRepository.findByCoachId(coachId, onlyApproved);
+  },
+
+  getAll: async (onlyApproved?: boolean): Promise<CoachReview[]> => {
+    return await coachReviewRepository.findAll(onlyApproved);
+  },
+
+  getPendingReviews: async (): Promise<CoachReview[]> => {
+    return await coachReviewRepository.getPendingReviews();
+  },
+
+  getPendingCount: async (): Promise<number> => {
+    return await coachReviewRepository.getPendingCount();
+  },
+
+  approveReview: async (id: number): Promise<CoachReview> => {
+    return await coachReviewRepository.approve(id);
   },
 
   getByUserId: async (userId: string): Promise<CoachReview[]> => {
@@ -94,8 +113,16 @@ const coachReviewService = {
   },
 
   updateCoachRating: async (coachId: string): Promise<void> => {
+    // Coach'un ortalama rating'ini hesapla
     const averageRating = await coachReviewRepository.getAverageRating(coachId);
-    await coachRepository.update(coachId, { rating: averageRating });
+    
+    // User entity'sindeki starRating'i güncelle
+    const userRepo = AppDataSource.getRepository(User);
+    const coach = await userRepository.findById(coachId);
+    if (coach) {
+      coach.starRating = averageRating;
+      await userRepo.save(coach);
+    }
   },
 };
 

@@ -9,7 +9,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Animated,
+  RefreshControl,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   Card,
   Title,
@@ -47,6 +49,7 @@ const CoachesScreen = () => {
   const [selectedCoachForReviews, setSelectedCoachForReviews] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   
   // Scroll animation
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -70,19 +73,46 @@ const CoachesScreen = () => {
     loadCoaches();
   }, []);
 
+  // Sayfa her odaklandığında verileri yenile (admin panelden onaylanan yorumları görmek için)
+  useFocusEffect(
+    React.useCallback(() => {
+      loadCoaches();
+    }, [])
+  );
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadCoaches();
+    setRefreshing(false);
+  };
+
   const loadCoaches = async () => {
     try {
       setLoading(true);
       const coachesData = await coachService.getAllCoaches();
       
-      // Her antrenör için review sayısını çek
+      // Her antrenör için review sayısını çek ve User verilerini Coach formatına dönüştür
       const coachesWithReviewCounts = await Promise.all(
         coachesData.map(async (coach: any) => {
           try {
+            // Sadece onaylı yorumları say
             const reviews = await coachReviewService.getCoachReviews(coach.id);
-            const reviewCount = Array.isArray(reviews) ? reviews.length : (reviews?.data?.length || 0);
+            // Backend zaten sadece onaylı yorumları gönderiyor, direkt kullan
+            const reviewCount = Array.isArray(reviews) ? reviews.length : 0;
+            
+            // User entity'sinden gelen verileri Coach formatına dönüştür
             return {
               ...coach,
+              // User entity'sinde olmayan field'lar için default değerler
+              name: coach.name + (coach.surname ? ` ${coach.surname}` : ''),
+              specialty: coach.specialty || 'Genel',
+              experience: coach.experience || 'Deneyimli',
+              hourlyRate: coach.hourlyRate || 'N/A',
+              availability: coach.availability || 'Available',
+              bio: coach.bio || (coach.title ? `${coach.title} antrenörü` : 'Antrenör'),
+              languages: Array.isArray(coach.languages) ? coach.languages : ['Türkçe'],
+              certifications: Array.isArray(coach.certifications) ? coach.certifications : [],
+              rating: coach.rating || coach.starRating || 0,
               reviews: [], // Review'lar ayrı modal'da gösterilecek
               reviewCount: reviewCount,
             };
@@ -90,6 +120,16 @@ const CoachesScreen = () => {
             console.error(`Antrenör ${coach.id} için review sayısı alınamadı:`, error);
             return {
               ...coach,
+              // User entity'sinden gelen verileri Coach formatına dönüştür
+              name: coach.name + (coach.surname ? ` ${coach.surname}` : ''),
+              specialty: coach.specialty || 'Genel',
+              experience: coach.experience || 'Deneyimli',
+              hourlyRate: coach.hourlyRate || 'N/A',
+              availability: coach.availability || 'Available',
+              bio: coach.bio || (coach.title ? `${coach.title} antrenörü` : 'Antrenör'),
+              languages: Array.isArray(coach.languages) ? coach.languages : ['Türkçe'],
+              certifications: Array.isArray(coach.certifications) ? coach.certifications : [],
+              rating: coach.rating || coach.starRating || 0,
               reviews: [],
               reviewCount: 0,
             };
@@ -112,9 +152,10 @@ const CoachesScreen = () => {
     setLoadingReviews(true);
     
     try {
+      // Sadece onaylı yorumları getir (onlyApproved=true varsayılan)
       const coachReviews = await coachReviewService.getCoachReviews(coach.id);
-      // Backend'den gelen response'u kontrol et
-      const reviewsData = Array.isArray(coachReviews) ? coachReviews : (coachReviews?.data || []);
+      // Backend zaten sadece onaylı yorumları gönderiyor
+      const reviewsData = Array.isArray(coachReviews) ? coachReviews : [];
       setReviews(reviewsData);
     } catch (error) {
       console.error('Yorumlar yüklenirken hata:', error);
@@ -357,6 +398,14 @@ const CoachesScreen = () => {
           { useNativeDriver: false }
         )}
         scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.primary}
+            colors={[theme.colors.primary]}
+          />
+        }
       >
         {/* Search Bar */}
         <View style={styles.searchContainer}>
@@ -401,12 +450,12 @@ const CoachesScreen = () => {
                 <View style={styles.coachHeader}>
                   <Avatar.Text 
                     size={80} 
-                    label={coach.name.split(' ').map(n => n.charAt(0)).join('')} 
+                    label={(coach.name || 'A').split(' ').map((n: string) => n.charAt(0)).join('').substring(0, 2).toUpperCase()} 
                     style={styles.coachAvatar}
                   />
                   <View style={styles.coachInfo}>
-                    <Title style={[styles.coachName, themedStyles.title]}>{coach.name}</Title>
-                    <Text style={[styles.coachSpecialty, themedStyles.subtitle]}>{translateSpecialty(coach.specialty)}</Text>
+                    <Title style={[styles.coachName, themedStyles.title]}>{coach.name || 'Antrenör'}</Title>
+                    <Text style={[styles.coachSpecialty, themedStyles.subtitle]}>{translateSpecialty(coach.specialty || 'Genel')}</Text>
                     <View style={styles.ratingContainer}>
                       <View style={styles.ratingBadgeContainer}>
                         <MaterialIcons name="star" size={16} color="#FFD700" />
@@ -422,41 +471,53 @@ const CoachesScreen = () => {
                           </View>
                         </View>
                       )}
-                      <Chip 
-                        mode="outlined" 
-                        style={[styles.availabilityChip, { borderColor: getAvailabilityColor(coach.availability) }]}
-                      >
-                        {translateAvailability(coach.availability)}
-                      </Chip>
+                      {coach.availability && (
+                        <Chip 
+                          mode="outlined" 
+                          style={[styles.availabilityChip, { borderColor: getAvailabilityColor(coach.availability) }]}
+                        >
+                          {translateAvailability(coach.availability)}
+                        </Chip>
+                      )}
                     </View>
                   </View>
                 </View>
 
                 <View style={styles.coachDetails}>
-                  <View style={styles.detailRow}>
-                    <MaterialCommunityIcons name="clock" size={20} color={theme.colors.primary} />
-                    <Text style={[styles.detailText, themedStyles.text]}>{coach.experience} {t('coaches.experience')}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <MaterialCommunityIcons name="currency-try" size={20} color={theme.colors.primary} />
-                    <Text style={[styles.detailText, themedStyles.text]}>{coach.hourlyRate}{t('coaches.perHour')}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <MaterialCommunityIcons name="translate" size={20} color={theme.colors.primary} />
-                    <Text style={[styles.detailText, themedStyles.text]}>{coach.languages.join(', ')}</Text>
-                  </View>
+                  {coach.experience && (
+                    <View style={styles.detailRow}>
+                      <MaterialCommunityIcons name="clock" size={20} color={theme.colors.primary} />
+                      <Text style={[styles.detailText, themedStyles.text]}>{coach.experience} {t('coaches.experience')}</Text>
+                    </View>
+                  )}
+                  {coach.hourlyRate && (
+                    <View style={styles.detailRow}>
+                      <MaterialCommunityIcons name="currency-try" size={20} color={theme.colors.primary} />
+                      <Text style={[styles.detailText, themedStyles.text]}>{coach.hourlyRate}{t('coaches.perHour')}</Text>
+                    </View>
+                  )}
+                  {coach.languages && Array.isArray(coach.languages) && coach.languages.length > 0 && (
+                    <View style={styles.detailRow}>
+                      <MaterialCommunityIcons name="translate" size={20} color={theme.colors.primary} />
+                      <Text style={[styles.detailText, themedStyles.text]}>{coach.languages.join(', ')}</Text>
+                    </View>
+                  )}
                 </View>
 
-                <Text style={[styles.coachBio, themedStyles.text]}>{coach.bio}</Text>
+                {coach.bio && (
+                  <Text style={[styles.coachBio, themedStyles.text]}>{coach.bio}</Text>
+                )}
 
-                <View style={styles.certificationsContainer}>
-                  <Text style={[styles.certificationsTitle, themedStyles.text]}>{t('coaches.certifications')}</Text>
-                  {coach.certifications.map((cert: string, index: number) => (
-                    <Chip key={index} mode="outlined" style={styles.certificationChip}>
-                      {cert}
-                    </Chip>
-                  ))}
-                </View>
+                {coach.certifications && Array.isArray(coach.certifications) && coach.certifications.length > 0 && (
+                  <View style={styles.certificationsContainer}>
+                    <Text style={[styles.certificationsTitle, themedStyles.text]}>{t('coaches.certifications')}</Text>
+                    {coach.certifications.map((cert: string, index: number) => (
+                      <Chip key={index} mode="outlined" style={styles.certificationChip}>
+                        {cert}
+                      </Chip>
+                    ))}
+                  </View>
+                )}
 
                 {/* Reviews Section - Şimdilik yorumlar devre dışı */}
                 {coach.reviews && coach.reviews.length > 0 && (

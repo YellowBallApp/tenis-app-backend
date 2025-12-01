@@ -105,10 +105,11 @@ const Users = () => {
   };
 
   const getUserTypeBadge = (userType: string) => {
-    const types: Record<string, { label: string; color: string }> = {
-      admin: { label: 'Admin', color: 'bg-slate-700' },
-      standard: { label: 'Standart', color: 'bg-slate-600' },
-      restricted: { label: 'Kısıtlı', color: 'bg-slate-600-dark' },
+    const types: Record<string, { label: string; color: string; glow: string }> = {
+      admin: { label: 'Admin', color: 'bg-soft-purple', glow: 'glow-purple' },
+      standard: { label: 'Standart', color: 'bg-soft-green', glow: 'glow-green' },
+      restricted: { label: 'Kısıtlı', color: 'bg-soft-sage', glow: '' },
+      coach: { label: 'Antrenör', color: 'bg-soft-purple', glow: 'glow-purple' },
     };
     return types[userType] || types.standard;
   };
@@ -163,7 +164,7 @@ const Users = () => {
             </div>
             <button
               onClick={handleCreate}
-              className="px-6 py-3 bg-slate-600 hover:bg-slate-600-light text-soft-white font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg"
+              className="px-6 py-3 bg-soft-green hover:bg-soft-green-light text-soft-navy font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-soft-green/50"
             >
               + Yeni Kullanıcı
             </button>
@@ -178,7 +179,7 @@ const Users = () => {
               return (
                 <div
                   key={user.id}
-                  className="glass-strong rounded-2xl p-6 hover:scale-105 transition-all duration-300 group"
+                  className="glass-strong rounded-2xl p-6 transition-all duration-300"
                 >
                   {/* User Avatar & Badge */}
                   <div className="flex items-start justify-between mb-4">
@@ -221,13 +222,13 @@ const Users = () => {
                   <div className="flex space-x-2 pt-4 border-t border-white/10">
                   <button
                     onClick={() => handleEdit(user)}
-                    className="flex-1 px-4 py-2 glass hover:glass-strong text-slate-300 font-medium rounded-lg transition-all duration-300"
+                    className="flex-1 px-4 py-2 glass hover:bg-soft-green/20 hover:border-soft-green text-soft-white/80 hover:text-soft-white font-medium rounded-lg transition-all duration-300 hover:shadow-lg"
                   >
                     ✏️ Düzenle
                   </button>
                     <button
                       onClick={() => handleDelete(user.id)}
-                      className="flex-1 px-4 py-2 glass hover:glass-strong text-soft-white/80 hover:text-soft-white font-medium rounded-lg transition-all duration-300"
+                      className="flex-1 px-4 py-2 glass hover:bg-red-500/20 hover:border-red-400 text-soft-white/80 hover:text-red-200 font-medium rounded-lg transition-all duration-300 hover:shadow-lg"
                     >
                       🗑️ Sil
                     </button>
@@ -299,13 +300,13 @@ const Users = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button
                           onClick={() => handleEdit(user)}
-                          className="text-slate-300 hover:text-slate-300-light mr-4 transition-colors"
+                          className="px-3 py-1.5 glass hover:bg-soft-green/20 hover:border-soft-green text-soft-white/80 hover:text-soft-white mr-3 transition-all rounded-lg hover:shadow-lg"
                         >
                           ✏️ Düzenle
                         </button>
                           <button
                             onClick={() => handleDelete(user.id)}
-                            className="text-soft-white/70 hover:text-soft-white transition-colors"
+                            className="px-3 py-1.5 glass hover:bg-red-500/20 hover:border-red-400 text-soft-white/70 hover:text-red-200 transition-all rounded-lg hover:shadow-lg"
                           >
                             🗑️ Sil
                           </button>
@@ -405,6 +406,7 @@ const Users = () => {
                     <option value="standard">Standart</option>
                     <option value="restricted">Kısıtlı</option>
                     <option value="admin">Admin</option>
+                    <option value="coach">Antrenör</option>
                   </select>
                 </div>
                 <div>
@@ -422,13 +424,13 @@ const Users = () => {
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="flex-1 px-4 py-3 glass hover:glass-strong text-soft-white font-medium rounded-lg transition-all"
+                    className="flex-1 px-4 py-3 glass hover:bg-red-500/20 hover:border-red-400 text-soft-white/80 hover:text-red-200 font-medium rounded-lg transition-all hover:shadow-lg"
                   >
                     İptal
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-3 bg-slate-600 hover:bg-slate-600-light text-soft-white font-bold rounded-lg hover:scale-105 transition-all shadow-lg"
+                    className="flex-1 px-4 py-3 bg-soft-green hover:bg-soft-green-light text-soft-navy font-bold rounded-lg hover:scale-105 transition-all shadow-lg hover:shadow-soft-green/50"
                   >
                     {editingUser ? 'Güncelle' : 'Oluştur'}
                   </button>

@@ -201,7 +201,7 @@ const Reservations = () => {
             </div>
             <button
               onClick={handleCreate}
-              className="px-6 py-3 bg-slate-600 hover:bg-slate-700 text-soft-white font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg"
+              className="px-6 py-3 bg-soft-green hover:bg-soft-green-light text-soft-navy font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-soft-green/50"
             >
               + Saat Bloke Et
             </button>
@@ -214,7 +214,7 @@ const Reservations = () => {
             {blockedSlots.map((slot) => (
               <div
                 key={slot.id}
-                className="glass-strong rounded-2xl p-6 hover:scale-105 transition-all duration-300"
+                className="glass-strong rounded-2xl p-6 transition-all duration-300"
               >
                 {/* Header */}
                 <div className="flex items-start justify-between mb-4">
@@ -270,21 +270,19 @@ const Reservations = () => {
                 <div className="flex space-x-2 pt-4 border-t border-white/10">
                   <button
                     onClick={() => handleToggleActive(slot)}
-                    className={`flex-1 px-3 py-2 glass hover:glass-strong font-medium rounded-lg transition-all duration-300 text-sm ${
-                      slot.isActive ? 'text-slate-300' : 'text-slate-300'
-                    }`}
+                    className={`flex-1 px-3 py-2 glass hover:bg-soft-purple/20 hover:border-soft-purple text-soft-white/80 hover:text-soft-white font-medium rounded-lg transition-all duration-300 text-sm hover:shadow-lg`}
                   >
                     {slot.isActive ? '⏸️ Pasifleştir' : '▶️ Aktifleştir'}
                   </button>
                   <button
                     onClick={() => handleEdit(slot)}
-                    className="flex-1 px-3 py-2 glass hover:glass-strong text-slate-300 font-medium rounded-lg transition-all duration-300 text-sm"
+                    className="flex-1 px-3 py-2 glass hover:bg-soft-green/20 hover:border-soft-green text-soft-white/80 hover:text-soft-white font-medium rounded-lg transition-all duration-300 text-sm hover:shadow-lg"
                   >
                     ✏️ Düzenle
                   </button>
                   <button
                     onClick={() => handleDelete(slot.id)}
-                    className="flex-1 px-3 py-2 glass hover:glass-strong text-soft-white/80 hover:text-soft-white font-medium rounded-lg transition-all duration-300 text-sm"
+                    className="flex-1 px-3 py-2 glass hover:bg-red-500/20 hover:border-red-400 text-soft-white/80 hover:text-red-200 font-medium rounded-lg transition-all duration-300 text-sm hover:shadow-lg"
                   >
                     🗑️ Sil
                   </button>
@@ -531,13 +529,13 @@ const Reservations = () => {
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="flex-1 px-4 py-3 glass hover:glass-strong text-soft-white font-medium rounded-lg transition-all"
+                    className="flex-1 px-4 py-3 glass hover:bg-red-500/20 hover:border-red-400 text-soft-white/80 hover:text-red-200 font-medium rounded-lg transition-all hover:shadow-lg"
                   >
                     İptal
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-3 bg-slate-600 hover:bg-slate-600-light text-soft-white font-bold rounded-lg hover:scale-105 transition-all shadow-lg"
+                    className="flex-1 px-4 py-3 bg-soft-green hover:bg-soft-green-light text-soft-navy font-bold rounded-lg hover:scale-105 transition-all shadow-lg hover:shadow-soft-green/50"
                   >
                     {editingSlot ? 'Güncelle' : 'Oluştur'}
                   </button>

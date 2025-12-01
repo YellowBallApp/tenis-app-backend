@@ -1,8 +1,10 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { HiLogout } from 'react-icons/hi';
 import { IoTennisball } from 'react-icons/io5';
-import { MdDashboard, MdPeople, MdEvent } from 'react-icons/md';
+import { MdDashboard, MdPeople, MdEvent, MdRateReview } from 'react-icons/md';
 import { useAuth } from '../context/AuthContext';
+import { useEffect, useState } from 'react';
+import api from '../utils/api';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -12,6 +14,23 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const [pendingReviewsCount, setPendingReviewsCount] = useState(0);
+
+  useEffect(() => {
+    fetchPendingReviewsCount();
+    // Her 30 saniyede bir güncelle
+    const interval = setInterval(fetchPendingReviewsCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchPendingReviewsCount = async () => {
+    try {
+      const response = await api.get('/coach-reviews/pending/count');
+      setPendingReviewsCount(response.data.data.count || 0);
+    } catch (error) {
+      console.error('Pending reviews count fetch error:', error);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -22,6 +41,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { path: '/dashboard', label: 'Dashboard', icon: MdDashboard },
     { path: '/users', label: 'Kullanıcılar', icon: MdPeople },
     { path: '/reservations', label: 'Rezervasyonlar', icon: MdEvent },
+    { path: '/reviews', label: 'Yorumlar', icon: MdRateReview, badge: pendingReviewsCount },
   ];
 
   return (
@@ -46,19 +66,26 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-300 ${
+                  className={`flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-300 ${
                     isActive
                       ? 'bg-soft-purple text-soft-white shadow-lg'
                       : 'text-soft-white/80 hover:bg-white/10 hover:text-soft-white'
                   }`}
                 >
-                  <IconComponent 
-                    style={{ fontSize: '24px', minWidth: '24px' }}
-                    className={`mr-3 flex-shrink-0 ${
-                      isActive ? 'text-white' : 'text-white'
-                    }`} 
-                  />
-                  <span>{item.label}</span>
+                  <div className="flex items-center">
+                    <IconComponent 
+                      style={{ fontSize: '24px', minWidth: '24px' }}
+                      className={`mr-3 flex-shrink-0 ${
+                        isActive ? 'text-white' : 'text-white'
+                      }`} 
+                    />
+                    <span>{item.label}</span>
+                  </div>
+                  {item.badge !== undefined && item.badge > 0 && (
+                    <span className="px-2 py-1 text-xs font-bold bg-soft-green text-soft-navy rounded-full min-w-[24px] text-center">
+                      {item.badge}
+                    </span>
+                  )}
                 </Link>
               );
             })}

@@ -99,10 +99,10 @@ const Dashboard = () => {
           {statCards.map((stat, index) => (
             <div
               key={index}
-              className="glass-strong rounded-2xl p-6 hover:scale-105 transition-all duration-300 cursor-pointer group"
+              className="glass-strong rounded-2xl p-6 transition-all duration-300"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 rounded-xl ${stat.color} transition-all duration-300 group-hover:scale-110`}>
+                  <div className={`p-3 rounded-xl ${stat.color} transition-all duration-300`}>
                     <stat.icon className="text-3xl text-white" />
                   </div>
                 </div>

@@ -289,6 +289,7 @@ api.interceptors.request.use(
       if (!config.baseURL) {
         const baseUrl = await getApiBaseUrl();
         config.baseURL = baseUrl;
+        console.log('🌐 Request Base URL:', baseUrl);
       }
       
       // Token ekle
@@ -297,22 +298,31 @@ api.interceptors.request.use(
         // Token'ı temizle (boşluk, satır sonu vs. varsa)
         const cleanToken = token.trim();
         config.headers.Authorization = `Bearer ${cleanToken}`;
-        console.log('Request interceptor: Token eklendi', { 
+        console.log('🔑 Request interceptor: Token eklendi', { 
           hasToken: !!cleanToken,
           tokenLength: cleanToken.length,
           url: config.url,
           baseURL: config.baseURL
         });
       } else {
-        console.log('Request interceptor: Token bulunamadı', { url: config.url, baseURL: config.baseURL });
+        console.log('⚠️ Request interceptor: Token bulunamadı', { url: config.url, baseURL: config.baseURL });
       }
+      
+      // Full URL'yi logla (debug için)
+      const fullUrl = `${config.baseURL}${config.url}`;
+      console.log('📤 API Request:', {
+        method: config.method?.toUpperCase(),
+        url: config.url,
+        baseURL: config.baseURL,
+        fullURL: fullUrl,
+      });
     } catch (error) {
-      console.error('Request interceptor error:', error);
+      console.error('❌ Request interceptor error:', error);
     }
     return config;
   },
   (error) => {
-    console.error('Request interceptor setup error:', error);
+    console.error('❌ Request interceptor setup error:', error);
     return Promise.reject(error);
   }
 );
@@ -381,24 +391,46 @@ api.interceptors.response.use(
     
     // Network hatası kontrolü
     if (!error.response) {
-      console.error('Network Error:', {
+      const baseUrl = originalRequest?.baseURL || API_BASE_URL;
+      const fullUrl = originalRequest?.url ? `${baseUrl}${originalRequest.url}` : 'Unknown URL';
+      
+      console.error('🚨 Network Error Detayları:', {
         message: error.message,
         code: error.code,
         url: originalRequest?.url,
+        baseURL: baseUrl,
+        fullURL: fullUrl,
+        timeout: error.code === 'ECONNABORTED',
+        networkError: error.code === 'ERR_NETWORK',
       });
       
-      // Token varsa ama network hatası alınıyorsa, logout yap
+      // Token varsa ama network hatası alınıyorsa, logout yapma
+      // Çünkü bu backend bağlantı sorunu olabilir, token sorunu değil
       const hasToken = await AsyncStorage.getItem('accessToken');
-      if (hasToken && (error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK')) {
-        console.log('Token var ama servis çalışmıyor - logout yapılıyor');
-        await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
-        triggerLogout();
-      }
       
       // Network hatası için daha açıklayıcı mesaj
-      const networkError = new Error(
-        error.message || 'Network error. Please check your internet connection.'
-      );
+      let errorMessage = 'Network error. ';
+      if (error.code === 'ECONNABORTED') {
+        errorMessage += `Request timeout. Backend server at ${baseUrl} may be slow or unreachable.`;
+      } else if (error.code === 'ERR_NETWORK') {
+        errorMessage += `Backend sunucusuna bağlanılamıyor: ${baseUrl}\n\nLütfen kontrol edin:\n- Backend sunucusu çalışıyor mu? (port ${DEFAULT_PORT})\n- IP adresi doğru mu?\n- Ağ bağlantısı aktif mi?`;
+      } else {
+        errorMessage += error.message || `Please check your connection to ${baseUrl}`;
+      }
+      
+      const networkError = new Error(errorMessage);
+      // Error objesine ekstra bilgi ekle
+      (networkError as any).code = error.code;
+      (networkError as any).url = fullUrl;
+      (networkError as any).baseURL = baseUrl;
+      
+      // Network error durumunda cache'i temizle (yeniden IP araması için)
+      if (error.code === 'ERR_NETWORK') {
+        console.log('🔄 Network error - IP cache temizleniyor...');
+        await AsyncStorage.removeItem(CACHED_SERVER_IP_KEY);
+        cachedServerIP = null;
+      }
+      
       return Promise.reject(networkError);
     }
     
@@ -560,9 +592,9 @@ export const coachReviewService = {
     return response.data.data;
   },
 
-  // Antrenörün tüm review'larını getir
+  // Antrenörün tüm review'larını getir (sadece onaylı yorumlar)
   getCoachReviews: async (coachId: string) => {
-    const response = await api.get(`/coach-reviews/coach/${coachId}`);
+    const response = await api.get(`/coach-reviews/coach/${coachId}?onlyApproved=true`);
     return response.data.data;
   },
 

@@ -12,7 +12,7 @@ export interface User {
   phone?: string;
   gender?: string | null;
   age?: number | null;
-  userType?: 'restricted' | 'standard';
+  userType?: 'restricted' | 'standard' | 'admin' | 'coach';
 }
 
 export interface AuthTokens {

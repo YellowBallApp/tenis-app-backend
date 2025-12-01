@@ -1,6 +1,7 @@
 import { AppError } from "../utils/error/app.error";
 import { AppDataSource } from "../config/data-source";
 import { User } from "../entities/user.entity";
+import { UserType } from "../enum/userType.enum";
 
 const repository = AppDataSource.getRepository(User);
 
@@ -37,6 +38,15 @@ const userRepository = {
 
   findAll: async (): Promise<User[]> => {
     return await repository.find({
+      order: {
+        createdAt: 'DESC'
+      }
+    });
+  },
+
+  findByUserType: async (userType: UserType): Promise<User[]> => {
+    return await repository.find({
+      where: { userType },
       order: {
         createdAt: 'DESC'
       }

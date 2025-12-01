@@ -8,17 +8,14 @@ import {
   JoinColumn
 } from 'typeorm';
 import { User } from './user.entity';
-import { Coach } from './coach.entity';
 
 @Entity('coach_review')
 export class CoachReview {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Coach, { nullable: false })
-  @JoinColumn({ name: 'coachId' })
-  coach: Coach;
-
+  // Coach artık User tablosunda olduğu için sadece coachId column'u tutuyoruz
+  // Foreign key constraint olmadan
   @Column({ type: 'uuid' })
   coachId: string;
 
@@ -34,6 +31,9 @@ export class CoachReview {
 
   @Column({ type: 'text' })
   comment: string;
+
+  @Column({ type: 'boolean', default: false })
+  isApproved: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

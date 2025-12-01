@@ -10,10 +10,15 @@ const coachReviewRepository = {
     return await repository.save(review);
   },
 
-  findByCoachId: async (coachId: string): Promise<CoachReview[]> => {
+  findByCoachId: async (coachId: string, onlyApproved: boolean = true): Promise<CoachReview[]> => {
+    const where: any = { coachId };
+    if (onlyApproved) {
+      where.isApproved = true;
+    }
+    
     return await repository.find({
-      where: { coachId },
-      relations: ['user', 'coach'],
+      where,
+      relations: ['user'],
       order: {
         createdAt: 'DESC'
       }
@@ -23,7 +28,7 @@ const coachReviewRepository = {
   findByUserId: async (userId: string): Promise<CoachReview[]> => {
     return await repository.find({
       where: { userId },
-      relations: ['coach'],
+      relations: [],
       order: {
         createdAt: 'DESC'
       }
@@ -33,14 +38,14 @@ const coachReviewRepository = {
   findByCoachAndUser: async (coachId: string, userId: string): Promise<CoachReview | null> => {
     return await repository.findOne({
       where: { coachId, userId },
-      relations: ['user', 'coach']
+      relations: ['user']
     });
   },
 
   findById: async (id: number): Promise<CoachReview> => {
     const review = await repository.findOne({
       where: { id },
-      relations: ['user', 'coach']
+      relations: ['user']
     });
     if (!review) throw new AppError("REVIEW_NOT_FOUND");
     return review;
@@ -71,8 +76,50 @@ const coachReviewRepository = {
 
   getReviewCount: async (coachId: string): Promise<number> => {
     return await repository.count({
-      where: { coachId }
+      where: { coachId, isApproved: true }
     });
+  },
+
+  findAll: async (onlyApproved?: boolean): Promise<CoachReview[]> => {
+    const where: any = {};
+    if (onlyApproved === true) {
+      where.isApproved = true;
+    } else if (onlyApproved === false) {
+      where.isApproved = false;
+    }
+    // onlyApproved undefined ise tüm yorumları getir
+    
+    return await repository.find({
+      where: Object.keys(where).length > 0 ? where : undefined,
+      relations: ['user'],
+      order: {
+        createdAt: 'DESC'
+      }
+    });
+  },
+
+  getPendingReviews: async (): Promise<CoachReview[]> => {
+    return await repository.find({
+      where: { isApproved: false },
+      relations: ['user'],
+      order: {
+        createdAt: 'DESC'
+      }
+    });
+  },
+
+  getPendingCount: async (): Promise<number> => {
+    return await repository.count({
+      where: { isApproved: false }
+    });
+  },
+
+  approve: async (id: number): Promise<CoachReview> => {
+    const review = await repository.findOne({ where: { id } });
+    if (!review) throw new AppError("REVIEW_NOT_FOUND");
+    
+    review.isApproved = true;
+    return await repository.save(review);
   },
 };
 
