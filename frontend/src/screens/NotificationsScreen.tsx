@@ -6,6 +6,8 @@ import {
   RefreshControl,
   Alert,
   TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFocusEffect } from '@react-navigation/native';
@@ -82,13 +84,13 @@ const NotificationsScreen = ({ navigation }: any) => {
       
       // Challenge detaylarını paralel olarak çek (daha hızlı)
       const challengePromises = result.notifications
-        .filter((notif) => 
+        .filter((notif: Notification) => 
           (notif.type === NotificationType.MATCH_CHALLENGE || 
            notif.type === NotificationType.PENDING_MATCH_REQUEST ||
            notif.type === NotificationType.MATCH_COMPLETED) && 
           notif.relatedEntityId
         )
-        .map(async (notif) => {
+        .map(async (notif: Notification) => {
           try {
             const challenge = await matchChallengeService.getChallengeById(notif.relatedEntityId!);
             return { notificationId: notif.id, challenge, success: true };
@@ -430,7 +432,6 @@ const NotificationsScreen = ({ navigation }: any) => {
         matchDate: new Date(reservationForMatch.startTime),
         indoorCourt: reservationForMatch.court?.indoors || false,
         courtGround: reservationForMatch.court?.groundType || 'hard',
-        affectsEloRating: true,
       });
 
       // Bildirimleri sil (hem backend hem frontend)
@@ -725,14 +726,18 @@ const NotificationsScreen = ({ navigation }: any) => {
           onDismiss={() => setShowReservationMatchResultModal(false)}
           contentContainerStyle={styles.modalContainer}
         >
-          <Card style={styles.modalCard}>
-            <ScrollView showsVerticalScrollIndicator={true} style={styles.modalScrollView}>
-              <Card.Content>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.keyboardAvoidingView}
+          >
+            <Card style={styles.modalCard}>
+              <ScrollView showsVerticalScrollIndicator={true} style={styles.modalScrollView}>
+                <Card.Content>
                 <View style={styles.modalHeader}>
-                  <MaterialCommunityIcons name="trophy" size={32} color="#FFD700" />
+                  <MaterialCommunityIcons name="trophy" size={40} color="#FFD700" />
                   <Title style={styles.modalTitle}>Maç Sonucu Gir</Title>
                   <TouchableOpacity onPress={() => setShowReservationMatchResultModal(false)}>
-                    <MaterialCommunityIcons name="close" size={24} color="#757575" />
+                    <MaterialCommunityIcons name="close" size={28} color="#757575" />
                   </TouchableOpacity>
                 </View>
 
@@ -978,9 +983,10 @@ const NotificationsScreen = ({ navigation }: any) => {
                     </View>
                   </>
                 ) : null}
-              </Card.Content>
-            </ScrollView>
-          </Card>
+                </Card.Content>
+              </ScrollView>
+            </Card>
+          </KeyboardAvoidingView>
         </Modal>
       </Portal>
 
@@ -1125,7 +1131,11 @@ const styles = StyleSheet.create({
   },
   // Reservation Match Result Modal Styles
   modalContainer: {
-    margin: 20,
+    margin: 16,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  keyboardAvoidingView: {
     flex: 1,
     justifyContent: 'center',
   },
@@ -1140,7 +1150,7 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.4,
     shadowRadius: 16,
-    maxHeight: '80%',
+    maxHeight: '95%',
   },
   modalScrollView: {
     maxHeight: '100%',
@@ -1149,23 +1159,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
-    paddingBottom: 16,
+    marginBottom: 24,
+    paddingBottom: 18,
     borderBottomWidth: 1,
     borderBottomColor: '#E9ECEF',
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#1B1B1B',
     flex: 1,
     marginLeft: 12,
   },
   modalSubtitle: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#6C757D',
     marginBottom: 20,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   modalLoadingContainer: {
     flex: 1,
@@ -1194,11 +1204,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sectionLabel: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#1B1B1B',
-    marginBottom: 12,
-    marginTop: 8,
+    marginBottom: 14,
+    marginTop: 10,
   },
   winnerSelectionContainer: {
     marginVertical: 20,
@@ -1214,8 +1224,8 @@ const styles = StyleSheet.create({
   winnerOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
-    borderRadius: 12,
+    padding: 18,
+    borderRadius: 14,
     borderWidth: 2,
     borderColor: '#E0E0E0',
     backgroundColor: '#FAFAFA',
@@ -1225,24 +1235,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#E8F5E9',
   },
   radioButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     borderWidth: 2,
     borderColor: '#757575',
-    marginRight: 15,
+    marginRight: 16,
     justifyContent: 'center',
     alignItems: 'center',
   },
   radioButtonInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     backgroundColor: '#2E7D32',
   },
   winnerAvatar: {
     backgroundColor: '#2E7D32',
-    marginRight: 15,
+    marginRight: 16,
   },
   winnerInfo: {
     flex: 1,
@@ -1352,9 +1362,10 @@ const styles = StyleSheet.create({
   },
   scoreInput: {
     flex: 1,
-    height: 40,
+    height: 48,
     backgroundColor: '#FFFFFF',
     textAlign: 'center',
+    fontSize: 16,
   },
   scoreSeparator: {
     fontSize: 18,
@@ -1386,16 +1397,18 @@ const styles = StyleSheet.create({
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: 20,
+    gap: 12,
   },
   modalCancelButton: {
     flex: 1,
-    marginRight: 10,
     borderRadius: 12,
+    paddingVertical: 4,
   },
   modalSendButton: {
     flex: 1,
-    marginLeft: 10,
     borderRadius: 12,
+    paddingVertical: 4,
   },
   snackbar: {
     backgroundColor: '#2E7D32',

@@ -225,8 +225,14 @@ const adminService = {
       throw new Error("En az bir saat seçilmelidir");
     }
 
-    if (data.startDate >= data.endDate) {
-      throw new Error("Bitiş tarihi başlangıç tarihinden sonra olmalıdır");
+    // Tarihleri normalize et (sadece gün bazında karşılaştır)
+    const startDateNormalized = new Date(data.startDate);
+    startDateNormalized.setHours(0, 0, 0, 0);
+    const endDateNormalized = new Date(data.endDate);
+    endDateNormalized.setHours(0, 0, 0, 0);
+
+    if (endDateNormalized < startDateNormalized) {
+      throw new Error("Bitiş tarihi başlangıç tarihinden önce olamaz");
     }
 
     const slots: BlockedTimeSlot[] = [];

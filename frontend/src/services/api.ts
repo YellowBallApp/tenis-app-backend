@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthTokens, LoginCredentials, RegisterCredentials, User, ApiResponse } from '../types';
 import { Platform } from 'react-native';
 import { AppState } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 
 // AsyncStorage key'leri
 const CACHED_SERVER_IP_KEY = '@cached_server_ip';
@@ -64,60 +65,68 @@ async function getServerIP(): Promise<string | null> {
     }
     
     // Cache'de yoksa veya geçersizse, server-info endpoint'ini bulmaya çalış
-    console.log('🔍 Backend IP adresi aranıyor...');
+    console.log('🔍 Backend IP adresi aranıyor (paralel tarama)...');
     
-    // Önce localhost'u dene (emülatör için)
-    try {
-      const localhostUrl = `http://localhost:${DEFAULT_PORT}/api/server-info`;
-      const response = await axios.get(localhostUrl, { timeout: 2000 });
-      if (response.data?.data?.ip) {
-        const serverIP = response.data.data.ip;
-        await AsyncStorage.setItem(CACHED_SERVER_IP_KEY, serverIP);
-        console.log('✅ Localhost üzerinden IP bulundu:', serverIP);
-        return serverIP;
-      }
-    } catch (error) {
-      // Localhost başarısız, devam et
+    // Test edilecek IP'leri hazırla
+    const testIPs: string[] = [];
+    
+    // 1. Localhost (emülatör için)
+    testIPs.push('localhost');
+    testIPs.push('10.0.2.2'); // Android emülatör
+    
+    // 2. Yaygın IP aralıklarını daha detaylı tara
+    // 192.168.1.x (en yaygın ev ağı)
+    for (let i = 1; i <= 255; i += 5) {
+      testIPs.push(`192.168.1.${i}`);
     }
     
-    // Yaygın IP aralıklarını dene (sadece birkaçını deneyerek hızlandırıldı)
-    // Önce 192.168.1.x aralığını daha detaylı tara (en yaygın)
-    for (let i = 1; i <= 255; i += 10) { // Her 10'da bir dene
-      const testIP = `192.168.1.${i}`;
+    // 192.168.0.x
+    for (let i = 1; i <= 255; i += 10) {
+      testIPs.push(`192.168.0.${i}`);
+    }
+    
+    // 10.0.0.x
+    for (let i = 1; i <= 255; i += 20) {
+      testIPs.push(`10.0.0.${i}`);
+    }
+    
+    // 172.16.0.x
+    for (let i = 1; i <= 255; i += 30) {
+      testIPs.push(`172.16.0.${i}`);
+    }
+    
+    // PARALEL TARAMA - İlk başarılı olanı kullan
+    const testPromises = testIPs.map(async (testIP) => {
       try {
         const testUrl = `http://${testIP}:${DEFAULT_PORT}/api/server-info`;
-        const response = await axios.get(testUrl, { timeout: 800 });
+        const response = await axios.get(testUrl, { timeout: 1500 });
+        
         if (response.data?.data?.ip) {
           const serverIP = response.data.data.ip;
+          console.log(`✅ Backend IP bulundu: ${serverIP} (test edilen: ${testIP})`);
+          
+          // Cache'le
           await AsyncStorage.setItem(CACHED_SERVER_IP_KEY, serverIP);
-          console.log('✅ Backend IP bulundu:', serverIP);
+          
           return serverIP;
         }
+        return null;
       } catch (error) {
-        // Bu IP başarısız, devam et
+        // Sessizce başarısız - bu normal (çoğu IP boş olacak)
+        return null;
       }
-    }
+    });
     
-    // Diğer yaygın IP aralıklarını dene (daha az detaylı)
-    for (const ipPrefix of COMMON_IP_RANGES) {
-      if (ipPrefix === '192.168.1') continue; // Zaten tarandı
-      
-      // 1-254 arası son byte'ları dene (sadece birkaçını)
-      for (let i = 1; i <= 254; i += 50) { // Her 50'de bir dene (hız için)
-        const testIP = `${ipPrefix}.${i}`;
-        try {
-          const testUrl = `http://${testIP}:${DEFAULT_PORT}/api/server-info`;
-          const response = await axios.get(testUrl, { timeout: 800 });
-          if (response.data?.data?.ip) {
-            const serverIP = response.data.data.ip;
-            await AsyncStorage.setItem(CACHED_SERVER_IP_KEY, serverIP);
-            console.log('✅ Backend IP bulundu:', serverIP);
-            return serverIP;
-          }
-        } catch (error) {
-          // Bu IP başarısız, devam et
-        }
+    // İlk başarılı sonucu bekle (Promise.race yerine Promise.any kullan - daha güvenli)
+    // Promise.any: İlk başarılı promise'i döndürür, tümü başarısız olursa hata verir
+    try {
+      const foundIP = await Promise.any(testPromises);
+      if (foundIP) {
+        return foundIP;
       }
+    } catch (error) {
+      // Tüm promise'ler başarısız oldu
+      console.warn('⚠️ Paralel taramada hiçbir IP bulunamadı');
     }
     
     console.warn('⚠️ Backend IP otomatik olarak bulunamadı');
@@ -259,15 +268,106 @@ const getApiBaseUrl = async (): Promise<string> => {
 // İlk başta base URL'i al (async)
 let API_BASE_URL: string = `http://localhost:${DEFAULT_PORT}/api`;
 
-// İlk başlatmada IP'yi al ve cache'le
-(async () => {
-  try {
-    API_BASE_URL = await getApiBaseUrl();
-    console.log('🌐 API Base URL:', API_BASE_URL);
-  } catch (error) {
-    console.error('❌ API Base URL alınamadı:', error);
+// Önceki ağ durumunu takip et
+let previousNetworkType: string | null = null;
+let previousNetworkSSID: string | null = null;
+
+// API başlatma durumu
+let isAPIInitialized = false;
+let apiInitializationPromise: Promise<void> | null = null;
+
+/**
+ * API'yi başlatır - IP keşfi yapar ve network listener'ı kurar
+ * Uygulama başlatılırken bu fonksiyon await edilmelidir
+ */
+export const initializeAPI = async (): Promise<void> => {
+  // Eğer zaten başlatılmışsa, tekrar başlatma
+  if (isAPIInitialized) {
+    return;
   }
-})();
+  
+  // Eğer başlatma devam ediyorsa, aynı promise'i döndür
+  if (apiInitializationPromise) {
+    return apiInitializationPromise;
+  }
+  
+  // Başlatma promise'ini oluştur
+  apiInitializationPromise = (async () => {
+    try {
+      console.log('🚀 API başlatılıyor - IP keşfi başlıyor...');
+      API_BASE_URL = await getApiBaseUrl();
+      console.log('✅ API başlatıldı - Base URL:', API_BASE_URL);
+      
+      // İlk ağ durumunu kaydet
+      const netInfoState = await NetInfo.fetch();
+      previousNetworkType = netInfoState.type;
+      previousNetworkSSID = (netInfoState as any).details?.ssid || null;
+      console.log('📡 İlk ağ durumu:', { type: previousNetworkType, ssid: previousNetworkSSID });
+      
+      isAPIInitialized = true;
+    } catch (error) {
+      console.error('❌ API başlatma hatası:', error);
+      // Hata olsa bile localhost ile devam et
+      isAPIInitialized = true;
+    }
+  })();
+  
+  return apiInitializationPromise;
+};
+
+// Ağ değişikliği listener'ı - Ağ değiştiğinde IP cache'ini temizle
+NetInfo.addEventListener(async (state) => {
+  const currentNetworkType = state.type;
+  const currentNetworkSSID = (state as any).details?.ssid || null;
+  
+  // Ağ bağlantısı yoksa
+  if (!state.isConnected) {
+    console.log('❌ Ağ bağlantısı kesildi');
+    return;
+  }
+  
+  // İlk başlatmayı atla
+  if (previousNetworkType === null) {
+    previousNetworkType = currentNetworkType;
+    previousNetworkSSID = currentNetworkSSID;
+    return;
+  }
+  
+  // Ağ tipi değiştiyse (WiFi → Cellular veya tersi)
+  const networkTypeChanged = currentNetworkType !== previousNetworkType;
+  
+  // WiFi SSID değiştiyse (farklı WiFi'ya bağlanıldı)
+  const ssidChanged = currentNetworkType === 'wifi' && 
+                      currentNetworkSSID !== previousNetworkSSID &&
+                      currentNetworkSSID !== null;
+  
+  if (networkTypeChanged || ssidChanged) {
+    console.log('🔄 Ağ değişikliği algılandı!', {
+      önceki: { type: previousNetworkType, ssid: previousNetworkSSID },
+      şimdiki: { type: currentNetworkType, ssid: currentNetworkSSID }
+    });
+    
+    // IP cache'ini temizle
+    console.log('🧹 IP cache temizleniyor...');
+    await AsyncStorage.removeItem(CACHED_SERVER_IP_KEY);
+    cachedServerIP = null;
+    
+    // Yeni IP keşfi başlat (arka planda)
+    console.log('🔍 Yeni IP keşfi başlatılıyor...');
+    getApiBaseUrl()
+      .then((newBaseUrl) => {
+        API_BASE_URL = newBaseUrl;
+        console.log('✅ Yeni API Base URL:', API_BASE_URL);
+      })
+      .catch((error) => {
+        console.error('❌ Yeni IP keşfi başarısız:', error);
+      });
+    
+    // Önceki durumu güncelle
+    previousNetworkType = currentNetworkType;
+    previousNetworkSSID = currentNetworkSSID;
+  }
+});
 
 const api = axios.create({
   // baseURL'i interceptor'da dinamik olarak ayarlayacağız
@@ -285,6 +385,12 @@ console.log('Platform:', Platform.OS, isEmulator ? '(Emülatör)' : '(Gerçek Ci
 api.interceptors.request.use(
   async (config) => {
     try {
+      // API henüz başlatılmadıysa, önce başlat
+      if (!isAPIInitialized) {
+        console.log('⏳ API henüz başlatılmadı, başlatılıyor...');
+        await initializeAPI();
+      }
+      
       // BaseURL'i dinamik olarak ayarla
       if (!config.baseURL) {
         const baseUrl = await getApiBaseUrl();
@@ -1176,6 +1282,67 @@ export const weatherService = {
     const response = await api.get(`/weather/for-datetime?date=${date}&time=${time}&location=${location}`);
     return response.data.data;
   },
+};
+
+// Manuel IP adresi ayarlama
+export const setManualServerIP = async (ip: string): Promise<void> => {
+  try {
+    // IP formatını kontrol et
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (!ipRegex.test(ip)) {
+      throw new Error('Geçersiz IP adresi formatı');
+    }
+    
+    // Cache'e kaydet
+    await AsyncStorage.setItem(CACHED_SERVER_IP_KEY, ip);
+    cachedServerIP = ip;
+    API_BASE_URL = `http://${ip}:${DEFAULT_PORT}/api`;
+    
+    console.log('✅ Manuel IP ayarlandı:', ip);
+  } catch (error) {
+    console.error('❌ Manuel IP ayarlama hatası:', error);
+    throw error;
+  }
+};
+
+// Sunucu bağlantısı kontrolü
+export const checkServerConnection = async (ip?: string): Promise<{
+  connected: boolean;
+  serverUrl?: string;
+  error?: string;
+}> => {
+  try {
+    const testIP = ip || cachedServerIP;
+    if (!testIP) {
+      throw new Error('IP adresi belirtilmedi');
+    }
+    
+    const testUrl = `http://${testIP}:${DEFAULT_PORT}/api/server-info`;
+    const response = await axios.get(testUrl, { timeout: 3000 });
+    
+    if (response.data?.data?.ip) {
+      console.log('✅ Sunucu bağlantısı başarılı:', testIP);
+      return {
+        connected: true,
+        serverUrl: `http://${testIP}:${DEFAULT_PORT}/api`,
+      };
+    }
+    
+    throw new Error('Server response invalid');
+  } catch (error: any) {
+    console.error('❌ Sunucu bağlantısı başarısız:', error.message);
+    return {
+      connected: false,
+      error: error.message || 'Sunucuya bağlanılamıyor',
+    };
+  }
+};
+
+// Cache temizleme
+export const clearServerCache = async (): Promise<void> => {
+  await AsyncStorage.removeItem(CACHED_SERVER_IP_KEY);
+  cachedServerIP = null;
+  console.log('🧹 Sunucu cache temizlendi');
 };
 
 export default api;

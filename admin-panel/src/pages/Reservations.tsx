@@ -94,6 +94,12 @@ const Reservations = () => {
     e.preventDefault();
     try {
       if (editingSlot) {
+        // Bitiş zamanı başlangıçtan önce olamaz
+        if (new Date(formData.endDate) < new Date(formData.startDate)) {
+          alert('Bitiş zamanı başlangıç zamanından önce olamaz');
+          return;
+        }
+        
         const payload = {
           startTime: new Date(formData.startDate).toISOString(),
           endTime: new Date(formData.endDate).toISOString(),
@@ -108,6 +114,12 @@ const Reservations = () => {
 
         if (!formData.startDate || !formData.endDate) {
           alert('Lütfen başlangıç ve bitiş tarihlerini seçin');
+          return;
+        }
+
+        // Bitiş tarihi başlangıçtan önce olamaz
+        if (formData.endDate < formData.startDate) {
+          alert('Bitiş tarihi başlangıç tarihinden önce olamaz');
           return;
         }
 
@@ -427,7 +439,14 @@ const Reservations = () => {
                         required
                         className="glass w-full px-4 py-3 text-soft-white rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all"
                         value={formData.startDate}
-                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                        onChange={(e) => {
+                          const newStartDate = e.target.value;
+                          // Eğer bitiş tarihi başlangıçtan önceyse, bitiş tarihini başlangıca eşitle
+                          const newEndDate = formData.endDate && formData.endDate < newStartDate 
+                            ? newStartDate 
+                            : formData.endDate;
+                          setFormData({ ...formData, startDate: newStartDate, endDate: newEndDate });
+                        }}
                         min={new Date().toISOString().split('T')[0]}
                       />
                     </div>
@@ -443,6 +462,9 @@ const Reservations = () => {
                         onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                         min={formData.startDate || new Date().toISOString().split('T')[0]}
                       />
+                      <p className="text-xs text-soft-white/60 mt-1">
+                        Not: Seçilen saatler, bu tarih aralığındaki her gün için bloke edilecektir
+                      </p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-soft-white/90 mb-2">
@@ -508,6 +530,7 @@ const Reservations = () => {
                         className="glass w-full px-4 py-3 text-soft-white rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all"
                         value={formData.endDate}
                         onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                        min={formData.startDate}
                       />
                     </div>
                   </>
