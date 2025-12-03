@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { HiLogout } from 'react-icons/hi';
+import { HiLogout, HiChevronDown, HiChevronRight } from 'react-icons/hi';
 import { IoTennisball } from 'react-icons/io5';
 import { MdDashboard, MdPeople, MdEvent, MdRateReview, MdSportsTennis } from 'react-icons/md';
 import { useAuth } from '../context/AuthContext';
@@ -15,6 +15,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [pendingReviewsCount, setPendingReviewsCount] = useState(0);
+  const [reservationsExpanded, setReservationsExpanded] = useState(false);
 
   useEffect(() => {
     fetchPendingReviewsCount();
@@ -37,11 +38,25 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     navigate('/login');
   };
 
+  // Rezervasyonlar alt menüsü aktif mi kontrol et
+  useEffect(() => {
+    if (location.pathname.startsWith('/reservations')) {
+      setReservationsExpanded(true);
+    }
+  }, [location.pathname]);
+
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: MdDashboard },
     { path: '/users', label: 'Kullanıcılar', icon: MdPeople },
     { path: '/courts', label: 'Kortlar', icon: MdSportsTennis },
-    { path: '/reservations', label: 'Rezervasyonlar', icon: MdEvent },
+    { 
+      path: '/reservations', 
+      label: 'Rezervasyonlar', 
+      icon: MdEvent,
+      children: [
+        { path: '/reservations', label: 'Rezervasyon Saatleri Yönetimi' }
+      ]
+    },
     { path: '/reviews', label: 'Yorumlar', icon: MdRateReview, badge: pendingReviewsCount },
   ];
 
@@ -59,10 +74,65 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
           
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2">
+          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
             {navItems.map((item) => {
               const IconComponent = item.icon;
-              const isActive = location.pathname === item.path;
+              const isActive = location.pathname === item.path || (item.children && item.children.some(child => location.pathname === child.path));
+              const hasChildren = item.children && item.children.length > 0;
+              const isExpanded = hasChildren && (item.path === '/reservations' ? reservationsExpanded : false);
+
+              if (hasChildren) {
+                return (
+                  <div key={item.path}>
+                    <button
+                      onClick={() => {
+                        if (item.path === '/reservations') {
+                          setReservationsExpanded(!reservationsExpanded);
+                        }
+                      }}
+                      className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-300 ${
+                        isActive
+                          ? 'bg-soft-purple text-soft-white shadow-lg'
+                          : 'text-soft-white/80 hover:bg-white/10 hover:text-soft-white'
+                      }`}
+                    >
+                      <div className="flex items-center">
+                        <IconComponent 
+                          style={{ fontSize: '24px', minWidth: '24px' }}
+                          className="mr-3 flex-shrink-0 text-white"
+                        />
+                        <span>{item.label}</span>
+                      </div>
+                      {isExpanded ? (
+                        <HiChevronDown className="text-white" />
+                      ) : (
+                        <HiChevronRight className="text-white" />
+                      )}
+                    </button>
+                    {isExpanded && item.children && (
+                      <div className="ml-4 mt-1 space-y-1">
+                        {item.children.map((child) => {
+                          const isChildActive = location.pathname === child.path;
+                          return (
+                            <Link
+                              key={child.path}
+                              to={child.path}
+                              className={`block px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 ${
+                                isChildActive
+                                  ? 'bg-soft-purple/50 text-soft-white shadow-md'
+                                  : 'text-soft-white/70 hover:bg-white/5 hover:text-soft-white'
+                              }`}
+                            >
+                              {child.label}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
               return (
                 <Link
                   key={item.path}

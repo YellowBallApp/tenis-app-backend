@@ -3,7 +3,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthTokens, LoginCredentials, RegisterCredentials, User, ApiResponse } from '../types';
 import { Platform } from 'react-native';
 import { AppState } from 'react-native';
-import NetInfo from '@react-native-community/netinfo';
+
+// NetInfo sadece native platformlarda kullanılabilir
+let NetInfo: any = null;
+if (Platform.OS !== 'web') {
+  try {
+    NetInfo = require('@react-native-community/netinfo').default;
+  } catch (e) {
+    console.warn('NetInfo yüklenemedi:', e);
+  }
+}
 
 // AsyncStorage key'leri
 const CACHED_SERVER_IP_KEY = '@cached_server_ip';
@@ -298,11 +307,17 @@ export const initializeAPI = async (): Promise<void> => {
       API_BASE_URL = await getApiBaseUrl();
       console.log('✅ API başlatıldı - Base URL:', API_BASE_URL);
       
-      // İlk ağ durumunu kaydet
-      const netInfoState = await NetInfo.fetch();
-      previousNetworkType = netInfoState.type;
-      previousNetworkSSID = (netInfoState as any).details?.ssid || null;
-      console.log('📡 İlk ağ durumu:', { type: previousNetworkType, ssid: previousNetworkSSID });
+      // İlk ağ durumunu kaydet (sadece native platformlarda)
+      if (NetInfo && Platform.OS !== 'web') {
+        try {
+          const netInfoState = await NetInfo.fetch();
+          previousNetworkType = netInfoState.type;
+          previousNetworkSSID = (netInfoState as any).details?.ssid || null;
+          console.log('📡 İlk ağ durumu:', { type: previousNetworkType, ssid: previousNetworkSSID });
+        } catch (error) {
+          console.warn('NetInfo fetch hatası:', error);
+        }
+      }
       
       isAPIInitialized = true;
     } catch (error) {
@@ -315,8 +330,9 @@ export const initializeAPI = async (): Promise<void> => {
   return apiInitializationPromise;
 };
 
-// Ağ değişikliği listener'ı - Ağ değiştiğinde IP cache'ini temizle
-NetInfo.addEventListener(async (state) => {
+// Ağ değişikliği listener'ı - Ağ değiştiğinde IP cache'ini temizle (sadece native platformlarda)
+if (NetInfo && Platform.OS !== 'web') {
+  NetInfo.addEventListener(async (state) => {
   const currentNetworkType = state.type;
   const currentNetworkSSID = (state as any).details?.ssid || null;
   

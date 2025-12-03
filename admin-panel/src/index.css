@@ -87,24 +87,6 @@ p {
   box-shadow: 0 0 20px var(--glow-lime), 0 0 40px var(--glow-lime);
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--soft-green);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--soft-green-dark);
-}
-
 /* Select element styling - mevcut temayla uyumlu */
 select {
   appearance: none;
