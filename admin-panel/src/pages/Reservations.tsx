@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { LayoutGrid, List } from 'lucide-react';
 import { IoTennisball } from 'react-icons/io5';
-import { HiClock, HiPencil, HiTrash, HiPause, HiPlay, HiBan } from 'react-icons/hi';
+import { HiClock, HiPencil, HiTrash, HiPause, HiPlay, HiBan, HiCalendar } from 'react-icons/hi';
 import { MdNoteAlt } from 'react-icons/md';
 import Layout from '../components/Layout';
 import api from '../utils/api';
+import { DatePicker } from '@/components/ui/date-picker';
+import { format } from 'date-fns';
 
 interface BlockedSlot {
   id: number;
@@ -29,8 +31,10 @@ const Reservations = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [formData, setFormData] = useState({
     courtId: '',
-    startDate: '',
-    endDate: '',
+    startDate: undefined as Date | undefined,
+    endDate: undefined as Date | undefined,
+    startTime: '',
+    endTime: '',
     selectedHours: [] as number[],
     selectedDays: [] as number[], // Haftanın günleri (0=Pazar, 1=Pazartesi, ..., 6=Cumartesi)
     reason: '',
@@ -82,8 +86,10 @@ const Reservations = () => {
     setEditingSlot(null);
     setFormData({
       courtId: '',
-      startDate: '',
-      endDate: '',
+      startDate: undefined,
+      endDate: undefined,
+      startTime: '',
+      endTime: '',
       selectedHours: [],
       selectedDays: [],
       reason: '',
@@ -93,10 +99,15 @@ const Reservations = () => {
 
   const handleEdit = (slot: BlockedSlot) => {
     setEditingSlot(slot);
+    const startDateTime = new Date(slot.startTime);
+    const endDateTime = new Date(slot.endTime);
+    
     setFormData({
       courtId: slot.court.id.toString(),
-      startDate: new Date(slot.startTime).toISOString().slice(0, 16),
-      endDate: new Date(slot.endTime).toISOString().slice(0, 16),
+      startDate: startDateTime,
+      endDate: endDateTime,
+      startTime: startDateTime.toTimeString().slice(0, 5), // HH:mm format
+      endTime: endDateTime.toTimeString().slice(0, 5),
       selectedHours: [],
       selectedDays: [],
       reason: slot.reason || '',
@@ -117,15 +128,36 @@ const Reservations = () => {
     e.preventDefault();
     try {
       if (editingSlot) {
+        // Validations
+        if (!formData.startDate || !formData.endDate) {
+          alert('Lütfen tarih ve saat seçin');
+          return;
+        }
+
+        if (!formData.startTime || !formData.endTime) {
+          alert('Lütfen saat seçin');
+          return;
+        }
+
+        // Combine date and time
+        const [startHour, startMinute] = formData.startTime.split(':').map(Number);
+        const [endHour, endMinute] = formData.endTime.split(':').map(Number);
+        
+        const startDateTime = new Date(formData.startDate);
+        startDateTime.setHours(startHour, startMinute, 0, 0);
+        
+        const endDateTime = new Date(formData.endDate);
+        endDateTime.setHours(endHour, endMinute, 0, 0);
+
         // Bitiş zamanı başlangıçtan önce olamaz
-        if (new Date(formData.endDate) < new Date(formData.startDate)) {
-          alert('Bitiş zamanı başlangıç zamanından önce olamaz');
+        if (endDateTime <= startDateTime) {
+          alert('Bitiş zamanı başlangıç zamanından sonra olmalıdır');
           return;
         }
         
         const payload = {
-          startTime: new Date(formData.startDate).toISOString(),
-          endTime: new Date(formData.endDate).toISOString(),
+          startTime: startDateTime.toISOString(),
+          endTime: endDateTime.toISOString(),
           reason: formData.reason,
         };
         await api.put(`/admin/blocked-time-slots/${editingSlot.id}`, payload);
@@ -148,8 +180,8 @@ const Reservations = () => {
 
         const payload = {
           courtId: parseInt(formData.courtId),
-          startDate: formData.startDate,
-          endDate: formData.endDate,
+          startDate: format(formData.startDate, 'yyyy-MM-dd'),
+          endDate: format(formData.endDate, 'yyyy-MM-dd'),
           hours: formData.selectedHours,
           reason: formData.reason,
           daysOfWeek: formData.selectedDays.length > 0 ? formData.selectedDays : undefined,
@@ -455,38 +487,36 @@ const Reservations = () => {
                 {!editingSlot && (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-soft-white/90 mb-2">
-                        Başlangıç Tarihi *
+                      <label className="flex items-center space-x-2 text-sm font-medium text-soft-white/90 mb-2">
+                        <HiCalendar className="text-soft-green" />
+                        <span>Başlangıç Tarihi *</span>
                       </label>
-                      <input
-                        type="date"
-                        required
-                        className="glass w-full px-4 py-3 text-soft-white rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all"
-                        value={formData.startDate}
-                        onChange={(e) => {
-                          const newStartDate = e.target.value;
+                      <DatePicker
+                        date={formData.startDate}
+                        onDateChange={(date) => {
                           // Eğer bitiş tarihi başlangıçtan önceyse, bitiş tarihini başlangıca eşitle
-                          const newEndDate = formData.endDate && formData.endDate < newStartDate 
-                            ? newStartDate 
+                          const newEndDate = formData.endDate && date && formData.endDate < date
+                            ? date
                             : formData.endDate;
-                          setFormData({ ...formData, startDate: newStartDate, endDate: newEndDate });
+                          setFormData({ ...formData, startDate: date, endDate: newEndDate });
                         }}
-                        min={new Date().toISOString().split('T')[0]}
+                        placeholder="Başlangıç tarihi seçin"
+                        minDate={new Date()}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-soft-white/90 mb-2">
-                        Bitiş Tarihi *
+                      <label className="flex items-center space-x-2 text-sm font-medium text-soft-white/90 mb-2">
+                        <HiCalendar className="text-soft-purple" />
+                        <span>Bitiş Tarihi *</span>
                       </label>
-                      <input
-                        type="date"
-                        required
-                        className="glass w-full px-4 py-3 text-soft-white rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all"
-                        value={formData.endDate}
-                        onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                        min={formData.startDate || new Date().toISOString().split('T')[0]}
+                      <DatePicker
+                        date={formData.endDate}
+                        onDateChange={(date) => setFormData({ ...formData, endDate: date })}
+                        placeholder="Bitiş tarihi seçin"
+                        minDate={formData.startDate || new Date()}
+                        disabled={!formData.startDate}
                       />
-                      <p className="text-xs text-soft-white/60 mt-1">
+                      <p className="text-xs text-soft-white/60 mt-2">
                         {formData.selectedDays.length > 0 
                           ? 'Not: Seçilen saatler, sadece seçilen günler için bloke edilecektir'
                           : 'Not: Seçilen saatler, bu tarih aralığındaki her gün için bloke edilecektir'
@@ -575,30 +605,59 @@ const Reservations = () => {
 
                 {editingSlot && (
                   <>
-                    <div>
-                      <label className="block text-sm font-medium text-soft-white/90 mb-2">
-                        Başlangıç Zamanı *
-                      </label>
-                      <input
-                        type="datetime-local"
-                        required
-                        className="glass w-full px-4 py-3 text-soft-white rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all"
-                        value={formData.startDate}
-                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                      />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="flex items-center space-x-2 text-sm font-medium text-soft-white/90 mb-2">
+                          <HiCalendar className="text-soft-green" />
+                          <span>Başlangıç Tarihi *</span>
+                        </label>
+                        <DatePicker
+                          date={formData.startDate}
+                          onDateChange={(date) => setFormData({ ...formData, startDate: date })}
+                          placeholder="Tarih seçin"
+                        />
+                      </div>
+                      <div>
+                        <label className="flex items-center space-x-2 text-sm font-medium text-soft-white/90 mb-2">
+                          <HiClock className="text-soft-green" />
+                          <span>Başlangıç Saati *</span>
+                        </label>
+                        <input
+                          type="time"
+                          required
+                          className="glass w-full px-4 py-3 text-soft-white rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all hover:border-soft-purple/50"
+                          value={formData.startTime}
+                          onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-soft-white/90 mb-2">
-                        Bitiş Zamanı *
-                      </label>
-                      <input
-                        type="datetime-local"
-                        required
-                        className="glass w-full px-4 py-3 text-soft-white rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all"
-                        value={formData.endDate}
-                        onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                        min={formData.startDate}
-                      />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="flex items-center space-x-2 text-sm font-medium text-soft-white/90 mb-2">
+                          <HiCalendar className="text-soft-purple" />
+                          <span>Bitiş Tarihi *</span>
+                        </label>
+                        <DatePicker
+                          date={formData.endDate}
+                          onDateChange={(date) => setFormData({ ...formData, endDate: date })}
+                          placeholder="Tarih seçin"
+                          minDate={formData.startDate}
+                          disabled={!formData.startDate}
+                        />
+                      </div>
+                      <div>
+                        <label className="flex items-center space-x-2 text-sm font-medium text-soft-white/90 mb-2">
+                          <HiClock className="text-soft-purple" />
+                          <span>Bitiş Saati *</span>
+                        </label>
+                        <input
+                          type="time"
+                          required
+                          className="glass w-full px-4 py-3 text-soft-white rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all hover:border-soft-purple/50"
+                          value={formData.endTime}
+                          onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                        />
+                      </div>
                     </div>
                   </>
                 )}

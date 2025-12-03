@@ -241,7 +241,7 @@ const ReservationMatchResultScreen = () => {
   if (loading) {
     return (
       <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color="#2E7D32" />
+        <ActivityIndicator size="large" color="#00B050" />
         <Text style={styles.loadingText}>Yükleniyor...</Text>
       </View>
     );
@@ -353,7 +353,7 @@ const ReservationMatchResultScreen = () => {
                       <MaterialCommunityIcons 
                         name="tennis" 
                         size={20} 
-                        color="#2E7D32" 
+                        color="#00B050" 
                       />
                       <Text style={styles.courtDropdownText}>
                         {selectedCourt 
@@ -389,7 +389,7 @@ const ReservationMatchResultScreen = () => {
                 <Text style={styles.sectionLabel}>Set Skorları (Minimum 2 Set Zorunlu)</Text>
                 {matchSets.length < 5 && (
                   <TouchableOpacity onPress={addSet} style={styles.addSetButton}>
-                    <MaterialCommunityIcons name="plus-circle" size={24} color="#2E7D32" />
+                    <MaterialCommunityIcons name="plus-circle" size={24} color="#00B050" />
                     <Text style={styles.addSetText}>Set Ekle</Text>
                   </TouchableOpacity>
                 )}
@@ -433,7 +433,7 @@ const ReservationMatchResultScreen = () => {
                       style={styles.scoreInput}
                       contentStyle={styles.scoreInputContent}
                       outlineColor={shouldShowError ? "#DC3545" : "#E0E0E0"}
-                      activeOutlineColor={shouldShowError ? "#DC3545" : "#2E7D32"}
+                      activeOutlineColor={shouldShowError ? "#DC3545" : "#00B050"}
                       error={shouldShowError}
                       dense
                     />
@@ -450,7 +450,7 @@ const ReservationMatchResultScreen = () => {
                       style={styles.scoreInput}
                       contentStyle={styles.scoreInputContent}
                       outlineColor={shouldShowError ? "#DC3545" : "#E0E0E0"}
-                      activeOutlineColor={shouldShowError ? "#DC3545" : "#2E7D32"}
+                      activeOutlineColor={shouldShowError ? "#DC3545" : "#00B050"}
                       error={shouldShowError}
                       dense
                     />
@@ -485,7 +485,7 @@ const ReservationMatchResultScreen = () => {
                 mode="contained"
                 onPress={submitMatchResult}
                 style={styles.submitButton}
-                buttonColor="#2E7D32"
+                buttonColor="#00B050"
                 loading={submitting}
                 disabled={submitting}
               >
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#2E7D32',
+    borderColor: '#00B050',
     marginRight: 12,
     justifyContent: 'center',
     alignItems: 'center',
@@ -580,7 +580,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#2E7D32',
+    backgroundColor: '#00B050',
   },
   winnerAvatar: {
     marginRight: 12,
@@ -635,7 +635,7 @@ const styles = StyleSheet.create({
   },
   addSetText: {
     marginLeft: 4,
-    color: '#2E7D32',
+    color: '#00B050',
     fontWeight: '600',
   },
   scoreErrorContainer: {
