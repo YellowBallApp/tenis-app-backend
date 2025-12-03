@@ -324,7 +324,7 @@ const adminController = {
   createBulkBlockedTimeSlots: async (req: Request, res: Response) => {
     try {
       const adminUserId = req.currentUser.id;
-      const { courtId, startDate, endDate, hours, reason } = req.body;
+      const { courtId, startDate, endDate, hours, reason, daysOfWeek } = req.body;
 
       if (!courtId || !startDate || !endDate || !hours || !Array.isArray(hours) || hours.length === 0) {
         return res.status(400).json({
@@ -339,6 +339,9 @@ const adminController = {
         endDate: new Date(endDate),
         hours: hours.map((h: any) => parseInt(h)),
         reason,
+        daysOfWeek: daysOfWeek && Array.isArray(daysOfWeek) && daysOfWeek.length > 0
+          ? daysOfWeek.map((d: any) => parseInt(d))
+          : undefined,
       });
 
       return res.status(201).json({

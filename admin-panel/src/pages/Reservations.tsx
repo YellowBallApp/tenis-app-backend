@@ -32,11 +32,32 @@ const Reservations = () => {
     startDate: '',
     endDate: '',
     selectedHours: [] as number[],
+    selectedDays: [] as number[], // Haftanın günleri (0=Pazar, 1=Pazartesi, ..., 6=Cumartesi)
     reason: '',
   });
 
   // Müsait saatler (9:00 - 23:00)
   const availableHours = Array.from({ length: 15 }, (_, i) => i + 9);
+
+  // Haftanın günleri
+  const weekDays = [
+    { value: 0, label: 'Pazar' },
+    { value: 1, label: 'Pazartesi' },
+    { value: 2, label: 'Salı' },
+    { value: 3, label: 'Çarşamba' },
+    { value: 4, label: 'Perşembe' },
+    { value: 5, label: 'Cuma' },
+    { value: 6, label: 'Cumartesi' },
+  ];
+
+  const toggleDay = (day: number) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedDays: prev.selectedDays.includes(day)
+        ? prev.selectedDays.filter(d => d !== day)
+        : [...prev.selectedDays, day].sort((a, b) => a - b)
+    }));
+  };
 
   useEffect(() => {
     fetchData();
@@ -64,6 +85,7 @@ const Reservations = () => {
       startDate: '',
       endDate: '',
       selectedHours: [],
+      selectedDays: [],
       reason: '',
     });
     setShowModal(true);
@@ -76,6 +98,7 @@ const Reservations = () => {
       startDate: new Date(slot.startTime).toISOString().slice(0, 16),
       endDate: new Date(slot.endTime).toISOString().slice(0, 16),
       selectedHours: [],
+      selectedDays: [],
       reason: slot.reason || '',
     });
     setShowModal(true);
@@ -129,6 +152,7 @@ const Reservations = () => {
           endDate: formData.endDate,
           hours: formData.selectedHours,
           reason: formData.reason,
+          daysOfWeek: formData.selectedDays.length > 0 ? formData.selectedDays : undefined,
         };
 
         const response = await api.post('/admin/blocked-time-slots/bulk', payload);
@@ -463,15 +487,58 @@ const Reservations = () => {
                         min={formData.startDate || new Date().toISOString().split('T')[0]}
                       />
                       <p className="text-xs text-soft-white/60 mt-1">
-                        Not: Seçilen saatler, bu tarih aralığındaki her gün için bloke edilecektir
+                        {formData.selectedDays.length > 0 
+                          ? 'Not: Seçilen saatler, sadece seçilen günler için bloke edilecektir'
+                          : 'Not: Seçilen saatler, bu tarih aralığındaki her gün için bloke edilecektir'
+                        }
                       </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-soft-white/90 mb-2">
+                        Haftanın Günleri (Opsiyonel)
+                      </label>
+                      <p className="text-xs text-soft-white/60 mb-3">
+                        Eğer gün seçilmezse, tüm günler için bloklama yapılır. Gün seçilirse, sadece seçilen günler için bloklama yapılır.
+                      </p>
+                      <div className="glass rounded-lg p-4 mb-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {weekDays.map((day) => (
+                            <label
+                              key={day.value}
+                              className={`flex items-center justify-center space-x-2 cursor-pointer p-3 rounded-lg transition-all duration-300 ${
+                                formData.selectedDays.includes(day.value)
+                                  ? 'bg-gradient-to-r from-soft-purple to-soft-purple-light text-soft-navy font-bold shadow-lg'
+                                  : 'glass-strong hover:glass text-soft-white/80'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={formData.selectedDays.includes(day.value)}
+                                onChange={() => toggleDay(day.value)}
+                                className="hidden"
+                              />
+                              <span className="text-sm font-medium">
+                                {day.label}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      {formData.selectedDays.length > 0 && (
+                        <p className="text-sm text-slate-300 mb-3">
+                          ✓ {formData.selectedDays.length} gün seçildi: {formData.selectedDays.map(d => weekDays.find(wd => wd.value === d)?.label).join(', ')}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-soft-white/90 mb-2">
                         Bloke Edilecek Saatler *
                       </label>
                       <p className="text-xs text-soft-white/60 mb-3">
-                        Seçilen saatler, belirtilen tarih aralığındaki her gün için bloke edilecektir
+                        {formData.selectedDays.length > 0
+                          ? 'Seçilen saatler, belirtilen tarih aralığındaki seçili günler için bloke edilecektir'
+                          : 'Seçilen saatler, belirtilen tarih aralığındaki her gün için bloke edilecektir'
+                        }
                       </p>
                       <div className="glass rounded-lg p-4 max-h-64 overflow-y-auto">
                         <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">

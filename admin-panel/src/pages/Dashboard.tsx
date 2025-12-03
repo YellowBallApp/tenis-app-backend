@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { HiUsers, HiCalendar, HiClock, HiBan, HiUserGroup, HiRefresh } from 'react-icons/hi';
-import { IoTennisball } from 'react-icons/io5';
+import { HiUsers, HiCalendar, HiClock, HiBan } from 'react-icons/hi';
+import { MdSportsTennis } from 'react-icons/md';
 import Layout from '../components/Layout';
 import api from '../utils/api';
 
@@ -10,6 +10,7 @@ const Dashboard = () => {
     totalReservations: 0,
     activeReservations: 0,
     blockedSlots: 0,
+    activeCourts: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -19,15 +20,17 @@ const Dashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const [usersRes, reservationsRes, blockedRes] = await Promise.all([
+      const [usersRes, reservationsRes, blockedRes, courtsRes] = await Promise.all([
         api.get('/admin/users'),
         api.get('/reservations?date=' + new Date().toISOString().split('T')[0]),
         api.get('/admin/blocked-time-slots?isActive=true'),
+        api.get('/courts/active'),
       ]);
 
       const users = usersRes.data.data || [];
       const reservations = reservationsRes.data.data || [];
       const blockedSlots = blockedRes.data.data || [];
+      const activeCourts = courtsRes.data.data || [];
 
       setStats({
         totalUsers: users.length,
@@ -37,6 +40,7 @@ const Dashboard = () => {
           return endTime > new Date();
         }).length,
         blockedSlots: blockedSlots.length,
+        activeCourts: activeCourts.length,
       });
     } catch (error) {
       console.error('Stats fetch error:', error);
@@ -64,6 +68,12 @@ const Dashboard = () => {
       value: stats.totalUsers,
       icon: HiUsers,
       color: 'bg-slate-600',
+    },
+    {
+      title: 'Aktif Kort',
+      value: stats.activeCourts,
+      icon: MdSportsTennis,
+      color: 'bg-soft-green',
     },
     {
       title: 'Toplam Rezervasyon',
@@ -95,7 +105,7 @@ const Dashboard = () => {
         </div>
         
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           {statCards.map((stat, index) => (
             <div
               key={index}
@@ -110,45 +120,6 @@ const Dashboard = () => {
               <p className="text-4xl font-bold text-soft-white">{stat.value}</p>
             </div>
           ))}
-        </div>
-
-        {/* Quick Actions */}
-        <div className="glass-strong rounded-2xl p-6">
-          <h2 className="text-xl font-bold text-soft-white mb-4">Hızlı İşlemler</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <a
-              href="/users"
-              className="glass p-4 rounded-xl hover:glass-strong transition-all duration-300 flex items-center space-x-3 group"
-            >
-              <HiUserGroup className="text-2xl group-hover:scale-110 transition-transform text-soft-white" />
-              <div>
-                <p className="text-soft-white font-medium">Kullanıcı Yönetimi</p>
-                <p className="text-soft-white/60 text-sm">Kullanıcıları görüntüle ve düzenle</p>
-              </div>
-            </a>
-
-            <a
-              href="/reservations"
-              className="glass p-4 rounded-xl hover:glass-strong transition-all duration-300 flex items-center space-x-3 group"
-            >
-              <IoTennisball className="text-2xl group-hover:scale-110 transition-transform text-soft-white" />
-              <div>
-                <p className="text-soft-white font-medium">Rezervasyon Yönetimi</p>
-                <p className="text-soft-white/60 text-sm">Saatleri blokla ve yönet</p>
-              </div>
-            </a>
-
-            <button
-              onClick={fetchStats}
-              className="glass p-4 rounded-xl hover:glass-strong transition-all duration-300 flex items-center space-x-3 group"
-            >
-              <HiRefresh className="text-2xl group-hover:scale-110 transition-transform text-soft-white" />
-              <div className="text-left">
-                <p className="text-soft-white font-medium">Yenile</p>
-                <p className="text-soft-white/60 text-sm">İstatistikleri güncelle</p>
-              </div>
-            </button>
-          </div>
         </div>
       </div>
     </Layout>

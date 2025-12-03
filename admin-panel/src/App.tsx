@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
+import Courts from './pages/Courts';
 import Reservations from './pages/Reservations';
 import Reviews from './pages/Reviews';
 
@@ -26,6 +27,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Users />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/courts"
+            element={
+              <ProtectedRoute>
+                <Courts />
               </ProtectedRoute>
             }
           />

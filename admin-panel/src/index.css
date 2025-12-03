@@ -104,3 +104,33 @@ p {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--soft-green-dark);
 }
+
+/* Select element styling - mevcut temayla uyumlu */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23f8f9fa' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 12px;
+  padding-right: 2.5rem;
+}
+
+select option {
+  background: rgba(45, 55, 72, 0.95);
+  color: var(--soft-white);
+  padding: 0.75rem;
+  border: none;
+}
+
+select option:hover,
+select option:focus,
+select option:checked {
+  background: rgba(183, 148, 246, 0.3);
+  color: var(--soft-white);
+}
+
+select:focus option:checked {
+  background: rgba(183, 148, 246, 0.5);
+}

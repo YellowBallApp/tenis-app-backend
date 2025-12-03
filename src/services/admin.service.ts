@@ -212,6 +212,7 @@ const adminService = {
       endDate: Date; // Bitiş tarihi
       hours: number[]; // Bloke edilecek saatler (örn: [13, 14, 15])
       reason?: string;
+      daysOfWeek?: number[]; // Haftanın günleri (0=Pazar, 1=Pazartesi, ..., 6=Cumartesi). Eğer boşsa tüm günler için bloklama yapılır
     }
   ): Promise<{ created: number; slots: BlockedTimeSlot[] }> => {
     // Kort kontrolü
@@ -244,6 +245,15 @@ const adminService = {
     // Her gün için döngü
     const currentDate = new Date(startDate);
     while (currentDate <= endDate) {
+      // Haftanın gününü al (0=Pazar, 1=Pazartesi, ..., 6=Cumartesi)
+      const dayOfWeek = currentDate.getDay();
+      
+      // Eğer daysOfWeek belirtilmişse ve bu gün listede yoksa, atla
+      if (data.daysOfWeek && data.daysOfWeek.length > 0 && !data.daysOfWeek.includes(dayOfWeek)) {
+        currentDate.setDate(currentDate.getDate() + 1);
+        continue;
+      }
+
       // Her seçilen saat için bloklama oluştur
       for (const hour of data.hours) {
         if (hour < 0 || hour > 23) {

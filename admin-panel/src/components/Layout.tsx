@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { HiLogout } from 'react-icons/hi';
 import { IoTennisball } from 'react-icons/io5';
-import { MdDashboard, MdPeople, MdEvent, MdRateReview } from 'react-icons/md';
+import { MdDashboard, MdPeople, MdEvent, MdRateReview, MdSportsTennis } from 'react-icons/md';
 import { useAuth } from '../context/AuthContext';
 import { useEffect, useState } from 'react';
 import api from '../utils/api';
@@ -40,6 +40,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: MdDashboard },
     { path: '/users', label: 'Kullanıcılar', icon: MdPeople },
+    { path: '/courts', label: 'Kortlar', icon: MdSportsTennis },
     { path: '/reservations', label: 'Rezervasyonlar', icon: MdEvent },
     { path: '/reviews', label: 'Yorumlar', icon: MdRateReview, badge: pendingReviewsCount },
   ];
