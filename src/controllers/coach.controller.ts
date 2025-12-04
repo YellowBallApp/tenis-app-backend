@@ -8,7 +8,10 @@ const coachController = {
       const coaches = await coachService.findAll();
 
       return res.status(200).json({
-        data: coaches,
+        data: coaches.map(coach => ({
+          ...coach,
+          rating: coach.starRating || 0,
+        })),
       });
     } catch (err) {
       const error = err instanceof AppError
@@ -30,7 +33,10 @@ const coachController = {
       const coach = await coachService.findById(id);
 
       return res.status(200).json({
-        data: coach,
+        data: {
+          ...coach,
+          rating: coach.starRating || 0,
+        },
       });
     } catch (err) {
       const error = err instanceof AppError

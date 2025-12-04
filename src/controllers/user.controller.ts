@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { AppError } from "../utils/error/app.error";
 import userService from "../services/user.service";
+import leagueStandingsRepository from "../repositories/leagueStandings.repository";
 
 const userController = {
   getProfile: async (req: Request, res: Response) => {
@@ -54,6 +55,58 @@ const userController = {
           userType: user.userType,
           createdAt: user.createdAt,
         })),
+      });
+    } catch (err) {
+      const error = err instanceof AppError
+        ? err
+        : new AppError("UNKNOWN_ERROR");
+
+      console.error(err);
+      return res.status(error.status).json({
+        errorKey: error.errorKey,
+        errorCode: error.errorCode,
+        message: error.message,
+      });
+    }
+  },
+
+  getById: async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const user = await userService.findById(id);
+
+      // currentRank için league standings'den en yüksek rank'i al
+      let currentRank = 0;
+      try {
+        const standings = await leagueStandingsRepository.findByUserId(id);
+        if (standings && standings.length > 0) {
+          // En yüksek rank'i bul (en küçük sayı = en yüksek rank)
+          const ranks = standings.map((s) => s.leagueRanking).filter((r: number) => r > 0);
+          if (ranks.length > 0) {
+            currentRank = Math.min(...ranks);
+          }
+        }
+      } catch (err) {
+        // League standings bulunamazsa currentRank 0 kalır
+        console.log('League standings not found for user:', id);
+      }
+
+      return res.status(200).json({
+        data: {
+          id: user.id,
+          name: user.name,
+          surname: user.surname,
+          email: user.email,
+          phone: user.phone,
+          gender: user.gender,
+          age: user.age,
+          title: user.title,
+          userType: user.userType,
+          profilePhoto: user.profilePhoto,
+          createdAt: user.createdAt,
+          currentRank: currentRank,
+          starRating: user.starRating,
+        },
       });
     } catch (err) {
       const error = err instanceof AppError

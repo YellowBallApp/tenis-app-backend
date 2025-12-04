@@ -974,8 +974,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
   },
   headerSection: {
-    backgroundColor: '#2E7D32',
-    paddingBottom: 20,
+    backgroundColor: '#E1BEE7',
+    paddingBottom: 25,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1006,14 +1006,18 @@ const styles = StyleSheet.create({
     width: 44,
   },
   statsSection: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 28,
+    backgroundColor: '#E1BEE7',
+    flexDirection: 'row',
+    gap: 12,
   },
   statsCard: {
-    backgroundColor: '#FFFFFF',
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-    elevation: 4,
+    elevation: 0,
+    borderWidth: 0,
   },
   statsHeader: {
     flexDirection: 'row',
@@ -1033,7 +1037,6 @@ const styles = StyleSheet.create({
   },
   statItem: {
     alignItems: 'center',
-    flex: 1,
   },
   statDivider: {
     width: 1,
@@ -1044,22 +1047,27 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     color: '#1B1B1B',
-    marginBottom: 4,
+    marginTop: 8,
   },
   statLabel: {
-    fontSize: 12,
-    color: '#6C757D',
+    fontSize: 13,
+    color: '#666666',
+    marginTop: 4,
     textAlign: 'center',
   },
   filterSection: {
     paddingHorizontal: 20,
-    paddingBottom: 10,
+    paddingTop: 20,
+    paddingBottom: 15,
+    backgroundColor: '#F8F9FA',
   },
   searchbar: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 15,
-    elevation: 2,
+    borderRadius: 16,
+    elevation: 0,
     marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   filterButtonRow: {
     flexDirection: 'row',
@@ -1070,9 +1078,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#2E7D32',
     gap: 8,
@@ -1080,7 +1088,7 @@ const styles = StyleSheet.create({
   filterButtonText: {
     color: '#2E7D32',
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 15,
   },
   filterBadge: {
     backgroundColor: '#DC3545',
@@ -1105,7 +1113,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   matchesSection: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 20,
+    backgroundColor: '#F8F9FA',
   },
   sectionTitle: {
     fontSize: 20,
@@ -1115,11 +1126,11 @@ const styles = StyleSheet.create({
   },
   matchCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 15,
-    marginBottom: 12,
+    borderRadius: 20,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
-    elevation: 2,
+    borderColor: '#E0E0E0',
+    elevation: 0,
   },
   matchCardContent: {
     position: 'relative',
@@ -1141,17 +1152,19 @@ const styles = StyleSheet.create({
     color: '#6C757D',
   },
   resultChip: {
-    height: 28,
+    height: 32,
+    borderRadius: 20,
+    paddingHorizontal: 16,
   },
   resultChipText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
   },
   winChip: {
-    backgroundColor: '#E8F5E8',
+    backgroundColor: '#C8E6C9',
   },
   loseChip: {
-    backgroundColor: '#FFEBEE',
+    backgroundColor: '#FFCDD2',
   },
   leagueBadge: {
     position: 'absolute',

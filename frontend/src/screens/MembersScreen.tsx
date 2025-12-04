@@ -204,19 +204,19 @@ const MembersScreen = () => {
 
         <View style={styles.memberDetails}>
           <View style={styles.detailRow}>
-            <MaterialCommunityIcons name="tennis" size={20} color={theme.colors.primary} />
+            <MaterialCommunityIcons name="tennis" size={20} color="#666666" />
             <Text style={[styles.detailText, themedStyles.text]}>
               {member.matchesPlayed} {t('members.matches')}
             </Text>
           </View>
           <View style={styles.detailRow}>
-            <MaterialCommunityIcons name="percent" size={20} color={theme.colors.primary} />
+            <MaterialCommunityIcons name="percent" size={20} color="#666666" />
             <Text style={[styles.detailText, themedStyles.text]}>
               {member.winRate}% {t('members.successRate')}
             </Text>
           </View>
           <View style={styles.detailRow}>
-            <MaterialCommunityIcons name="circle" size={20} color={theme.colors.primary} />
+            <MaterialCommunityIcons name="circle" size={20} color="#666666" />
             <Text style={[styles.detailText, themedStyles.text]}>
               {member.surface} {t('members.surface')}
             </Text>
@@ -226,12 +226,12 @@ const MembersScreen = () => {
         {member.email && (
           <View style={styles.contactInfo}>
             <View style={styles.contactRow}>
-              <MaterialCommunityIcons name="email" size={18} color="#6C757D" />
+              <MaterialCommunityIcons name="email" size={18} color="#666666" />
               <Text style={[styles.contactText, themedStyles.text]}>{member.email}</Text>
             </View>
             {member.phone && (
               <View style={styles.contactRow}>
-                <MaterialCommunityIcons name="phone" size={18} color="#6C757D" />
+                <MaterialCommunityIcons name="phone" size={18} color="#666666" />
                 <Text style={[styles.contactText, themedStyles.text]}>{member.phone}</Text>
               </View>
             )}
@@ -255,7 +255,7 @@ const MembersScreen = () => {
 
         <View style={styles.memberFooter}>
           <View style={styles.footerLeft}>
-            <MaterialCommunityIcons name="clock-outline" size={16} color="#6C757D" />
+            <MaterialCommunityIcons name="clock-outline" size={16} color="#9E9E9E" />
             <Text style={[styles.lastActive, themedStyles.subtitle]}>
               {t('members.lastActive')} {member.lastActive}
             </Text>
@@ -264,19 +264,19 @@ const MembersScreen = () => {
             <IconButton
               icon="account"
               size={20}
-              iconColor={theme.colors.primary}
+              iconColor="#666666"
               onPress={() => {}}
             />
             <IconButton
               icon="message"
               size={20}
-              iconColor={theme.colors.primary}
+              iconColor="#666666"
               onPress={() => {}}
             />
             <IconButton
               icon="calendar"
               size={20}
-              iconColor={theme.colors.primary}
+              iconColor="#666666"
               onPress={() => {}}
             />
           </View>
@@ -313,11 +313,11 @@ const MembersScreen = () => {
         </View>
         <View style={styles.gridStats}>
           <View style={styles.gridStatItem}>
-            <MaterialCommunityIcons name="tennis" size={16} color={theme.colors.primary} />
+            <MaterialCommunityIcons name="tennis" size={16} color="#666666" />
             <Text style={[styles.gridStatText, themedStyles.text]}>{member.matchesPlayed}</Text>
           </View>
           <View style={styles.gridStatItem}>
-            <MaterialCommunityIcons name="percent" size={16} color={theme.colors.primary} />
+            <MaterialCommunityIcons name="percent" size={16} color="#666666" />
             <Text style={[styles.gridStatText, themedStyles.text]}>{member.winRate}%</Text>
           </View>
         </View>
@@ -325,13 +325,13 @@ const MembersScreen = () => {
           <IconButton
             icon="account"
             size={20}
-            iconColor={theme.colors.primary}
+            iconColor="#666666"
             onPress={() => {}}
           />
           <IconButton
             icon="message"
             size={20}
-            iconColor={theme.colors.primary}
+            iconColor="#666666"
             onPress={() => {}}
           />
         </View>
@@ -343,7 +343,7 @@ const MembersScreen = () => {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="#2E7D32" />
-        <Text style={{ marginTop: 10, color: '#6C757D' }}>{t('common.loading')}</Text>
+        <Text style={{ marginTop: 10, color: '#9E9E9E' }}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -356,7 +356,7 @@ const MembersScreen = () => {
       <Animated.View style={[
         styles.headerSection, 
         { 
-          backgroundColor: theme.colors.primary,
+          backgroundColor: '#E1BEE7',
           height: headerHeight 
         }
       ]}>
@@ -396,20 +396,20 @@ const MembersScreen = () => {
             onChangeText={setSearchQuery}
             value={searchQuery}
             style={[styles.searchBar, themedStyles.input]}
-            iconColor={theme.colors.primary}
+            iconColor="#2E7D32"
             inputStyle={styles.searchInput}
           />
           <View style={styles.viewToggle}>
             <IconButton
               icon="view-list"
               size={24}
-              iconColor={viewMode === 'list' ? theme.colors.primary : theme.colors.placeholder}
+              iconColor={viewMode === 'list' ? '#2E7D32' : '#666666'}
               onPress={() => setViewMode('list')}
             />
             <IconButton
               icon="view-grid"
               size={24}
-              iconColor={viewMode === 'grid' ? '#2E7D32' : '#6C757D'}
+              iconColor={viewMode === 'grid' ? '#2E7D32' : '#666666'}
               onPress={() => setViewMode('grid')}
             />
           </View>
@@ -456,26 +456,26 @@ const MembersScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8F9FA',
   },
   mainScrollView: {
     flex: 1,
   },
   headerSection: {
-    backgroundColor: '#2E7D32',
+    backgroundColor: '#E1BEE7',
     padding: 20,
     paddingTop: 40,
     alignItems: 'center',
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
     elevation: 8,
   },
   compactHeader: {
@@ -491,19 +491,19 @@ const styles = StyleSheet.create({
   compactTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#1B1B1B',
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#1B1B1B',
     marginBottom: 10,
     textAlign: 'center',
     paddingTop: 50,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: '#E8F5E8',
+    color: '#666666',
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -516,15 +516,15 @@ const styles = StyleSheet.create({
   searchBar: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    elevation: 4,
+    borderRadius: 16,
+    elevation: 2,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
   },
   searchInput: {
     fontSize: 16,
@@ -532,9 +532,11 @@ const styles = StyleSheet.create({
   viewToggle: {
     flexDirection: 'row',
     marginLeft: 15,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 4,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   filtersContainer: {
     paddingHorizontal: 20,
@@ -542,18 +544,19 @@ const styles = StyleSheet.create({
   },
   filterChip: {
     marginRight: 10,
-    backgroundColor: '#F8F9FA',
-    borderColor: '#E9ECEF',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#F0F0F0',
   },
   selectedFilterChip: {
-    backgroundColor: '#2E7D32',
-    borderColor: '#2E7D32',
+    backgroundColor: '#E1BEE7',
+    borderColor: '#E1BEE7',
   },
   filterText: {
-    color: '#6C757D',
+    color: '#666666',
   },
   selectedFilterText: {
-    color: '#FFFFFF',
+    color: '#1B1B1B',
+    fontWeight: '600',
   },
   membersContainer: {
     paddingHorizontal: 20,
@@ -563,18 +566,18 @@ const styles = StyleSheet.create({
   },
   memberCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    marginBottom: 20,
+    borderRadius: 16,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: '#F0F0F0',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 2,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   memberHeader: {
     flexDirection: 'row',
@@ -626,7 +629,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   statusChip: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FFFFFF',
   },
   memberDetails: {
     marginBottom: 15,
@@ -634,6 +637,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
     borderRadius: 12,
     paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   detailRow: {
     flexDirection: 'row',
@@ -642,15 +647,17 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 14,
-    color: '#6C757D',
+    color: '#666666',
     marginLeft: 10,
   },
   contactInfo: {
     marginBottom: 15,
     paddingVertical: 12,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F8F9FA',
     borderRadius: 12,
     paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   contactRow: {
     flexDirection: 'row',
@@ -659,7 +666,7 @@ const styles = StyleSheet.create({
   },
   contactText: {
     fontSize: 13,
-    color: '#6C757D',
+    color: '#666666',
     marginLeft: 10,
     flex: 1,
   },
@@ -687,7 +694,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 15,
     borderTopWidth: 1,
-    borderTopColor: '#E9ECEF',
+    borderTopColor: '#F0F0F0',
   },
   footerLeft: {
     flexDirection: 'row',
@@ -696,7 +703,7 @@ const styles = StyleSheet.create({
   },
   lastActive: {
     fontSize: 12,
-    color: '#6C757D',
+    color: '#9E9E9E',
   },
   actionButtons: {
     flexDirection: 'row',
@@ -709,18 +716,18 @@ const styles = StyleSheet.create({
   memberGridCard: {
     width: (width - 60) / 2,
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    marginBottom: 20,
+    borderRadius: 16,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: '#F0F0F0',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 2,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   memberGridContent: {
     alignItems: 'center',
@@ -774,8 +781,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     backgroundColor: '#F8F9FA',
-    borderRadius: 10,
+    borderRadius: 12,
     width: '100%',
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   gridStatItem: {
     flexDirection: 'row',
@@ -784,7 +793,7 @@ const styles = StyleSheet.create({
   },
   gridStatText: {
     fontSize: 13,
-    color: '#6C757D',
+    color: '#666666',
     fontWeight: '600',
   },
   memberGridActions: {

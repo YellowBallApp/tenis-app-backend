@@ -356,7 +356,7 @@ const CoachesScreen = () => {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="#2E7D32" />
-        <Text style={{ marginTop: 10, color: '#6C757D' }}>{t('common.loading')}</Text>
+        <Text style={{ marginTop: 10, color: '#9E9E9E' }}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -367,7 +367,7 @@ const CoachesScreen = () => {
       <Animated.View style={[
         styles.headerSection, 
         { 
-          backgroundColor: theme.colors.primary,
+          backgroundColor: '#E1BEE7',
           height: headerHeight 
         }
       ]}>
@@ -402,8 +402,8 @@ const CoachesScreen = () => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={theme.colors.primary}
-            colors={[theme.colors.primary]}
+            tintColor="#2E7D32"
+            colors={["#2E7D32"]}
           />
         }
       >
@@ -486,19 +486,19 @@ const CoachesScreen = () => {
                 <View style={styles.coachDetails}>
                   {coach.experience && (
                     <View style={styles.detailRow}>
-                      <MaterialCommunityIcons name="clock" size={20} color={theme.colors.primary} />
+                      <MaterialCommunityIcons name="clock" size={20} color="#666666" />
                       <Text style={[styles.detailText, themedStyles.text]}>{coach.experience} {t('coaches.experience')}</Text>
                     </View>
                   )}
                   {coach.hourlyRate && (
                     <View style={styles.detailRow}>
-                      <MaterialCommunityIcons name="currency-try" size={20} color={theme.colors.primary} />
+                      <MaterialCommunityIcons name="currency-try" size={20} color="#666666" />
                       <Text style={[styles.detailText, themedStyles.text]}>{coach.hourlyRate}{t('coaches.perHour')}</Text>
                     </View>
                   )}
                   {coach.languages && Array.isArray(coach.languages) && coach.languages.length > 0 && (
                     <View style={styles.detailRow}>
-                      <MaterialCommunityIcons name="translate" size={20} color={theme.colors.primary} />
+                      <MaterialCommunityIcons name="translate" size={20} color="#666666" />
                       <Text style={[styles.detailText, themedStyles.text]}>{coach.languages.join(', ')}</Text>
                     </View>
                   )}
@@ -542,7 +542,7 @@ const CoachesScreen = () => {
                   <Button
                     mode="outlined"
                     style={styles.actionButton}
-                    textColor={theme.colors.primary}
+                    textColor="#666666"
                     icon="star"
                     onPress={() => openReviewModal(coach)}
                     contentStyle={styles.buttonContent}
@@ -552,7 +552,7 @@ const CoachesScreen = () => {
                   <Button
                     mode="outlined"
                     style={styles.actionButton}
-                    textColor={theme.colors.primary}
+                    textColor="#666666"
                     icon="comment-text"
                     onPress={() => openReviewsModal(coach)}
                     contentStyle={styles.buttonContent}
@@ -562,7 +562,7 @@ const CoachesScreen = () => {
                   <Button
                     mode="contained"
                     style={styles.actionButton}
-                    buttonColor={theme.colors.primary}
+                    buttonColor="#2E7D32"
                     icon="phone"
                     onPress={() => handleCallCoach(coach.phone, coach.name)}
                     contentStyle={styles.buttonContent}
@@ -588,7 +588,7 @@ const CoachesScreen = () => {
             <ScrollView showsVerticalScrollIndicator={false}>
               <Card.Content style={styles.reviewContent}>
                 <View style={styles.reviewModalHeader}>
-                  <MaterialCommunityIcons name="comment-text" size={32} color="#2E7D32" />
+                  <MaterialCommunityIcons name="comment-text" size={32} color="#E1BEE7" />
                   <Title style={[styles.reviewModalTitle, themedStyles.title]}>
                     {selectedCoachForReviews?.name} - {t('coaches.reviews')}
                   </Title>
@@ -608,7 +608,7 @@ const CoachesScreen = () => {
                       <View key={review.id} style={styles.reviewListItem}>
                         <View style={styles.reviewListItemHeader}>
                           <View style={styles.reviewListUserInfo}>
-                            <MaterialCommunityIcons name="account-circle" size={32} color="#2E7D32" />
+                            <MaterialCommunityIcons name="account-circle" size={32} color="#666666" />
                             <View style={styles.reviewListUserDetails}>
                               <Text style={[styles.reviewListUserName, themedStyles.title]}>
                                 {review.user?.name || 'Kullanıcı'}
@@ -682,7 +682,7 @@ const CoachesScreen = () => {
                       numberOfLines={4}
                       style={styles.commentInput}
                       outlineColor="#E0E0E0"
-                      activeOutlineColor="#2E7D32"
+                      activeOutlineColor="#E1BEE7"
                     />
 
                     <View style={styles.reviewModalButtons}>
@@ -690,7 +690,7 @@ const CoachesScreen = () => {
                         mode="outlined"
                         onPress={() => setShowReviewModal(false)}
                         style={styles.modalCancelButton}
-                        textColor="#757575"
+                        textColor="#666666"
                       >
                         {t('common.cancel')}
                       </Button>
@@ -698,7 +698,7 @@ const CoachesScreen = () => {
                         mode="contained"
                         onPress={submitReview}
                         style={styles.modalSubmitButton}
-                        buttonColor="#2E7D32"
+                        buttonColor="#E1BEE7"
                       >
                         {t('coaches.send')}
                       </Button>
@@ -717,26 +717,26 @@ const CoachesScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8F9FA',
   },
   mainScrollView: {
     flex: 1,
   },
   headerSection: {
-    backgroundColor: '#2E7D32',
+    backgroundColor: '#E1BEE7',
     padding: 20,
     paddingTop: 40,
     alignItems: 'center',
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
     elevation: 8,
   },
   compactHeader: {
@@ -752,19 +752,19 @@ const styles = StyleSheet.create({
   compactTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#1B1B1B',
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#1B1B1B',
     marginBottom: 10,
     textAlign: 'center',
     paddingTop: 50,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: '#E8F5E8',
+    color: '#666666',
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -774,15 +774,15 @@ const styles = StyleSheet.create({
   },
   searchBar: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    elevation: 4,
+    borderRadius: 16,
+    elevation: 2,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
   },
   searchInput: {
     fontSize: 16,
@@ -793,18 +793,19 @@ const styles = StyleSheet.create({
   },
   filterChip: {
     marginRight: 10,
-    backgroundColor: '#F8F9FA',
-    borderColor: '#E9ECEF',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#F0F0F0',
   },
   selectedFilterChip: {
-    backgroundColor: '#2E7D32',
-    borderColor: '#2E7D32',
+    backgroundColor: '#E1BEE7',
+    borderColor: '#E1BEE7',
   },
   filterText: {
-    color: '#6C757D',
+    color: '#666666',
   },
   selectedFilterText: {
-    color: '#FFFFFF',
+    color: '#1B1B1B',
+    fontWeight: '600',
   },
   coachesList: {
     paddingHorizontal: 20,
@@ -814,18 +815,18 @@ const styles = StyleSheet.create({
   },
   coachCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    marginBottom: 20,
+    borderRadius: 16,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: '#F0F0F0',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 2,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   coachHeader: {
     flexDirection: 'row',
@@ -846,7 +847,7 @@ const styles = StyleSheet.create({
   },
   coachSpecialty: {
     fontSize: 16,
-    color: '#6C757D',
+    color: '#666666',
     marginBottom: 10,
     fontWeight: '500',
   },
@@ -880,7 +881,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   availabilityChip: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FFFFFF',
   },
   coachDetails: {
     marginBottom: 15,
@@ -892,12 +893,12 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 14,
-    color: '#6C757D',
+    color: '#666666',
     marginLeft: 10,
   },
   coachBio: {
     fontSize: 14,
-    color: '#6C757D',
+    color: '#666666',
     lineHeight: 20,
     marginBottom: 15,
   },
@@ -936,6 +937,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
     borderRadius: 12,
     padding: 16,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   reviewsTitle: {
     fontSize: 16,
@@ -958,16 +961,16 @@ const styles = StyleSheet.create({
   reviewUser: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#2E7D32',
+    color: '#1B1B1B',
   },
   reviewComment: {
     fontSize: 14,
-    color: '#6C757D',
+    color: '#666666',
     lineHeight: 18,
   },
   moreReviews: {
     fontSize: 12,
-    color: '#2E7D32',
+    color: '#666666',
     fontStyle: 'italic',
     textAlign: 'center',
     marginTop: 8,
@@ -987,6 +990,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     maxHeight: '80%',
     backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   reviewContent: {
     padding: 24,
@@ -998,7 +1003,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E9ECEF',
+    borderBottomColor: '#F0F0F0',
   },
   reviewModalTitle: {
     fontSize: 20,
@@ -1009,7 +1014,7 @@ const styles = StyleSheet.create({
   },
   reviewModalSubtitle: {
     fontSize: 14,
-    color: '#6C757D',
+    color: '#666666',
     marginBottom: 24,
     lineHeight: 20,
   },
@@ -1048,19 +1053,19 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: '#6C757D',
+    color: '#9E9E9E',
     marginTop: 10,
   },
   reviewsListContainer: {
     marginTop: 20,
   },
   reviewListItem: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: '#F0F0F0',
   },
   reviewListItemHeader: {
     flexDirection: 'row',
@@ -1085,7 +1090,7 @@ const styles = StyleSheet.create({
   },
   reviewListDate: {
     fontSize: 12,
-    color: '#6C757D',
+    color: '#9E9E9E',
   },
   reviewListRatingStars: {
     marginLeft: 8,
@@ -1102,7 +1107,7 @@ const styles = StyleSheet.create({
   },
   emptyReviewsText: {
     fontSize: 14,
-    color: '#BDBDBD',
+    color: '#9E9E9E',
     marginTop: 12,
     textAlign: 'center',
   },

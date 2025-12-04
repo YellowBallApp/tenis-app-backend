@@ -383,7 +383,8 @@ if (NetInfo && Platform.OS !== 'web') {
     previousNetworkType = currentNetworkType;
     previousNetworkSSID = currentNetworkSSID;
   }
-});
+  });
+}
 
 const api = axios.create({
   // baseURL'i interceptor'da dinamik olarak ayarlayacağız
@@ -679,6 +680,12 @@ export const userService = {
   // Tüm kullanıcıları getir (Members screen için)
   getAllUsers: async () => {
     const response = await api.get('/user/all');
+    return response.data.data;
+  },
+
+  // Belirli bir kullanıcıyı ID'ye göre getir
+  getUserById: async (userId: string) => {
+    const response = await api.get(`/user/${userId}`);
     return response.data.data;
   },
 

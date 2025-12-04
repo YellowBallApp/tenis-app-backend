@@ -93,6 +93,38 @@ router.get("/all", authMiddleware, userController.getAllUsers);
 
 /**
  * @swagger
+ * /api/user/{id}:
+ *   get:
+ *     summary: ID'ye göre kullanıcı getir
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Kullanıcı ID
+ *     responses:
+ *       200:
+ *         description: Kullanıcı bilgileri
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Yetkisiz erişim
+ *       404:
+ *         description: Kullanıcı bulunamadı
+ */
+router.get("/:id", authMiddleware, userController.getById);
+
+/**
+ * @swagger
  * /api/user/available:
  *   get:
  *     summary: Belirli bir tarihte rezervasyonu olmayan kullanıcıları getir

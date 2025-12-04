@@ -32,6 +32,7 @@ export default {
   
   home: {
     welcome: 'Hoş Geldin',
+    welcomeBack: 'Tekrar hoş geldiniz,',
     todaysMatches: 'Bugünün Maçları',
     upcomingReservations: 'Yaklaşan Rezervasyonlar',
     quickActions: 'Hızlı İşlemler',
@@ -48,7 +49,7 @@ export default {
     courts: 'Kort',
     coaches: 'Koç',
     homePage: '🎾 Ana Sayfa',
-    reservationMake: 'Rezervasyon Yap',
+    reservationMake: 'Kort Rezerve Et',
     reservationsList: 'Rezervasyonlar',
     matchHistory: 'Maç Geçmişi',
     notifications: 'Bildirimler',
@@ -56,6 +57,13 @@ export default {
     newsUpdates: 'Haberler & Güncellemeler',
     noUpcomingReservations: 'Yakın zamanda rezervasyon yok',
     noAnnouncements: 'Henüz duyuru bulunmuyor',
+    wins: 'Kazanılan',
+    ranking: 'Sıralama',
+    upcoming: 'Yaklaşan',
+    createChallenge: 'Meydan Oku',
+    leagueOverview: 'Lig Özeti',
+    confirmed: 'Onaylandı',
+    viewDetails: 'Detayları Görüntüle',
   },
   
   reservation: {
@@ -323,6 +331,25 @@ export default {
     silver: 'Gümüş',
     bronze: 'Bronz',
     platinum: 'Platin',
+    yourStatistics: 'İstatistikleriniz',
+    matchesPlayed: 'Oynanan Maç',
+    currentRank: 'Mevcut Sıralama',
+    memberSince: 'Üyelik Tarihi',
+    quickActions: 'Hızlı İşlemler',
+    myBookings: 'Rezervasyonlarım',
+    myMatches: 'Maçlarım',
+    account: 'Hesap',
+    privacySecurity: 'Gizlilik ve Güvenlik',
+    support: 'Destek',
+    helpSupport: 'Yardım ve Destek',
+    termsPolicies: 'Şartlar ve Politikalar',
+    logout: 'Çıkış Yap',
+    updateProfileInfo: 'Profil bilgilerinizi güncelleyin',
+    rank: 'Sıralama',
+    english: 'İngilizce',
+    updatePasswordForSecurity: 'Güvenliğiniz için şifrenizi güncelleyin',
+    manageAccountPreferences: 'Hesap tercihlerinizi yönetin',
+    howCanWeHelp: 'Size nasıl yardımcı olabiliriz?',
   },
   
   navigation: {
@@ -353,6 +380,12 @@ export default {
     new: 'Yeni',
     lastActive: 'Son aktivite:',
     achievements: 'Başarılar',
+    recentMatches: 'Son Maçlar',
+    won: 'Kazandı',
+    lost: 'Kaybetti',
+    noMatches: 'Henüz maç geçmişi yok',
+    winRate: 'Kazanma Oranı',
+    memberSince: 'Üyelik Tarihi',
   },
   
   coaches: {
@@ -391,6 +424,11 @@ export default {
     limited: 'Sınırlı',
     notAvailable: 'Müsait Değil',
     coachCount: 'Antrenörler',
+    challenge: 'Meydan Oku',
+    message: 'Mesaj',
+    contactInformation: 'İletişim Bilgileri',
+    writeReview: 'Yorum Yaz',
+    basedOn: 'Toplam',
   },
   
   errors: {

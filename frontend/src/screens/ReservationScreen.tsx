@@ -815,7 +815,7 @@ const ReservationScreen = () => {
 
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <ScrollView 
         ref={scrollViewRef} 
         style={styles.container} 
@@ -823,45 +823,23 @@ const ReservationScreen = () => {
         onScroll={(event) => setCurrentScrollY(event.nativeEvent.contentOffset.y)}
         scrollEventThrottle={16}
       >
-        {/* Modern Header with Gradient */}
-        <LinearGradient
-          colors={['#2E7D32', '#1B5E20', '#0D4A12']}
-          style={styles.headerGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
+        {/* Modern Header */}
+        <View style={styles.header}>
           {/* Back Button */}
           <TouchableOpacity 
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <View style={styles.backButtonContainer}>
-              <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
-              <Text style={styles.backButtonText}>{t('reservation.back')}</Text>
-            </View>
+            <MaterialCommunityIcons name="arrow-left" size={24} color="#1B1B1B" />
           </TouchableOpacity>
 
-          <Animated.View 
-            style={[
-              styles.headerContent,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }]
-              }
-            ]}
-          >
-            <View style={styles.headerIcon}>
-              <MaterialCommunityIcons name="calendar-star" size={40} color="#FFFFFF" />
-            </View>
+          <View style={styles.headerContent}>
             <Title style={styles.headerTitle}>{t('reservation.title')}</Title>
-            <Text style={styles.headerSubtitle}>
-              {t('reservation.subtitle')}
-            </Text>
             
             {/* Progress Bar */}
             <View style={styles.progressContainer}>
               <View style={styles.progressBar}>
-                <Animated.View 
+                <View 
                   style={[
                     styles.progressFill,
                     { width: `${getStepProgress()}%` }
@@ -870,8 +848,8 @@ const ReservationScreen = () => {
               </View>
               <Text style={styles.progressText}>{t('reservation.step')} {currentStep}/4</Text>
             </View>
-          </Animated.View>
-        </LinearGradient>
+          </View>
+        </View>
 
         {/* Rezervasyon Engeli Mesajı */}
         {(checkingBlockStatus || reservationBlocked) && (
@@ -1731,55 +1709,32 @@ const ReservationScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#FFFFFF',
   },
-  headerGradient: {
+  header: {
+    backgroundColor: '#FFFFFF',
     paddingTop: 60,
-    paddingBottom: 40,
+    paddingBottom: 20,
     paddingHorizontal: 20,
-    position: 'relative',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
   backButton: {
     position: 'absolute',
     top: 60,
     left: 20,
     zIndex: 10,
-  },
-  backButtonContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  backButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 6,
+    padding: 4,
   },
   headerContent: {
     alignItems: 'center',
   },
-  headerIcon: {
-    marginBottom: 16,
-  },
   headerTitle: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 8,
+    color: '#1B1B1B',
+    marginBottom: 20,
     textAlign: 'center',
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: '#E8F5E8',
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 30,
   },
   progressContainer: {
     width: '100%',
@@ -1788,24 +1743,24 @@ const styles = StyleSheet.create({
   progressBar: {
     width: '80%',
     height: 6,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: '#F0F0F0',
     borderRadius: 3,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#2E7D32',
     borderRadius: 3,
   },
   progressText: {
-    color: '#FFFFFF',
+    color: '#666666',
     fontSize: 14,
     marginTop: 8,
     fontWeight: '500',
   },
   contentContainer: {
     padding: 20,
-    marginTop: -20,
+    backgroundColor: '#F8F9FA',
   },
   stepCard: {
     marginTop: 15,

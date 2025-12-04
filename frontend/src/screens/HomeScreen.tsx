@@ -8,7 +8,9 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect, CommonActions } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { MainTabParamList } from '../navigation/MainTabNavigator';
@@ -21,7 +23,7 @@ import {
   Chip,
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons, Ionicons } from '@expo/vector-icons';
-import { reservationService, announcementService, userService, courtService, coachService, notificationService } from '../services/api';
+import { reservationService, announcementService, userService, courtService, coachService, notificationService, authService, matchHistoryService, leagueStandingsService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useThemedStyles } from '../hooks/useThemedStyles';
@@ -36,13 +38,15 @@ const HomeScreen = () => {
   const { logout } = useAuth();
   const { t, language } = useLanguage();
   const { themedStyles, theme } = useThemedStyles();
+  const insets = useSafeAreaInsets();
   const [reservations, setReservations] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    users: 0,
-    courts: 0,
-    coaches: 0,
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [userStats, setUserStats] = useState({
+    wins: 0,
+    ranking: null as number | null,
+    upcomingCount: 0,
   });
   const [unreadCount, setUnreadCount] = useState(0);
   
@@ -51,7 +55,7 @@ const HomeScreen = () => {
   const scrollViewRef = useRef<any>(null);
   const headerHeight = scrollY.interpolate({
     inputRange: [0, 150],
-    outputRange: [250, 100],
+    outputRange: [300, 100],
     extrapolate: 'clamp',
   });
   const headerOpacity = scrollY.interpolate({
@@ -67,9 +71,8 @@ const HomeScreen = () => {
 
   const quickActions = [
     { title: t('home.reservationMake'), icon: 'calendar-plus', color: '#2E7D32', action: () => navigation.navigate('Reservation') },
-    { title: t('home.reservationsList'), icon: 'calendar-text', color: '#1B5E20', action: () => navigation.navigate('ReservationsList') },
-    { title: t('home.matchHistory'), icon: 'history', color: '#FF9800', action: () => navigation.navigate('MatchHistory') },
-    { title: t('home.notifications'), icon: 'bell', color: '#1976D2', action: () => navigation.navigate('Notifications'), badge: unreadCount },
+    { title: t('home.reservationsList'), icon: 'calendar-text', color: '#9E9E9E', action: () => navigation.navigate('ReservationsList') },
+    { title: t('home.matchHistory'), icon: 'history', color: '#2E7D32', action: () => navigation.navigate('MatchHistory') },
   ];
 
   // İlk yüklemede veri çek
@@ -77,7 +80,7 @@ const HomeScreen = () => {
     loadData();
   }, []);
 
-  // Ekran her görünür olduğunda sadece scroll pozisyonunu sıfırla (veri yükleme)
+  // Ekran her görünür olduğunda scroll pozisyonunu sıfırla ve okunmamış bildirim sayısını güncelle
   useFocusEffect(
     React.useCallback(() => {
       // Scroll pozisyonunu en üste al
@@ -85,21 +88,41 @@ const HomeScreen = () => {
       if (scrollViewRef.current) {
         scrollViewRef.current.scrollTo({ y: 0, animated: false });
       }
+      
+      // Okunmamış bildirim sayısını güncelle
+      loadUnreadCount();
     }, [])
   );
+
+  const loadUnreadCount = async () => {
+    try {
+      const count = await notificationService.getUnreadCount();
+      setUnreadCount(count);
+    } catch (error) {
+      console.error('Okunmamış bildirim sayısı yüklenirken hata:', error);
+    }
+  };
 
   const loadData = async () => {
     try {
       setLoading(true);
       
+      // Kullanıcı profilini çek
+      const profileData = await authService.getProfile();
+      setCurrentUser(profileData);
+      
       // Tüm verileri paralel olarak çek
-      const [reservationsData, announcementsData, usersData, courtsData, coachesData, unreadNotifications] = await Promise.all([
-        reservationService.getUpcomingReservations(2),
+      const [reservationsData, announcementsData, unreadNotifications, matchStats, userStandings] = await Promise.all([
+        reservationService.getUpcomingReservations(10),
         announcementService.getAllAnnouncements(),
-        userService.getAllUsers(),
-        courtService.getAllCourts(),
-        coachService.getAllCoaches(),
-        notificationService.getUnreadCount().catch(() => 0), // Hata durumunda 0 döndür
+        notificationService.getUnreadCount().catch(() => 0),
+        matchHistoryService.getUserMatchStats(profileData.id).catch(() => ({
+          totalMatches: 0,
+          wins: 0,
+          losses: 0,
+          winRate: 0,
+        })),
+        leagueStandingsService.getStandingsByUserId(profileData.id).catch(() => []),
       ]);
       
       // Boolean değerleri normalize et (API'den string olarak gelebilir)
@@ -121,11 +144,15 @@ const HomeScreen = () => {
       setReservations(normalizedReservations);
       setAnnouncements(normalizedAnnouncements);
       
-      // İstatistikleri güncelle
-      setStats({
-        users: usersData.length,
-        courts: courtsData.length,
-        coaches: coachesData.length,
+      // Kullanıcı istatistiklerini güncelle
+      const wins = matchStats.wins || 0;
+      const ranking = userStandings && userStandings.length > 0 ? userStandings[0].leagueRanking : null;
+      const upcomingCount = normalizedReservations.length;
+      
+      setUserStats({
+        wins,
+        ranking,
+        upcomingCount,
       });
       
       setUnreadCount(unreadNotifications);
@@ -165,11 +192,39 @@ const HomeScreen = () => {
     return date.toLocaleTimeString(language === 'tr' ? 'tr-TR' : 'en-US', { hour: '2-digit', minute: '2-digit' });
   };
 
+  const formatReservationDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const reservationDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    
+    if (reservationDate.getTime() === today.getTime()) {
+      return language === 'tr' ? 'Bugün' : 'Today';
+    } else if (reservationDate.getTime() === tomorrow.getTime()) {
+      return language === 'tr' ? 'Yarın' : 'Tomorrow';
+    } else {
+      return date.toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US', { 
+        day: 'numeric', 
+        month: 'long' 
+      });
+    }
+  };
+
+  const formatReservationTimeRange = (startTime: string, endTime: string) => {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const startStr = start.toLocaleTimeString(language === 'tr' ? 'tr-TR' : 'en-US', { hour: '2-digit', minute: '2-digit' });
+    const endStr = end.toLocaleTimeString(language === 'tr' ? 'tr-TR' : 'en-US', { hour: '2-digit', minute: '2-digit' });
+    return `${startStr} - ${endStr}`;
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="#2E7D32" />
-        <Text style={{ marginTop: 10, color: '#6C757D' }}>{t('common.loading')}</Text>
+        <Text style={{ marginTop: 10, color: '#9E9E9E' }}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -180,7 +235,7 @@ const HomeScreen = () => {
       <Animated.View style={[
         styles.heroSection, 
         { 
-          backgroundColor: theme.colors.primary,
+          backgroundColor: '#E1BEE7',
           height: headerHeight,
           position: 'absolute',
           top: 0,
@@ -192,30 +247,49 @@ const HomeScreen = () => {
         {/* Kompakt Başlık (scroll edildiğinde görünür) */}
         <Animated.View style={[
           styles.compactHeader,
-          { opacity: compactOpacity }
+          { 
+            opacity: compactOpacity,
+            paddingTop: insets.top + 12
+          }
         ]}>
           <Text style={styles.compactTitle}>{t('home.homePage')}</Text>
         </Animated.View>
         
         {/* Normal İçerik (scroll başta görünür) */}
-        <Animated.View style={[styles.heroContent, { opacity: headerOpacity }]}>
-          <Title style={styles.heroTitle}>🎾 {t('home.tennisClub')}</Title>
-          <Text style={styles.heroSubtitle}>
-            {t('home.subtitle')}
-          </Text>
+        <Animated.View style={[styles.heroContent, { opacity: headerOpacity, paddingTop: insets.top + 12 }]}>
+          <View style={styles.heroHeader}>
+            <View style={styles.heroHeaderLeft}>
+              <Text style={styles.welcomeText}>{t('home.welcomeBack')}</Text>
+              <Text style={styles.userName}>{currentUser?.name || ''}</Text>
+            </View>
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('Notifications')}
+              style={styles.notificationButton}
+            >
+              <MaterialCommunityIcons name="bell-outline" size={24} color="#666666" />
+              {unreadCount > 0 && (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
         </Animated.View>
-        <Animated.View style={[styles.heroStats, { opacity: headerOpacity }]}>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{stats.users}</Text>
-            <Text style={styles.statLabel}>{t('home.activeMembers')}</Text>
+        <Animated.View style={[styles.heroStats, { opacity: headerOpacity, marginTop: 24 }]}>
+          <View style={styles.statCard}>
+            <MaterialCommunityIcons name="trophy-outline" size={24} color="#666666" />
+            <Text style={styles.statNumber}>{userStats.wins}</Text>
+            <Text style={styles.statLabel}>{t('home.wins')}</Text>
           </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{stats.courts}</Text>
-            <Text style={styles.statLabel}>{t('home.courts')}</Text>
+          <View style={styles.statCard}>
+            <MaterialCommunityIcons name="trending-up" size={24} color="#666666" />
+            <Text style={styles.statNumber}>{userStats.ranking ? `#${userStats.ranking}` : '-'}</Text>
+            <Text style={styles.statLabel}>{t('home.ranking')}</Text>
           </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{stats.coaches}</Text>
-            <Text style={styles.statLabel}>{t('home.coaches')}</Text>
+          <View style={styles.statCard}>
+            <MaterialCommunityIcons name="calendar-outline" size={24} color="#666666" />
+            <Text style={styles.statNumber}>{userStats.upcomingCount}</Text>
+            <Text style={styles.statLabel}>{t('home.upcoming')}</Text>
           </View>
         </Animated.View>
       </Animated.View>
@@ -223,7 +297,7 @@ const HomeScreen = () => {
       <Animated.ScrollView
         ref={scrollViewRef}
         style={styles.scrollView}
-        contentContainerStyle={{ paddingTop: 250 }}
+        contentContainerStyle={{ paddingTop: 300 }}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: false }
@@ -234,18 +308,17 @@ const HomeScreen = () => {
       {/* Quick Actions */}
       <View style={styles.section}>
         <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>{t('home.quickActions')}</Title>
-        <View style={styles.quickActionsGrid}>
+        <View style={styles.quickActionsRow}>
           {quickActions.map((action, index) => (
-            <TouchableOpacity key={index} onPress={action.action} activeOpacity={1}>
+            <TouchableOpacity key={index} onPress={action.action} activeOpacity={0.7}>
               <View style={[styles.actionCard, themedStyles.card]}>
                 <View style={styles.actionContent}>
-                  <View style={[styles.actionIcon, { backgroundColor: action.color }]}>
-                    <MaterialCommunityIcons name={action.icon as any} size={24} color="#fff" />
-                    {Boolean(action.badge !== undefined && action.badge > 0) && (
-                      <View style={styles.badge}>
-                        <Text style={styles.badgeText}>{action.badge > 99 ? '99+' : action.badge}</Text>
-                      </View>
-                    )}
+                  <View style={[styles.actionIcon, { backgroundColor: action.color === '#9E9E9E' ? '#F5F5F5' : action.color }]}>
+                    <MaterialCommunityIcons 
+                      name={action.icon as any} 
+                      size={24} 
+                      color={action.color === '#9E9E9E' ? '#666666' : '#fff'} 
+                    />
                   </View>
                   <Text style={[styles.actionTitle, themedStyles.text]}>{action.title}</Text>
                 </View>
@@ -259,42 +332,42 @@ const HomeScreen = () => {
       <View style={styles.section}>
         <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>{t('home.upcomingReservationsTitle')}</Title>
         {reservations.length > 0 ? (
-          reservations.map((reservation) => (
-            <View key={reservation.id} style={[styles.matchCard, themedStyles.card]}>
-              <View style={{ padding: 16 }}>
-                <View style={styles.matchHeader}>
-                  <Text style={styles.matchTime}>{formatTime(reservation.startTime)}</Text>
-                  <View style={styles.courtChip}>
-                    <Text style={styles.courtText}>{reservation.court?.name || t('home.courts')}</Text>
-                  </View>
-                </View>
-                <View style={styles.matchPlayers}>
-                  <View style={styles.player}>
-                    <Avatar.Text size={40} label={reservation.user.name.charAt(0)} />
-                    <Text style={[styles.playerName, themedStyles.text]}>{reservation.user.name}</Text>
-                  </View>
-                  {Boolean(reservation.participants && reservation.participants.length > 0) && (
-                    <>
-                      <View style={styles.vsContainer}>
-                        <Text style={styles.vsText}>VS</Text>
+          reservations.slice(0, 1).map((reservation) => (
+            <TouchableOpacity 
+              key={reservation.id} 
+              onPress={() => navigation.navigate('ReservationsList')}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.matchCard, themedStyles.card]}>
+                <View style={{ padding: 16 }}>
+                  <View style={styles.reservationHeader}>
+                    <View style={styles.reservationInfo}>
+                      <Text style={styles.courtName}>{reservation.court?.name || t('home.courts')}</Text>
+                      <View style={styles.reservationTimeRow}>
+                        <MaterialCommunityIcons name="clock-outline" size={16} color="#666666" />
+                        <Text style={styles.reservationTime}>
+                          {formatReservationDate(reservation.startTime)}, {formatReservationTimeRange(reservation.startTime, reservation.endTime)}
+                        </Text>
                       </View>
-                      <View style={styles.player}>
-                        <Avatar.Text size={40} label={reservation.participants[0].name.charAt(0)} />
-                        <Text style={[styles.playerName, themedStyles.text]}>{reservation.participants[0].name}</Text>
-                      </View>
-                    </>
-                  )}
+                    </View>
+                    <View style={styles.confirmedBadge}>
+                      <Text style={styles.confirmedBadgeText}>{t('home.confirmed')}</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity 
+                    onPress={() => navigation.navigate('ReservationsList')}
+                    style={styles.viewDetailsButton}
+                  >
+                    <Text style={styles.viewDetailsText}>{t('home.viewDetails')} →</Text>
+                  </TouchableOpacity>
                 </View>
-                {Boolean(reservation.notes) && (
-                  <Text style={[styles.reservationNotes, themedStyles.subtitle]}>📝 {reservation.notes}</Text>
-                )}
               </View>
-            </View>
+            </TouchableOpacity>
           ))
         ) : (
           <View style={[styles.matchCard, themedStyles.card]}>
             <View style={{ padding: 16 }}>
-              <Text style={{ textAlign: 'center', color: '#6C757D' }}>
+              <Text style={{ textAlign: 'center', color: '#9E9E9E' }}>
                 {t('home.noUpcomingReservations')}
               </Text>
             </View>
@@ -313,7 +386,7 @@ const HomeScreen = () => {
                   <MaterialCommunityIcons 
                     name={!!(announcement.isPinned) ? "pin" : "newspaper"} 
                     size={24} 
-                    color={theme.colors.primary} 
+                    color="#2E7D32" 
                   />
                   <Text style={[styles.newsTitle, themedStyles.title]}>{announcement.title}</Text>
                 </View>
@@ -329,7 +402,7 @@ const HomeScreen = () => {
         ) : (
           <View style={[styles.newsCard, themedStyles.card]}>
             <View style={{ padding: 16 }}>
-              <Text style={{ textAlign: 'center', color: '#6C757D' }}>
+              <Text style={{ textAlign: 'center', color: '#9E9E9E' }}>
                 {t('home.noAnnouncements')}
               </Text>
             </View>
@@ -344,25 +417,25 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8F9FA',
   },
   scrollView: {
     flex: 1,
   },
   heroSection: {
-    backgroundColor: '#2E7D32',
+    backgroundColor: '#E1BEE7',
     padding: 20,
-    paddingTop: 40,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    paddingTop: 0,
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
     elevation: 8,
   },
   compactHeader: {
@@ -370,106 +443,162 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    paddingTop: 50,
     paddingHorizontal: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 1,
   },
   compactTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#1B1B1B',
   },
   heroContent: {
-    alignItems: 'center',
     marginBottom: 20,
-    paddingTop: 50,
   },
-  heroTitle: {
-    fontSize: 32,
+  heroHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 24,
+  },
+  heroHeaderLeft: {
+    flex: 1,
+  },
+  welcomeText: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 4,
+  },
+  userName: {
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 10,
-    textAlign: 'center',
+    color: '#1B1B1B',
   },
-  heroSubtitle: {
-    fontSize: 16,
-    color: '#E8F5E8',
-    textAlign: 'center',
+  notificationButton: {
+    position: 'relative',
+    padding: 12,
+    minWidth: 48,
+    minHeight: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: '#4CAF50',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: '#E1BEE7',
+  },
+  notificationBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   heroStats: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 20,
+    justifyContent: 'space-between',
+    marginTop: 0,
+    gap: 10,
   },
-  statItem: {
+  statCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 14,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   statNumber: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#1B1B1B',
+    marginTop: 6,
   },
   statLabel: {
-    fontSize: 12,
-    color: '#E8F5E8',
-    marginTop: 5,
+    fontSize: 11,
+    color: '#666666',
+    marginTop: 4,
+    textAlign: 'center',
   },
   section: {
     padding: 20,
+    paddingTop: 0,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#1B1B1B',
-    marginBottom: 15,
+    marginBottom: 16,
+    marginTop: 8,
+  },
+  quickActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
   },
   quickActionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    gap: 12,
   },
   actionCard: {
-    width: (width - 50) / 2,
-    marginBottom: 15,
+    flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 15,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: '#F0F0F0',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   actionContent: {
     alignItems: 'center',
-    padding: 15,
+    padding: 18,
   },
   actionIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 56,
+    height: 56,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
     position: 'relative',
   },
   badge: {
     position: 'absolute',
-    top: -5,
-    right: -5,
-    backgroundColor: '#DC3545',
+    top: -6,
+    right: -6,
+    backgroundColor: '#F44336',
     borderRadius: 10,
     minWidth: 20,
     height: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 4,
-    borderWidth: 2,
+    paddingHorizontal: 5,
+    borderWidth: 2.5,
     borderColor: '#FFFFFF',
   },
   badgeText: {
@@ -478,25 +607,26 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   actionTitle: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#1B1B1B',
     textAlign: 'center',
-    fontWeight: '500',
+    fontWeight: '600',
+    lineHeight: 18,
   },
   matchCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 15,
-    marginBottom: 15,
+    borderRadius: 16,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: '#F0F0F0',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   matchHeader: {
     flexDirection: 'row',
@@ -505,22 +635,65 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   matchTime: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 'bold',
     color: '#2E7D32',
   },
-  courtChip: {
-    backgroundColor: '#F8F9FA',
+  reservationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  reservationInfo: {
+    flex: 1,
+  },
+  courtName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1B1B1B',
+    marginBottom: 8,
+  },
+  reservationTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  reservationTime: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  confirmedBadge: {
+    backgroundColor: '#4CAF50',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 15,
+    borderRadius: 16,
+  },
+  confirmedBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  viewDetailsButton: {
+    marginTop: 8,
+  },
+  viewDetailsText: {
+    fontSize: 14,
+    color: '#9E9E9E',
+    fontWeight: '500',
+  },
+  courtChip: {
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#2E7D32',
+    borderColor: '#C8E6C9',
   },
   courtText: {
     color: '#2E7D32',
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   matchPlayers: {
     flexDirection: 'row',
@@ -548,17 +721,18 @@ const styles = StyleSheet.create({
   },
   newsCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 15,
+    borderRadius: 16,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: '#F0F0F0',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   newsHeader: {
     flexDirection: 'row',
@@ -566,23 +740,25 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   newsTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 'bold',
     color: '#1B1B1B',
     marginLeft: 10,
+    flex: 1,
   },
   newsContent: {
-    color: '#6C757D',
-    marginBottom: 15,
-    lineHeight: 20,
+    color: '#666666',
+    marginBottom: 12,
+    lineHeight: 22,
+    fontSize: 14,
   },
   newsAuthor: {
     color: '#9E9E9E',
     fontSize: 12,
-    marginTop: 10,
+    marginTop: 8,
   },
   reservationNotes: {
-    color: '#6C757D',
+    color: '#9E9E9E',
     fontSize: 13,
     marginTop: 10,
     fontStyle: 'italic',

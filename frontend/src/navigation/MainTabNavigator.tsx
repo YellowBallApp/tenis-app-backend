@@ -4,8 +4,9 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import HomeScreen from '../screens/HomeScreen';
 import GameModesScreen from '../screens/GameModesScreen';
-import CoachesScreen from '../screens/CoachesScreen';
-import MembersScreen from '../screens/MembersScreen';
+import UsersScreen from '../screens/UsersScreen';
+import CoachDetailScreen from '../screens/CoachDetailScreen';
+import MemberDetailScreen from '../screens/MemberDetailScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ReservationScreen from '../screens/ReservationScreen';
 import ReservationsListScreen from '../screens/ReservationsListScreen';
@@ -18,13 +19,18 @@ import NotificationsScreen from '../screens/NotificationsScreen';
 export type MainTabParamList = {
   Home: undefined;
   GameModes: undefined;
-  Coaches: undefined;
-  Members: undefined;
+  Users: undefined;
   Profile: undefined;
   Reservation: { opponentId?: string; opponentName?: string; matchChallengeId?: number } | undefined;
   ReservationsList: undefined;
   MatchHistory: { leagueId?: number; leagueName?: string } | undefined;
   Notifications: undefined;
+};
+
+export type UsersStackParamList = {
+  UsersList: undefined;
+  CoachDetail: { coachId: number };
+  MemberDetail: { memberId: string };
 };
 
 export type GameModesStackParamList = {
@@ -36,6 +42,7 @@ export type GameModesStackParamList = {
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const GameModesStack = createStackNavigator<GameModesStackParamList>();
+const UsersStack = createStackNavigator<UsersStackParamList>();
 
 // GameModes Stack Navigator
 const GameModesStackNavigator = () => {
@@ -62,6 +69,30 @@ const GameModesStackNavigator = () => {
         component={LigAyarlariScreen}
       />
     </GameModesStack.Navigator>
+  );
+};
+
+// Users Stack Navigator
+const UsersStackNavigator = () => {
+  return (
+    <UsersStack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <UsersStack.Screen 
+        name="UsersList" 
+        component={UsersScreen}
+      />
+      <UsersStack.Screen 
+        name="CoachDetail" 
+        component={CoachDetailScreen}
+      />
+      <UsersStack.Screen 
+        name="MemberDetail" 
+        component={MemberDetailScreen}
+      />
+    </UsersStack.Navigator>
   );
 };
 
@@ -103,20 +134,10 @@ const TabNavigator = () => {
         }}
       />
       <Tab.Screen
-        name="Coaches"
-        component={CoachesScreen}
+        name="Users"
+        component={UsersStackNavigator}
         options={{
-          title: 'Antrenörler',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account-tie" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Members"
-        component={MembersScreen}
-        options={{
-          title: 'Üyeler',
+          title: 'Kullanıcılar',
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="account-group" color={color} size={size} />
           ),

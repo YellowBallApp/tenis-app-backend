@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,8 +7,9 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  Animated,
+  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Card,
   Title,
@@ -23,7 +24,7 @@ import {
   TextInput,
   List,
 } from 'react-native-paper';
-import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -45,27 +46,11 @@ const ProfileScreen = () => {
   const { isDarkMode, toggleTheme, theme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
   const { themedStyles } = useThemedStyles();
+  const insets = useSafeAreaInsets();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   
-  // Scroll animation için
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const headerHeight = scrollY.interpolate({
-    inputRange: [0, 150],
-    outputRange: [200, 100],
-    extrapolate: 'clamp',
-  });
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, 100],
-    outputRange: [1, 0],
-    extrapolate: 'clamp',
-  });
-  const compactOpacity = scrollY.interpolate({
-    inputRange: [0, 100],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
   
   // Modal states
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
@@ -108,7 +93,10 @@ const ProfileScreen = () => {
       // Points hesaplama: Lig sıralamalarından toplam points (en iyi sıralama puanları)
       // Her lig için ters sıralama puanı: 1. sıra = 100, 2. sıra = 99, vb.
       let totalPoints = 0;
-      if (userStandings && Array.isArray(userStandings)) {
+      let currentRank: number | null = null;
+      if (userStandings && Array.isArray(userStandings) && userStandings.length > 0) {
+        // İlk standing'in rank'ini al
+        currentRank = userStandings[0].leagueRanking || null;
         userStandings.forEach((standing: any) => {
           // Her lig için maksimum 100 oyuncu varsayımıyla hesapla
           // En iyi sıralama en yüksek puan
@@ -117,6 +105,11 @@ const ProfileScreen = () => {
           totalPoints += rankingPoints;
         });
       }
+      
+      // Join date sadece yıl olarak
+      const joinYear = (profileData as any).createdAt 
+        ? new Date((profileData as any).createdAt).getFullYear().toString()
+        : '2024';
       
       // Backend'den gelen profil verisini UI formatına dönüştür
       const formattedUser = {
@@ -130,7 +123,9 @@ const ProfileScreen = () => {
         points: totalPoints,
         matchesPlayed: matchStats.totalMatches || 0,
         matchesWon: matchStats.wins || 0,
-        winRate: matchStats.winRate || 0,
+        winRate: Math.round(matchStats.winRate || 0),
+        currentRank: currentRank,
+        joinYear: joinYear,
         joinDate: (profileData as any).createdAt 
           ? new Date((profileData as any).createdAt).toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US', { month: 'long', year: 'numeric' })
           : t('common.loading'),
@@ -358,6 +353,11 @@ const ProfileScreen = () => {
     }
   };
 
+  // Get initials for avatar
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+  };
+
   if (loading || !user) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -367,227 +367,185 @@ const ProfileScreen = () => {
     );
   }
 
+  const rankNumber = user.currentRank ? `#${user.currentRank}` : 'N/A';
+
   return (
     <>
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {/* Animated Profile Header */}
-      <Animated.View style={[styles.profileHeader, { height: headerHeight }]}>
-        {/* Kompakt Başlık - Scroll edildiğinde görünür */}
-        <Animated.View style={[
-          styles.compactHeader,
-          { opacity: compactOpacity }
-        ]}>
-          <View style={styles.compactContent}>
-            {user.profilePhoto ? (
-              <Image 
-                source={{ uri: user.profilePhoto }} 
-                style={styles.compactAvatar}
-              />
-            ) : (
-              <Avatar.Text size={40} label={user.name.charAt(0)} style={styles.compactAvatar} />
-            )}
-            <View style={styles.compactInfo}>
-              <Text style={styles.compactName}>{user.name}</Text>
-              <Text style={styles.compactLevel}>{userLevel} • {userRank}</Text>
-            </View>
-          </View>
-        </Animated.View>
-        
-        {/* Normal İçerik - Scroll başta görünür */}
-        <Animated.View style={[styles.profileInfo, { opacity: headerOpacity }]}>
-          <TouchableOpacity onPress={selectProfilePhoto} activeOpacity={0.7}>
-            {user.profilePhoto ? (
-              <Image 
-                source={{ uri: user.profilePhoto }} 
-                style={styles.profileImage}
-              />
-            ) : (
-              <Avatar.Text size={80} label={user.name.charAt(0)} style={styles.avatar} />
-            )}
-            <View style={styles.cameraIconContainer}>
-              <MaterialCommunityIcons name="camera" size={20} color="#FFFFFF" />
-            </View>
-          </TouchableOpacity>
-          <View style={styles.userDetails}>
-            <Title style={styles.userName}>{user.name}</Title>
-            <Text style={styles.userEmail}>{user.email}</Text>
-            <View style={styles.levelRankContainer}>
-              <Chip 
-                mode="outlined" 
-                style={{ borderColor: getLevelColor(userLevel), marginRight: 10 }}
-              >
-                {userLevel}
-              </Chip>
-              <Chip 
-                mode="outlined" 
-                style={{ borderColor: getRankColor(userRank) }}
-              >
-                {userRank}
-              </Chip>
-            </View>
-          </View>
-        </Animated.View>
-      </Animated.View>
-      
-      <Animated.ScrollView
-        style={styles.scrollView}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
-        )}
-        scrollEventThrottle={16}
-      >
-
-      {/* Stats Section */}
-      <View style={styles.section}>
-        <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>{t('profile.statistics')}</Title>
-        <View style={styles.statsGrid}>
-          <Card style={[styles.statCard, themedStyles.card]}>
-            <Card.Content style={styles.statCardContent}>
-              <MaterialCommunityIcons name="trophy" size={32} color={theme.colors.primary} />
-              <Text style={[styles.statNumber, themedStyles.statNumber]}>{user.points}</Text>
-              <Text style={[styles.statLabel, themedStyles.statLabel]}>{t('profile.points')}</Text>
-            </Card.Content>
-          </Card>
-          <Card style={[styles.statCard, themedStyles.card]}>
-            <Card.Content style={styles.statCardContent}>
-              <MaterialCommunityIcons name="tennis" size={32} color={theme.colors.primary} />
-              <Text style={[styles.statNumber, themedStyles.statNumber]}>{user.matchesPlayed}</Text>
-              <Text style={[styles.statLabel, themedStyles.statLabel]}>{t('profile.matches')}</Text>
-            </Card.Content>
-          </Card>
-          <Card style={[styles.statCard, themedStyles.card]}>
-            <Card.Content style={styles.statCardContent}>
-              <MaterialCommunityIcons name="check-circle" size={32} color={theme.colors.primary} />
-              <Text style={[styles.statNumber, themedStyles.statNumber]}>{user.matchesWon}</Text>
-              <Text style={[styles.statLabel, themedStyles.statLabel]}>{t('profile.wins')}</Text>
-            </Card.Content>
-          </Card>
-          <Card style={[styles.statCard, themedStyles.card]}>
-            <Card.Content style={styles.statCardContent}>
-              <MaterialCommunityIcons name="percent" size={32} color={theme.colors.primary} />
-              <Text style={[styles.statNumber, themedStyles.statNumber]}>{user.winRate}%</Text>
-              <Text style={[styles.statLabel, themedStyles.statLabel]}>{t('profile.winRate')}</Text>
-            </Card.Content>
-          </Card>
-        </View>
-      </View>
-
-      {/* Achievements */}
-      <View style={[styles.section, styles.achievementsSection]}>
-        <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>{t('profile.achievements')}</Title>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.achievementsContainer}
-        >
-          {achievements.map((achievement) => (
-            <Card key={achievement.id} style={[styles.achievementCard, themedStyles.card]}>
-              <Card.Content style={styles.achievementContent}>
-                <View style={styles.achievementIconContainer}>
-                  <MaterialCommunityIcons 
-                    name={achievement.icon as any} 
-                    size={36} 
-                    color={achievement.color} 
-                  />
-                </View>
-                <View style={styles.achievementTextContainer}>
-                  <Title style={styles.achievementTitle}>{achievement.title}</Title>
-                  <Text style={styles.achievementDescription}>{achievement.description}</Text>
-                </View>
-              </Card.Content>
-            </Card>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* Membership Info */}
-      <View style={styles.section}>
-        <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>{t('profile.membershipInfo')}</Title>
-        <Card style={[styles.membershipCard, themedStyles.card]}>
-          <Card.Content>
-            <View style={styles.membershipRow}>
-              <MaterialCommunityIcons name="calendar" size={24} color={theme.colors.primary} />
-              <View style={styles.membershipInfo}>
-                <Text style={[styles.membershipLabel, themedStyles.subtitle]}>{t('profile.joinDate')}</Text>
-                <Text style={[styles.membershipValue, themedStyles.text]}>{user.joinDate}</Text>
-              </View>
-            </View>
-            <Divider style={styles.divider} />
-            <View style={styles.membershipRow}>
-              <MaterialCommunityIcons name="crown" size={24} color="#FFD700" />
-              <View style={styles.membershipInfo}>
-                <Text style={[styles.membershipLabel, themedStyles.subtitle]}>{t('profile.membershipType')}</Text>
-                <Text style={[styles.membershipValue, themedStyles.text]}>{user.membershipType}</Text>
-              </View>
-            </View>
-            <Divider style={styles.divider} />
-            <View style={styles.membershipRow}>
-              <MaterialCommunityIcons name="refresh" size={24} color={theme.colors.primary} />
-              <View style={styles.membershipInfo}>
-                <Text style={[styles.membershipLabel, themedStyles.subtitle]}>{t('profile.nextRenewal')}</Text>
-                <Text style={[styles.membershipValue, themedStyles.text]}>{user.nextRenewal}</Text>
-              </View>
-            </View>
-          </Card.Content>
-        </Card>
-      </View>
-
-      {/* Preferences */}
-      <View style={styles.section}>
-        <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>{t('profile.preferences')}</Title>
-        <Card style={[styles.preferencesCard, themedStyles.card]}>
-          <Card.Content>
-            {preferences.map((preference) => (
-              <View key={preference.id} style={styles.preferenceRow}>
-                <View style={styles.preferenceInfo}>
-                  <MaterialCommunityIcons name={preference.icon as any} size={24} color={theme.colors.primary} />
-                  <Text style={[styles.preferenceTitle, themedStyles.text]}>{preference.title}</Text>
-                </View>
-                <Switch
-                  value={!!preference.enabled}
-                  onValueChange={preference.onToggle}
-                  color={theme.colors.primary}
+    <View style={[styles.container, { backgroundColor: '#FFFFFF' }]}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Profile Header Card - Light Purple */}
+        <View style={[styles.profileHeaderCard, { paddingTop: insets.top + 20 }]}>
+          <View style={styles.profileHeaderContent}>
+            {/* Avatar - Left Side */}
+            <TouchableOpacity onPress={selectProfilePhoto} activeOpacity={0.7} style={styles.avatarContainer}>
+              {user.profilePhoto ? (
+                <Image 
+                  source={{ uri: user.profilePhoto }} 
+                  style={styles.profileAvatar}
                 />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Text style={styles.avatarInitials}>{getInitials(user.name)}</Text>
+                </View>
+              )}
+              {/* Edit Icon Overlay */}
+              <View style={styles.editIconContainer}>
+                <MaterialCommunityIcons name="pencil" size={16} color="#FFFFFF" />
               </View>
-            ))}
-          </Card.Content>
-        </Card>
-      </View>
-
-      {/* Quick Actions */}
-      <View style={styles.section}>
-        <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>{t('profile.quickActions')}</Title>
-        <View style={styles.quickActionsGrid}>
-          {quickActions.map((action, index) => (
-            <Button
-              key={index}
-              mode="outlined"
-              onPress={action.action}
-              style={styles.actionButton}
-              textColor={theme.colors.primary}
-              icon={action.icon}
-            >
-              {action.title}
-            </Button>
-          ))}
+            </TouchableOpacity>
+            
+            {/* User Info - Right Side */}
+            <View style={styles.userInfoContainer}>
+              <Text style={styles.profileName}>{user.name}</Text>
+              <Text style={styles.profileEmail}>{user.email}</Text>
+              <View style={styles.tagsContainer}>
+                <View style={[styles.tag, { backgroundColor: '#F5F5F5' }]}>
+                  <Text style={styles.tagText}>{t('profile.rank')} {rankNumber}</Text>
+                </View>
+                <View style={[styles.tag, { backgroundColor: '#F5F5F5', marginLeft: 8 }]}>
+                  <Text style={styles.tagText}>{userLevel}</Text>
+                </View>
+              </View>
+            </View>
+          </View>
         </View>
-      </View>
 
-      {/* Logout Button */}
-      <View style={[styles.section, { paddingBottom: 40 }]}>
-        <Button
-          mode="contained"
-          onPress={handleLogout}
-          style={styles.logoutButton}
-          buttonColor="#DC3545"
-          icon="logout"
-          contentStyle={styles.logoutButtonContent}
-        >
-          {t('auth.logout')}
-        </Button>
-      </View>
-      </Animated.ScrollView>
+        {/* Your Statistics Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('profile.yourStatistics')}</Text>
+          <View style={styles.statsGrid}>
+            {/* Matches Played */}
+            <View style={styles.statCard}>
+              <MaterialCommunityIcons name="trophy" size={24} color="#9E9E9E" />
+              <Text style={styles.statNumber}>{user.matchesPlayed}</Text>
+              <Text style={styles.statLabel}>{t('profile.matchesPlayed')}</Text>
+            </View>
+            {/* Win Rate */}
+            <View style={styles.statCard}>
+              <MaterialCommunityIcons name="trending-up" size={24} color="#9E9E9E" />
+              <Text style={styles.statNumber}>{user.winRate}%</Text>
+              <Text style={styles.statLabel}>{t('profile.winRate')}</Text>
+            </View>
+            {/* Current Rank */}
+            <View style={styles.statCard}>
+              <MaterialCommunityIcons name="trophy" size={24} color="#9E9E9E" />
+              <Text style={styles.statNumber}>{rankNumber}</Text>
+              <Text style={styles.statLabel}>{t('profile.currentRank')}</Text>
+            </View>
+            {/* Member Since */}
+            <View style={styles.statCard}>
+              <MaterialCommunityIcons name="calendar" size={24} color="#9E9E9E" />
+              <Text style={styles.statNumber}>{user.joinYear}</Text>
+              <Text style={styles.statLabel}>{t('profile.memberSince')}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Quick Actions Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('profile.quickActions')}</Text>
+          <View style={styles.quickActionsHorizontal}>
+            <TouchableOpacity 
+              style={styles.quickActionCard}
+              onPress={() => navigation.navigate('ReservationsList' as any)}
+            >
+              <MaterialCommunityIcons name="calendar" size={28} color="#4CAF50" />
+              <Text style={styles.quickActionText}>{t('profile.myBookings')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.quickActionCard}
+              onPress={() => navigation.navigate('MatchHistory' as any)}
+            >
+              <MaterialCommunityIcons name="trophy" size={28} color="#9E9E9E" />
+              <Text style={styles.quickActionText}>{t('profile.myMatches')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.quickActionCard}
+              onPress={() => {}}
+            >
+              <MaterialCommunityIcons name="trending-up" size={28} color="#9E9E9E" />
+              <Text style={styles.quickActionText}>{t('profile.statistics')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Account Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}>{t('profile.account')}</Text>
+          <View style={styles.settingsList}>
+            <TouchableOpacity style={styles.settingsItem} onPress={openEditProfile}>
+              <MaterialCommunityIcons name="account-outline" size={24} color="#1B1B1B" />
+              <Text style={styles.settingsItemText}>{t('profile.editProfile')}</Text>
+              <MaterialCommunityIcons name="chevron-right" size={24} color="#9E9E9E" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.settingsItem} onPress={() => setShowAccountSettingsModal(true)}>
+              <MaterialCommunityIcons name="shield-outline" size={24} color="#1B1B1B" />
+              <Text style={styles.settingsItemText}>{t('profile.privacySecurity')}</Text>
+              <MaterialCommunityIcons name="chevron-right" size={24} color="#9E9E9E" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.settingsItem} onPress={() => {}}>
+              <MaterialCommunityIcons name="bell-outline" size={24} color="#1B1B1B" />
+              <Text style={styles.settingsItemText}>{t('profile.notifications')}</Text>
+              <MaterialCommunityIcons name="chevron-right" size={24} color="#9E9E9E" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Preferences Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}>{t('profile.preferences')}</Text>
+          <View style={styles.settingsList}>
+            <TouchableOpacity style={styles.settingsItem} onPress={handleLanguageToggle}>
+              <MaterialCommunityIcons name="earth" size={24} color="#1B1B1B" />
+              <Text style={styles.settingsItemText}>{t('profile.language')}</Text>
+              <View style={styles.settingsItemRight}>
+                <Text style={styles.settingsItemSubtext}>{language === 'en' ? t('profile.english') : 'Türkçe'}</Text>
+                <MaterialCommunityIcons name="chevron-right" size={24} color="#9E9E9E" />
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.settingsItem} onPress={() => setShowAccountSettingsModal(true)}>
+              <MaterialCommunityIcons name="cog-outline" size={24} color="#1B1B1B" />
+              <Text style={styles.settingsItemText}>{t('profile.accountSettings')}</Text>
+              <MaterialCommunityIcons name="chevron-right" size={24} color="#9E9E9E" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Support Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}>{t('profile.support')}</Text>
+          <View style={styles.settingsList}>
+            <TouchableOpacity style={styles.settingsItem} onPress={() => setShowHelpModal(true)}>
+              <MaterialCommunityIcons name="help-circle-outline" size={24} color="#1B1B1B" />
+              <Text style={styles.settingsItemText}>{t('profile.helpSupport')}</Text>
+              <MaterialCommunityIcons name="chevron-right" size={24} color="#9E9E9E" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.settingsItem} onPress={() => {}}>
+              <MaterialCommunityIcons name="shield-outline" size={24} color="#1B1B1B" />
+              <Text style={styles.settingsItemText}>{t('profile.termsPolicies')}</Text>
+              <MaterialCommunityIcons name="chevron-right" size={24} color="#9E9E9E" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Logout */}
+        <View style={styles.logoutSection}>
+          <Button
+            mode="contained"
+            onPress={handleLogout}
+            style={styles.logoutButtonFull}
+            buttonColor="#F44336"
+            contentStyle={styles.logoutButtonContent}
+            labelStyle={styles.logoutButtonLabel}
+            icon={({ size, color }) => (
+              <MaterialCommunityIcons name="logout-variant" size={size} color={color} />
+            )}
+          >
+            {t('profile.logout')}
+          </Button>
+        </View>
+        <View style={{ paddingBottom: 40 }} />
+      </ScrollView>
     </View>
 
     {/* Profil Düzenle Modal */}
@@ -602,14 +560,14 @@ const ProfileScreen = () => {
           <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScrollView}>
             <Card.Content style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <MaterialCommunityIcons name="account-edit" size={32} color={theme.colors.primary} />
+                <MaterialCommunityIcons name="account-edit" size={32} color="#E1BEE7" />
                 <Title style={[styles.modalTitle, themedStyles.title]}>{t('profile.editProfile')}</Title>
                 <TouchableOpacity onPress={() => setShowEditProfileModal(false)}>
-                  <MaterialCommunityIcons name="close" size={24} color={theme.colors.text} />
+                  <MaterialCommunityIcons name="close" size={24} color="#666666" />
                 </TouchableOpacity>
               </View>
               
-              <Text style={[styles.modalSubtitle, themedStyles.subtitle]}>Update your profile information</Text>
+              <Text style={[styles.modalSubtitle, themedStyles.subtitle]}>{t('profile.updateProfileInfo')}</Text>
               
               <TextInput
                 mode="outlined"
@@ -618,8 +576,8 @@ const ProfileScreen = () => {
                 onChangeText={setEditName}
                 style={[styles.textInput, themedStyles.input]}
                 left={<TextInput.Icon icon="account" />}
-                outlineColor={theme.colors.outline}
-                activeOutlineColor={theme.colors.primary}
+                outlineColor="#E0E0E0"
+                activeOutlineColor="#E1BEE7"
                 textColor={theme.colors.text}
               />
               
@@ -630,8 +588,8 @@ const ProfileScreen = () => {
                 onChangeText={setEditEmail}
                 style={[styles.textInput, themedStyles.input]}
                 left={<TextInput.Icon icon="email" />}
-                outlineColor={theme.colors.outline}
-                activeOutlineColor={theme.colors.primary}
+                outlineColor="#E0E0E0"
+                activeOutlineColor="#E1BEE7"
                 textColor={theme.colors.text}
                 keyboardType="email-address"
               />
@@ -643,8 +601,8 @@ const ProfileScreen = () => {
                 onChangeText={setEditAge}
                 style={[styles.textInput, themedStyles.input]}
                 left={<TextInput.Icon icon="calendar" />}
-                outlineColor={theme.colors.outline}
-                activeOutlineColor={theme.colors.primary}
+                outlineColor="#E0E0E0"
+                activeOutlineColor="#E1BEE7"
                 textColor={theme.colors.text}
                 keyboardType="numeric"
                 placeholder={t('profile.enterAge')}
@@ -689,7 +647,7 @@ const ProfileScreen = () => {
                     }
                   }}
                   style={[styles.modalButton, styles.saveButton]}
-                  buttonColor={theme.colors.primary}
+                  buttonColor="#E1BEE7"
                   contentStyle={{ paddingVertical: 12 }}
                 >
                   {t('common.save')}
@@ -712,8 +670,11 @@ const ProfileScreen = () => {
         <Card style={[styles.photoModalCard, themedStyles.card]}>
           <Card.Content style={styles.photoModalContent}>
             <View style={styles.photoModalHeader}>
-              <MaterialCommunityIcons name="camera" size={32} color={theme.colors.primary} />
+              <MaterialCommunityIcons name="camera" size={32} color="#E1BEE7" />
               <Title style={[styles.photoModalTitle, themedStyles.title]}>{t('profile.profilePhoto')}</Title>
+              <TouchableOpacity onPress={() => setShowPhotoOptionsModal(false)}>
+                <MaterialCommunityIcons name="close" size={24} color="#666666" />
+              </TouchableOpacity>
             </View>
             
             <Text style={[styles.photoModalSubtitle, themedStyles.subtitle]}>
@@ -727,7 +688,7 @@ const ProfileScreen = () => {
                 onPress={handleGalleryPress}
                 activeOpacity={0.7}
               >
-                <View style={[styles.photoOptionIcon, { backgroundColor: theme.colors.primary }]}>
+                <View style={[styles.photoOptionIcon, { backgroundColor: '#E1BEE7' }]}>
                   <MaterialCommunityIcons name="image" size={32} color="#FFFFFF" />
                 </View>
                 <Text style={[styles.photoOptionTitle, themedStyles.text]}>{t('profile.selectFromGallery')}</Text>
@@ -742,7 +703,7 @@ const ProfileScreen = () => {
                 onPress={handleCameraPress}
                 activeOpacity={0.7}
               >
-                <View style={[styles.photoOptionIcon, { backgroundColor: theme.colors.primary }]}>
+                <View style={[styles.photoOptionIcon, { backgroundColor: '#E1BEE7' }]}>
                   <MaterialCommunityIcons name="camera" size={32} color="#FFFFFF" />
                 </View>
                 <Text style={[styles.photoOptionTitle, themedStyles.text]}>{t('profile.takePhoto')}</Text>
@@ -774,7 +735,7 @@ const ProfileScreen = () => {
               mode="outlined"
               onPress={() => setShowPhotoOptionsModal(false)}
               style={styles.photoCancelButton}
-              textColor={theme.colors.primary}
+              textColor="#E1BEE7"
             >
               {t('common.cancel')}
             </Button>
@@ -846,15 +807,15 @@ const ProfileScreen = () => {
         <Card style={[styles.modalCard, themedStyles.card]}>
           <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScrollView}>
             <Card.Content style={styles.modalContent}>
-            <View style={[styles.modalHeader, { borderBottomColor: theme.colors.outline }]}>
-              <MaterialCommunityIcons name="lock-reset" size={32} color="#FF9800" />
+            <View style={styles.modalHeader}>
+              <MaterialCommunityIcons name="lock-reset" size={32} color="#E1BEE7" />
               <Title style={[styles.modalTitle, themedStyles.title]}>{t('profile.changePassword')}</Title>
                 <TouchableOpacity onPress={() => setShowChangePasswordModal(false)}>
-                  <MaterialCommunityIcons name="close" size={24} color={theme.colors.text} />
+                  <MaterialCommunityIcons name="close" size={24} color="#666666" />
                 </TouchableOpacity>
               </View>
             
-            <Text style={[styles.modalSubtitle, themedStyles.subtitle]}>Update your password for security</Text>
+            <Text style={[styles.modalSubtitle, themedStyles.subtitle]}>{t('profile.updatePasswordForSecurity')}</Text>
             
             <TextInput
               mode="outlined"
@@ -864,8 +825,8 @@ const ProfileScreen = () => {
                 style={[styles.textInput, { backgroundColor: theme.colors.surface }]}
                 left={<TextInput.Icon icon="lock" />}
                 secureTextEntry
-                outlineColor={theme.colors.outline}
-                activeOutlineColor="#FF9800"
+                outlineColor="#E0E0E0"
+                activeOutlineColor="#E1BEE7"
                 textColor={theme.colors.text}
               />
             
@@ -877,8 +838,8 @@ const ProfileScreen = () => {
                 style={[styles.textInput, { backgroundColor: theme.colors.surface }]}
                 left={<TextInput.Icon icon="lock-plus" />}
                 secureTextEntry
-                outlineColor={theme.colors.outline}
-                activeOutlineColor="#FF9800"
+                outlineColor="#E0E0E0"
+                activeOutlineColor="#E1BEE7"
                 textColor={theme.colors.text}
               />
             
@@ -890,8 +851,8 @@ const ProfileScreen = () => {
                 style={[styles.textInput, { backgroundColor: theme.colors.surface }]}
                 left={<TextInput.Icon icon="lock-check" />}
                 secureTextEntry
-                outlineColor={confirmPassword && newPassword !== confirmPassword ? "#F44336" : theme.colors.outline}
-                activeOutlineColor={confirmPassword && newPassword !== confirmPassword ? "#F44336" : "#FF9800"}
+                outlineColor={confirmPassword && newPassword !== confirmPassword ? "#F44336" : "#E0E0E0"}
+                activeOutlineColor={confirmPassword && newPassword !== confirmPassword ? "#F44336" : "#E1BEE7"}
                 error={!!confirmPassword && newPassword !== confirmPassword}
                 textColor={theme.colors.text}
               />
@@ -933,7 +894,7 @@ const ProfileScreen = () => {
                   styles.saveButton,
                   (!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword) && styles.disabledButton
                 ]}
-                buttonColor={(!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword) ? "#CCCCCC" : "#FF9800"}
+                buttonColor={(!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword) ? "#CCCCCC" : "#E1BEE7"}
                 contentStyle={{ paddingVertical: 12 }}
                 disabled={!!(!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword)}
               >
@@ -957,15 +918,15 @@ const ProfileScreen = () => {
         <Card style={[styles.modalCard, themedStyles.card]}>
           <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScrollView}>
             <Card.Content style={styles.modalContent}>
-            <View style={[styles.modalHeader, { borderBottomColor: theme.colors.outline }]}>
-              <MaterialCommunityIcons name="cog" size={32} color="#4CAF50" />
+            <View style={styles.modalHeader}>
+              <MaterialCommunityIcons name="cog" size={32} color="#E1BEE7" />
               <Title style={[styles.modalTitle, themedStyles.title]}>{t('profile.accountSettings')}</Title>
               <TouchableOpacity onPress={() => setShowAccountSettingsModal(false)}>
-                <MaterialCommunityIcons name="close" size={24} color={theme.colors.text} />
+                <MaterialCommunityIcons name="close" size={24} color="#666666" />
               </TouchableOpacity>
             </View>
             
-            <Text style={[styles.modalSubtitle, themedStyles.subtitle]}>Manage your account preferences</Text>
+            <Text style={[styles.modalSubtitle, themedStyles.subtitle]}>{t('profile.manageAccountPreferences')}</Text>
             
             <List.Section>
               <List.Item
@@ -1019,7 +980,7 @@ const ProfileScreen = () => {
               mode="contained"
               onPress={() => setShowAccountSettingsModal(false)}
               style={[styles.modalButton, { marginTop: 32 }]}
-              buttonColor="#4CAF50"
+              buttonColor="#E1BEE7"
               contentStyle={{ paddingVertical: 12 }}
             >
               {t('common.ok')}
@@ -1041,15 +1002,15 @@ const ProfileScreen = () => {
         <Card style={[styles.modalCard, themedStyles.card]}>
           <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScrollView}>
             <Card.Content style={styles.modalContent}>
-            <View style={[styles.modalHeader, { borderBottomColor: theme.colors.outline }]}>
-              <MaterialCommunityIcons name="help-circle" size={32} color="#2196F3" />
+            <View style={styles.modalHeader}>
+              <MaterialCommunityIcons name="help-circle" size={32} color="#E1BEE7" />
               <Title style={[styles.modalTitle, themedStyles.title]}>{t('profile.help')}</Title>
               <TouchableOpacity onPress={() => setShowHelpModal(false)}>
-                <MaterialCommunityIcons name="close" size={24} color={theme.colors.text} />
+                <MaterialCommunityIcons name="close" size={24} color="#666666" />
               </TouchableOpacity>
             </View>
             
-            <Text style={[styles.modalSubtitle, themedStyles.subtitle]}>How can we help you?</Text>
+            <Text style={[styles.modalSubtitle, themedStyles.subtitle]}>{t('profile.howCanWeHelp')}</Text>
             
             <List.Section>
               <List.Item
@@ -1103,7 +1064,7 @@ const ProfileScreen = () => {
               mode="contained"
               onPress={() => setShowHelpModal(false)}
               style={[styles.modalButton, { marginTop: 32 }]}
-              buttonColor="#2196F3"
+              buttonColor="#E1BEE7"
               contentStyle={{ paddingVertical: 12 }}
             >
               {t('common.ok')}
@@ -1184,310 +1145,250 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  profileHeader: {
-    backgroundColor: '#2E7D32',
-    overflow: 'hidden',
-    padding: 20,
-    paddingTop: 40,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+  // Profile Header Card - Light Purple
+  profileHeaderCard: {
+    backgroundColor: '#E1BEE7',
+    marginHorizontal: 0,
+    marginTop: 0,
+    marginBottom: 20,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 2,
     },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 8,
+    elevation: 4,
   },
-  compactHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    paddingTop: 50,
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-  },
-  compactContent: {
+  profileHeaderContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  compactAvatar: {
-    marginRight: 12,
+  avatarContainer: {
+    position: 'relative',
+    marginRight: 16,
   },
-  compactInfo: {
-    flex: 1,
-  },
-  compactName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  compactLevel: {
-    fontSize: 14,
-    color: '#E8F5E8',
-    marginTop: 2,
-  },
-  profileInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: 50,
-  },
-  avatar: {
+  profileAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: '#FFFFFF',
-    marginRight: 20,
   },
-  profileImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginRight: 20,
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
+  avatarPlaceholder: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#D1C4E9',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  cameraIconContainer: {
+  avatarInitials: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#7B1FA2',
+  },
+  editIconContainer: {
     position: 'absolute',
-    bottom: 0,
-    right: 20,
-    backgroundColor: '#2E7D32',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
+    bottom: -2,
+    right: -2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#4CAF50',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },
-  userDetails: {
+  userInfoContainer: {
     flex: 1,
   },
-  userName: {
-    fontSize: 24,
+  profileName: {
+    fontSize: 22,
     fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 5,
+    color: '#1B1B1B',
+    marginBottom: 4,
   },
-  userEmail: {
+  profileEmail: {
     fontSize: 14,
-    color: '#E8F5E8',
-    marginBottom: 15,
+    color: '#666666',
+    marginBottom: 12,
   },
-  levelRankContainer: {
+  tagsContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
+  },
+  tag: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  tagText: {
+    fontSize: 12,
+    color: '#666666',
+    fontWeight: '500',
   },
   section: {
     padding: 20,
+    paddingTop: 0,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#1B1B1B',
-    marginBottom: 15,
+    marginBottom: 16,
+  },
+  sectionHeader: {
+    fontSize: 14,
+    color: '#9E9E9E',
+    marginBottom: 12,
+    fontWeight: '500',
   },
   statsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  statCard: {
-    width: (width - 60) / 4,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  statCardContent: {
-    alignItems: 'center',
-    padding: 15,
-  },
-  statNumber: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#2E7D32',
-    marginTop: 10,
-    marginBottom: 5,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6C757D',
-    textAlign: 'center',
-  },
-  achievementsSection: {
-    marginBottom: 0,
-    paddingBottom: 0,
-  },
-  achievementsContainer: {
-    paddingHorizontal: 20,
-    paddingRight: 40,
-    paddingBottom: 5,
-  },
-  achievementCard: {
-    width: 160,
-    minHeight: 140,
-    marginRight: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  achievementContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 120,
-    padding: 16,
-    paddingVertical: 20,
-  },
-  achievementIconContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  achievementTextContainer: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  achievementTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginTop: 0,
-    marginBottom: 6,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  achievementDescription: {
-    fontSize: 13,
-    color: '#6C757D',
-    textAlign: 'center',
-    lineHeight: 18,
-    paddingHorizontal: 4,
-  },
-  membershipCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  membershipRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 15,
-  },
-  membershipInfo: {
-    marginLeft: 15,
-    flex: 1,
-  },
-  membershipLabel: {
-    fontSize: 14,
-    color: '#6C757D',
-    marginBottom: 5,
-  },
-  membershipValue: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1B1B1B',
-  },
-  divider: {
-    backgroundColor: '#E9ECEF',
-    marginVertical: 5,
-  },
-  preferencesCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  preferenceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 15,
-  },
-  preferenceInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  preferenceTitle: {
-    fontSize: 16,
-    color: '#1B1B1B',
-    marginLeft: 15,
-    fontWeight: '500',
-  },
-  quickActionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
-  actionButton: {
-    width: (width - 60) / 2,
-    marginBottom: 15,
-    borderColor: '#2E7D32',
+  statCard: {
+    width: (width - 80) / 2,
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  logoutButton: {
+  statNumber: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#9E9E9E',
+    textAlign: 'center',
+  },
+  // Quick Actions
+  quickActionsHorizontal: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  quickActionCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    elevation: 4,
-    shadowColor: '#DC3545',
+    padding: 16,
+    alignItems: 'center',
+    marginHorizontal: 4,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  quickActionText: {
+    fontSize: 12,
+    color: '#1B1B1B',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  // Settings List
+  settingsList: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  settingsItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F5F5',
+  },
+  settingsItemText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1B1B1B',
+    marginLeft: 12,
+  },
+  settingsItemRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  settingsItemSubtext: {
+    fontSize: 14,
+    color: '#9E9E9E',
+    marginRight: 8,
+  },
+  // Logout
+  logoutSection: {
+    padding: 20,
+    paddingTop: 0,
+  },
+  logoutButtonFull: {
+    width: '100%',
+    borderRadius: 12,
+    elevation: 2,
+    shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   logoutButtonContent: {
-    paddingVertical: 12,
+    paddingVertical: 14,
+  },
+  logoutButtonLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   modalContainer: {
-    margin: 10,
+    margin: 20,
     flex: 1,
     justifyContent: 'center',
   },
   modalCard: {
-    borderRadius: 16,
+    borderRadius: 20,
     maxHeight: '85%',
     minHeight: '60%',
     backgroundColor: '#FFFFFF',
-    elevation: 12,
+    elevation: 8,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 6,
+      height: 4,
     },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
   },
   modalScrollView: {
     flexGrow: 1,
@@ -1503,7 +1404,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E9ECEF',
+    borderBottomColor: '#F5F5F5',
   },
   modalTitle: {
     fontSize: 20,
@@ -1569,16 +1470,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logoutModalCard: {
-    borderRadius: 16,
+    borderRadius: 20,
     backgroundColor: '#FFFFFF',
-    elevation: 12,
+    elevation: 8,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 6,
+      height: 4,
     },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
   },
   logoutModalContent: {
     padding: 16,
@@ -1590,7 +1491,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#E9ECEF',
+    borderBottomColor: '#F5F5F5',
   },
   logoutModalTitle: {
     fontSize: 18,
@@ -1634,8 +1535,8 @@ const styles = StyleSheet.create({
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
   },
   photoModalContent: {
     padding: 24,
@@ -1643,8 +1544,11 @@ const styles = StyleSheet.create({
   photoModalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 12,
-    gap: 12,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F5F5',
   },
   photoModalTitle: {
     fontSize: 22,

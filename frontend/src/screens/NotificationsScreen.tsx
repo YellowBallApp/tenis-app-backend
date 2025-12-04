@@ -42,6 +42,7 @@ const NotificationsScreen = ({ navigation }: any) => {
   const [processingNotification, setProcessingNotification] = useState<number | null>(null);
   const [challengeDetails, setChallengeDetails] = useState<{[key: number]: any}>({});
   const [failedChallengeIds, setFailedChallengeIds] = useState<Set<number>>(new Set());
+  const [filterType, setFilterType] = useState<'all' | 'challenges' | 'matches' | 'reservations'>('all');
   
   // Reservation match result modal states
   const [showReservationMatchResultModal, setShowReservationMatchResultModal] = useState(false);
@@ -472,164 +473,92 @@ const NotificationsScreen = ({ navigation }: any) => {
     const challengeFailed = failedChallengeIds.has(notification.id);
 
     return (
-      <Card
+      <TouchableOpacity
         key={notification.id}
         style={[
           styles.notificationCard,
           !notification.isRead && styles.unreadCard,
         ]}
+        activeOpacity={0.7}
+        onPress={() => !notification.isRead && handleMarkAsRead(notification.id)}
       >
-        <Card.Content>
-          <View style={styles.notificationHeader}>
-            <View style={styles.notificationIconContainer}>
-              <MaterialCommunityIcons
-                name={isPendingMatch ? 'tennis' : isMatchCompleted ? 'trophy' : 'information'}
-                size={32}
-                color={isPendingMatch ? '#2E7D32' : isMatchCompleted ? '#FFD700' : '#1976D2'}
-              />
-            </View>
-            <View style={styles.notificationHeaderText}>
+        <View style={styles.cardContent}>
+          <View style={styles.notificationIconContainer}>
+            <MaterialCommunityIcons
+              name={isPendingMatch ? 'sword-cross' : isMatchCompleted ? 'trophy' : notification.relatedEntityType === 'reservation' ? 'calendar' : 'bell'}
+              size={24}
+              color="#2E7D32"
+            />
+          </View>
+          <View style={styles.notificationContent}>
+            <View style={styles.notificationHeader}>
               <Text style={styles.notificationTitle}>
-                {isPendingMatch ? t('notifications.challengeTitle') : isMatchCompleted ? 'Maç Tamamlandı' : t('notifications.systemTitle')}
+                {isPendingMatch ? 'New Challenge Received' : isMatchCompleted ? 'Match Reminder' : notification.relatedEntityType === 'reservation' ? 'Reservation Confirmed' : 'New Message'}
               </Text>
-              <Text style={styles.notificationDate}>
-                {formatDate(notification.createdAt)}
-              </Text>
+              {!notification.isRead && (
+                <View style={styles.unreadDot} />
+              )}
             </View>
-            {!notification.isRead && (
-              <Chip
-                mode="flat"
-                style={styles.unreadChip}
-                textStyle={styles.unreadChipText}
-                compact
-              >
-              {t('notifications.newLabel')}
-              </Chip>
+
+            <Text style={styles.notificationMessage} numberOfLines={2}>
+              {notification.message}
+            </Text>
+            <Text style={styles.notificationDate}>
+              {formatDate(notification.createdAt)}
+            </Text>
+          </View>
+        </View>
+
+        {/* Action Buttons - Only show if needed */}
+        {isPendingMatch && challenge && (
+          <View style={styles.cardActionsContainer}>
+            {!isProcessing ? (
+              <View style={styles.actionButtons}>
+                <Button
+                  mode="contained"
+                  buttonColor="#2E7D32"
+                  icon="check"
+                  onPress={() => handleAcceptChallenge(notification)}
+                  style={styles.acceptButton}
+                  compact
+                >
+                  {t('notifications.accept')}
+                </Button>
+                <Button
+                  mode="outlined"
+                  textColor="#DC3545"
+                  icon="close"
+                  onPress={() => handleRejectChallenge(notification)}
+                  style={styles.rejectButton}
+                  compact
+                >
+                  {t('notifications.reject')}
+                </Button>
+              </View>
+            ) : (
+              <View style={styles.processingContainer}>
+                <ActivityIndicator size="small" color="#2E7D32" />
+                <Text style={styles.processingText}>{t('notifications.processing')}</Text>
+              </View>
             )}
           </View>
+        )}
 
-          <Divider style={styles.divider} />
-
-          {isPendingMatch && challenge ? (
-            <View style={styles.matchChallengeContent}>
-              <Text style={styles.challengeText}>
-                <Text style={styles.challengerName}>{challenge.challenger.name}</Text>
-                {' '}
-                {language === 'tr' ? (
-                  <>
-                    <Text style={styles.leagueName}>{challenge.league.description}</Text>
-                    {' '}
-                    {t('notifications.challengeOutro')}
-                  </>
-                ) : (
-                  <>
-                    {t('notifications.challengeIntro')} {' '}
-                    <Text style={styles.leagueName}>{challenge.league.description}</Text>
-                    {' '}
-                    {t('notifications.challengeOutro')}
-                  </>
-                )}
-              </Text>
-
-              {!isProcessing && (
-                <View style={styles.actionButtons}>
-                  <Button
-                    mode="contained"
-                    buttonColor="#2E7D32"
-                    icon="check"
-                    onPress={() => handleAcceptChallenge(notification)}
-                    style={styles.acceptButton}
-                  >
-                    {t('notifications.accept')}
-                  </Button>
-                  <Button
-                    mode="outlined"
-                    textColor="#DC3545"
-                    icon="close"
-                    onPress={() => handleRejectChallenge(notification)}
-                    style={styles.rejectButton}
-                  >
-                    {t('notifications.reject')}
-                  </Button>
-                </View>
-              )}
-
-              {isProcessing && (
-                <View style={styles.processingContainer}>
-                  <ActivityIndicator size="small" color="#2E7D32" />
-                  <Text style={styles.processingText}>{t('notifications.processing')}</Text>
-                </View>
-              )}
-            </View>
-          ) : isPendingMatch && challengeFailed ? (
-            // Challenge yüklenemedi, notification mesajını göster
-            <View style={styles.systemNotificationContent}>
-              <Text style={styles.notificationMessage}>
-                {notification.message || t('notifications.challengeNotFound')}
-              </Text>
-              <Chip
-                mode="flat"
-                style={styles.errorChip}
-                textStyle={styles.errorChipText}
-                icon="alert-circle"
-              >
-                {t('notifications.challengeExpired')}
-              </Chip>
-              {!notification.isRead && (
-                <Button
-                  mode="text"
-                  onPress={() => handleMarkAsRead(notification.id)}
-                  style={styles.markReadButton}
-                >
-                  {t('notifications.markAsRead')}
-                </Button>
-              )}
-            </View>
-          ) : isPendingMatch ? (
-            // Challenge yükleniyor
-            <View style={styles.systemNotificationContent}>
-              <Text style={styles.notificationMessage}>{t('notifications.loadingDetails')}</Text>
-            </View>
-          ) : isMatchCompleted ? (
-            // Maç tamamlandı bildirimi - Maç sonucu girme butonu (rezervasyon veya challenge bazlı)
-            <View style={styles.systemNotificationContent}>
-              <Text style={styles.notificationMessage}>{notification.message}</Text>
-              <Button
-                mode="contained"
-                buttonColor="#2E7D32"
-                icon="clipboard-check"
-                onPress={() => handleOpenMatchResult(notification)}
-                style={styles.matchResultButton}
-              >
-                Maç Sonucu Gir
-              </Button>
-              {!notification.isRead && (
-                <Button
-                  mode="text"
-                  onPress={() => handleMarkAsRead(notification.id)}
-                  style={styles.markReadButton}
-                >
-                  {t('notifications.markAsRead')}
-                </Button>
-              )}
-            </View>
-          ) : (
-            // Normal sistem bildirimi
-            <View style={styles.systemNotificationContent}>
-              <Text style={styles.notificationMessage}>{notification.message}</Text>
-              {!notification.isRead && (
-                <Button
-                  mode="text"
-                  onPress={() => handleMarkAsRead(notification.id)}
-                  style={styles.markReadButton}
-                >
-                  {t('notifications.markAsRead')}
-                </Button>
-              )}
-            </View>
-          )}
-        </Card.Content>
-      </Card>
+        {isMatchCompleted && (
+          <View style={styles.cardActionsContainer}>
+            <Button
+              mode="contained"
+              buttonColor="#2E7D32"
+              icon="clipboard-check"
+              onPress={() => handleOpenMatchResult(notification)}
+              style={styles.matchResultButton}
+              compact
+            >
+              Maç Sonucu Gir
+            </Button>
+          </View>
+        )}
+      </TouchableOpacity>
     );
   };
 
@@ -641,14 +570,31 @@ const NotificationsScreen = ({ navigation }: any) => {
     if (page < totalPages) setPage(page + 1);
   };
 
+  const getFilteredNotifications = () => {
+    if (filterType === 'all') return notifications;
+    if (filterType === 'challenges') {
+      return notifications.filter(n => n.type === NotificationType.MATCH_CHALLENGE || n.type === NotificationType.PENDING_MATCH_REQUEST);
+    }
+    if (filterType === 'matches') {
+      return notifications.filter(n => n.type === NotificationType.MATCH_COMPLETED);
+    }
+    if (filterType === 'reservations') {
+      return notifications.filter(n => n.relatedEntityType === 'reservation');
+    }
+    return notifications;
+  };
+
   if (loading && !refreshing) {
     return (
       <>
-        <StatusBar style="light" />
-        <Appbar.Header style={styles.appbarHeader}>
-          <Appbar.BackAction onPress={() => navigation.goBack()} color="#FFFFFF" />
-        <Appbar.Content title={t('notifications.title')} titleStyle={styles.appbarTitle} />
-        </Appbar.Header>
+        <StatusBar style="dark" />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <MaterialCommunityIcons name="arrow-left" size={24} color="#1B1B1B" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t('notifications.title')}</Text>
+          <View style={{ width: 24 }} />
+        </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2E7D32" />
           <Text style={styles.loadingText}>{t('notifications.loading')}</Text>
@@ -659,19 +605,58 @@ const NotificationsScreen = ({ navigation }: any) => {
 
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <View style={styles.container}>
-        <Appbar.Header style={styles.appbarHeader}>
-          <Appbar.BackAction onPress={() => navigation.goBack()} color="#FFFFFF" />
-          <Appbar.Content title={t('notifications.title')} titleStyle={styles.appbarTitle} />
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <MaterialCommunityIcons name="arrow-left" size={24} color="#1B1B1B" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t('notifications.title')}</Text>
           {notifications.some((n) => !n.isRead) && (
-            <Appbar.Action 
-              icon="check-all" 
-              onPress={handleMarkAllAsRead} 
-              color="#FFFFFF"
-            />
+            <TouchableOpacity onPress={handleMarkAllAsRead}>
+              <Text style={styles.markAllText}>Mark all as read</Text>
+            </TouchableOpacity>
           )}
-        </Appbar.Header>
+        </View>
+
+        {/* Filter Buttons */}
+        <View style={styles.filterContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScrollContent}>
+            <TouchableOpacity
+              style={[styles.filterButton, filterType === 'all' && styles.filterButtonActive]}
+              onPress={() => setFilterType('all')}
+            >
+              <Text style={[styles.filterButtonText, filterType === 'all' && styles.filterButtonTextActive]}>
+                All
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.filterButton, filterType === 'challenges' && styles.filterButtonActive]}
+              onPress={() => setFilterType('challenges')}
+            >
+              <Text style={[styles.filterButtonText, filterType === 'challenges' && styles.filterButtonTextActive]}>
+                Challenges
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.filterButton, filterType === 'matches' && styles.filterButtonActive]}
+              onPress={() => setFilterType('matches')}
+            >
+              <Text style={[styles.filterButtonText, filterType === 'matches' && styles.filterButtonTextActive]}>
+                Matches
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.filterButton, filterType === 'reservations' && styles.filterButtonActive]}
+              onPress={() => setFilterType('reservations')}
+            >
+              <Text style={[styles.filterButtonText, filterType === 'reservations' && styles.filterButtonTextActive]}>
+                Reservations
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
 
       <ScrollView
         style={styles.scrollView}
@@ -679,7 +664,7 @@ const NotificationsScreen = ({ navigation }: any) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#2E7D32']} />
         }
       >
-        {notifications.length === 0 ? (
+        {getFilteredNotifications().length === 0 ? (
           <Card style={styles.emptyCard}>
             <Card.Content>
               <View style={styles.emptyContainer}>
@@ -689,7 +674,7 @@ const NotificationsScreen = ({ navigation }: any) => {
             </Card.Content>
           </Card>
         ) : (
-          notifications.map((notification) => renderNotification(notification))
+          getFilteredNotifications().map((notification) => renderNotification(notification))
         )}
 
         {totalPages > 1 && (
@@ -1007,18 +992,58 @@ const NotificationsScreen = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  appbarHeader: {
-    backgroundColor: '#2E7D32',
-    elevation: 4,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 20,
+    backgroundColor: '#FFFFFF',
   },
-  appbarTitle: {
-    color: '#FFFFFF',
-    fontSize: 20,
+  backButton: {
+    padding: 4,
+  },
+  headerTitle: {
+    fontSize: 28,
     fontWeight: 'bold',
+    color: '#1B1B1B',
+    flex: 1,
+    marginLeft: 16,
+  },
+  markAllText: {
+    fontSize: 14,
+    color: '#2E7D32',
+    fontWeight: '600',
+  },
+  filterContainer: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+  },
+  filterScrollContent: {
+    gap: 12,
+  },
+  filterButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 24,
+    backgroundColor: '#F0F0F0',
+  },
+  filterButtonActive: {
+    backgroundColor: '#2E7D32',
+  },
+  filterButtonText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#666666',
+  },
+  filterButtonTextActive: {
+    color: '#FFFFFF',
   },
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,
@@ -1033,36 +1058,77 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   notificationCard: {
-    margin: 12,
+    marginHorizontal: 20,
+    marginVertical: 8,
+    padding: 16,
+    borderRadius: 16,
     backgroundColor: '#FFFFFF',
-    elevation: 2,
   },
   unreadCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#2E7D32',
+    backgroundColor: '#E8F5E9',
+  },
+  cardContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  notificationIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#C8E6C9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  notificationContent: {
+    flex: 1,
   },
   notificationHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-  },
-  notificationIconContainer: {
-    marginRight: 12,
-  },
-  notificationHeaderText: {
-    flex: 1,
+    justifyContent: 'space-between',
+    marginBottom: 6,
   },
   notificationTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 'bold',
-    color: '#212529',
+    color: '#1B1B1B',
+    flex: 1,
+  },
+  notificationMessage: {
+    fontSize: 15,
+    color: '#666666',
+    lineHeight: 20,
+    marginBottom: 6,
   },
   notificationDate: {
-    fontSize: 12,
-    color: '#6C757D',
-    marginTop: 2,
+    fontSize: 13,
+    color: '#9E9E9E',
+  },
+  unreadDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#2E7D32',
+    marginLeft: 8,
+  },
+  cardActionsContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  notificationCardOld: {
+    margin: 12,
+    backgroundColor: '#FFFFFF',
+    elevation: 2,
+  },
+  unreadCardOld: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#2E7D32',
   },
   unreadChip: {
     backgroundColor: '#D4EDDA',
@@ -1083,36 +1149,21 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 'bold',
   },
-  divider: {
-    marginVertical: 12,
-  },
-  matchChallengeContent: {
-    paddingVertical: 8,
-  },
-  challengeText: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#495057',
-    marginBottom: 16,
-  },
-  challengerName: {
-    fontWeight: 'bold',
-    color: '#2E7D32',
-  },
-  leagueName: {
-    fontWeight: 'bold',
-    color: '#1976D2',
-  },
   actionButtons: {
     flexDirection: 'row',
     gap: 12,
   },
   acceptButton: {
     flex: 1,
+    borderRadius: 12,
   },
   rejectButton: {
     flex: 1,
     borderColor: '#DC3545',
+    borderRadius: 12,
+  },
+  matchResultButton: {
+    borderRadius: 12,
   },
   processingContainer: {
     flexDirection: 'row',
@@ -1122,10 +1173,6 @@ const styles = StyleSheet.create({
   },
   processingText: {
     marginLeft: 8,
-    fontSize: 14,
-    color: '#6C757D',
-  },
-  processedText: {
     fontSize: 14,
     color: '#6C757D',
   },
@@ -1417,25 +1464,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 8,
   },
-  systemNotificationContent: {
-    paddingVertical: 8,
-  },
-  notificationMessage: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#495057',
-    marginBottom: 12,
-  },
-  markReadButton: {
-    alignSelf: 'flex-start',
-  },
-  matchResultButton: {
-    marginTop: 12,
-    marginBottom: 8,
-  },
   emptyCard: {
-    margin: 16,
+    marginHorizontal: 20,
+    marginTop: 40,
     backgroundColor: '#FFFFFF',
+    borderRadius: 16,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -1444,7 +1477,7 @@ const styles = StyleSheet.create({
   emptyText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#6C757D',
+    color: '#9E9E9E',
   },
   paginationContainer: {
     flexDirection: 'row',

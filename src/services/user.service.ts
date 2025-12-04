@@ -40,12 +40,19 @@ const userService = {
 
   // Belirli bir tarih ve saat aralığında rezervasyonu olmayan kullanıcıları getir
   findAvailableUsersForTimeSlot: async (startTime: string, endTime: string): Promise<User[]> => {
-    const reservationRepository = AppDataSource.getRepository(Reservation);
+    try {
+      const reservationRepository = AppDataSource.getRepository(Reservation);
 
-    const requestedStart = new Date(startTime);
-    const requestedEnd = new Date(endTime);
+      // Tarih formatını kontrol et
+      const requestedStart = new Date(startTime);
+      const requestedEnd = new Date(endTime);
 
-    // Belirtilen saat aralığında çakışan rezervasyonları bul
+      // Geçerli tarih kontrolü
+      if (isNaN(requestedStart.getTime()) || isNaN(requestedEnd.getTime())) {
+        throw new AppError('VALIDATION_ERROR');
+      }
+
+      // Belirtilen saat aralığında çakışan rezervasyonları bul
     // Çakışma durumu: (requestedStart < reservation.endTime) AND (requestedEnd > reservation.startTime)
     const overlappingReservations = await reservationRepository
       .createQueryBuilder('reservation')
@@ -60,12 +67,16 @@ const userService = {
     
     overlappingReservations.forEach(reservation => {
       // Rezervasyon yapan kullanıcı
-      busyUserIds.add(reservation.user.id);
+      if (reservation.user && reservation.user.id) {
+        busyUserIds.add(reservation.user.id);
+      }
       
       // Katılımcılar
       if (reservation.participants && reservation.participants.length > 0) {
         reservation.participants.forEach(participant => {
-          busyUserIds.add(participant.id);
+          if (participant && participant.id) {
+            busyUserIds.add(participant.id);
+          }
         });
       }
     });
@@ -77,6 +88,13 @@ const userService = {
     const availableUsers = allUsers.filter(user => !busyUserIds.has(user.id));
 
     return availableUsers;
+    } catch (error) {
+      console.error('findAvailableUsersForTimeSlot error:', error);
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw new AppError('UNKNOWN_ERROR');
+    }
   },
 
   // ELO rating decay uygular (6 ay maç yapmayan oyunculara)
