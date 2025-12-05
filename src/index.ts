@@ -174,8 +174,6 @@ AppDataSource.initialize()
         hasData = parseInt(result[0].count) > 0;
       }
       
-      await queryRunner.release();
-      
       if (!hasTables || !hasData) {
         if (!hasTables) {
           console.log("📦 Veritabanı tabloları bulunamadı, seed işlemi başlatılıyor...");
@@ -190,6 +188,9 @@ AppDataSource.initialize()
     } catch (error) {
       console.error("⚠️  Tablo kontrolü sırasında hata:", error);
       // Hata olsa bile sunucuyu başlat
+    } finally {
+      // Resource leak'i önlemek için her durumda queryRunner'ı release et
+      await queryRunner.release();
     }
     
     // Cron job'ları başlat
