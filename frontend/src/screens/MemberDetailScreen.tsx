@@ -113,6 +113,15 @@ const MemberDetailScreen = () => {
     Alert.alert('Bilgi', 'Meydan okuma özelliği yakında eklenecek');
   };
 
+  const handleGoBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      // If for some reason we can't go back, navigate to the Home screen
+      navigation.navigate('Home' as never);
+    }
+  };
+
   const formatMatchDate = (dateString: string) => {
     const date = new Date(dateString);
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -120,20 +129,29 @@ const MemberDetailScreen = () => {
   };
 
   const getMatchResult = (match: any, userId: string) => {
-    // Match'te winnerIds ve loserIds var
-    const isWinner = match.winnerIds?.includes(userId);
+    // Match'te winners ve losers dizileri var
+    const isWinner = match.winners?.some((winner: any) => winner.id === userId);
     return isWinner ? 'Won' : 'Lost';
   };
 
   const getOpponentName = (match: any, userId: string) => {
-    // Match'te participants var, userId'den farklı olanı bul
+    // Önce winners ve losers dizilerinden rakip kullanıcıyı bul
+    const allPlayers = [...(match.winners || []), ...(match.losers || [])];
+    const opponent = allPlayers.find((player: any) => player.id !== userId);
+    
+    if (opponent) {
+      return opponent.name + (opponent.surname ? ` ${opponent.surname}` : '');
+    }
+    
+    // Fallback: participants varsa onu kullan
     if (match.participants && Array.isArray(match.participants)) {
-      const opponent = match.participants.find((p: any) => p.id !== userId);
-      if (opponent) {
-        return opponent.name + (opponent.surname ? ` ${opponent.surname}` : '');
+      const opponentFromParticipants = match.participants.find((p: any) => p.id !== userId);
+      if (opponentFromParticipants) {
+        return opponentFromParticipants.name + (opponentFromParticipants.surname ? ` ${opponentFromParticipants.surname}` : '');
       }
     }
-    // Fallback: winnerIds veya loserIds'den bul
+    
+    // Son fallback: winnerIds veya loserIds'den bul
     const allIds = [...(match.winnerIds || []), ...(match.loserIds || [])];
     const opponentId = allIds.find((id: string) => id !== userId);
     return opponentId ? `User ${opponentId.substring(0, 8)}` : 'Unknown';
@@ -287,7 +305,7 @@ const MemberDetailScreen = () => {
       
       <TouchableOpacity
         style={styles.backButton}
-        onPress={() => navigation.goBack()}
+        onPress={handleGoBack}
       >
         <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
       </TouchableOpacity>

@@ -50,6 +50,7 @@ const ProfileScreen = () => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [userStandings, setUserStandings] = useState<any[]>([]);
   
   
   // Modal states
@@ -95,7 +96,9 @@ const ProfileScreen = () => {
       let totalPoints = 0;
       let currentRank: number | null = null;
       if (userStandings && Array.isArray(userStandings) && userStandings.length > 0) {
-        // İlk standing'in rank'ini al
+        // Tüm standings'leri state'e kaydet
+        setUserStandings(userStandings);
+        // İlk standing'in rank'ini al (geriye dönük uyumluluk için)
         currentRank = userStandings[0].leagueRanking || null;
         userStandings.forEach((standing: any) => {
           // Her lig için maksimum 100 oyuncu varsayımıyla hesapla
@@ -104,6 +107,8 @@ const ProfileScreen = () => {
           const rankingPoints = Math.max(0, maxPlayers - (standing.leagueRanking || maxPlayers) + 1);
           totalPoints += rankingPoints;
         });
+      } else {
+        setUserStandings([]);
       }
       
       // Join date sadece yıl olarak
@@ -426,11 +431,35 @@ const ProfileScreen = () => {
               <Text style={styles.statNumber}>{user.winRate}%</Text>
               <Text style={styles.statLabel}>{t('profile.winRate')}</Text>
             </View>
-            {/* Current Rank */}
-            <View style={styles.statCard}>
+            {/* Current Rank - Tüm Ligler */}
+            <View style={[styles.statCard, styles.rankCard]}>
               <MaterialCommunityIcons name="trophy" size={24} color="#9E9E9E" />
-              <Text style={styles.statNumber}>{rankNumber}</Text>
               <Text style={styles.statLabel}>{t('profile.currentRank')}</Text>
+              {userStandings.length > 0 ? (
+                <View style={[
+                  styles.rankingsList,
+                  userStandings.length > 2 && styles.rankingsListWrapped
+                ]}>
+                  {userStandings.map((standing: any, index: number) => (
+                    <View 
+                      key={standing.id || index} 
+                      style={[
+                        styles.rankingItem,
+                        userStandings.length > 2 && styles.rankingItemWrapped
+                      ]}
+                    >
+                      <Text style={styles.leagueName} numberOfLines={1}>
+                        {standing.league?.name || t('profile.league')}
+                      </Text>
+                      <Text style={styles.rankingNumber}>
+                        #{standing.leagueRanking || '-'}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.statNumber}>-</Text>
+              )}
             </View>
             {/* Member Since */}
             <View style={styles.statCard}>
@@ -1282,6 +1311,48 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9E9E9E',
     textAlign: 'center',
+  },
+  rankCard: {
+    alignItems: 'center',
+    minHeight: 100,
+  },
+  rankingsList: {
+    marginTop: 8
+  },
+  rankingsListWrapped: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  rankingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    width: '100%',
+    justifyContent: 'center',
+  },
+  rankingItemWrapped: {
+    columnGap: 10,
+    width: '48%',
+    borderBottomWidth: 0,
+    paddingVertical: 4,
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  leagueName: {
+    fontSize: 13,
+    color: 'gray',
+    fontWeight: '400',
+    width: '100%',
+    flex: 1,
+    marginRight: 4,
+  },
+  rankingNumber: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#4CAF50',
   },
   // Quick Actions
   quickActionsHorizontal: {

@@ -641,6 +641,17 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
       && !userHasActiveChallengeInLeague // Kullanıcının bu ligde aktif challenge'ı olmamalı (pending veya accepted)
       && !hasPendingChallengeToThisPlayer; // Bu oyuncuya zaten pending challenge gönderilmemiş olmalı
     
+    const handleAvatarPress = () => {
+      // Sadece profil resmine tıklandığında profil sayfasına git
+      if (!isCurrentUser) {
+        // Nested navigation kullanarak Users stack'indeki MemberDetail sayfasına git
+        (navigation as any).navigate('Users', {
+          screen: 'MemberDetail',
+          params: { memberId: player.user.id }
+        });
+      }
+    };
+
     return (
       <Card 
         key={player.user.id} 
@@ -659,43 +670,49 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
               </Text>
             </View>
             
-            <Avatar.Text 
-              size={45} 
-              label={player.user.name.charAt(0)} 
-              style={styles.playerAvatar}
-            />
-            
-            <View style={styles.playerInfo}>
-              <Text style={styles.playerName}>
-                {player.user.name}
-                {isCurrentUser && ' (Siz)'}
-              </Text>
-              <Text style={styles.playerLevel}>{player.user.name} - {player.position}. sırada</Text>
+            <TouchableOpacity 
+              activeOpacity={0.7}
+              onPress={handleAvatarPress}
+              disabled={isCurrentUser}
+            >
+              <Avatar.Text 
+                size={45} 
+                label={player.user.name.charAt(0)} 
+                style={styles.playerAvatar}
+              />
+            </TouchableOpacity>
               
-              {/* Pending challenge durumları */}
-              {hasPendingChallengeToThisPlayer && (
-                <Chip 
-                  icon="clock-alert-outline" 
-                  style={styles.pendingChallengeSentChip}
-                  textStyle={styles.pendingChallengeSentChipText}
-                  compact
-                >
-                  Maç İsteği Bekleniyor
-                </Chip>
-              )}
-              {hasPendingChallengeFromThisPlayer && (
-                <Chip 
-                  icon="email-alert" 
-                  style={styles.pendingChallengeReceivedChip}
-                  textStyle={styles.pendingChallengeReceivedChipText}
-                  compact
-                >
-                  Sana Maç İsteği Gönderdi
-                </Chip>
-              )}
-            </View>
-            
-            <View style={styles.playerActions}>
+              <View style={styles.playerInfo}>
+                <Text style={styles.playerName}>
+                  {player.user.name}
+                  {isCurrentUser && ' (Siz)'}
+                </Text>
+                <Text style={styles.playerLevel}>{player.user.name} - {player.position}. sırada</Text>
+                
+                {/* Pending challenge durumları */}
+                {hasPendingChallengeToThisPlayer && (
+                  <Chip 
+                    icon="clock-alert-outline" 
+                    style={styles.pendingChallengeSentChip}
+                    textStyle={styles.pendingChallengeSentChipText}
+                    compact
+                  >
+                    Maç İsteği Bekleniyor
+                  </Chip>
+                )}
+                {hasPendingChallengeFromThisPlayer && (
+                  <Chip 
+                    icon="email-alert" 
+                    style={styles.pendingChallengeReceivedChip}
+                    textStyle={styles.pendingChallengeReceivedChipText}
+                    compact
+                  >
+                    Sana Maç İsteği Gönderdi
+                  </Chip>
+                )}
+              </View>
+              
+              <View style={styles.playerActions}>
               {isCurrentUser ? (
                 // Kullanıcının kendi kartı - buton gösterme
                 <Chip 

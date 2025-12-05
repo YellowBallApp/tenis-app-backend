@@ -9,6 +9,7 @@ import {
   Alert,
   Animated,
   Platform,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect, CommonActions } from '@react-navigation/native';
@@ -220,6 +221,17 @@ const HomeScreen = () => {
     return `${startStr} - ${endStr}`;
   };
 
+  // Get initials for avatar
+  const getInitials = (name: string) => {
+    if (!name) return 'U';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+  };
+
+  // Get user level/title
+  const getUserLevel = () => {
+    return currentUser?.title || (language === 'tr' ? 'Üye' : 'Member');
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -259,8 +271,34 @@ const HomeScreen = () => {
         <Animated.View style={[styles.heroContent, { opacity: headerOpacity, paddingTop: insets.top + 12 }]}>
           <View style={styles.heroHeader}>
             <View style={styles.heroHeaderLeft}>
-              <Text style={styles.welcomeText}>{t('home.welcomeBack')}</Text>
-              <Text style={styles.userName}>{currentUser?.name || ''}</Text>
+              <View style={styles.heroHeaderContent}>
+                {/* Avatar - Left Side */}
+                <View style={styles.avatarContainer}>
+                  {currentUser?.profilePhoto ? (
+                    <Image 
+                      source={{ uri: currentUser.profilePhoto }} 
+                      style={styles.profileAvatar}
+                    />
+                  ) : (
+                    <View style={styles.avatarPlaceholder}>
+                      <Text style={styles.avatarInitials}>{getInitials(currentUser?.name || '')}</Text>
+                    </View>
+                  )}
+                </View>
+                
+                {/* User Info - Right Side */}
+                <View style={styles.userInfoContainer}>
+                  <Text style={styles.welcomeText}>{t('home.welcomeBack')}</Text>
+                  <Text style={styles.userName}>{currentUser?.name || ''}</Text>
+                  {currentUser && (
+                    <View style={styles.tagsContainer}>
+                      <View style={styles.tag}>
+                        <Text style={styles.tagText}>{getUserLevel()}</Text>
+                      </View>
+                    </View>
+                  )}
+                </View>
+              </View>
             </View>
             <TouchableOpacity 
               onPress={() => navigation.navigate('Notifications')}
@@ -465,6 +503,38 @@ const styles = StyleSheet.create({
   heroHeaderLeft: {
     flex: 1,
   },
+  heroHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatarContainer: {
+    marginRight: 16,
+  },
+  profileAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  avatarPlaceholder: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#D1C4E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  avatarInitials: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#7B1FA2',
+  },
+  userInfoContainer: {
+    flex: 1,
+  },
   welcomeText: {
     fontSize: 14,
     color: '#666666',
@@ -474,6 +544,23 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#1B1B1B',
+    marginBottom: 8,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  tag: {
+    backgroundColor: '#F5F5F5',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  tagText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666666',
   },
   notificationButton: {
     position: 'relative',
