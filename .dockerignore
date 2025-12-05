@@ -1,0 +1,60 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Build outputs
+dist
+*.log
+
+# Development files
+.env.local
+.env.development
+.env.test
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+*.md
+!README.md
+
+# Frontend ve admin-panel (backend için gerekli değil)
+frontend
+admin-panel
+
+# Test files
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+
+# Scripts (production'da gerekli değil)
+start-backend.sh
+*.sh
+
+# Temporary files
+*.pid
+backend.log
+backend-live.log
+
+# Migration ve seed dosyaları (production'da migration'lar ayrı çalıştırılmalı)
+# src/migrations
+# src/seeds
+
+# TypeScript source maps (production'da gerekli değil)
+*.map
+

@@ -26,6 +26,7 @@ import weatherRoutes from "./routes/weather.routes";
 import adminRoutes from "./routes/admin.routes";
 import { getLocalNetworkIP } from "./utils/network";
 import { errorHandler } from "./utils/error/app.error";
+import { runSeeds } from "./seeds/index";
 
 const app = express();
 
@@ -157,8 +158,39 @@ const authMiddleware = express.Router();
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
 AppDataSource.initialize()
-  .then(() => {
+  .then(async () => {
     console.log("Database connection successful");
+    
+    // Veritabanında tabloların var olup olmadığını ve içinde veri olup olmadığını kontrol et
+    const queryRunner = AppDataSource.createQueryRunner();
+    try {
+      await queryRunner.connect();
+      const hasTables = await queryRunner.hasTable("user");
+      let hasData = false;
+      
+      if (hasTables) {
+        // Tablo varsa içinde veri olup olmadığını kontrol et
+        const result = await queryRunner.query('SELECT COUNT(*) as count FROM "user"');
+        hasData = parseInt(result[0].count) > 0;
+      }
+      
+      await queryRunner.release();
+      
+      if (!hasTables || !hasData) {
+        if (!hasTables) {
+          console.log("📦 Veritabanı tabloları bulunamadı, seed işlemi başlatılıyor...");
+        } else {
+          console.log("📦 Veritabanı tabloları mevcut ancak veri yok, seed işlemi başlatılıyor...");
+        }
+        await runSeeds();
+        console.log("✅ Seed işlemi tamamlandı, sunucu başlatılıyor...");
+      } else {
+        console.log("ℹ️  Veritabanı tabloları ve veriler mevcut, seed işlemi atlanıyor...");
+      }
+    } catch (error) {
+      console.error("⚠️  Tablo kontrolü sırasında hata:", error);
+      // Hata olsa bile sunucuyu başlat
+    }
     
     // Cron job'ları başlat
     initializeCronJobs();

@@ -332,7 +332,7 @@ export const initializeAPI = async (): Promise<void> => {
 
 // Ağ değişikliği listener'ı - Ağ değiştiğinde IP cache'ini temizle (sadece native platformlarda)
 if (NetInfo && Platform.OS !== 'web') {
-  NetInfo.addEventListener(async (state) => {
+  NetInfo.addEventListener(async (state: any) => {
   const currentNetworkType = state.type;
   const currentNetworkSSID = (state as any).details?.ssid || null;
   

@@ -4,6 +4,15 @@ import { DataSource } from "typeorm";
 
 dotenv.config();
 
+// Production'da dist klasöründeki dosyaları, development'da src klasöründeki dosyaları kullan
+const isProduction = process.env.NODE_ENV === "production";
+const entitiesPath = isProduction 
+  ? ['dist/entities/**/*.js'] 
+  : ['src/entities/**/*.ts'];
+const migrationsPath = isProduction 
+  ? ["dist/migrations/*.js"] 
+  : ["src/migrations/*.ts"];
+
 export const AppDataSource = new DataSource({
   type: "postgres",
   host: process.env.DB_HOST || "localhost",
@@ -11,10 +20,10 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USERNAME || "postgres",
   password: process.env.DB_PASSWORD || "",
   database: process.env.DB_DATABASE || "tennis",
-  synchronize: process.env.NODE_ENV === "development",
+  synchronize: true,
   logging: false,
-  entities: ['src/entities/**/*.ts'],
-  migrations: ["src/migrations/*.ts"],
+  entities: entitiesPath,
+  migrations: migrationsPath,
   subscribers: [],
   extra: {
     max: Number(process.env.DB_POOL_MAX) || 20,
