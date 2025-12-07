@@ -73,7 +73,7 @@ export class ReservationService {
     endTime: Date;
     participantIds?: string[];
     notes?: string;
-  }) {
+  }, isAdmin: boolean = false) {
     try {
       const user = await this.userRepository.findOne({ where: { id: userId } });
       
@@ -92,27 +92,31 @@ export class ReservationService {
         throw new Error('Bu kort şu anda kapalı');
       }
 
-      // Aktif rezervasyon kontrolü - Kullanıcının bitmemiş (endTime >= now) bir rezervasyonu var mı?
+      // Aktif rezervasyon kontrolü - Admin için geçerli değil
       // (Hem owner hem participant olarak) - Gelecekteki rezervasyonlar da aktif sayılır
-      const hasActive = await this.hasActiveReservation(userId);
-      if (hasActive) {
-        throw new Error('Şu anda aktif bir rezervasyonunuz var. Yeni rezervasyon oluşturmadan önce mevcut rezervasyonunuzun bitmesini bekleyin.');
+      if (!isAdmin) {
+        const hasActive = await this.hasActiveReservation(userId);
+        if (hasActive) {
+          throw new Error('Şu anda aktif bir rezervasyonunuz var. Yeni rezervasyon oluşturmadan önce mevcut rezervasyonunuzun bitmesini bekleyin.');
+        }
       }
 
-      // Bekleyen maç sonucu kontrolü - Kullanıcının girmesi gereken maç sonucu var mı?
-      const pendingMatchResultNotifications = await notificationRepository.findByRecipientIdAndType(
-        userId,
-        NotificationType.MATCH_COMPLETED,
-        1,
-        1
-      );
+      // Bekleyen maç sonucu kontrolü - Admin için geçerli değil
+      if (!isAdmin) {
+        const pendingMatchResultNotifications = await notificationRepository.findByRecipientIdAndType(
+          userId,
+          NotificationType.MATCH_COMPLETED,
+          1,
+          1
+        );
 
-      if (pendingMatchResultNotifications.notifications.length > 0) {
-        throw new Error('Bekleyen maç sonucu girmeniz gereken bir maç var. Yeni rezervasyon oluşturmadan önce maç sonucunu girin.');
+        if (pendingMatchResultNotifications.notifications.length > 0) {
+          throw new Error('Bekleyen maç sonucu girmeniz gereken bir maç var. Yeni rezervasyon oluşturmadan önce maç sonucunu girin.');
+        }
       }
 
-      // Kullanıcı tipi kontrolü - RESTRICTED kullanıcılar için zaman kısıtlaması
-      if (user.userType === UserType.RESTRICTED) {
+      // Kullanıcı tipi kontrolü - RESTRICTED kullanıcılar için zaman kısıtlaması (Admin için geçerli değil)
+      if (!isAdmin && user.userType === UserType.RESTRICTED) {
         const startTime = new Date(data.startTime);
         const dayOfWeek = startTime.getDay(); // 0 = Pazar, 6 = Cumartesi
         const hour = startTime.getHours();
@@ -214,6 +218,115 @@ export class ReservationService {
     }
   }
 
+  // Rezervasyon güncelle
+  async updateReservation(reservationId: number, userId: string, data: {
+    userId?: string;
+    courtId?: number;
+    startTime?: Date;
+    endTime?: Date;
+    participantIds?: string[];
+    notes?: string;
+  }, isAdmin: boolean = false) {
+    try {
+      const reservation = await this.reservationRepository.findOne({
+        where: { id: reservationId },
+        relations: ['user', 'court', 'participants'],
+      });
+
+      if (!reservation) {
+        throw new Error('Rezervasyon bulunamadı');
+      }
+
+      // Admin değilse, sadece kendi rezervasyonunu güncelleyebilir
+      if (!isAdmin && reservation.user.id !== userId) {
+        throw new Error('Bu rezervasyonu güncelleme yetkiniz yok');
+      }
+
+      // Kullanıcı değişikliği (sadece admin)
+      if (isAdmin && data.userId && data.userId !== reservation.user.id) {
+        const newUser = await this.userRepository.findOne({ where: { id: data.userId } });
+        if (!newUser) {
+          throw new Error('Kullanıcı bulunamadı');
+        }
+        reservation.user = newUser;
+      }
+
+      // Kort değişikliği varsa kontrol et
+      if (data.courtId && data.courtId !== reservation.court.id) {
+        const courtRepo = AppDataSource.getRepository(Court);
+        const newCourt = await courtRepo.findOne({ where: { id: data.courtId } });
+        if (!newCourt) {
+          throw new Error('Kort bulunamadı');
+        }
+        reservation.court = newCourt;
+      }
+
+      // Tarih/saat güncellemeleri
+      if (data.startTime) {
+        reservation.startTime = new Date(data.startTime);
+      }
+      if (data.endTime) {
+        reservation.endTime = new Date(data.endTime);
+      }
+
+      // Bitiş zamanı başlangıç zamanından sonra olmalı
+      if (reservation.endTime <= reservation.startTime) {
+        throw new Error('Bitiş zamanı başlangıç zamanından sonra olmalıdır');
+      }
+
+      // Çakışma kontrolü (aynı kort ve zaman diliminde başka rezervasyon var mı?)
+      const conflictingReservation = await this.reservationRepository
+        .createQueryBuilder('reservation')
+        .where('reservation.court.id = :courtId', { courtId: reservation.court.id })
+        .andWhere('reservation.id != :reservationId', { reservationId })
+        .andWhere(
+          '(reservation.startTime < :endTime AND reservation.endTime > :startTime)',
+          {
+            startTime: reservation.startTime,
+            endTime: reservation.endTime,
+          }
+        )
+        .getOne();
+
+      if (conflictingReservation) {
+        throw new Error('Bu zaman diliminde başka bir rezervasyon bulunmaktadır');
+      }
+
+      // Bloke edilmiş saat kontrolü
+      const blockedSlots = await blockedTimeSlotRepository.findAll({
+        courtId: reservation.court.id,
+        isActive: true,
+        startDate: reservation.startTime,
+        endDate: reservation.endTime,
+      });
+
+      if (blockedSlots.length > 0) {
+        throw new Error('Seçilen zaman dilimi bloke edilmiştir');
+      }
+
+      // Katılımcı güncellemeleri
+      if (data.participantIds !== undefined) {
+        let participants: User[] = [];
+        if (data.participantIds.length > 0) {
+          participants = await this.userRepository
+            .createQueryBuilder('user')
+            .where('user.id IN (:...ids)', { ids: data.participantIds })
+            .getMany();
+        }
+        reservation.participants = participants;
+      }
+
+      // Notlar güncellemesi
+      if (data.notes !== undefined) {
+        reservation.notes = data.notes;
+      }
+
+      return await this.reservationRepository.save(reservation);
+    } catch (error: any) {
+      throw new Error(error.message || 'Rezervasyon güncellenirken bir hata oluştu');
+    }
+  }
+
   // Kullanıcının aktif rezervasyonu var mı kontrol et (hem owner hem participant olarak)
   async hasActiveReservation(userId: string): Promise<boolean> {
     try {
@@ -236,7 +349,7 @@ export class ReservationService {
   }
 
   // Rezervasyon iptal et
-  async cancelReservation(reservationId: number, userId: string) {
+  async cancelReservation(reservationId: number, userId: string, isAdmin: boolean = false) {
     try {
       const reservation = await this.reservationRepository.findOne({
         where: { id: reservationId },
@@ -247,7 +360,8 @@ export class ReservationService {
         throw new Error('Rezervasyon bulunamadı');
       }
 
-      if (reservation.user.id !== userId) {
+      // Admin değilse, sadece kendi rezervasyonunu silebilir
+      if (!isAdmin && reservation.user.id !== userId) {
         throw new Error('Bu rezervasyonu iptal etme yetkiniz yok');
       }
 

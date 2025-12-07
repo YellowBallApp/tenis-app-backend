@@ -169,6 +169,47 @@ router.get('/:id', reservationController.getReservationById);
 /**
  * @swagger
  * /api/reservations/{id}:
+ *   put:
+ *     summary: Rezervasyon güncelle
+ *     tags: [Reservations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: number
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               courtId:
+ *                 type: number
+ *               startTime:
+ *                 type: string
+ *                 format: date-time
+ *               endTime:
+ *                 type: string
+ *                 format: date-time
+ *               participantIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Rezervasyon güncellendi
+ */
+router.put('/:id', reservationController.updateReservation);
+
+/**
+ * @swagger
+ * /api/reservations/{id}:
  *   delete:
  *     summary: Rezervasyon iptal et
  *     tags: [Reservations]
