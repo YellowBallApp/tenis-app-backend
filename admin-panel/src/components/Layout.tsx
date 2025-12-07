@@ -55,7 +55,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       icon: MdEvent,
       children: [
         { path: '/reservations', label: 'Rezervasyon Saatleri Yönetimi' },
-        { path: '/reservations/user-reservations', label: 'Kullanıcı Rezervasyonları' }
+        { path: '/reservations/user-reservations', label: 'Kullanıcı Rezervasyonları' },
+        { path: '/reservations/templates', label: 'Rezervasyon Şablonu' }
       ]
     },
     { path: '/reviews', label: 'Yorumlar', icon: MdRateReview, badge: pendingReviewsCount },

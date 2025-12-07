@@ -23,7 +23,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useLanguage } from '../context/LanguageContext';
-import { courtService, reservationService, weatherService, userService, authService, matchChallengeService, leagueStandingsService } from '../services/api';
+import { courtService, reservationService, weatherService, userService, authService, matchChallengeService, leagueStandingsService, reservationTemplateService, reservationTimeSlotService } from '../services/api';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
@@ -37,7 +37,7 @@ const CourtDetailScreen = () => {
   const [court, setCourt] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState('');
-  const [allTimes] = useState<string[]>([
+  const [allTimes, setAllTimes] = useState<string[]>([
     '08:00', '09:00', '10:00', '11:00', '12:00', '13:00',
     '14:00', '15:00', '16:00', '17:00', '18:00', '19:00',
     '20:00', '21:00', '22:00', '23:00'
@@ -66,6 +66,57 @@ const CourtDetailScreen = () => {
     loadCourtData();
     loadCurrentUser();
   }, [courtId]);
+
+  // Zaman dilimlerini yükle
+  const loadTimeSlots = React.useCallback(async () => {
+    try {
+      if (!selectedDate) {
+        // Varsayılan saat dilimlerini kullan
+        const defaultSlots = await reservationTimeSlotService.getActiveTimeSlots();
+        setAllTimes(defaultSlots.length > 0 ? defaultSlots : [
+          '08:00', '09:00', '10:00', '11:00', '12:00', '13:00',
+          '14:00', '15:00', '16:00', '17:00', '18:00', '19:00',
+          '20:00', '21:00', '22:00', '23:00'
+        ]);
+        return;
+      }
+
+      // Seçilen tarihin haftanın gününü hesapla (0 = Pazar, 1 = Pazartesi, ..., 6 = Cumartesi)
+      const dateObj = new Date(selectedDate);
+      const dayOfWeek = dateObj.getDay();
+
+      // Önce şablondan saat dilimlerini al
+      try {
+        const templateSlots = await reservationTemplateService.getActiveTimeSlotsForDay(dayOfWeek);
+        if (templateSlots && templateSlots.length > 0) {
+          setAllTimes(templateSlots);
+          return;
+        }
+      } catch (error) {
+        console.log('Şablon saat dilimleri alınamadı, varsayılan kullanılıyor:', error);
+      }
+
+      // Şablon yoksa, genel aktif saat dilimlerini kullan
+      const defaultSlots = await reservationTimeSlotService.getActiveTimeSlots();
+      setAllTimes(defaultSlots.length > 0 ? defaultSlots : [
+        '08:00', '09:00', '10:00', '11:00', '12:00', '13:00',
+        '14:00', '15:00', '16:00', '17:00', '18:00', '19:00',
+        '20:00', '21:00', '22:00', '23:00'
+      ]);
+    } catch (error) {
+      console.error('Saat dilimleri yüklenirken hata:', error);
+      // Hata durumunda varsayılan saat dilimlerini kullan
+      setAllTimes([
+        '08:00', '09:00', '10:00', '11:00', '12:00', '13:00',
+        '14:00', '15:00', '16:00', '17:00', '18:00', '19:00',
+        '20:00', '21:00', '22:00', '23:00'
+      ]);
+    }
+  }, [selectedDate]);
+
+  useEffect(() => {
+    loadTimeSlots();
+  }, [loadTimeSlots]);
 
   useEffect(() => {
     if (court && selectedDate) {
@@ -179,11 +230,7 @@ const CourtDetailScreen = () => {
   };
 
   const calculateAvailableTimes = (courtReservations: any[], blockedHours: Array<{hour: number, reason: string | null}>) => {
-    const times = [
-      '08:00', '09:00', '10:00', '11:00', '12:00', '13:00',
-      '14:00', '15:00', '16:00', '17:00', '18:00', '19:00',
-      '20:00', '21:00', '22:00', '23:00'
-    ];
+    const times = allTimes;
 
     const reservedTimes = courtReservations.map((res: any) => {
       const resTime = new Date(res.startTime);

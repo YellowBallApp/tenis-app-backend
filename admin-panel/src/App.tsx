@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import Courts from './pages/Courts';
 import Reservations from './pages/Reservations';
+import ReservationTemplates from './pages/ReservationTemplates';
 import Reviews from './pages/Reviews';
 
 function App() {
@@ -51,6 +52,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Reservations />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reservations/templates"
+            element={
+              <ProtectedRoute>
+                <ReservationTemplates />
               </ProtectedRoute>
             }
           />

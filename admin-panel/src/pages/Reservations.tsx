@@ -63,13 +63,11 @@ const Reservations = () => {
   const [users, setUsers] = useState<Array<{ id: string; name: string; email: string }>>([]);
   const [participantSearchQuery, setParticipantSearchQuery] = useState('');
   const [blockedHours, setBlockedHours] = useState<{[courtId: number]: Array<{hour: number, reason: string | null}>}>({});
-  
-  // Saat dilimleri (09:00 - 23:00) - Frontend ile uyumlu
-  const timeSlots = [
+  const [timeSlots, setTimeSlots] = useState<string[]>([
     '09:00', '10:00', '11:00', '12:00', '13:00',
     '14:00', '15:00', '16:00', '17:00', '18:00',
     '19:00', '20:00', '21:00', '22:00', '23:00'
-  ];
+  ]);
   const [reservationFormData, setReservationFormData] = useState({
     userId: '',
     courtId: '',
@@ -121,8 +119,75 @@ const Reservations = () => {
     fetchData();
   }, []);
 
+  // Zaman dilimlerini yükle
+  const loadTimeSlots = async () => {
+    try {
+      if (!selectedDate) {
+        // Varsayılan saat dilimlerini kullan
+        try {
+          const response = await api.get('/reservation-time-slots/active');
+          const defaultSlots = response.data.data.map((slot: any) => slot.time);
+          setTimeSlots(defaultSlots.length > 0 ? defaultSlots : [
+            '09:00', '10:00', '11:00', '12:00', '13:00',
+            '14:00', '15:00', '16:00', '17:00', '18:00',
+            '19:00', '20:00', '21:00', '22:00', '23:00'
+          ]);
+        } catch (error) {
+          console.error('Saat dilimleri yüklenirken hata:', error);
+          setTimeSlots([
+            '09:00', '10:00', '11:00', '12:00', '13:00',
+            '14:00', '15:00', '16:00', '17:00', '18:00',
+            '19:00', '20:00', '21:00', '22:00', '23:00'
+          ]);
+        }
+        return;
+      }
+
+      // Seçilen tarihin haftanın gününü hesapla (0 = Pazar, 1 = Pazartesi, ..., 6 = Cumartesi)
+      const dayOfWeek = selectedDate.getDay();
+
+      // Önce şablondan saat dilimlerini al
+      try {
+        const response = await api.get(`/reservation-templates/day/${dayOfWeek}/active`);
+        const templateSlots = response.data.data;
+        if (templateSlots && templateSlots.length > 0) {
+          setTimeSlots(templateSlots);
+          return;
+        }
+      } catch (error) {
+        console.log('Şablon saat dilimleri alınamadı, varsayılan kullanılıyor:', error);
+      }
+
+      // Şablon yoksa, genel aktif saat dilimlerini kullan
+      try {
+        const response = await api.get('/reservation-time-slots/active');
+        const defaultSlots = response.data.data.map((slot: any) => slot.time);
+        setTimeSlots(defaultSlots.length > 0 ? defaultSlots : [
+          '09:00', '10:00', '11:00', '12:00', '13:00',
+          '14:00', '15:00', '16:00', '17:00', '18:00',
+          '19:00', '20:00', '21:00', '22:00', '23:00'
+        ]);
+      } catch (error) {
+        console.error('Saat dilimleri yüklenirken hata:', error);
+        setTimeSlots([
+          '09:00', '10:00', '11:00', '12:00', '13:00',
+          '14:00', '15:00', '16:00', '17:00', '18:00',
+          '19:00', '20:00', '21:00', '22:00', '23:00'
+        ]);
+      }
+    } catch (error) {
+      console.error('Saat dilimleri yüklenirken hata:', error);
+      setTimeSlots([
+        '09:00', '10:00', '11:00', '12:00', '13:00',
+        '14:00', '15:00', '16:00', '17:00', '18:00',
+        '19:00', '20:00', '21:00', '22:00', '23:00'
+      ]);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'user-reservations') {
+      loadTimeSlots();
       fetchUserReservations();
       fetchUsers();
       fetchBlockedHours();

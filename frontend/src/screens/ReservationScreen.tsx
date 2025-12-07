@@ -77,7 +77,7 @@ LocaleConfig.locales['en'] = {
   today: 'Today'
 };
 LocaleConfig.defaultLocale = 'tr';
-import { userService, reservationService, authService, courtService, weatherService, notificationService } from '../services/api';
+import { userService, reservationService, authService, courtService, weatherService, notificationService, reservationTemplateService, reservationTimeSlotService } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../context/LanguageContext';
 import { User, NotificationType } from '../types';
@@ -500,6 +500,57 @@ const ReservationScreen = () => {
     }
   }, [users, route.params]); // Sadece users ve route.params değiştiğinde çalış
 
+  // Zaman dilimlerini yükle
+  const loadTimeSlots = React.useCallback(async () => {
+    try {
+      if (!selectedDate) {
+        // Varsayılan saat dilimlerini kullan
+        const defaultSlots = await reservationTimeSlotService.getActiveTimeSlots();
+        setAvailableTimes(defaultSlots.length > 0 ? defaultSlots : [
+          '09:00', '10:00', '11:00', '12:00', '13:00', 
+          '14:00', '15:00', '16:00', '17:00', '18:00',
+          '19:00', '20:00', '21:00', '22:00', '23:00'
+        ]);
+        return;
+      }
+
+      // Seçilen tarihin haftanın gününü hesapla (0 = Pazar, 1 = Pazartesi, ..., 6 = Cumartesi)
+      const dateObj = new Date(selectedDate);
+      const dayOfWeek = dateObj.getDay();
+
+      // Önce şablondan saat dilimlerini al
+      try {
+        const templateSlots = await reservationTemplateService.getActiveTimeSlotsForDay(dayOfWeek);
+        if (templateSlots && templateSlots.length > 0) {
+          setAvailableTimes(templateSlots);
+          return;
+        }
+      } catch (error) {
+        console.log('Şablon saat dilimleri alınamadı, varsayılan kullanılıyor:', error);
+      }
+
+      // Şablon yoksa, genel aktif saat dilimlerini kullan
+      const defaultSlots = await reservationTimeSlotService.getActiveTimeSlots();
+      setAvailableTimes(defaultSlots.length > 0 ? defaultSlots : [
+        '09:00', '10:00', '11:00', '12:00', '13:00', 
+        '14:00', '15:00', '16:00', '17:00', '18:00',
+        '19:00', '20:00', '21:00', '22:00', '23:00'
+      ]);
+    } catch (error) {
+      console.error('Saat dilimleri yüklenirken hata:', error);
+      // Hata durumunda varsayılan saat dilimlerini kullan
+      setAvailableTimes([
+        '09:00', '10:00', '11:00', '12:00', '13:00', 
+        '14:00', '15:00', '16:00', '17:00', '18:00',
+        '19:00', '20:00', '21:00', '22:00', '23:00'
+      ]);
+    }
+  }, [selectedDate]);
+
+  useEffect(() => {
+    loadTimeSlots();
+  }, [loadTimeSlots]);
+
   // Seçilen tarih ve saate göre müsait kullanıcıları yükle
   useEffect(() => {
     const fetchAvailableUsers = async () => {
@@ -546,11 +597,14 @@ const ReservationScreen = () => {
     fetchAvailableUsers();
   }, [selectedDate, selectedTime, currentUserId]);
 
-  const availableTimes = [
-    '09:00', '10:00', '11:00', '12:00', '13:00', 
-    '14:00', '15:00', '16:00', '17:00', '18:00',
-    '19:00', '20:00', '21:00', '22:00', '23:00'
-  ];
+  // Sayfa her açıldığında zaman dilimlerini yükle
+  useFocusEffect(
+    React.useCallback(() => {
+      loadTimeSlots();
+    }, [loadTimeSlots])
+  );
+
+  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
 
   // Geçmiş saatleri kontrol et
   const isTimeSlotInPast = (timeSlot: string): boolean => {

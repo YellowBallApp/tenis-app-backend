@@ -1314,6 +1314,24 @@ export const weatherService = {
   },
 };
 
+// Reservation Time Slot Service
+export const reservationTimeSlotService = {
+  // Aktif saat dilimlerini getir (public endpoint)
+  getActiveTimeSlots: async () => {
+    const response = await api.get('/reservation-time-slots/active');
+    return response.data.data.map((slot: any) => slot.time);
+  },
+};
+
+// Reservation Template Service
+export const reservationTemplateService = {
+  // Belirli bir gün için aktif saat dilimlerini getir (public endpoint)
+  getActiveTimeSlotsForDay: async (dayOfWeek: number) => {
+    const response = await api.get(`/reservation-templates/day/${dayOfWeek}/active`);
+    return response.data.data;
+  },
+};
+
 // Manuel IP adresi ayarlama
 export const setManualServerIP = async (ip: string): Promise<void> => {
   try {

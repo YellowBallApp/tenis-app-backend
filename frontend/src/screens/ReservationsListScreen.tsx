@@ -21,7 +21,7 @@ import {
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
-import { reservationService, courtService } from '../services/api';
+import { reservationService, courtService, reservationTemplateService, reservationTimeSlotService } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
 
 // Takvim için Türkçe locale ayarları
@@ -60,12 +60,7 @@ const ReservationsListScreen = ({ navigation }: any) => {
   const [courts, setCourts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [blockedHours, setBlockedHours] = useState<{[courtId: number]: Array<{hour: number, reason: string | null}>}>({});
-
-  const timeSlots = [
-    '09:00', '10:00', '11:00', '12:00', '13:00',
-    '14:00', '15:00', '16:00', '17:00', '18:00',
-    '19:00', '20:00', '21:00', '22:00', '23:00'
-  ];
+  const [timeSlots, setTimeSlots] = useState<string[]>([]);
 
   // Dil değiştiğinde takvim locale'ini ayarla
   useEffect(() => {
@@ -92,6 +87,57 @@ const ReservationsListScreen = ({ navigation }: any) => {
     loadCourts();
   }, []);
 
+  // Zaman dilimlerini yükle
+  const loadTimeSlots = React.useCallback(async () => {
+    try {
+      if (!selectedDate) {
+        // Varsayılan saat dilimlerini kullan
+        const defaultSlots = await reservationTimeSlotService.getActiveTimeSlots();
+        setTimeSlots(defaultSlots.length > 0 ? defaultSlots : [
+          '09:00', '10:00', '11:00', '12:00', '13:00',
+          '14:00', '15:00', '16:00', '17:00', '18:00',
+          '19:00', '20:00', '21:00', '22:00', '23:00'
+        ]);
+        return;
+      }
+
+      // Seçilen tarihin haftanın gününü hesapla (0 = Pazar, 1 = Pazartesi, ..., 6 = Cumartesi)
+      const dateObj = new Date(selectedDate);
+      const dayOfWeek = dateObj.getDay();
+
+      // Önce şablondan saat dilimlerini al
+      try {
+        const templateSlots = await reservationTemplateService.getActiveTimeSlotsForDay(dayOfWeek);
+        if (templateSlots && templateSlots.length > 0) {
+          setTimeSlots(templateSlots);
+          return;
+        }
+      } catch (error) {
+        console.log('Şablon saat dilimleri alınamadı, varsayılan kullanılıyor:', error);
+      }
+
+      // Şablon yoksa, genel aktif saat dilimlerini kullan
+      const defaultSlots = await reservationTimeSlotService.getActiveTimeSlots();
+      setTimeSlots(defaultSlots.length > 0 ? defaultSlots : [
+        '09:00', '10:00', '11:00', '12:00', '13:00',
+        '14:00', '15:00', '16:00', '17:00', '18:00',
+        '19:00', '20:00', '21:00', '22:00', '23:00'
+      ]);
+    } catch (error) {
+      console.error('Saat dilimleri yüklenirken hata:', error);
+      // Hata durumunda varsayılan saat dilimlerini kullan
+      setTimeSlots([
+        '09:00', '10:00', '11:00', '12:00', '13:00',
+        '14:00', '15:00', '16:00', '17:00', '18:00',
+        '19:00', '20:00', '21:00', '22:00', '23:00'
+      ]);
+    }
+  }, [selectedDate]);
+
+  useEffect(() => {
+    loadTimeSlots();
+  }, [loadTimeSlots]);
+
   useEffect(() => {
     loadReservations();
     loadBlockedHours();
@@ -100,9 +146,10 @@ const ReservationsListScreen = ({ navigation }: any) => {
   // Sayfa her açıldığında rezervasyonları yenile
   useFocusEffect(
     React.useCallback(() => {
+      loadTimeSlots();
       loadReservations();
       loadBlockedHours();
-    }, [selectedDate, courts])
+    }, [selectedDate, courts, loadTimeSlots])
   );
 
   const loadReservations = async () => {
