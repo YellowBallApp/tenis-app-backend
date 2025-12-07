@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Linking,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -126,6 +127,7 @@ const UsersScreen = () => {
               email: user.email,
               phone: user.phone,
               gender: user.gender,
+              profilePhoto: user.profilePhoto,
             };
           } catch (error) {
             // Maç geçmişi çekilemezse default değerlerle döndür
@@ -139,6 +141,7 @@ const UsersScreen = () => {
               email: user.email,
               phone: user.phone,
               gender: user.gender,
+              profilePhoto: user.profilePhoto,
             };
           }
         })
@@ -469,20 +472,25 @@ const UsersScreen = () => {
                 <Card style={styles.card}>
                   <Card.Content style={styles.cardContent}>
                   <View style={styles.cardHeader}>
-                    <Avatar.Text
-                      size={56}
-                      label={getInitials(member.name)}
-                      style={styles.avatar}
-                      labelStyle={{ color: '#FFFFFF' }}
-                    />
+                    {member.profilePhoto ? (
+                      <Image
+                        source={{ uri: member.profilePhoto }}
+                        style={styles.avatarImage}
+                        onError={(e) => {
+                          console.log('Image load error for', member.name, e.nativeEvent.error);
+                        }}
+                      />
+                    ) : (
+                      <Avatar.Text
+                        size={56}
+                        label={getInitials(member.name)}
+                        style={styles.avatar}
+                        labelStyle={{ color: '#FFFFFF' }}
+                      />
+                    )}
                     <View style={styles.cardInfo}>
                       <Text style={styles.cardName}>{member.name}</Text>
                       <View style={styles.badgesRow}>
-                        {member.currentRank > 0 && (
-                          <View style={styles.rankBadge}>
-                            <Text style={styles.rankBadgeText}>{t('users.rank')} #{member.currentRank}</Text>
-                          </View>
-                        )}
                         <View style={[styles.levelBadge, { backgroundColor: getLevelColor(member.level) }]}>
                           <Text style={styles.levelBadgeText}>{member.level}</Text>
                         </View>
@@ -511,12 +519,19 @@ const UsersScreen = () => {
                 <Card style={styles.card}>
                   <Card.Content style={styles.cardContent}>
                   <View style={styles.cardHeader}>
-                    <Avatar.Text
-                      size={72}
-                      label={getInitials(coach.name)}
-                      style={styles.coachAvatar}
-                      labelStyle={{ color: '#FFFFFF', fontSize: 28, fontWeight: '600' }}
-                    />
+                    {coach.profilePhoto ? (
+                      <Image
+                        source={{ uri: coach.profilePhoto }}
+                        style={styles.coachAvatarImage}
+                      />
+                    ) : (
+                      <Avatar.Text
+                        size={72}
+                        label={getInitials(coach.name)}
+                        style={styles.coachAvatar}
+                        labelStyle={{ color: '#FFFFFF', fontSize: 28, fontWeight: '600' }}
+                      />
+                    )}
                     <View style={styles.cardInfo}>
                       <Text style={styles.coachCardName}>{coach.name}</Text>
                       <Text style={styles.coachCardRole}>{translateSpecialty(coach.specialty)}</Text>
@@ -782,9 +797,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#9E9E9E',
     color: '#FFFFFF',
   },
+  avatarImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#9E9E9E',
+  },
   coachAvatar: {
     backgroundColor: '#E1BEE7',
     color: '#FFFFFF',
+  },
+  coachAvatarImage: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#E1BEE7',
   },
   cardInfo: {
     flex: 1,

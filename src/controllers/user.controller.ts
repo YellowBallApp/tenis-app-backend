@@ -70,6 +70,7 @@ const userController = {
             age: user.age,
             title: user.title,
             userType: user.userType,
+            profilePhoto: user.profilePhoto,
             createdAt: user.createdAt,
             currentRank: currentRank,
           };

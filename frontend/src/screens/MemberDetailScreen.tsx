@@ -8,6 +8,7 @@ import {
   Alert,
   Linking,
   Dimensions,
+  Image,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -193,12 +194,19 @@ const MemberDetailScreen = () => {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: 0 }}>
         {/* Profile Header */}
         <View style={styles.profileHeader}>
-          <Avatar.Text
-            size={120}
-            label={getInitials(member.name)}
-            style={styles.profileAvatar}
-            labelStyle={{ color: '#FFFFFF', fontSize: 48, fontWeight: '700' }}
-          />
+          {member.profilePhoto ? (
+            <Image
+              source={{ uri: member.profilePhoto }}
+              style={styles.profileAvatar}
+            />
+          ) : (
+            <Avatar.Text
+              size={120}
+              label={getInitials(member.name)}
+              style={styles.profileAvatar}
+              labelStyle={{ color: '#FFFFFF', fontSize: 48, fontWeight: '700' }}
+            />
+          )}
           <Text style={styles.profileName}>{member.name}</Text>
           <View style={styles.profileTags}>
             <View style={styles.levelBadge}>
@@ -376,8 +384,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   profileAvatar: {
-    backgroundColor: '#B8B8CC',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     marginBottom: 20,
+    backgroundColor: '#B8B8CC',
   },
   profileName: {
     fontSize: 32,
