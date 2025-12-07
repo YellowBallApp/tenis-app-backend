@@ -320,8 +320,16 @@ const CourtDetailScreen = () => {
   };
 
   const isTimeBlocked = (time: string) => {
+    if (blockedHours.length === 0) return false;
     const hour = parseInt(time.split(':')[0]);
     return blockedHours.some(bh => bh.hour === hour);
+  };
+
+  const getBlockedReason = (time: string): string | null => {
+    if (blockedHours.length === 0) return null;
+    const hour = parseInt(time.split(':')[0]);
+    const blockedHour = blockedHours.find(bh => bh.hour === hour);
+    return blockedHour ? blockedHour.reason : null;
   };
 
   const confirmTimeSelection = (time: string) => {
@@ -479,7 +487,7 @@ const CourtDetailScreen = () => {
             challengedId: opponent.id,
             leagueId: commonLeagueId,
             message: challengeMessage,
-            proposedDate: reservationStartTime,
+            proposedDate: reservationStartTime.toISOString(),
             expiresInDays: 7,
           });
 
@@ -946,6 +954,7 @@ const CourtDetailScreen = () => {
             {allTimes.map((time) => {
               const isReserved = isTimeReserved(time);
               const isBlocked = isTimeBlocked(time);
+              const blockedReason = getBlockedReason(time);
               const isAvailable = availableTimes.includes(time);
               // Rezerve edilmiş veya bloke edilmiş saatler disabled olmalı
               const isDisabled = isReserved || isBlocked;
@@ -979,7 +988,8 @@ const CourtDetailScreen = () => {
                   style={[
                     styles.timeSlotCard,
                     selectedTime === time && styles.timeSlotCardSelected,
-                    finalDisabled && styles.timeSlotCardDisabled
+                    finalDisabled && styles.timeSlotCardDisabled,
+                    isBlocked && styles.timeSlotCardBlocked
                   ]}
                   onPress={() => {
                     if (!finalDisabled) {
@@ -995,23 +1005,33 @@ const CourtDetailScreen = () => {
                   disabled={finalDisabled}
                 >
                   <MaterialCommunityIcons 
-                    name={finalDisabled ? "lock" : "clock"} 
+                    name={finalDisabled ? (isBlocked ? "lock" : "lock") : "clock"} 
                     size={18} 
                     color={
-                      finalDisabled 
-                        ? "#BDBDBD" 
-                        : selectedTime === time 
-                          ? "#2E7D32" 
-                          : "#666666"
+                      isBlocked
+                        ? "#F44336"
+                        : finalDisabled 
+                          ? "#BDBDBD" 
+                          : selectedTime === time 
+                            ? "#2E7D32" 
+                            : "#666666"
                     } 
                   />
-                  <Text style={[
-                    styles.timeSlotText,
-                    selectedTime === time && styles.timeSlotTextSelected,
-                    finalDisabled && styles.timeSlotTextDisabled
-                  ]}>
-                    {time}
-                  </Text>
+                  <View style={styles.timeSlotContent}>
+                    <Text style={[
+                      styles.timeSlotText,
+                      selectedTime === time && styles.timeSlotTextSelected,
+                      finalDisabled && styles.timeSlotTextDisabled,
+                      isBlocked && styles.timeSlotTextBlocked
+                    ]}>
+                      {time}
+                    </Text>
+                    {isBlocked && blockedReason && (
+                      <Text style={styles.timeSlotBlockedReason} numberOfLines={1}>
+                        {blockedReason}
+                      </Text>
+                    )}
+                  </View>
                   {showWeather && !finalDisabled && (
                     <MaterialCommunityIcons 
                       name={weatherInfo?.isSnowy ? "weather-snowy" : "weather-rainy"} 
@@ -1429,6 +1449,16 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
     opacity: 0.5,
   },
+  timeSlotCardBlocked: {
+    backgroundColor: '#FFEBEE',
+    borderColor: '#F44336',
+    borderWidth: 2,
+  },
+  timeSlotContent: {
+    flex: 1,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
   timeSlotText: {
     fontSize: 14,
     fontWeight: '600',
@@ -1439,6 +1469,17 @@ const styles = StyleSheet.create({
   },
   timeSlotTextDisabled: {
     color: '#BDBDBD',
+  },
+  timeSlotTextBlocked: {
+    color: '#F44336',
+    fontWeight: 'bold',
+  },
+  timeSlotBlockedReason: {
+    fontSize: 10,
+    color: '#D32F2F',
+    marginTop: 2,
+    fontStyle: 'italic',
+    fontWeight: '500',
   },
   noTimeSlotsText: {
     fontSize: 14,

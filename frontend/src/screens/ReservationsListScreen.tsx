@@ -248,8 +248,10 @@ const ReservationsListScreen = ({ navigation }: any) => {
     if (isBlocked) {
       return (
         <View style={styles.blockedCell}>
-          <MaterialCommunityIcons name="lock" size={16} color="#F44336" />
-          <Text style={styles.blockedText}>{blockedReason || t('reservation.blocked')}</Text>
+          <MaterialCommunityIcons name="lock" size={16} color="#D32F2F" />
+          <Text style={styles.blockedText} numberOfLines={2}>
+            {blockedReason || t('reservation.blocked')}
+          </Text>
         </View>
       );
     }
@@ -602,13 +604,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 4,
-    opacity: 0.8,
+    borderWidth: 1,
+    borderColor: '#F44336',
   },
   blockedText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
-    color: '#F44336',
+    color: '#D32F2F',
     textAlign: 'center',
+    flexShrink: 1,
   },
   legendSection: {
     flexDirection: 'row',
