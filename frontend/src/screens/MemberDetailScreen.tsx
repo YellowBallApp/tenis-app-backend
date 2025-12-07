@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Dimensions,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -17,7 +18,9 @@ import {
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useLanguage } from '../context/LanguageContext';
-import { userService, matchHistoryService } from '../services/api';
+import { userService, matchHistoryService, leagueStandingsService } from '../services/api';
+
+const { width } = Dimensions.get('window');
 
 const MemberDetailScreen = () => {
   const route = useRoute();
@@ -28,6 +31,7 @@ const MemberDetailScreen = () => {
   const [member, setMember] = useState<any>(null);
   const [matchHistory, setMatchHistory] = useState<any[]>([]);
   const [matchStats, setMatchStats] = useState<any>(null);
+  const [userStandings, setUserStandings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,10 +41,11 @@ const MemberDetailScreen = () => {
   const loadMemberData = async () => {
     try {
       setLoading(true);
-      const [memberData, matchesData, statsData] = await Promise.all([
+      const [memberData, matchesData, statsData, standingsData] = await Promise.all([
         userService.getUserById(memberId),
         matchHistoryService.getUserMatchHistory(memberId),
-        matchHistoryService.getUserMatchStats(memberId).catch(() => null)
+        matchHistoryService.getUserMatchStats(memberId).catch(() => null),
+        leagueStandingsService.getStandingsByUserId(memberId).catch(() => [])
       ]);
       
       const formattedMember = {
@@ -54,6 +59,13 @@ const MemberDetailScreen = () => {
       setMember(formattedMember);
       setMatchHistory(Array.isArray(matchesData) ? matchesData : []);
       setMatchStats(statsData);
+      
+      // Lig sıralamalarını kaydet
+      if (standingsData && Array.isArray(standingsData)) {
+        setUserStandings(standingsData);
+      } else {
+        setUserStandings([]);
+      }
     } catch (error) {
       console.error('Üye detayları yüklenirken hata:', error);
       Alert.alert(t('common.error'), 'Üye bilgileri yüklenirken bir hata oluştu');
@@ -189,11 +201,6 @@ const MemberDetailScreen = () => {
           />
           <Text style={styles.profileName}>{member.name}</Text>
           <View style={styles.profileTags}>
-            {member.currentRank > 0 && (
-              <View style={styles.rankBadge}>
-                <Text style={styles.rankBadgeText}>Rank #{member.currentRank}</Text>
-              </View>
-            )}
             <View style={styles.levelBadge}>
               <Text style={styles.levelBadgeText}>{member.level}</Text>
             </View>
@@ -211,6 +218,36 @@ const MemberDetailScreen = () => {
             <MaterialCommunityIcons name="trending-up" size={24} color="#666666" />
             <Text style={styles.statNumber}>{winRate}%</Text>
             <Text style={styles.statLabel}>{t('members.winRate')}</Text>
+          </View>
+          {/* Current Rank - Tüm Ligler */}
+          <View style={[styles.statCard, styles.rankCard]}>
+            <MaterialCommunityIcons name="trophy" size={24} color="#666666" />
+            <Text style={styles.statLabel}>{t('profile.currentRank')}</Text>
+            {userStandings.length > 0 ? (
+              <View style={[
+                styles.rankingsList,
+                userStandings.length > 2 && styles.rankingsListWrapped
+              ]}>
+                {userStandings.map((standing: any, index: number) => (
+                  <View 
+                    key={standing.id || index} 
+                    style={[
+                      styles.rankingItem,
+                      userStandings.length > 2 && styles.rankingItemWrapped
+                    ]}
+                  >
+                    <Text style={styles.leagueName} numberOfLines={1}>
+                      {standing.league?.name || t('profile.league')}
+                    </Text>
+                    <Text style={styles.rankingNumber}>
+                      #{standing.leagueRanking || '-'}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.statNumber}>-</Text>
+            )}
           </View>
           <View style={styles.statCard}>
             <MaterialCommunityIcons name="calendar" size={24} color="#666666" />
@@ -376,31 +413,82 @@ const styles = StyleSheet.create({
   },
   statisticsContainer: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     paddingHorizontal: 20,
-    paddingVertical: 28,
+    paddingVertical: 20,
     gap: 12,
-    backgroundColor: '#C4C4D3',
+    backgroundColor: '#F8F9FA',
+    justifyContent: 'space-between',
   },
   statCard: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 20,
-    padding: 20,
+    width: (width - 80) / 2,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
     alignItems: 'center',
-    borderWidth: 0,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   statNumber: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginTop: 12,
+    color: '#4CAF50',
+    marginTop: 8,
     marginBottom: 4,
   },
   statLabel: {
-    fontSize: 13,
-    color: '#666666',
-    marginTop: 4,
+    fontSize: 12,
+    color: '#9E9E9E',
     textAlign: 'center',
+  },
+  rankCard: {
+    alignItems: 'center',
+    minHeight: 100,
+  },
+  rankingsList: {
+    marginTop: 8,
+  },
+  rankingsListWrapped: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  rankingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    width: '100%',
+    justifyContent: 'center',
+  },
+  rankingItemWrapped: {
+    columnGap: 10,
+    width: '48%',
+    borderBottomWidth: 0,
+    paddingVertical: 4,
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  leagueName: {
+    fontSize: 13,
+    color: 'gray',
+    fontWeight: '400',
+    width: '100%',
+    flex: 1,
+    marginRight: 4,
+  },
+  rankingNumber: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#4CAF50',
   },
   actionButtonsContainer: {
     flexDirection: 'row',

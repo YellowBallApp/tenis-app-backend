@@ -91,31 +91,23 @@ const ProfileScreen = () => {
         leagueStandingsService.getStandingsByUserId(profileData.id).catch(() => []),
       ]);
       
-      // Points hesaplama: Sadece Defi Lig sıralamasını kullan
+      // Points hesaplama: Tüm liglerin sıralamalarını kullan
       // Her lig için ters sıralama puanı: 1. sıra = 100, 2. sıra = 99, vb.
       let totalPoints = 0;
       let currentRank: number | null = null;
       if (userStandings && Array.isArray(userStandings) && userStandings.length > 0) {
-        // Sadece Defi Lig standings'lerini filtrele
-        const defiLeagueStandings = userStandings.filter((standing: any) => 
-          standing.league?.name?.toLowerCase().includes('defi') || 
-          standing.league?.code?.toLowerCase().includes('defi')
-        );
+        // Tüm standings'leri state'e kaydet
+        setUserStandings(userStandings);
         
-        // Sadece Defi Lig standings'lerini state'e kaydet
-        setUserStandings(defiLeagueStandings);
-        
-        // Defi Lig varsa ilk standing'in rank'ini al
-        if (defiLeagueStandings.length > 0) {
-          currentRank = defiLeagueStandings[0].leagueRanking || null;
-          defiLeagueStandings.forEach((standing: any) => {
-            // Her lig için maksimum 100 oyuncu varsayımıyla hesapla
-            // En iyi sıralama en yüksek puan
-            const maxPlayers = 100;
-            const rankingPoints = Math.max(0, maxPlayers - (standing.leagueRanking || maxPlayers) + 1);
-            totalPoints += rankingPoints;
-          });
-        }
+        // İlk standing'in rank'ini al (geriye dönük uyumluluk için)
+        currentRank = userStandings[0].leagueRanking || null;
+        userStandings.forEach((standing: any) => {
+          // Her lig için maksimum 100 oyuncu varsayımıyla hesapla
+          // En iyi sıralama en yüksek puan
+          const maxPlayers = 100;
+          const rankingPoints = Math.max(0, maxPlayers - (standing.leagueRanking || maxPlayers) + 1);
+          totalPoints += rankingPoints;
+        });
       } else {
         setUserStandings([]);
       }
@@ -381,8 +373,6 @@ const ProfileScreen = () => {
     );
   }
 
-  const rankNumber = user.currentRank ? `#${user.currentRank}` : 'N/A';
-
   return (
     <>
     <View style={[styles.container, { backgroundColor: '#FFFFFF' }]}>
@@ -414,9 +404,6 @@ const ProfileScreen = () => {
               <Text style={styles.profileEmail}>{user.email}</Text>
               <View style={styles.tagsContainer}>
                 <View style={[styles.tag, { backgroundColor: '#F5F5F5' }]}>
-                  <Text style={styles.tagText}>{t('profile.rank')} {rankNumber}</Text>
-                </View>
-                <View style={[styles.tag, { backgroundColor: '#F5F5F5', marginLeft: 8 }]}>
                   <Text style={styles.tagText}>{userLevel}</Text>
                 </View>
               </View>
