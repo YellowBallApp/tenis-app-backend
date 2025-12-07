@@ -42,19 +42,42 @@ const userController = {
     try {
       const users = await userService.findAll();
 
+      // Her kullanıcı için currentRank'i hesapla
+      const usersWithRank = await Promise.all(
+        users.map(async (user) => {
+          let currentRank = 0;
+          try {
+            const standings = await leagueStandingsRepository.findByUserId(user.id);
+            if (standings && standings.length > 0) {
+              // En yüksek rank'i bul (en küçük sayı = en yüksek rank)
+              const ranks = standings.map((s) => s.leagueRanking).filter((r: number) => r > 0);
+              if (ranks.length > 0) {
+                currentRank = Math.min(...ranks);
+              }
+            }
+          } catch (err) {
+            // League standings bulunamazsa currentRank 0 kalır
+            console.log('League standings not found for user:', user.id);
+          }
+
+          return {
+            id: user.id,
+            name: user.name,
+            surname: user.surname,
+            email: user.email,
+            phone: user.phone,
+            gender: user.gender,
+            age: user.age,
+            title: user.title,
+            userType: user.userType,
+            createdAt: user.createdAt,
+            currentRank: currentRank,
+          };
+        })
+      );
+
       return res.status(200).json({
-        data: users.map(user => ({
-          id: user.id,
-          name: user.name,
-          surname: user.surname,
-          email: user.email,
-          phone: user.phone,
-          gender: user.gender,
-          age: user.age,
-          title: user.title,
-          userType: user.userType,
-          createdAt: user.createdAt,
-        })),
+        data: usersWithRank,
       });
     } catch (err) {
       const error = err instanceof AppError

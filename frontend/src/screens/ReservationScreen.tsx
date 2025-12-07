@@ -11,9 +11,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
-import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import type { MainTabParamList } from '../navigation/MainTabNavigator';
+import { useNavigation, useFocusEffect, useRoute, CompositeNavigationProp } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { ReservationStackParamList, MainTabParamList } from '../navigation/MainTabNavigator';
 import {
   Card,
   Title,
@@ -83,7 +84,10 @@ import { User, NotificationType } from '../types';
 
 const { width, height } = Dimensions.get('window');
 
-type ReservationScreenNavigationProp = BottomTabNavigationProp<MainTabParamList, 'Reservation'>;
+type ReservationScreenNavigationProp = CompositeNavigationProp<
+  StackNavigationProp<ReservationStackParamList, 'ReservationList'>,
+  BottomTabNavigationProp<MainTabParamList>
+>;
 
 const ReservationScreen = () => {
   const navigation = useNavigation<ReservationScreenNavigationProp>();
@@ -105,7 +109,11 @@ const ReservationScreen = () => {
   const [currentUserType, setCurrentUserType] = useState<string | null>(null);
   const [courts, setCourts] = useState<any[]>([]);
   const [courtReservations, setCourtReservations] = useState<any[]>([]);
+  const [allReservationsForDate, setAllReservationsForDate] = useState<any[]>([]);
+  const [allBlockedHours, setAllBlockedHours] = useState<{[courtId: number]: Array<{hour: number, reason: string | null}>}>({});
   const [searchQuery, setSearchQuery] = useState('');
+  const [courtSearchQuery, setCourtSearchQuery] = useState('');
+  const [courtFilter, setCourtFilter] = useState<'all' | 'indoor' | 'outdoor'>('all');
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccessSnackbar, setShowSuccessSnackbar] = useState(false);
   const [currentScrollY, setCurrentScrollY] = useState(0);
@@ -183,33 +191,74 @@ const ReservationScreen = () => {
     fetchCurrentUser();
   }, []);
 
-  // Kortları yükle
-  useEffect(() => {
-    const fetchCourts = async () => {
-      try {
-        const courtsList = await courtService.getActiveCourts();
-        // Boolean değerleri normalize et (backend'den string olarak gelebilir)
-        const normalizedCourts = courtsList.map((court: any) => ({
-          ...court,
-          closed: !!(court.closed),
-          indoors: !!(court.indoors),
-        }));
-        setCourts(normalizedCourts);
-      } catch (error) {
-        console.error('Kortlar yüklenirken hata:', error);
-      }
-    };
+  // Rezervasyonları yükleme fonksiyonu (yeniden kullanılabilir)
+  const loadReservationsForDate = React.useCallback(async (date: string, courtsList: any[]) => {
+    if (!date) {
+      setAllReservationsForDate([]);
+      setAllBlockedHours({});
+      return;
+    }
 
-    fetchCourts();
+    try {
+      // Seçilen tarihteki tüm rezervasyonları çek
+      const allReservations = await reservationService.getReservationsByDate(date);
+      setAllReservationsForDate(allReservations);
+
+      // Her kort için bloke edilmiş saatleri çek
+      const blockedHoursMap: {[courtId: number]: Array<{hour: number, reason: string | null}>} = {};
+      
+      if (courtsList.length > 0) {
+        const promises = courtsList.map(async (court) => {
+          try {
+            const blocked = await reservationService.getBlockedHours(court.id, date);
+            blockedHoursMap[court.id] = blocked || [];
+          } catch (error) {
+            console.error(`Kort ${court.id} için bloke saatler yüklenirken hata:`, error);
+            blockedHoursMap[court.id] = [];
+          }
+        });
+        await Promise.all(promises);
+      }
+      
+      setAllBlockedHours(blockedHoursMap);
+    } catch (error) {
+      console.error('Tüm rezervasyonlar yüklenirken hata:', error);
+      setAllReservationsForDate([]);
+      setAllBlockedHours({});
+    }
   }, []);
+
+  // Kortları yükle (hem ilk yüklemede hem de focus olduğunda)
+  const loadCourts = React.useCallback(async () => {
+    try {
+      const courtsList = await courtService.getActiveCourts();
+      // Boolean değerleri normalize et (backend'den string olarak gelebilir)
+      const normalizedCourts = courtsList.map((court: any) => ({
+        ...court,
+        closed: !!(court.closed),
+        indoors: !!(court.indoors),
+      }));
+      setCourts(normalizedCourts);
+    } catch (error) {
+      console.error('Kortlar yüklenirken hata:', error);
+    }
+  }, []);
+
+  // İlk yüklemede kortları yükle
+  useEffect(() => {
+    loadCourts();
+  }, [loadCourts]);
 
   // Rezervasyon engeli kontrolü - sadece useFocusEffect içinde yapılıyor
 
   // Sayfa her açıldığında tüm seçimleri resetle ve engel kontrolü yap
   useFocusEffect(
     React.useCallback(() => {
-      // Tüm state'leri sıfırla
-      setSelectedDate('');
+      // Bugünün tarihini varsayılan olarak ayarla (court listesi için next available time hesaplaması için)
+      const todayDate = new Date().toISOString().split('T')[0];
+      
+      // Tüm state'leri sıfırla (ama selectedDate'i bugünün tarihi olarak ayarla)
+      setSelectedDate(todayDate);
       setSelectedTime('');
       setSelectedCourt('');
       setPlayerType('single');
@@ -218,7 +267,26 @@ const ReservationScreen = () => {
       setSelectedOpponents([]);
       setCurrentStep(1);
       setSearchQuery('');
+      setCourtSearchQuery('');
+      setCourtFilter('all');
       setCurrentScrollY(0);
+      
+      // Kortları ve verileri yeniden yükle
+      const loadAllData = async () => {
+        const courtsList = await courtService.getActiveCourts();
+        const normalizedCourts = courtsList.map((court: any) => ({
+          ...court,
+          closed: !!(court.closed),
+          indoors: !!(court.indoors),
+        }));
+        setCourts(normalizedCourts);
+        
+        // Kortlar yüklendikten sonra rezervasyonları da yükle
+        if (todayDate) {
+          await loadReservationsForDate(todayDate, normalizedCourts);
+        }
+      };
+      loadAllData();
       
       // Rezervasyon engeli kontrolü - her sayfa açıldığında kontrol et
       const checkReservationBlock = async () => {
@@ -286,7 +354,7 @@ const ReservationScreen = () => {
           useNativeDriver: true,
         }),
       ]).start();
-    }, [fadeAnim, slideAnim])
+    }, [fadeAnim, slideAnim, loadCourts, loadReservationsForDate])
   );
 
   // Tarih veya saat değiştiğinde seçimleri sıfırla
@@ -295,6 +363,13 @@ const ReservationScreen = () => {
     setSelectedPartner(null);
     setSelectedOpponents([]);
   }, [selectedDate, selectedTime]);
+
+  // Seçilen tarih için tüm kortların rezervasyonlarını yükle (court listesi için)
+  useEffect(() => {
+    if (selectedDate && courts.length > 0) {
+      loadReservationsForDate(selectedDate, courts);
+    }
+  }, [selectedDate, courts, loadReservationsForDate]);
 
   // Seçilen tarih ve kort için rezervasyonları yükle
   useEffect(() => {
@@ -592,6 +667,88 @@ const ReservationScreen = () => {
     };
   };
 
+  // Bir kort için sonraki müsait saati hesapla
+  const getNextAvailableTime = (courtId: number, date: string): string | null => {
+    if (!date) return null;
+
+    const availableTimes = [
+      '09:00', '10:00', '11:00', '12:00', '13:00', 
+      '14:00', '15:00', '16:00', '17:00', '18:00',
+      '19:00', '20:00', '21:00', '22:00', '23:00'
+    ];
+
+    // Şu anki saati al
+    const now = new Date();
+    const selectedDateObj = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDateOnly = new Date(selectedDateObj);
+    selectedDateOnly.setHours(0, 0, 0, 0);
+
+    // Bu kort için rezervasyonları al (tüm rezervasyonlardan)
+    const courtReservationsForDate = allReservationsForDate.filter(
+      (res: any) => res.court.id === courtId
+    );
+
+    // Rezerve edilmiş saatleri bul
+    const reservedTimes = courtReservationsForDate.map((res: any) => {
+      const resTime = new Date(res.startTime);
+      const hours = resTime.getHours();
+      const minutes = resTime.getMinutes();
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    });
+
+    // Bu kort için bloke saatleri al
+    const courtBlockedHours = allBlockedHours[courtId] || [];
+
+    // Müsait saati bul
+    for (const time of availableTimes) {
+      // Geçmiş saatleri atla (bugün ise)
+      if (selectedDateOnly.getTime() === today.getTime()) {
+        const [hours, minutes] = time.split(':').map(Number);
+        const timeDate = new Date(selectedDateObj);
+        timeDate.setHours(hours, minutes, 0, 0);
+        if (timeDate < now) continue;
+      }
+
+      // Rezerve edilmiş mi kontrol et
+      if (reservedTimes.includes(time)) continue;
+
+      // Bloke edilmiş mi kontrol et
+      const hour = parseInt(time.split(':')[0]);
+      if (courtBlockedHours.some(bh => bh.hour === hour)) continue;
+
+      return time;
+    }
+
+    return null;
+  };
+
+  // Kortları filtrele (search ve filter'a göre)
+  const getFilteredCourts = () => {
+    let filtered = courts.filter((court) => !court.closed);
+
+    // Search filter
+    if (courtSearchQuery) {
+      filtered = filtered.filter((court) => {
+        const searchLower = courtSearchQuery.toLowerCase();
+        return (
+          court.name?.toLowerCase().includes(searchLower) ||
+          court.groundType?.toLowerCase().includes(searchLower)
+        );
+      });
+    }
+
+    // Type filter
+    if (courtFilter === 'indoor') {
+      filtered = filtered.filter((court) => !!(court.indoors));
+    } else if (courtFilter === 'outdoor') {
+      filtered = filtered.filter((court) => !(court.indoors));
+    }
+
+    return filtered;
+  };
+
   const scrollToStep = (stepRef: React.RefObject<View | null>) => {
     setTimeout(() => {
       if (stepRef.current && scrollViewRef.current) {
@@ -623,11 +780,7 @@ const ReservationScreen = () => {
   };
 
   const handleCourtSelect = (courtId: string) => {
-    setSelectedCourt(courtId);
-    if (currentStep === 2) {
-      setCurrentStep(3);
-      scrollToStep(step3Ref);
-    }
+    navigation.navigate('CourtDetail', { courtId: parseInt(courtId) });
   };
 
   const handleTimeSelect = (time: string) => {
@@ -835,19 +988,6 @@ const ReservationScreen = () => {
 
           <View style={styles.headerContent}>
             <Title style={styles.headerTitle}>{t('reservation.title')}</Title>
-            
-            {/* Progress Bar */}
-            <View style={styles.progressContainer}>
-              <View style={styles.progressBar}>
-                <View 
-                  style={[
-                    styles.progressFill,
-                    { width: `${getStepProgress()}%` }
-                  ]} 
-                />
-              </View>
-              <Text style={styles.progressText}>{t('reservation.step')} {currentStep}/4</Text>
-            </View>
           </View>
         </View>
 
@@ -894,521 +1034,172 @@ const ReservationScreen = () => {
           ]}
           pointerEvents={reservationBlocked || checkingBlockStatus ? 'none' : 'auto'}
         >
-          {/* Step 1: Date Selection */}
-          <Card style={[styles.stepCard, currentStep >= 1 && styles.activeStepCard]}>
-            <Card.Content>
-              <View style={styles.stepHeader}>
-                <View style={[styles.stepNumber, currentStep >= 1 && styles.activeStepNumber]}>
-                  <Text style={styles.stepNumberText}>1</Text>
-                </View>
-                <Title style={styles.stepTitle}>{t('reservation.selectDate')}</Title>
-              </View>
-              
-              <TouchableOpacity 
-                style={[styles.dateSelector, (reservationBlocked || checkingBlockStatus) && styles.disabledSelector]}
-                onPress={() => !reservationBlocked && !checkingBlockStatus && setShowCalendar(true)}
-                disabled={reservationBlocked || checkingBlockStatus}
-              >
-                <LinearGradient
-                  colors={selectedDate ? ['#4CAF50', '#2E7D32'] : ['#F5F5F5', '#E0E0E0']}
-                  style={styles.dateSelectorGradient}
-                >
-                  <MaterialCommunityIcons 
-                    name="calendar" 
-                    size={24} 
-                    color={selectedDate ? "#FFFFFF" : "#757575"} 
-                  />
-                  <Text style={[
-                    styles.dateSelectorText,
-                    selectedDate && styles.selectedDateText
-                  ]}>
-                    {selectedDate ? formatDate(selectedDate) : t('reservation.selectDatePlaceholder')}
-                  </Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </Card.Content>
-          </Card>
+          {/* Court Selection - Direct Display */}
+          <View ref={step2Ref}>
+            <Card style={styles.stepCard}>
+              <Card.Content>
 
-          {/* Step 2: Court Selection */}
-          {selectedDate && (
-            <View ref={step2Ref}>
-              <Card style={[styles.stepCard, currentStep >= 2 && styles.activeStepCard]}>
-                <Card.Content>
-                  <View style={styles.stepHeader}>
-                    <View style={[styles.stepNumber, currentStep >= 2 && styles.activeStepNumber]}>
-                      <Text style={styles.stepNumberText}>2</Text>
-                    </View>
-                    <Title style={styles.stepTitle}>{t('reservation.selectCourt')}</Title>
+                  {/* Search Bar */}
+                  <View style={styles.courtSearchContainer}>
+                    <Searchbar
+                      placeholder={t('reservation.searchCourts')}
+                      onChangeText={setCourtSearchQuery}
+                      value={courtSearchQuery}
+                      style={styles.courtSearchBar}
+                      iconColor="#2E7D32"
+                      inputStyle={styles.courtSearchInput}
+                    />
+                  </View>
+
+                  {/* Filter Chips */}
+                  <View style={styles.courtFilterContainer}>
+                    <TouchableOpacity
+                      style={[
+                        styles.courtFilterChip,
+                        courtFilter === 'all' && styles.courtFilterChipActive
+                      ]}
+                      onPress={() => setCourtFilter('all')}
+                    >
+                      <Text style={[
+                        styles.courtFilterChipText,
+                        courtFilter === 'all' && styles.courtFilterChipTextActive
+                      ]}>
+                        {t('reservation.allCourts')}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.courtFilterChip,
+                        courtFilter === 'indoor' && styles.courtFilterChipActive
+                      ]}
+                      onPress={() => setCourtFilter('indoor')}
+                    >
+                      <Text style={[
+                        styles.courtFilterChipText,
+                        courtFilter === 'indoor' && styles.courtFilterChipTextActive
+                      ]}>
+                        {t('reservation.indoor')}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.courtFilterChip,
+                        courtFilter === 'outdoor' && styles.courtFilterChipActive
+                      ]}
+                      onPress={() => setCourtFilter('outdoor')}
+                    >
+                      <MaterialCommunityIcons 
+                        name="weather-sunny" 
+                        size={16} 
+                        color={courtFilter === 'outdoor' ? "#FFFFFF" : "#666666"} 
+                        style={{ marginRight: 4 }}
+                      />
+                      <Text style={[
+                        styles.courtFilterChipText,
+                        courtFilter === 'outdoor' && styles.courtFilterChipTextActive
+                      ]}>
+                        {t('reservation.outdoor')}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 
                 <View style={styles.courtGrid}>
-                  {courts.map((court) => {
-                    const displayCourt = getCourtDisplayInfo(court);
-                    const isClosed = !!(court.closed);
-                    return (
-                      <TouchableOpacity
-                        key={court.id}
-                        onPress={() => !isClosed && handleCourtSelect(court.id.toString())}
-                        style={styles.courtCardContainer}
-                        disabled={!!isClosed}
-                      >
-                        <LinearGradient
-                          colors={
-                            isClosed 
-                              ? ['#E0E0E0', '#BDBDBD'] 
-                              : selectedCourt === court.id.toString() 
-                                ? displayCourt.gradient as [string, string] 
-                                : ['#FFFFFF', '#F8F9FA']
-                          }
-                          style={[
-                            styles.courtCard,
-                            selectedCourt === court.id.toString() && styles.selectedCourtCard,
-                            isClosed && styles.disabledCourtCard
-                          ]}
-                        >
-                          <View style={styles.courtIconContainer}>
-                            <MaterialCommunityIcons 
-                              name={isClosed ? "lock" : displayCourt.icon as any} 
-                              size={32} 
-                              color={
-                                isClosed 
-                                  ? "#757575" 
-                                  : selectedCourt === court.id.toString() 
-                                    ? "#FFFFFF" 
-                                    : displayCourt.gradient[0]
-                              } 
-                            />
-                          </View>
-                          <Text style={[
-                            styles.courtName,
-                            selectedCourt === court.id.toString() && styles.selectedCourtName,
-                            isClosed && styles.disabledCourtText
-                          ]}>
-                            {displayCourt.name}
-                          </Text>
-                          <Text style={[
-                            styles.courtDetails,
-                            selectedCourt === court.id.toString() && styles.selectedCourtDetails,
-                            isClosed && styles.disabledCourtText
-                          ]}>
-                            {isClosed ? t('reservation.closed') : `${displayCourt.type} • ${displayCourt.surface}`}
-                          </Text>
-                          {selectedCourt === court.id.toString() && !isClosed && (
-                            <View style={styles.selectedIcon}>
-                              <MaterialCommunityIcons name="check-circle" size={20} color="#FFFFFF" />
-                            </View>
-                          )}
-                        </LinearGradient>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </Card.Content>
-            </Card>
-            </View>
-          )}
-
-          {/* Step 3: Time Selection */}
-          {selectedCourt && (
-            <View ref={step3Ref}>
-              <Card style={[styles.stepCard, currentStep >= 3 && styles.activeStepCard]}>
-                <Card.Content>
-                  <View style={styles.stepHeader}>
-                    <View style={[styles.stepNumber, currentStep >= 3 && styles.activeStepNumber]}>
-                      <Text style={styles.stepNumberText}>3</Text>
-                    </View>
-                    <Title style={styles.stepTitle}>{t('reservation.selectTime')}</Title>
-                  </View>
-                
-                <View style={styles.timeGrid}>
-                  {availableTimes.map((time) => {
-                    const reservation = getReservationForTime(time);
-                    const isReserved = !!reservation;
-                    const isDisabledForUserType = !!isTimeSlotDisabledForUser(time);
-                    const isTimeInPast = isTimeSlotInPast(time);
-                    const isBlocked = isTimeSlotBlocked(time);
-                    const isDisabled = !!(isReserved || isDisabledForUserType || isTimeInPast || isBlocked);
-                    
-                    // Hava durumu bilgisini al (sadece açık kortlar için)
-                    const selectedCourtObj = courts.find(c => c.id === parseInt(selectedCourt));
-                    const isOutdoor = !!(selectedCourtObj && !selectedCourtObj.indoors);
-                    const weatherInfo = isOutdoor ? weatherCache[time] : null;
-                    const showWeather = !!(weatherInfo && (weatherInfo.isRainy || weatherInfo.isSnowy));
-                    
-                    return (
-                      <TouchableOpacity
-                        key={time}
-                        onPress={() => !isDisabled && handleTimeSelect(time)}
-                        style={styles.timeChipContainer}
-                        disabled={!!isDisabled}
-                      >
-                        <LinearGradient
-                          colors={
-                            isDisabled 
-                              ? ['#E0E0E0', '#BDBDBD']
-                              : selectedTime === time 
-                                ? ['#2E7D32', '#1B5E20'] 
-                                : ['#FFFFFF', '#F5F5F5']
-                          }
-                          style={[
-                            styles.timeChip,
-                            selectedTime === time && styles.selectedTimeChip,
-                            isDisabled && styles.disabledTimeChip
-                          ]}
-                        >
-                          <View style={styles.timeChipContent}>
-                            <View style={styles.timeRow}>
-                              <MaterialCommunityIcons 
-                                name={isDisabled ? "lock" : "clock"} 
-                                size={16} 
-                                color={
-                                  isDisabled 
-                                    ? "#757575" 
-                                    : selectedTime === time 
-                                      ? "#FFFFFF" 
-                                      : "#757575"
-                                } 
-                              />
-                              <Text style={[
-                                styles.timeChipText,
-                                selectedTime === time && styles.selectedTimeChipText,
-                                isDisabled && styles.disabledTimeChipText
-                              ]}>
-                                {time}
-                              </Text>
-                              {!!showWeather && !!(!isDisabled) && weatherInfo && (
-                                <MaterialCommunityIcons 
-                                  name={!!(weatherInfo.isSnowy) ? "weather-snowy" : "weather-rainy"} 
-                                  size={16} 
-                                  color={selectedTime === time ? "#FFFFFF" : "#2196F3"} 
-                                  style={{ marginLeft: 4 }}
-                                />
-                              )}
-                            </View>
-                            {!!isReserved && !!reservation && (
-                              <Text style={styles.reservedByText}>
-                                {reservation.user.name}
-                              </Text>
-                            )}
-                            {!!isDisabledForUserType && !isReserved && (
-                              <Text style={styles.reservedByText}>
-                                {t('reservation.noPermission')}
-                              </Text>
-                            )}
-                            {!!isBlocked && !isReserved && !isDisabledForUserType && (
-                              <Text style={styles.reservedByText}>
-                                {getBlockedReason(time) || t('reservation.blocked')}
-                              </Text>
-                            )}
-                          </View>
-                        </LinearGradient>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </Card.Content>
-            </Card>
-            </View>
-          )}
-
-          {/* Step 4: Player Type & Final Details */}
-          {selectedTime && (
-            <View ref={step4Ref}>
-              <Card style={[styles.stepCard, currentStep >= 4 && styles.activeStepCard]}>
-                <Card.Content>
-                  <View style={styles.stepHeader}>
-                  <View style={[styles.stepNumber, currentStep >= 4 && styles.activeStepNumber]}>
-                    <Text style={styles.stepNumberText}>4</Text>
-                  </View>
-                  <Title style={styles.stepTitle}>{t('reservation.playerType')}</Title>
-                </View>
-                
-                <RadioButton.Group onValueChange={handlePlayerTypeChange} value={playerType}>
-                  <Surface style={styles.radioContainer}>
-                    <TouchableOpacity 
-                      style={styles.radioOption}
-                      onPress={() => handlePlayerTypeChange('single')}
-                    >
-                      <RadioButton value="single" />
-                      <View style={styles.radioContent}>
-                        <MaterialCommunityIcons name="account" size={24} color="#2E7D32" />
-                        <Text style={styles.radioLabel}>{t('reservation.singles')}</Text>
-                      </View>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                      style={styles.radioOption}
-                      onPress={() => handlePlayerTypeChange('double')}
-                    >
-                      <RadioButton value="double" />
-                      <View style={styles.radioContent}>
-                        <MaterialCommunityIcons name="account-group" size={24} color="#2E7D32" />
-                        <Text style={styles.radioLabel}>{t('reservation.doubles')}</Text>
-                      </View>
-                    </TouchableOpacity>
-                  </Surface>
-                </RadioButton.Group>
-
-                {playerType === 'single' && (
-                  <View style={styles.partnerSection}>
-                    <Text style={styles.partnerLabel}>{t('reservation.selectOpponent')}</Text>
-                    <TouchableOpacity 
-                      style={styles.userSelector}
-                      onPress={async () => {
-                        setSelectorMode('partner');
-                        // Modal açılmadan önce kullanıcıları yükle
-                        if (users.length === 0) {
-                          try {
-                            const usersList = await userService.getAllUsers();
-                            const filteredUsers = currentUserId 
-                              ? usersList.filter((user: User) => user.id !== currentUserId)
-                              : usersList;
-                            setUsers(filteredUsers);
-                          } catch (error) {
-                            console.error('Kullanıcılar yüklenirken hata:', error);
-                          }
-                        }
-                        setShowUserSelector(true);
-                      }}
-                    >
-                      <LinearGradient
-                        colors={selectedPartner ? ['#4CAF50', '#2E7D32'] : ['#FFFFFF', '#F5F5F5']}
-                        style={styles.userSelectorGradient}
-                      >
-                        <MaterialCommunityIcons 
-                          name="account-search" 
-                          size={24} 
-                          color={selectedPartner ? "#FFFFFF" : "#757575"} 
-                        />
-                        <Text style={[
-                          styles.userSelectorText,
-                          selectedPartner && styles.selectedUserText
-                        ]}>
-                          {selectedPartner ? selectedPartner.name : t('reservation.selectOpponentPlaceholder')}
-                        </Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  </View>
-                )}
-
-                {playerType === 'double' && (
-                  <>
-                    <View style={styles.partnerSection}>
-                      <Text style={styles.partnerLabel}>{t('reservation.selectPartner')}</Text>
-                      <TouchableOpacity 
-                        style={styles.userSelector}
-                        onPress={async () => {
-                          setSelectorMode('partner');
-                          // Modal açılmadan önce kullanıcıları yükle
-                          if (users.length === 0) {
-                          try {
-                            const usersList = await userService.getAllUsers();
-                            const filteredUsers = currentUserId 
-                              ? usersList.filter((user: User) => user.id !== currentUserId)
-                              : usersList;
-                            setUsers(filteredUsers);
-                          } catch (error) {
-                            console.error('Kullanıcılar yüklenirken hata:', error);
-                          }
-                        }
-                        setShowUserSelector(true);
-                      }}
-                    >
-                      <LinearGradient
-                        colors={selectedPartner ? ['#4CAF50', '#2E7D32'] : ['#FFFFFF', '#F5F5F5']}
-                        style={styles.userSelectorGradient}
-                      >
-                        <MaterialCommunityIcons 
-                          name="account-search" 
-                          size={24} 
-                          color={selectedPartner ? "#FFFFFF" : "#757575"} 
-                        />
-                        <Text style={[
-                          styles.userSelectorText,
-                          selectedPartner && styles.selectedUserText
-                        ]}>
-                          {selectedPartner ? selectedPartner.name : t('reservation.selectPartnerPlaceholder')}
-                        </Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  </View>
-
-                    <View style={styles.opponentsSection}>
-                      <Text style={styles.partnerLabel}>{t('reservation.selectOpponents')}</Text>
-                      <TouchableOpacity 
-                        style={styles.userSelector}
-                        onPress={async () => {
-                          setSelectorMode('opponents');
-                          // Modal açılmadan önce kullanıcıları yükle
-                          if (users.length === 0) {
-                            try {
-                              const usersList = await userService.getAllUsers();
-                              const filteredUsers = currentUserId 
-                                ? usersList.filter((user: User) => user.id !== currentUserId)
-                                : usersList;
-                              setUsers(filteredUsers);
-                            } catch (error) {
-                              console.error('Kullanıcılar yüklenirken hata:', error);
-                            }
-                          }
-                          setShowUserSelector(true);
-                        }}
-                      >
-                        <LinearGradient
-                          colors={selectedOpponents.length > 0 ? ['#FF9800', '#F57C00'] : ['#FFFFFF', '#F5F5F5']}
-                          style={styles.userSelectorGradient}
-                        >
-                          <MaterialCommunityIcons 
-                            name="account-multiple" 
-                            size={24} 
-                            color={selectedOpponents.length > 0 ? "#FFFFFF" : "#757575"} 
-                          />
-                          <Text style={[
-                            styles.userSelectorText,
-                            selectedOpponents.length > 0 && styles.selectedUserText
-                          ]}>
-                            {selectedOpponents.length > 0 
-                              ? `${selectedOpponents.length}/2 ${t('reservation.opponentsSelected')}` 
-                              : t('reservation.selectOpponentsPlaceholder')}
-                          </Text>
-                        </LinearGradient>
-                      </TouchableOpacity>
-                      
-                      {selectedOpponents.length > 0 && (
-                        <View style={styles.selectedOpponentsContainer}>
-                          {selectedOpponents.map((opponent, index) => (
-                            <View key={opponent.id} style={styles.selectedOpponentChip}>
-                              <Text style={styles.selectedOpponentText}>{opponent.name}</Text>
-                              <TouchableOpacity
-                                onPress={() => setSelectedOpponents(selectedOpponents.filter(opp => opp.id !== opponent.id))}
-                              >
-                                <MaterialCommunityIcons name="close-circle" size={20} color="#F57C00" />
-                              </TouchableOpacity>
-                            </View>
-                          ))}
-                        </View>
-                      )}
-                    </View>
-                  </>
-                )}
-              </Card.Content>
-            </Card>
-            </View>
-          )}
-
-          {/* Reservation Summary */}
-          {selectedDate && selectedTime && selectedCourt && (
-            <Card style={styles.summaryCard}>
-              <LinearGradient
-                colors={['#E8F5E8', '#FFFFFF']}
-                style={styles.summaryGradient}
-              >
-                <View style={styles.summaryHeader}>
-                  <MaterialCommunityIcons name="clipboard-check" size={28} color="#2E7D32" />
-                  <Title style={styles.summaryTitle}>{t('reservation.summary')}</Title>
-                </View>
-                
-                <View style={styles.summaryContent}>
-                  <View style={styles.summaryRow}>
-                    <View style={styles.summaryIcon}>
-                      <MaterialCommunityIcons name="calendar" size={20} color="#2E7D32" />
-                    </View>
-                    <Text style={styles.summaryText}>{formatDate(selectedDate)}</Text>
-                  </View>
-                  
-                  <View style={styles.summaryRow}>
-                    <View style={styles.summaryIcon}>
-                      <MaterialCommunityIcons name="clock" size={20} color="#2E7D32" />
-                    </View>
-                    <Text style={styles.summaryText}>{selectedTime}</Text>
-                  </View>
-                  
-                  <View style={styles.summaryRow}>
-                    <View style={styles.summaryIcon}>
-                      <MaterialCommunityIcons name="tennis" size={20} color="#2E7D32" />
-                    </View>
-                    <Text style={styles.summaryText}>
-                      {courts.find(c => c.id.toString() === selectedCourt)?.name || 'Kort seçilmedi'}
-                    </Text>
-                  </View>
-                  
-                  <View style={styles.summaryRow}>
-                    <View style={styles.summaryIcon}>
-                      <MaterialCommunityIcons name="account-group" size={20} color="#2E7D32" />
-                    </View>
-                    <Text style={styles.summaryText}>
-                      {playerType === 'single' ? t('reservation.singlesShort') : t('reservation.doublesShort')}
-                    </Text>
-                  </View>
-
-                  {selectedPartner && (
-                    <View style={styles.summaryRow}>
-                      <View style={styles.summaryIcon}>
-                        <MaterialCommunityIcons 
-                          name={playerType === 'single' ? "account" : "account-heart"} 
-                          size={20} 
-                          color="#2E7D32" 
-                        />
-                      </View>
-                      <Text style={styles.summaryText}>
-                        {playerType === 'single' ? t('reservation.opponent') : t('reservation.partner')} {selectedPartner.name}
+                  {getFilteredCourts().length === 0 ? (
+                    <View style={styles.emptyCourtsContainer}>
+                      <MaterialCommunityIcons name="tennis" size={48} color="#BDBDBD" />
+                      <Text style={styles.emptyCourtsText}>
+                        {t('reservation.noAvailableCourts')}
                       </Text>
                     </View>
-                  )}
+                  ) : (
+                    getFilteredCourts().map((court) => {
+                        const displayCourt = getCourtDisplayInfo(court);
+                        // selectedDate'i kullan (useFocusEffect'te bugünün tarihi olarak ayarlanıyor)
+                        const nextAvailable = getNextAvailableTime(court.id, selectedDate);
+                        return (
+                          <TouchableOpacity
+                            key={court.id}
+                            onPress={() => handleCourtSelect(court.id.toString())}
+                            style={styles.newCourtCardContainer}
+                          >
+                            <View style={styles.newCourtCard}>
+                              {/* Top Right Chips */}
+                              <View style={styles.newCourtChipsContainer}>
+                                <View style={styles.newCourtChip}>
+                                  <Text style={styles.newCourtChipText}>{displayCourt.surface}</Text>
+                                </View>
+                                <View style={styles.newCourtChip}>
+                                  <MaterialCommunityIcons 
+                                    name={displayCourt.icon as any} 
+                                    size={14} 
+                                    color="#666666" 
+                                  />
+                                  <Text style={styles.newCourtChipText}>{displayCourt.type}</Text>
+                                </View>
+                              </View>
 
-                  {playerType === 'double' && selectedOpponents.length > 0 && (
-                    <View style={styles.summaryRow}>
-                      <View style={styles.summaryIcon}>
-                        <MaterialCommunityIcons name="account-multiple" size={20} color="#FF9800" />
-                      </View>
-                      <View style={styles.summaryTextContainer}>
-                        <Text style={styles.summaryText}>
-                          {t('reservation.opponents')} {selectedOpponents.map(opp => opp.name).join(', ')}
-                        </Text>
-                      </View>
-                    </View>
+                              {/* Tennis Ball Icon */}
+                              <View style={styles.newCourtTennisBallContainer}>
+                                <MaterialCommunityIcons 
+                                  name="tennis-ball" 
+                                  size={64} 
+                                  color="#2E7D32" 
+                                />
+                              </View>
+
+                              {/* Court Name */}
+                              <Text style={styles.newCourtName}>{displayCourt.name}</Text>
+
+                              {/* Location and Type */}
+                              <View style={styles.newCourtLocationContainer}>
+                                <MaterialCommunityIcons 
+                                  name="map-marker-outline" 
+                                  size={16} 
+                                  color="#666666" 
+                                />
+                                <Text style={styles.newCourtLocationText}>
+                                  {`${displayCourt.surface} • ${displayCourt.type}`}
+                                </Text>
+                              </View>
+
+                              {/* Available Button and Next Available */}
+                              <View style={styles.newCourtBottomContainer}>
+                                <View style={styles.newCourtAvailableButton}>
+                                  <Text style={styles.newCourtAvailableText}>
+                                    {t('reservation.available')}
+                                  </Text>
+                                </View>
+                                {nextAvailable && (
+                                  <Text style={styles.newCourtNextAvailable}>
+                                    {t('reservation.nextAvailable')} {nextAvailable}
+                                  </Text>
+                                )}
+                              </View>
+
+                              {/* Book Now Button */}
+                              <TouchableOpacity
+                                style={styles.newCourtBookButton}
+                                onPress={() => handleCourtSelect(court.id.toString())}
+                              >
+                                <Text style={styles.newCourtBookText}>
+                                  {t('reservation.bookNow')}
+                                </Text>
+                                <MaterialCommunityIcons 
+                                  name="arrow-right" 
+                                  size={20} 
+                                  color="#2E7D32" 
+                                />
+                              </TouchableOpacity>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })
                   )}
                 </View>
-              </LinearGradient>
+              </Card.Content>
             </Card>
-          )}
+          </View>
 
-          {/* Action Button */}
-          <TouchableOpacity
-            onPress={handleReservation}
-            disabled={!selectedDate || !selectedTime || !selectedCourt || isLoading || reservationBlocked || checkingBlockStatus}
-            style={[
-              styles.reservationButtonContainer,
-              (!selectedDate || !selectedTime || !selectedCourt || isLoading || reservationBlocked || checkingBlockStatus) && styles.disabledButton
-            ]}
-          >
-            <LinearGradient
-              colors={(!selectedDate || !selectedTime || !selectedCourt || isLoading) 
-                ? ['#BDBDBD', '#9E9E9E'] 
-                : ['#4CAF50', '#2E7D32']
-              }
-              style={styles.reservationButton}
-            >
-              {isLoading ? (
-                <>
-                  <ActivityIndicator size="small" color="#FFFFFF" style={styles.buttonIcon} />
-                  <Text style={styles.reservationButtonText}>{t('reservation.processing')}</Text>
-                </>
-              ) : (
-                <>
-                  <MaterialCommunityIcons 
-                    name="check-circle" 
-                    size={24} 
-                    color="#FFFFFF" 
-                    style={styles.buttonIcon}
-                  />
-                  <Text style={styles.reservationButtonText}>
-                    {t('reservation.confirmReservation')}
-                  </Text>
-                </>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
         </Animated.View>
       </ScrollView>
 
@@ -1877,9 +1668,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   courtGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
+    gap: 16,
   },
   courtCardContainer: {
     width: (width - 50) / 2,
@@ -2364,6 +2154,152 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  emptyCourtsContainer: {
+    width: '100%',
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyCourtsText: {
+    fontSize: 16,
+    color: '#757575',
+    textAlign: 'center',
+    marginTop: 16,
+  },
+  courtSearchContainer: {
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  courtSearchBar: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+  },
+  courtSearchInput: {
+    fontSize: 16,
+  },
+  courtFilterContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+    flexWrap: 'wrap',
+  },
+  courtFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  courtFilterChipActive: {
+    backgroundColor: '#2E7D32',
+    borderColor: '#2E7D32',
+  },
+  courtFilterChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666666',
+  },
+  courtFilterChipTextActive: {
+    color: '#FFFFFF',
+  },
+  newCourtCardContainer: {
+    width: '100%',
+    marginBottom: 16,
+  },
+  newCourtCard: {
+    backgroundColor: '#E8F5E8',
+    borderRadius: 16,
+    padding: 20,
+    position: 'relative',
+  },
+  newCourtChipsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    marginBottom: 16,
+  },
+  newCourtChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 4,
+  },
+  newCourtChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666666',
+  },
+  newCourtTennisBallContainer: {
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  newCourtName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1B1B1B',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  newCourtLocationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    gap: 6,
+  },
+  newCourtLocationText: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  newCourtBottomContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  newCourtAvailableButton: {
+    backgroundColor: '#2E7D32',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  newCourtAvailableText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  newCourtNextAvailable: {
+    fontSize: 12,
+    color: '#666666',
+    flex: 1,
+    textAlign: 'right',
+  },
+  newCourtBookButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    alignSelf: 'flex-end',
+    gap: 4,
+  },
+  newCourtBookText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2E7D32',
   },
 });
 

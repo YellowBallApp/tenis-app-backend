@@ -9,6 +9,7 @@ import CoachDetailScreen from '../screens/CoachDetailScreen';
 import MemberDetailScreen from '../screens/MemberDetailScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ReservationScreen from '../screens/ReservationScreen';
+import CourtDetailScreen from '../screens/CourtDetailScreen';
 import ReservationsListScreen from '../screens/ReservationsListScreen';
 import MatchHistoryScreen from '../screens/MatchHistoryScreen';
 import DefiLigScreen from '../screens/DefiLigScreen';
@@ -27,6 +28,11 @@ export type MainTabParamList = {
   Notifications: undefined;
 };
 
+export type ReservationStackParamList = {
+  ReservationList: undefined;
+  CourtDetail: { courtId: number };
+};
+
 export type UsersStackParamList = {
   UsersList: undefined;
   CoachDetail: { coachId: number };
@@ -43,6 +49,7 @@ export type GameModesStackParamList = {
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const GameModesStack = createStackNavigator<GameModesStackParamList>();
 const UsersStack = createStackNavigator<UsersStackParamList>();
+const ReservationStack = createStackNavigator<ReservationStackParamList>();
 
 // GameModes Stack Navigator
 const GameModesStackNavigator = () => {
@@ -93,6 +100,27 @@ const UsersStackNavigator = () => {
         component={MemberDetailScreen}
       />
     </UsersStack.Navigator>
+  );
+};
+
+// Reservation Stack Navigator
+const ReservationStackNavigator = () => {
+  return (
+    <ReservationStack.Navigator
+      initialRouteName="ReservationList"
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <ReservationStack.Screen 
+        name="ReservationList" 
+        component={ReservationScreen}
+      />
+      <ReservationStack.Screen 
+        name="CourtDetail" 
+        component={CourtDetailScreen}
+      />
+    </ReservationStack.Navigator>
   );
 };
 
@@ -155,7 +183,7 @@ const TabNavigator = () => {
       />
       <Tab.Screen
         name="Reservation"
-        component={ReservationScreen}
+        component={ReservationStackNavigator}
         options={{
           title: 'Rezervasyon',
           tabBarButton: () => null, // Hide from tab bar but keep in navigator

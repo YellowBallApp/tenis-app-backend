@@ -91,22 +91,31 @@ const ProfileScreen = () => {
         leagueStandingsService.getStandingsByUserId(profileData.id).catch(() => []),
       ]);
       
-      // Points hesaplama: Lig sıralamalarından toplam points (en iyi sıralama puanları)
+      // Points hesaplama: Sadece Defi Lig sıralamasını kullan
       // Her lig için ters sıralama puanı: 1. sıra = 100, 2. sıra = 99, vb.
       let totalPoints = 0;
       let currentRank: number | null = null;
       if (userStandings && Array.isArray(userStandings) && userStandings.length > 0) {
-        // Tüm standings'leri state'e kaydet
-        setUserStandings(userStandings);
-        // İlk standing'in rank'ini al (geriye dönük uyumluluk için)
-        currentRank = userStandings[0].leagueRanking || null;
-        userStandings.forEach((standing: any) => {
-          // Her lig için maksimum 100 oyuncu varsayımıyla hesapla
-          // En iyi sıralama en yüksek puan
-          const maxPlayers = 100;
-          const rankingPoints = Math.max(0, maxPlayers - (standing.leagueRanking || maxPlayers) + 1);
-          totalPoints += rankingPoints;
-        });
+        // Sadece Defi Lig standings'lerini filtrele
+        const defiLeagueStandings = userStandings.filter((standing: any) => 
+          standing.league?.name?.toLowerCase().includes('defi') || 
+          standing.league?.code?.toLowerCase().includes('defi')
+        );
+        
+        // Sadece Defi Lig standings'lerini state'e kaydet
+        setUserStandings(defiLeagueStandings);
+        
+        // Defi Lig varsa ilk standing'in rank'ini al
+        if (defiLeagueStandings.length > 0) {
+          currentRank = defiLeagueStandings[0].leagueRanking || null;
+          defiLeagueStandings.forEach((standing: any) => {
+            // Her lig için maksimum 100 oyuncu varsayımıyla hesapla
+            // En iyi sıralama en yüksek puan
+            const maxPlayers = 100;
+            const rankingPoints = Math.max(0, maxPlayers - (standing.leagueRanking || maxPlayers) + 1);
+            totalPoints += rankingPoints;
+          });
+        }
       } else {
         setUserStandings([]);
       }

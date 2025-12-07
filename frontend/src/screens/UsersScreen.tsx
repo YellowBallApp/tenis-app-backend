@@ -87,9 +87,10 @@ const UsersScreen = () => {
       if (showLoading) setLoading(true);
       const usersData = await userService.getAllUsers();
       
-      // Coach ve admin kullanıcılarını filtrele
+      // Coach ve admin kullanıcılarını filtrele - sadece admin ve coach olmayan kullanıcıları göster
       const filteredUsers = usersData.filter((user: any) => {
-        return user.userType !== 'coach' && user.userType !== 'admin';
+        const userType = user.userType?.toLowerCase();
+        return userType !== 'coach' && userType !== 'admin';
       });
       
       // Her kullanıcı için maç istatistiklerini çek
@@ -100,9 +101,17 @@ const UsersScreen = () => {
             const matchHistory = await matchHistoryService.getUserMatchHistory(user.id);
             
             // Kazanılan ve kaybedilen maçları hesapla
-            const wins = matchHistory.filter((match: any) => 
-              match.winnerIds && match.winnerIds.includes(user.id)
-            ).length;
+            // winners array'ini kullan (winners bir User object array'i)
+            const wins = matchHistory.filter((match: any) => {
+              if (match.winners && Array.isArray(match.winners)) {
+                return match.winners.some((winner: any) => winner.id === user.id);
+              }
+              // Fallback: winnerIds varsa onu kullan
+              if (match.winnerIds && Array.isArray(match.winnerIds)) {
+                return match.winnerIds.includes(user.id);
+              }
+              return false;
+            }).length;
             
             const totalMatches = matchHistory.length;
             const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
@@ -390,13 +399,13 @@ const UsersScreen = () => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Directory</Text>
+          <Text style={styles.headerTitle}>{t('users.directory')}</Text>
         </View>
 
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <Searchbar
-            placeholder="Search members or coaches..."
+            placeholder={t('users.searchPlaceholder')}
             onChangeText={setSearchQuery}
             value={searchQuery}
             style={styles.searchBar}
@@ -423,7 +432,7 @@ const UsersScreen = () => {
               styles.toggleButtonText,
               activeTab === 'members' && styles.toggleButtonTextActive
             ]}>
-              Members
+              {t('users.members')}
             </Text>
           </TouchableOpacity>
           
@@ -443,7 +452,7 @@ const UsersScreen = () => {
               styles.toggleButtonText,
               activeTab === 'coaches' && styles.toggleButtonTextActive
             ]}>
-              Coaches
+              {t('users.coaches')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -471,7 +480,7 @@ const UsersScreen = () => {
                       <View style={styles.badgesRow}>
                         {member.currentRank > 0 && (
                           <View style={styles.rankBadge}>
-                            <Text style={styles.rankBadgeText}>Rank #{member.currentRank}</Text>
+                            <Text style={styles.rankBadgeText}>{t('users.rank')} #{member.currentRank}</Text>
                           </View>
                         )}
                         <View style={[styles.levelBadge, { backgroundColor: getLevelColor(member.level) }]}>
@@ -482,10 +491,10 @@ const UsersScreen = () => {
                   </View>
                   <View style={styles.statsRow}>
                     <Text style={styles.statText}>
-                      Matches <Text style={styles.statValue}>{member.matchesPlayed || 0}</Text>
+                      {t('users.matches')} <Text style={styles.statValue}>{member.matchesPlayed || 0}</Text>
                     </Text>
                     <Text style={styles.statText}>
-                      Win Rate <Text style={styles.statValueGreen}>{member.winRate || 0}%</Text>
+                      {t('users.winRate')} <Text style={styles.statValueGreen}>{member.winRate || 0}%</Text>
                     </Text>
                   </View>
                 </Card.Content>
@@ -524,7 +533,7 @@ const UsersScreen = () => {
                         <Text style={styles.ratingText}>
                           {coach.rating && typeof coach.rating === 'number' ? coach.rating.toFixed(1) : '0.0'}
                         </Text>
-                        <Text style={styles.reviewsText}>({coach.reviewCount || 0} reviews)</Text>
+                        <Text style={styles.reviewsText}>({coach.reviewCount || 0} {t('users.reviews')})</Text>
                       </View>
                     </View>
                   </View>

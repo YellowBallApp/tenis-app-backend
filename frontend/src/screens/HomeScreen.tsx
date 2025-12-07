@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Animated,
   Platform,
   Image,
 } from 'react-native';
@@ -51,27 +50,19 @@ const HomeScreen = () => {
   });
   const [unreadCount, setUnreadCount] = useState(0);
   
-  // Scroll animation için
-  const scrollY = useRef(new Animated.Value(0)).current;
+  // Scroll animation kaldırıldı - header artık collapsible değil
   const scrollViewRef = useRef<any>(null);
-  const headerHeight = scrollY.interpolate({
-    inputRange: [0, 150],
-    outputRange: [300, 100],
-    extrapolate: 'clamp',
-  });
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, 100],
-    outputRange: [1, 0],
-    extrapolate: 'clamp',
-  });
-  const compactOpacity = scrollY.interpolate({
-    inputRange: [0, 100],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
 
   const quickActions = [
-    { title: t('home.reservationMake'), icon: 'calendar-plus', color: '#2E7D32', action: () => navigation.navigate('Reservation') },
+    { 
+      title: t('home.reservationMake'), 
+      icon: 'calendar-plus', 
+      color: '#2E7D32', 
+      action: () => {
+        // Reservation sayfasına git (stack'in ilk ekranı ReservationList olacak)
+        navigation.navigate('Reservation');
+      }
+    },
     { title: t('home.reservationsList'), icon: 'calendar-text', color: '#9E9E9E', action: () => navigation.navigate('ReservationsList') },
     { title: t('home.matchHistory'), icon: 'history', color: '#2E7D32', action: () => navigation.navigate('MatchHistory') },
   ];
@@ -85,7 +76,6 @@ const HomeScreen = () => {
   useFocusEffect(
     React.useCallback(() => {
       // Scroll pozisyonunu en üste al
-      scrollY.setValue(0);
       if (scrollViewRef.current) {
         scrollViewRef.current.scrollTo({ y: 0, animated: false });
       }
@@ -243,32 +233,10 @@ const HomeScreen = () => {
 
   return (
     <View style={[styles.container, themedStyles.container]}>
-      {/* Animated Hero Section - Absolute position for collapsible effect */}
-      <Animated.View style={[
-        styles.heroSection, 
-        { 
-          backgroundColor: '#E1BEE7',
-          height: headerHeight,
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 10,
-        }
-      ]}>
-        {/* Kompakt Başlık (scroll edildiğinde görünür) */}
-        <Animated.View style={[
-          styles.compactHeader,
-          { 
-            opacity: compactOpacity,
-            paddingTop: insets.top + 12
-          }
-        ]}>
-          <Text style={styles.compactTitle}>{t('home.homePage')}</Text>
-        </Animated.View>
-        
-        {/* Normal İçerik (scroll başta görünür) */}
-        <Animated.View style={[styles.heroContent, { opacity: headerOpacity, paddingTop: insets.top + 12 }]}>
+      {/* Hero Section - Artık collapsible değil, sabit */}
+      <View style={[styles.heroSection, { paddingTop: insets.top + 12 }]}>
+        {/* Normal İçerik */}
+        <View style={styles.heroContent}>
           <View style={styles.heroHeader}>
             <View style={styles.heroHeaderLeft}>
               <View style={styles.heroHeaderContent}>
@@ -288,12 +256,12 @@ const HomeScreen = () => {
                 
                 {/* User Info - Right Side */}
                 <View style={styles.userInfoContainer}>
-                  <Text style={styles.welcomeText}>{t('home.welcomeBack')}</Text>
-                  <Text style={styles.userName}>{currentUser?.name || ''}</Text>
+                  <Text style={styles.welcomeText} numberOfLines={1}>{t('home.welcomeBack')}</Text>
+                  <Text style={styles.userName} numberOfLines={1} ellipsizeMode="tail">{currentUser?.name || ''}</Text>
                   {currentUser && (
                     <View style={styles.tagsContainer}>
                       <View style={styles.tag}>
-                        <Text style={styles.tagText}>{getUserLevel()}</Text>
+                        <Text style={styles.tagText} numberOfLines={1}>{getUserLevel()}</Text>
                       </View>
                     </View>
                   )}
@@ -312,35 +280,30 @@ const HomeScreen = () => {
               )}
             </TouchableOpacity>
           </View>
-        </Animated.View>
-        <Animated.View style={[styles.heroStats, { opacity: headerOpacity, marginTop: 24 }]}>
+        </View>
+        <View style={[styles.heroStats, { marginTop: 16 }]}>
           <View style={styles.statCard}>
-            <MaterialCommunityIcons name="trophy-outline" size={24} color="#666666" />
+            <MaterialCommunityIcons name="trophy-outline" size={20} color="#666666" />
             <Text style={styles.statNumber}>{userStats.wins}</Text>
             <Text style={styles.statLabel}>{t('home.wins')}</Text>
           </View>
           <View style={styles.statCard}>
-            <MaterialCommunityIcons name="trending-up" size={24} color="#666666" />
+            <MaterialCommunityIcons name="trending-up" size={20} color="#666666" />
             <Text style={styles.statNumber}>{userStats.ranking ? `#${userStats.ranking}` : '-'}</Text>
             <Text style={styles.statLabel}>{t('home.ranking')}</Text>
           </View>
           <View style={styles.statCard}>
-            <MaterialCommunityIcons name="calendar-outline" size={24} color="#666666" />
+            <MaterialCommunityIcons name="calendar-outline" size={20} color="#666666" />
             <Text style={styles.statNumber}>{userStats.upcomingCount}</Text>
             <Text style={styles.statLabel}>{t('home.upcoming')}</Text>
           </View>
-        </Animated.View>
-      </Animated.View>
+        </View>
+      </View>
 
-      <Animated.ScrollView
+      <ScrollView
         ref={scrollViewRef}
         style={styles.scrollView}
-        contentContainerStyle={{ paddingTop: 300 }}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
-        )}
-        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingTop: 20 }}
       >
 
       {/* Quick Actions */}
@@ -447,7 +410,7 @@ const HomeScreen = () => {
           </View>
         )}
       </View>
-      </Animated.ScrollView>
+      </ScrollView>
     </View>
   );
 };
@@ -463,7 +426,6 @@ const styles = StyleSheet.create({
   heroSection: {
     backgroundColor: '#E1BEE7',
     padding: 20,
-    paddingTop: 0,
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
     overflow: 'hidden',
@@ -476,51 +438,38 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 8,
   },
-  compactHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1,
-  },
-  compactTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
-  },
   heroContent: {
-    marginBottom: 20,
+    marginBottom: 12,
   },
   heroHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 24,
+    marginBottom: 16,
   },
   heroHeaderLeft: {
     flex: 1,
+    minWidth: 0,
+    marginRight: 8,
   },
   heroHeaderContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   avatarContainer: {
-    marginRight: 16,
+    marginRight: 12,
   },
   profileAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },
   avatarPlaceholder: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: '#D1C4E9',
     justifyContent: 'center',
     alignItems: 'center',
@@ -528,12 +477,13 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF',
   },
   avatarInitials: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#7B1FA2',
   },
   userInfoContainer: {
     flex: 1,
+    minWidth: 0,
   },
   welcomeText: {
     fontSize: 14,
@@ -541,10 +491,10 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   userName: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#1B1B1B',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   tagsContainer: {
     flexDirection: 'row',
@@ -593,13 +543,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 0,
+    marginBottom: 12,
     gap: 10,
   },
   statCard: {
     flex: 1,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 14,
+    padding: 8,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#F0F0F0',
@@ -611,17 +562,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
+    minWidth: 0,
   },
   statNumber: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#1B1B1B',
-    marginTop: 6,
+    marginTop: 4,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#666666',
-    marginTop: 4,
+    marginTop: 2,
     textAlign: 'center',
   },
   section: {

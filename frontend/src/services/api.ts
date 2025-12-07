@@ -632,6 +632,13 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
     
+    // Hava durumu için 404 hataları normaldir (cache'de veri yoksa), sessizce handle et
+    const isWeatherEndpoint = originalRequest?.url?.includes('/weather/for-datetime');
+    if (isWeatherEndpoint && error.response?.status === 404) {
+      // Hava durumu için 404 normal bir durum, sessizce reject et (log'lamayı atla)
+      return Promise.reject(error);
+    }
+    
     // Diğer HTTP hataları için detaylı log
     console.error('API Error:', {
       status: error.response?.status,

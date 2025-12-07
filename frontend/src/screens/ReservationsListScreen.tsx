@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   Card,
   Title,
@@ -81,7 +82,9 @@ const ReservationsListScreen = ({ navigation }: any) => {
           closed: !!(court.closed),
           indoors: !!(court.indoors),
         }));
-        setCourts(normalizedCourts);
+        // Kapalı kortları filtrele - sadece açık kortları göster
+        const activeCourts = normalizedCourts.filter((court: any) => !court.closed);
+        setCourts(activeCourts);
       } catch (error) {
         console.error('Kortlar yüklenirken hata:', error);
       }
@@ -93,6 +96,14 @@ const ReservationsListScreen = ({ navigation }: any) => {
     loadReservations();
     loadBlockedHours();
   }, [selectedDate, courts]);
+
+  // Sayfa her açıldığında rezervasyonları yenile
+  useFocusEffect(
+    React.useCallback(() => {
+      loadReservations();
+      loadBlockedHours();
+    }, [selectedDate, courts])
+  );
 
   const loadReservations = async () => {
     try {
@@ -205,15 +216,15 @@ const ReservationsListScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       
       {/* Header */}
-      <View style={[styles.headerSection, { paddingTop: Platform.OS === 'android' ? insets.top + 20 : 50 }]}>
+      <View style={[styles.headerSection, { paddingTop: Platform.OS === 'android' ? insets.top + 20 : insets.top + 12 }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <MaterialCommunityIcons name="arrow-left" size={28} color="#FFFFFF" />
+          <MaterialCommunityIcons name="arrow-left" size={28} color="#1B1B1B" />
         </TouchableOpacity>
         <Title style={styles.headerTitle}>{t('reservationsList.title')}</Title>
         <View style={styles.placeholder} />
@@ -238,65 +249,51 @@ const ReservationsListScreen = ({ navigation }: any) => {
           <Text style={styles.loadingText}>{t('reservationsList.loading')}</Text>
         </View>
       ) : (
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={true}
-          style={styles.tableScrollView}
-        >
-          <View style={styles.tableContainer}>
-            {/* Table Header */}
-            <View style={styles.tableHeader}>
-              <View style={[styles.headerCell, styles.timeHeaderCell]}>
-                <Text style={styles.headerCellText}>{t('reservationsList.timeHeader')}</Text>
-              </View>
-              {courts.map(court => {
-                const isClosed = !!(court.closed);
-                return (
-                  <View key={court.id} style={[styles.headerCell, isClosed && styles.closedHeaderCell]}>
-                  <MaterialCommunityIcons 
-                      name={isClosed ? "lock" : "tennis"} 
-                    size={20} 
-                      color={isClosed ? "#BDBDBD" : "#FFFFFF"} 
-                  />
-                    <Text style={[styles.headerCellText, isClosed && styles.closedHeaderText]}>
-                    {court.name}
-                  </Text>
-                    {isClosed && (
-                    <Text style={styles.closedLabel}>{t('reservation.closed')}</Text>
-                  )}
+        <View style={styles.tableWrapper}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={true}
+            style={styles.tableScrollView}
+          >
+            <View style={styles.tableContainer}>
+              {/* Table Header */}
+              <View style={styles.tableHeader}>
+                <View style={[styles.headerCell, styles.timeHeaderCell]}>
+                  <Text style={styles.headerCellText}>{t('reservationsList.timeHeader')}</Text>
                 </View>
-                );
-              })}
-            </View>
-
-            {/* Table Body */}
-            <ScrollView style={styles.tableBody} showsVerticalScrollIndicator={false}>
-              {timeSlots.map(timeSlot => (
-                <View key={timeSlot} style={styles.tableRow}>
-                  <View style={[styles.cell, styles.timeCell]}>
-                    <MaterialCommunityIcons name="clock-outline" size={16} color="#2E7D32" />
-                    <Text style={styles.timeCellText}>{timeSlot}</Text>
+                {courts.map(court => (
+                  <View key={court.id} style={styles.headerCell}>
+                    <MaterialCommunityIcons 
+                      name="tennis" 
+                      size={20} 
+                      color="#FFFFFF" 
+                    />
+                    <Text style={styles.headerCellText}>
+                      {court.name}
+                    </Text>
                   </View>
-                  {courts.map(court => {
-                    const isClosed = !!(court.closed);
-                    return (
-                      <View key={`${court.id}-${timeSlot}`} style={[styles.cell, isClosed && styles.closedCell]}>
-                        {isClosed ? (
-                        <View style={styles.closedCellContent}>
-                          <MaterialCommunityIcons name="lock" size={16} color="#BDBDBD" />
-                          <Text style={styles.closedCellText}>-</Text>
-                        </View>
-                      ) : (
-                        renderCell(court.id, timeSlot)
-                      )}
+                ))}
+              </View>
+
+              {/* Table Body */}
+              <ScrollView style={styles.tableBody} showsVerticalScrollIndicator={false}>
+                {timeSlots.map(timeSlot => (
+                  <View key={timeSlot} style={styles.tableRow}>
+                    <View style={[styles.cell, styles.timeCell]}>
+                      <MaterialCommunityIcons name="clock-outline" size={16} color="#2E7D32" />
+                      <Text style={styles.timeCellText}>{timeSlot}</Text>
                     </View>
-                    );
-                  })}
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-        </ScrollView>
+                    {courts.map(court => (
+                      <View key={`${court.id}-${timeSlot}`} style={styles.cell}>
+                        {renderCell(court.id, timeSlot)}
+                      </View>
+                    ))}
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          </ScrollView>
+        </View>
       )}
 
       {/* Legend */}
@@ -376,25 +373,26 @@ const ReservationsListScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8F9FA',
   },
   headerSection: {
-    backgroundColor: '#2E7D32',
+    backgroundColor: '#FFFFFF',
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
   backButton: {
     padding: 8,
     borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#1B1B1B',
     flex: 1,
     textAlign: 'center',
   },
@@ -403,17 +401,25 @@ const styles = StyleSheet.create({
   },
   dateSection: {
     padding: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8F9FA',
   },
   dateSelector: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FFFFFF',
     padding: 15,
-    borderRadius: 15,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: '#F0F0F0',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   dateText: {
     fontSize: 16,
@@ -434,39 +440,41 @@ const styles = StyleSheet.create({
     color: '#6C757D',
     fontSize: 16,
   },
+  tableWrapper: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
   tableScrollView: {
     flex: 1,
   },
   tableContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   tableHeader: {
     flexDirection: 'row',
     backgroundColor: '#2E7D32',
-    borderTopLeftRadius: 15,
-    borderTopRightRadius: 15,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     overflow: 'hidden',
   },
   headerCell: {
-    width: 120,
-    padding: 15,
+    width: 100,
+    padding: 12,
     alignItems: 'center',
     justifyContent: 'center',
     borderRightWidth: 1,
     borderRightColor: 'rgba(255,255,255,0.2)',
-  },
-  closedHeaderCell: {
-    backgroundColor: '#757575',
-    opacity: 0.6,
-  },
-  closedHeaderText: {
-    color: '#E0E0E0',
-  },
-  closedLabel: {
-    fontSize: 10,
-    color: '#E0E0E0',
-    marginTop: 4,
   },
   timeHeaderCell: {
     width: 80,
@@ -475,16 +483,12 @@ const styles = StyleSheet.create({
   headerCellText: {
     color: '#FFFFFF',
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 12,
     marginTop: 4,
+    textAlign: 'center',
   },
   tableBody: {
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#E9ECEF',
-    borderBottomLeftRadius: 15,
-    borderBottomRightRadius: 15,
+    backgroundColor: '#FFFFFF',
   },
   tableRow: {
     flexDirection: 'row',
@@ -492,9 +496,9 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E9ECEF',
   },
   cell: {
-    width: 120,
+    width: 100,
     minHeight: 60,
-    padding: 10,
+    padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
     borderRightWidth: 1,
@@ -516,7 +520,7 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     backgroundColor: '#E8F5E8',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
@@ -528,31 +532,11 @@ const styles = StyleSheet.create({
     color: '#2E7D32',
     textAlign: 'center',
   },
-  closedCell: {
-    backgroundColor: '#F5F5F5',
-    opacity: 0.4,
-  },
-  closedCellContent: {
-    flex: 1,
-    width: '100%',
-    backgroundColor: '#E0E0E0',
-    borderRadius: 8,
-    padding: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 5,
-  },
-  closedCellText: {
-    fontSize: 14,
-    color: '#BDBDBD',
-    fontWeight: 'bold',
-  },
   emptyCell: {
     flex: 1,
     width: '100%',
     backgroundColor: '#F5F5F5',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
@@ -566,7 +550,7 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     backgroundColor: '#FFEBEE',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
@@ -585,9 +569,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     gap: 20,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#E9ECEF',
+    borderTopColor: '#F0F0F0',
   },
   legendItem: {
     flexDirection: 'row',

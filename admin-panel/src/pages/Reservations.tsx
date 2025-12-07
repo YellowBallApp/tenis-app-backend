@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { LayoutGrid, List } from 'lucide-react';
 import { IoTennisball } from 'react-icons/io5';
-import { HiClock, HiPencil, HiTrash, HiPause, HiPlay, HiBan, HiCalendar } from 'react-icons/hi';
+import { HiClock, HiPencil, HiTrash, HiPause, HiPlay, HiBan, HiCalendar, HiUser, HiUsers } from 'react-icons/hi';
 import { MdNoteAlt } from 'react-icons/md';
 import Layout from '../components/Layout';
 import api from '../utils/api';
@@ -22,13 +23,45 @@ interface Court {
   name: string;
 }
 
+interface UserReservation {
+  id: number;
+  court: { id: number; name: string };
+  user: { id: string; name: string; email: string };
+  startTime: string;
+  endTime: string;
+  notes?: string;
+  participants?: Array<{ id: string; name: string }>;
+}
+
 const Reservations = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Route'a göre aktif tab'i belirle
+  const getActiveTabFromRoute = (): 'blocked' | 'user-reservations' => {
+    if (location.pathname === '/reservations/user-reservations') {
+      return 'user-reservations';
+    }
+    return 'blocked';
+  };
+  
+  const [activeTab, setActiveTab] = useState<'blocked' | 'user-reservations'>(getActiveTabFromRoute());
   const [blockedSlots, setBlockedSlots] = useState<BlockedSlot[]>([]);
   const [courts, setCourts] = useState<Court[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingSlot, setEditingSlot] = useState<BlockedSlot | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  // User Reservations States
+  const [userReservations, setUserReservations] = useState<UserReservation[]>([]);
+  const [userReservationsLoading, setUserReservationsLoading] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  
+  // Route değiştiğinde aktif tab'i güncelle
+  useEffect(() => {
+    const newActiveTab = getActiveTabFromRoute();
+    setActiveTab(newActiveTab);
+  }, [location.pathname]);
   const [formData, setFormData] = useState({
     courtId: '',
     startDate: undefined as Date | undefined,
@@ -67,6 +100,12 @@ const Reservations = () => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (activeTab === 'user-reservations') {
+      fetchUserReservations();
+    }
+  }, [activeTab, selectedDate]);
+
   const fetchData = async () => {
     try {
       const [blockedRes, courtsRes] = await Promise.all([
@@ -79,6 +118,20 @@ const Reservations = () => {
       console.error('Data fetch error:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUserReservations = async () => {
+    try {
+      setUserReservationsLoading(true);
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      const response = await api.get(`/reservations?date=${dateStr}`);
+      setUserReservations(response.data.data || []);
+    } catch (error) {
+      console.error('User reservations fetch error:', error);
+      setUserReservations([]);
+    } finally {
+      setUserReservationsLoading(false);
     }
   };
 
@@ -236,48 +289,66 @@ const Reservations = () => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="glass-strong rounded-2xl p-6 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-soft-white mb-2">Rezervasyon Saatleri Yönetimi</h1>
-            <p className="text-soft-white/70">Toplam {blockedSlots.length} bloke edilmiş saat</p>
-          </div>
-          <div className="flex space-x-3">
-            {/* View Toggle */}
-            <div className="glass rounded-xl p-1 flex space-x-1">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`px-3 py-2 rounded-lg transition-all duration-300 ${
-                  viewMode === 'grid'
-                    ? 'bg-slate-700 text-soft-white font-bold shadow-lg'
-                    : 'text-soft-white/70 hover:text-soft-white'
-                }`}
-                title="Kare Görünüm"
-              >
-                <LayoutGrid size={20} />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`px-3 py-2 rounded-lg transition-all duration-300 ${
-                  viewMode === 'list'
-                    ? 'bg-slate-600 text-soft-white font-bold shadow-lg'
-                    : 'text-soft-white/70 hover:text-soft-white'
-                }`}
-                title="Liste Görünüm"
-              >
-                <List size={20} />
-              </button>
+        <div className="glass-strong rounded-2xl p-6">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-soft-white mb-2">
+                {activeTab === 'blocked' 
+                  ? 'Rezervasyon Saatleri Yönetimi'
+                  : 'Kullanıcı Rezervasyonları'
+                }
+              </h1>
+              <p className="text-soft-white/70">
+                {activeTab === 'blocked' 
+                  ? `Toplam ${blockedSlots.length} bloke edilmiş saat`
+                  : `${selectedDate.toLocaleDateString('tr-TR')} tarihinde ${userReservations.length} rezervasyon`
+                }
+              </p>
             </div>
-            <button
-              onClick={handleCreate}
-              className="px-6 py-3 bg-soft-green hover:bg-soft-green-light text-soft-navy font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-soft-green/50"
-            >
-              + Saat Bloke Et
-            </button>
+            {activeTab === 'blocked' && (
+              <div className="flex space-x-3">
+                {/* View Toggle */}
+                <div className="glass rounded-xl p-1 flex space-x-1">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`px-3 py-2 rounded-lg transition-all duration-300 ${
+                      viewMode === 'grid'
+                        ? 'bg-slate-700 text-soft-white font-bold shadow-lg'
+                        : 'text-soft-white/70 hover:text-soft-white'
+                    }`}
+                    title="Kare Görünüm"
+                  >
+                    <LayoutGrid size={20} />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`px-3 py-2 rounded-lg transition-all duration-300 ${
+                      viewMode === 'list'
+                        ? 'bg-slate-600 text-soft-white font-bold shadow-lg'
+                        : 'text-soft-white/70 hover:text-soft-white'
+                    }`}
+                    title="Liste Görünüm"
+                  >
+                    <List size={20} />
+                  </button>
+                </div>
+                <button
+                  onClick={handleCreate}
+                  className="px-6 py-3 bg-soft-green hover:bg-soft-green-light text-soft-navy font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-soft-green/50"
+                >
+                  + Saat Bloke Et
+                </button>
+              </div>
+            )}
           </div>
+
         </div>
 
-        {/* Grid View */}
-        {viewMode === 'grid' && (
+        {/* Blocked Slots Tab Content */}
+        {activeTab === 'blocked' && (
+          <>
+            {/* Grid View */}
+            {viewMode === 'grid' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {blockedSlots.map((slot) => (
               <div
@@ -453,6 +524,150 @@ const Reservations = () => {
         {blockedSlots.length === 0 && (
           <div className="glass-strong rounded-2xl p-12 text-center">
             <p className="text-soft-white/60 text-lg">Bloke edilmiş zaman dilimi bulunmuyor</p>
+          </div>
+        )}
+          </>
+        )}
+
+        {/* User Reservations Tab Content */}
+        {activeTab === 'user-reservations' && (
+          <div className="space-y-6">
+            {/* Date Selector */}
+            <div className="glass-strong rounded-2xl p-6">
+              <div className="flex items-center space-x-4">
+                <label className="text-sm font-medium text-soft-white/90">
+                  Tarih Seç:
+                </label>
+                <DatePicker
+                  date={selectedDate}
+                  onDateChange={(date) => date && setSelectedDate(date)}
+                  placeholder="Tarih seçin"
+                />
+              </div>
+            </div>
+
+            {/* Reservations List */}
+            {userReservationsLoading ? (
+              <div className="glass-strong rounded-2xl p-12 text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-soft-green mx-auto mb-4"></div>
+                <p className="text-soft-white/80">Yükleniyor...</p>
+              </div>
+            ) : userReservations.length === 0 ? (
+              <div className="glass-strong rounded-2xl p-12 text-center">
+                <p className="text-soft-white/60 text-lg">
+                  {format(selectedDate, 'dd.MM.yyyy')} tarihinde rezervasyon bulunmuyor
+                </p>
+              </div>
+            ) : (
+              <div className="glass-strong rounded-2xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="glass-strong border-b border-white/10">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
+                          Kort
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
+                          Kullanıcı
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
+                          Başlangıç
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
+                          Bitiş
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
+                          Katılımcılar
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
+                          Durum
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
+                          Notlar
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/10">
+                      {userReservations.map((reservation) => {
+                        const startTime = new Date(reservation.startTime);
+                        const endTime = new Date(reservation.endTime);
+                        const isActive = endTime > new Date();
+                        
+                        return (
+                          <tr key={reservation.id} className="hover:bg-white/5 transition-colors duration-200">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-10 h-10 rounded-lg bg-slate-600 flex items-center justify-center text-xl">
+                                  🎾
+                                </div>
+                                <div className="text-sm font-bold text-soft-white">{reservation.court.name}</div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center space-x-2">
+                                <HiUser className="text-soft-green text-lg" />
+                                <div>
+                                  <div className="text-sm font-medium text-soft-white">{reservation.user.name}</div>
+                                  <div className="text-xs text-soft-white/60">{reservation.user.email}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-soft-white/80">
+                                {startTime.toLocaleString('tr-TR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-soft-white/80">
+                                {endTime.toLocaleString('tr-TR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              {reservation.participants && reservation.participants.length > 0 ? (
+                                <div className="flex items-center space-x-2">
+                                  <HiUsers className="text-soft-purple text-lg" />
+                                  <div className="text-sm text-soft-white/80">
+                                    {reservation.participants.map(p => p.name).join(', ')}
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-sm text-soft-white/60">-</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`px-3 py-1 text-xs font-bold rounded-full ${
+                                isActive 
+                                  ? 'bg-green-500/20 text-green-300'
+                                  : 'bg-slate-600 text-slate-300'
+                              }`}>
+                                {isActive ? '✓ Aktif' : '✗ Tamamlandı'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 max-w-xs">
+                              <div className="text-sm text-soft-white/80 truncate" title={reservation.notes || ''}>
+                                {reservation.notes || '-'}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

@@ -1027,60 +1027,99 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
               showsVerticalScrollIndicator={true}
               style={styles.modalScrollView}
             >
-              <Card.Content>
+              <Card.Content style={styles.modalContent}>
                 <View style={styles.modalHeader}>
-                <MaterialCommunityIcons name="sword-cross" size={32} color="#FF9800" />
-                <Title style={styles.modalTitle}>Meydan Okuma Gönder</Title>
-                <TouchableOpacity onPress={() => setShowChallengeModal(false)}>
-                  <MaterialCommunityIcons name="close" size={24} color="#757575" />
-                </TouchableOpacity>
-              </View>
+                  <View style={styles.modalHeaderLeft}>
+                    <View style={styles.modalIconContainer}>
+                      <MaterialCommunityIcons name="sword-cross" size={28} color="#FFFFFF" />
+                    </View>
+                    <Title style={styles.modalTitle}>Meydan Okuma Gönder</Title>
+                  </View>
+                  <TouchableOpacity 
+                    onPress={() => setShowChallengeModal(false)}
+                    style={styles.modalCloseButton}
+                  >
+                    <MaterialCommunityIcons name="close" size={24} color="#666666" />
+                  </TouchableOpacity>
+                </View>
               
               {selectedPlayer && (
                 <>
                   <Text style={styles.modalSubtitle}>
-                    {selectedPlayer.user.name} adlı oyuncuya meydan okuma gönderin
+                    {selectedPlayer.user.name} adlı oyuncuya meydan okuma göndermek istediğinizden emin misiniz?
                   </Text>
                   
-                  <View style={styles.opponentInfo}>
-                    <Avatar.Text 
-                      size={40} 
-                      label={selectedPlayer.user.name.charAt(0)} 
-                    />
-                    <View style={styles.opponentDetails}>
-                      <Text style={styles.opponentName}>{selectedPlayer.user.name}</Text>
-                      <Text style={styles.opponentLevel}>{selectedPlayer.user.name} - {selectedPlayer.position}. sırada</Text>
-                      <Text style={styles.opponentPoints}>#{selectedPlayer.position}</Text>
+                  {/* Opponent Card */}
+                  <View style={styles.opponentCard}>
+                    <View style={styles.opponentCardContent}>
+                      <View style={styles.opponentAvatarContainer}>
+                        <Avatar.Text 
+                          size={64} 
+                          label={selectedPlayer.user.name.charAt(0).toUpperCase()} 
+                          style={styles.opponentAvatar}
+                          labelStyle={styles.opponentAvatarLabel}
+                        />
+                        <View style={styles.opponentRankBadge}>
+                          <MaterialCommunityIcons name="trophy" size={16} color="#FFFFFF" />
+                          <Text style={styles.opponentRankText}>#{selectedPlayer.position}</Text>
+                        </View>
+                      </View>
+                      <View style={styles.opponentDetails}>
+                        <Text style={styles.opponentName}>{selectedPlayer.user.name}</Text>
+                        <View style={styles.opponentInfoRow}>
+                          <MaterialCommunityIcons name="trophy-outline" size={16} color="#666666" />
+                          <Text style={styles.opponentLevel}>{selectedPlayer.position}. Sırada</Text>
+                        </View>
+                        <View style={styles.opponentInfoRow}>
+                          <MaterialCommunityIcons name="chart-line" size={16} color="#2E7D32" />
+                          <Text style={styles.opponentPoints}>{selectedPlayer.points || 0} Puan</Text>
+                        </View>
+                      </View>
                     </View>
                   </View>
                   
-                  <TextInput
-                    mode="outlined"
-                    label="Meydan Okuma Mesajı *"
-                    placeholder="Mesajınızı yazın..."
-                    value={challengeMessage}
-                    onChangeText={(text) => {
-                      setChallengeMessage(text);
-                      if (messageError && text.trim()) {
-                        setMessageError(false);
-                      }
-                    }}
-                    multiline
-                    numberOfLines={3}
-                    style={styles.messageInput}
-                    outlineColor={messageError ? "#D32F2F" : "#E0E0E0"}
-                    activeOutlineColor={messageError ? "#D32F2F" : "#2E7D32"}
-                    error={messageError}
-                  />
-                  {messageError && (
-                    <Text style={styles.errorText}>Bu alan gereklidir</Text>
-                  )}
+                  <View style={styles.messageSection}>
+                    <View style={styles.messageSectionLabel}>
+                      <MaterialCommunityIcons name="message-text-outline" size={18} color="#666666" />
+                      <Text style={styles.messageSectionLabelText}>
+                        Meydan Okuma Mesajı
+                        <Text style={styles.requiredStar}> *</Text>
+                      </Text>
+                    </View>
+                    <TextInput
+                      mode="outlined"
+                      placeholder="Rakibinize göndermek istediğiniz mesajı yazın..."
+                      value={challengeMessage}
+                      onChangeText={(text) => {
+                        setChallengeMessage(text);
+                        if (messageError && text.trim()) {
+                          setMessageError(false);
+                        }
+                      }}
+                      multiline
+                      numberOfLines={4}
+                      style={styles.messageInput}
+                      contentStyle={styles.messageInputContent}
+                      outlineColor={messageError ? "#D32F2F" : "#E0E0E0"}
+                      activeOutlineColor={messageError ? "#D32F2F" : "#2E7D32"}
+                      error={messageError}
+                      placeholderTextColor="#9E9E9E"
+                    />
+                    {messageError && (
+                      <View style={styles.errorContainer}>
+                        <MaterialCommunityIcons name="alert-circle" size={16} color="#D32F2F" />
+                        <Text style={styles.errorText}>Bu alan gereklidir</Text>
+                      </View>
+                    )}
+                  </View>
 
                   <View style={styles.modalButtons}>
                     <Button
                       mode="outlined"
                       onPress={() => setShowChallengeModal(false)}
                       style={styles.modalCancelButton}
+                      contentStyle={styles.modalButtonContent}
+                      labelStyle={styles.modalCancelButtonLabel}
                     >
                       İptal
                     </Button>
@@ -1089,6 +1128,9 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                       onPress={sendChallenge}
                       style={styles.modalSendButton}
                       buttonColor="#2E7D32"
+                      contentStyle={styles.modalButtonContent}
+                      labelStyle={styles.modalSendButtonLabel}
+                      icon="send"
                     >
                       Gönder
                     </Button>
@@ -1770,80 +1812,181 @@ const styles = StyleSheet.create({
   modalScrollView: {
     maxHeight: '100%',
   },
+  modalContent: {
+    padding: 24,
+    paddingBottom: 32,
+  },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
-    paddingBottom: 16,
+    marginBottom: 24,
+    paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E9ECEF',
+    borderBottomColor: '#F0F0F0',
+  },
+  modalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  modalIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FF9800',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  modalCloseButton: {
+    padding: 4,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#1B1B1B',
     flex: 1,
-    marginLeft: 12,
   },
   modalSubtitle: {
-    fontSize: 14,
-    color: '#6C757D',
-    marginBottom: 20,
-    lineHeight: 20,
+    fontSize: 15,
+    color: '#666666',
+    marginBottom: 24,
+    lineHeight: 22,
   },
-  opponentInfo: {
+  opponentCard: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 16,
+    marginBottom: 24,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  opponentCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    padding: 15,
-    backgroundColor: '#F8F9FA',
+    padding: 20,
+  },
+  opponentAvatarContainer: {
+    position: 'relative',
+    marginRight: 16,
+  },
+  opponentAvatar: {
+    backgroundColor: '#E1BEE7',
+  },
+  opponentAvatarLabel: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#7B1FA2',
+  },
+  opponentRankBadge: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FF9800',
     borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    gap: 3,
+  },
+  opponentRankText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: 'bold',
   },
   opponentDetails: {
-    marginLeft: 15,
     flex: 1,
   },
   opponentName: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#1B1B1B',
-    marginBottom: 5,
+    marginBottom: 8,
+  },
+  opponentInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+    gap: 8,
   },
   opponentLevel: {
-    fontSize: 12,
-    color: '#6C757D',
-    marginBottom: 3,
-  },
-  opponentPoints: {
-    fontSize: 12,
-    color: '#2E7D32',
+    fontSize: 14,
+    color: '#666666',
     fontWeight: '500',
   },
+  opponentPoints: {
+    fontSize: 14,
+    color: '#2E7D32',
+    fontWeight: '600',
+  },
+  messageSection: {
+    marginBottom: 24,
+  },
+  messageSectionLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  messageSectionLabelText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1B1B1B',
+  },
+  requiredStar: {
+    color: '#D32F2F',
+  },
   messageInput: {
-    marginBottom: 5,
+    marginBottom: 8,
     backgroundColor: '#FFFFFF',
+  },
+  messageInputContent: {
+    minHeight: 100,
+    paddingVertical: 12,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+    marginBottom: 12,
   },
   errorText: {
     color: '#D32F2F',
-    fontSize: 12,
-    marginTop: 4,
-    marginBottom: 15,
-    marginLeft: 12,
+    fontSize: 13,
+    fontWeight: '500',
   },
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 8,
   },
   modalCancelButton: {
     flex: 1,
-    marginRight: 10,
     borderRadius: 12,
+    borderColor: '#E0E0E0',
+  },
+  modalCancelButtonLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#666666',
   },
   modalSendButton: {
     flex: 1,
-    marginLeft: 10,
     borderRadius: 12,
+  },
+  modalSendButtonLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  modalButtonContent: {
+    paddingVertical: 8,
   },
   snackbar: {
     backgroundColor: '#2E7D32',
