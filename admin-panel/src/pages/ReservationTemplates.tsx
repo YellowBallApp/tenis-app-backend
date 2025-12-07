@@ -111,46 +111,44 @@ const ReservationTemplates = () => {
     }
   };
 
-  const handleToggleActive = async (slot: TimeSlot) => {
-    if (!slot.id) return;
-
-    try {
-      await api.put(`/reservation-templates/${slot.id}`, {
-        isActive: !slot.isActive,
-      });
-      await fetchTemplates();
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Güncelleme başarısız');
-    }
+  const handleToggleActive = (slot: TimeSlot) => {
+    // Sadece local state'i güncelle, API çağrısı yapma
+    setTemplates(prevTemplates => 
+      prevTemplates.map(t => 
+        t.id === slot.id 
+          ? { ...t, isActive: !t.isActive }
+          : t
+      )
+    );
   };
 
   const handleBulkSave = async () => {
     if (!confirm('Tüm değişiklikleri kaydetmek istediğinize emin misiniz?')) return;
 
     try {
-      // Sadece seçili günün şablonlarını al ve her gün için order'ı 0'dan başlat
-      const dayTemplates = getTemplatesForDay(selectedDay);
-      const templatesToSave = dayTemplates.map((template, index) => ({
-        id: template.id,
-        dayOfWeek: template.dayOfWeek,
-        time: template.time,
-        order: index, // Her gün için 0'dan başlar
-        isActive: template.isActive,
-      }));
-
-      // Tüm günlerin şablonlarını birleştir (diğer günlerin şablonlarını da koru)
-      const otherDayTemplates = templates
-        .filter(t => t.dayOfWeek !== selectedDay)
-        .map(t => ({
-          id: t.id,
-          dayOfWeek: t.dayOfWeek,
-          time: t.time,
-          order: t.order,
-          isActive: t.isActive,
-        }));
-
-      // Seçili günün şablonları + diğer günlerin şablonları
-      const allTemplatesToSave = [...templatesToSave, ...otherDayTemplates];
+      // Tüm günlerin şablonlarını al ve her gün için order'ı 0'dan başlat
+      const allTemplatesToSave: any[] = [];
+      
+      // Her gün için ayrı ayrı işle
+      for (let dayOfWeek = 0; dayOfWeek <= 6; dayOfWeek++) {
+        const dayTemplates = templates
+          .filter(t => t.dayOfWeek === dayOfWeek)
+          .sort((a, b) => {
+            if (a.order !== b.order) return a.order - b.order;
+            return a.time.localeCompare(b.time);
+          });
+        
+        // Her gün için order'ı 0'dan başlat
+        dayTemplates.forEach((template, index) => {
+          allTemplatesToSave.push({
+            id: template.id,
+            dayOfWeek: template.dayOfWeek,
+            time: template.time,
+            order: index, // Her gün için 0'dan başlar
+            isActive: template.isActive,
+          });
+        });
+      }
 
       await api.put('/reservation-templates/bulk/update', { templates: allTemplatesToSave });
       alert('Şablonlar başarıyla kaydedildi');
