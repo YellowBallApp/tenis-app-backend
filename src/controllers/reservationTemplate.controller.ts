@@ -94,7 +94,7 @@ export class ReservationTemplateController {
       const template = await this.templateService.createTemplate({
         dayOfWeek,
         time,
-        order: order ?? 0,
+        order: order ?? 1,
         isActive: isActive !== undefined ? isActive : true,
       });
 

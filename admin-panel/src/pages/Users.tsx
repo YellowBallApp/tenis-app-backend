@@ -12,6 +12,7 @@ interface User {
   phone?: string;
   userType: string;
   title?: string;
+  birthDate?: string;
   createdAt: string;
 }
 
@@ -29,6 +30,7 @@ const Users = () => {
     phone: '',
     userType: 'standard',
     title: '',
+    birthDate: '',
   });
 
   // Filtreleme state'leri
@@ -72,6 +74,7 @@ const Users = () => {
       phone: '',
       userType: 'standard',
       title: '',
+      birthDate: '',
     });
     setShowModal(true);
   };
@@ -86,6 +89,7 @@ const Users = () => {
       phone: user.phone || '',
       userType: user.userType,
       title: user.title || '',
+      birthDate: (user as any).birthDate ? new Date((user as any).birthDate).toISOString().split('T')[0] : '',
     });
     setShowModal(true);
   };
@@ -520,6 +524,17 @@ const Users = () => {
                     className="glass w-full px-4 py-3 text-soft-white placeholder-soft-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-soft-white/90 mb-2">
+                    Doğum Tarihi
+                  </label>
+                  <input
+                    type="date"
+                    className="glass w-full px-4 py-3 text-soft-white placeholder-soft-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all"
+                    value={formData.birthDate}
+                    onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
                   />
                 </div>
                 <div className="flex space-x-3 pt-4">

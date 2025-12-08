@@ -29,6 +29,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { authService, leagueService, leagueStandingsService, matchHistoryService, leagueApplicationService } from '../services/api';
 import { User } from '../types';
 import { useThemedStyles } from '../hooks/useThemedStyles';
+import { calculateAge } from '../utils/age.utils';
 
 const { width } = Dimensions.get('window');
 
@@ -111,7 +112,8 @@ const DefiLigScreen = ({ navigation }: any) => {
         id: profileData.id,
         name: profileData.name || t('defiLeague.defaultPlayerName'),
         email: profileData.email,
-        age: profileData.age,
+        age: calculateAge((profileData as any).birthDate),
+        birthDate: (profileData as any).birthDate,
         level: profileData.title || t('profile.member'),
         rank: t('profile.gold'), // TODO: Rank sistemi eklenecek
         points: 0, // TODO: Match history'den hesaplanacak

@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { AppError } from "../utils/error/app.error";
 import adminService from "../services/admin.service";
 import { UserType } from "../enum/userType.enum";
+import { calculateAge } from "../utils/age.utils";
 
 const adminController = {
   // Kullanıcı oluştur
@@ -14,7 +15,7 @@ const adminController = {
         surname,
         phone,
         gender,
-        age,
+        birthDate,
         userType,
         title,
       } = req.body;
@@ -33,7 +34,7 @@ const adminController = {
         surname,
         phone,
         gender,
-        age,
+        birthDate: birthDate ? new Date(birthDate) : undefined,
         userType: userType as UserType,
         title,
       });
@@ -48,7 +49,8 @@ const adminController = {
           surname: user.surname,
           phone: user.phone,
           gender: user.gender,
-          age: user.age,
+          age: calculateAge(user.birthDate),
+          birthDate: user.birthDate,
           userType: user.userType,
           title: user.title,
           createdAt: user.createdAt,
@@ -76,7 +78,7 @@ const adminController = {
         surname,
         phone,
         gender,
-        age,
+        birthDate,
         userType,
         title,
         email,
@@ -87,7 +89,7 @@ const adminController = {
         surname,
         phone,
         gender,
-        age,
+        birthDate: birthDate ? new Date(birthDate) : undefined,
         userType: userType as UserType,
         title,
         email,
@@ -103,7 +105,8 @@ const adminController = {
           surname: user.surname,
           phone: user.phone,
           gender: user.gender,
-          age: user.age,
+          age: calculateAge(user.birthDate),
+          birthDate: user.birthDate,
           userType: user.userType,
           title: user.title,
           updatedAt: user.updatedAt,
@@ -192,7 +195,8 @@ const adminController = {
           surname: user.surname,
           phone: user.phone,
           gender: user.gender,
-          age: user.age,
+          age: calculateAge(user.birthDate),
+          birthDate: user.birthDate,
           userType: user.userType,
           title: user.title,
           createdAt: user.createdAt,

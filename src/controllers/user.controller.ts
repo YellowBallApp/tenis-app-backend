@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { AppError } from "../utils/error/app.error";
 import userService from "../services/user.service";
 import leagueStandingsRepository from "../repositories/leagueStandings.repository";
+import { calculateAge } from "../utils/age.utils";
 
 const userController = {
   getProfile: async (req: Request, res: Response) => {
@@ -17,7 +18,8 @@ const userController = {
           phone: user.phone,
           surname: user.surname,
           gender: user.gender,
-          age: user.age,
+          age: calculateAge(user.birthDate),
+          birthDate: user.birthDate,
           title: user.title,
           userType: user.userType,
           profilePhoto: user.profilePhoto,
@@ -67,7 +69,8 @@ const userController = {
             email: user.email,
             phone: user.phone,
             gender: user.gender,
-            age: user.age,
+            age: calculateAge(user.birthDate),
+            birthDate: user.birthDate,
             title: user.title,
             userType: user.userType,
             profilePhoto: user.profilePhoto,
@@ -123,7 +126,8 @@ const userController = {
           email: user.email,
           phone: user.phone,
           gender: user.gender,
-          age: user.age,
+          age: calculateAge(user.birthDate),
+          birthDate: user.birthDate,
           title: user.title,
           userType: user.userType,
           profilePhoto: user.profilePhoto,
@@ -175,7 +179,8 @@ const userController = {
           email: user.email,
           phone: user.phone,
           gender: user.gender,
-          age: user.age,
+          age: calculateAge(user.birthDate),
+          birthDate: user.birthDate,
           title: user.title,
           userType: user.userType,
         })),
@@ -197,14 +202,14 @@ const userController = {
   updateProfile: async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user.id;
-      const { name, surname, phone, profilePhoto, age } = req.body;
+      const { name, surname, phone, profilePhoto, birthDate } = req.body;
 
       const updatedUser = await userService.updateProfile(userId, {
         name,
         surname,
         phone,
         profilePhoto,
-        age,
+        birthDate: birthDate ? new Date(birthDate) : undefined,
       });
 
       return res.status(200).json({
@@ -216,7 +221,8 @@ const userController = {
           phone: updatedUser.phone,
           surname: updatedUser.surname,
           profilePhoto: updatedUser.profilePhoto,
-          age: updatedUser.age,
+          age: calculateAge(updatedUser.birthDate),
+          birthDate: updatedUser.birthDate,
         },
       });
     } catch (err) {

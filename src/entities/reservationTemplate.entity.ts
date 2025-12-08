@@ -12,7 +12,7 @@ export class ReservationTemplate {
   id: number;
 
   @Column({ type: 'int' })
-  dayOfWeek: number; // 0 = Pazar, 1 = Pazartesi, ..., 6 = Cumartesi
+  dayOfWeek: number; // 0 = Pazartesi, 1 = Salı, ..., 6 = Pazar
 
   @Column({ type: 'varchar', length: 5 })
   time: string; // Format: "HH:mm" (örn: "08:00", "09:00")
