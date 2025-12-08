@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     marginBottom: 20,
-    backgroundColor: '#B8B8CC',
+    backgroundColor: '#9575CD',
   },
   profileName: {
     fontSize: 32,

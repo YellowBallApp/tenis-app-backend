@@ -1872,7 +1872,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   opponentAvatar: {
-    backgroundColor: '#E1BEE7',
+    backgroundColor: '#BA68C8',
   },
   opponentAvatarLabel: {
     fontSize: 24,

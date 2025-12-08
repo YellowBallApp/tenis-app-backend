@@ -298,7 +298,7 @@ const NotificationsScreen = ({ navigation }: any) => {
         setShowReservationMatchResultModal(true);
       } catch (error: any) {
         console.error('Rezervasyon yükleme hatası:', error);
-        Alert.alert(t('common.error'), error.response?.data?.message || 'Rezervasyon bilgisi yüklenemedi.');
+        Alert.alert(t('common.error'), error.response?.data?.message || t('notifications.reservationLoadError'));
         setLoadingReservation(false);
       }
     } else {
@@ -366,19 +366,19 @@ const NotificationsScreen = ({ navigation }: any) => {
 
   const submitMatchResult = async () => {
     if (!selectedWinner) {
-      Alert.alert('Uyarı', 'Lütfen kazananı seçin');
+      Alert.alert(t('notifications.warning'), t('notifications.selectWinnerRequired'));
       return;
     }
 
     if (!selectedCourt) {
-      Alert.alert('Uyarı', 'Lütfen kort seçin');
+      Alert.alert(t('notifications.warning'), t('notifications.selectCourtRequired'));
       return;
     }
 
     const filledSets = matchSets.filter(set => set.userScore && set.opponentScore);
     if (filledSets.length < 2) {
       setScoreError(true);
-      Alert.alert('Uyarı', 'En az 2 set skoru girilmesi zorunludur');
+      Alert.alert(t('notifications.warning'), t('notifications.minTwoSetsRequired'));
       return;
     }
 
@@ -398,7 +398,7 @@ const NotificationsScreen = ({ navigation }: any) => {
 
     const opponents = getOpponents();
     if (opponents.length === 0) {
-      Alert.alert('Hata', 'Rakip bulunamadı');
+      Alert.alert(t('common.error'), t('notifications.opponentNotFound'));
       return;
     }
 
@@ -452,7 +452,7 @@ const NotificationsScreen = ({ navigation }: any) => {
       }
 
       setSubmittingMatchResult(false);
-      setSnackbarMessage(`Maç sonucu kaydedildi: ${scoreString}`);
+      setSnackbarMessage(`${t('notifications.matchResultSaved')}: ${scoreString}`);
       setSnackbarVisible(true);
       setShowReservationMatchResultModal(false);
       
@@ -460,7 +460,7 @@ const NotificationsScreen = ({ navigation }: any) => {
       // Backend'den de silindi, diğer kullanıcılar için de silindi
     } catch (error: any) {
       console.error('Maç sonucu kaydetme hatası:', error);
-      Alert.alert('Hata', error.response?.data?.message || 'Maç sonucu kaydedilemedi');
+      Alert.alert(t('common.error'), error.response?.data?.message || t('notifications.matchResultSaveError'));
       setSubmittingMatchResult(false);
     }
   };
@@ -493,7 +493,7 @@ const NotificationsScreen = ({ navigation }: any) => {
           <View style={styles.notificationContent}>
             <View style={styles.notificationHeader}>
               <Text style={styles.notificationTitle}>
-                {isPendingMatch ? 'New Challenge Received' : isMatchCompleted ? 'Match Reminder' : notification.relatedEntityType === 'reservation' ? 'Reservation Confirmed' : 'New Message'}
+                {isPendingMatch ? t('notifications.newChallengeReceived') : isMatchCompleted ? t('notifications.matchReminder') : notification.relatedEntityType === 'reservation' ? t('notifications.reservationConfirmed') : t('notifications.newMessage')}
               </Text>
               {!notification.isRead && (
                 <View style={styles.unreadDot} />
@@ -554,7 +554,7 @@ const NotificationsScreen = ({ navigation }: any) => {
               style={styles.matchResultButton}
               compact
             >
-              Maç Sonucu Gir
+              {t('notifications.enterMatchResult')}
             </Button>
           </View>
         )}
@@ -615,7 +615,7 @@ const NotificationsScreen = ({ navigation }: any) => {
           <Text style={styles.headerTitle}>{t('notifications.title')}</Text>
           {notifications.some((n) => !n.isRead) && (
             <TouchableOpacity onPress={handleMarkAllAsRead}>
-              <Text style={styles.markAllText}>Mark all as read</Text>
+              <Text style={styles.markAllText}>{t('notifications.markAllAsRead')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -628,7 +628,7 @@ const NotificationsScreen = ({ navigation }: any) => {
               onPress={() => setFilterType('all')}
             >
               <Text style={[styles.filterButtonText, filterType === 'all' && styles.filterButtonTextActive]}>
-                All
+                {t('notifications.filterAll')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -636,7 +636,7 @@ const NotificationsScreen = ({ navigation }: any) => {
               onPress={() => setFilterType('challenges')}
             >
               <Text style={[styles.filterButtonText, filterType === 'challenges' && styles.filterButtonTextActive]}>
-                Challenges
+                {t('notifications.filterChallenges')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -644,7 +644,7 @@ const NotificationsScreen = ({ navigation }: any) => {
               onPress={() => setFilterType('matches')}
             >
               <Text style={[styles.filterButtonText, filterType === 'matches' && styles.filterButtonTextActive]}>
-                Matches
+                {t('notifications.filterMatches')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -652,7 +652,7 @@ const NotificationsScreen = ({ navigation }: any) => {
               onPress={() => setFilterType('reservations')}
             >
               <Text style={[styles.filterButtonText, filterType === 'reservations' && styles.filterButtonTextActive]}>
-                Reservations
+                {t('notifications.filterReservations')}
               </Text>
             </TouchableOpacity>
           </ScrollView>
@@ -720,7 +720,7 @@ const NotificationsScreen = ({ navigation }: any) => {
                 <Card.Content>
                 <View style={styles.modalHeader}>
                   <MaterialCommunityIcons name="trophy" size={40} color="#FFD700" />
-                  <Title style={styles.modalTitle}>Maç Sonucu Gir</Title>
+                  <Title style={styles.modalTitle}>{t('notifications.enterMatchResult')}</Title>
                   <TouchableOpacity onPress={() => setShowReservationMatchResultModal(false)}>
                     <MaterialCommunityIcons name="close" size={28} color="#757575" />
                   </TouchableOpacity>
@@ -729,29 +729,29 @@ const NotificationsScreen = ({ navigation }: any) => {
                 {loadingReservation ? (
                   <View style={styles.modalLoadingContainer}>
                     <ActivityIndicator size="large" color="#2E7D32" />
-                    <Text style={styles.modalLoadingText}>Yükleniyor...</Text>
+                    <Text style={styles.modalLoadingText}>{t('notifications.loading')}</Text>
                   </View>
                 ) : currentUser && reservationForMatch ? (
                   <>
                     <Text style={styles.modalSubtitle}>
-                      Maç sonucunu ve set skorlarını girin
+                      {t('notifications.enterMatchResultDescription')}
                     </Text>
 
                     {/* Reservation Details */}
                     <View style={styles.reservationDetailsContainer}>
                       <Text style={styles.reservationDetailText}>
-                        <MaterialCommunityIcons name="tennis-ball" size={16} color="#6C757D" /> Kort: {reservationForMatch.court?.name || 'Bilinmiyor'}
+                        <MaterialCommunityIcons name="tennis-ball" size={16} color="#6C757D" /> {t('notifications.court')} {reservationForMatch.court?.name || t('notifications.unknown')}
                       </Text>
                       <Text style={styles.reservationDetailText}>
-                        <MaterialCommunityIcons name="calendar" size={16} color="#6C757D" /> Tarih: {new Date(reservationForMatch.startTime).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        <MaterialCommunityIcons name="calendar" size={16} color="#6C757D" /> {t('notifications.date')} {new Date(reservationForMatch.startTime).toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
                       </Text>
                       <Text style={styles.reservationDetailText}>
-                        <MaterialCommunityIcons name="clock-outline" size={16} color="#6C757D" /> Saat: {new Date(reservationForMatch.startTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} - {new Date(reservationForMatch.endTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                        <MaterialCommunityIcons name="clock-outline" size={16} color="#6C757D" /> {t('notifications.time')} {new Date(reservationForMatch.startTime).toLocaleTimeString(language === 'tr' ? 'tr-TR' : 'en-US', { hour: '2-digit', minute: '2-digit' })} - {new Date(reservationForMatch.endTime).toLocaleTimeString(language === 'tr' ? 'tr-TR' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
                       </Text>
                     </View>
 
                     {/* Kazanan Seçimi */}
-                    <Text style={styles.sectionLabel}>Kazanan Oyuncu</Text>
+                    <Text style={styles.sectionLabel}>{t('notifications.selectWinner')}</Text>
                     <View style={[
                       styles.winnerSelectionContainer,
                       scoreMismatch && styles.errorBorder
@@ -778,7 +778,7 @@ const NotificationsScreen = ({ navigation }: any) => {
                         />
                         <View style={styles.winnerInfo}>
                           <Text style={styles.winnerName}>{currentUser.name}</Text>
-                          <Text style={styles.winnerLabel}>(Siz)</Text>
+                          <Text style={styles.winnerLabel}>({t('notifications.you')})</Text>
                         </View>
                       </TouchableOpacity>
 
@@ -812,7 +812,7 @@ const NotificationsScreen = ({ navigation }: any) => {
 
                     {/* Kort Seçimi */}
                     <View style={styles.courtSelectionSection}>
-                      <Text style={styles.sectionLabel}>Kort Seçin *</Text>
+                      <Text style={styles.sectionLabel}>{t('notifications.selectCourt')} *</Text>
                       <Menu
                         visible={courtMenuVisible}
                         onDismiss={() => setCourtMenuVisible(false)}
@@ -832,7 +832,7 @@ const NotificationsScreen = ({ navigation }: any) => {
                               <Text style={styles.courtDropdownText}>
                                 {selectedCourt 
                                   ? courts.find(c => c.id === selectedCourt)?.name 
-                                  : 'Kort seçin'}
+                                  : t('notifications.selectCourtPlaceholder')}
                               </Text>
                             </View>
                             <MaterialCommunityIcons 
@@ -861,11 +861,11 @@ const NotificationsScreen = ({ navigation }: any) => {
                     {/* Set Skorları */}
                     <View style={styles.scoresSection}>
                       <View style={styles.scoresSectionHeader}>
-                        <Text style={styles.sectionLabel}>Set Skorları (Minimum 2 Set Zorunlu)</Text>
+                        <Text style={styles.sectionLabel}>{t('notifications.setScores')}</Text>
                         {matchSets.length < 5 && (
                           <TouchableOpacity onPress={addSet} style={styles.addSetButton}>
                             <MaterialCommunityIcons name="plus-circle" size={24} color="#2E7D32" />
-                            <Text style={styles.addSetText}>Set Ekle</Text>
+                            <Text style={styles.addSetText}>{t('notifications.addSet')}</Text>
                           </TouchableOpacity>
                         )}
                       </View>
@@ -874,16 +874,16 @@ const NotificationsScreen = ({ navigation }: any) => {
                         <View style={styles.scoreErrorContainer}>
                           <MaterialCommunityIcons name="alert-circle" size={20} color="#DC3545" />
                           <Text style={styles.scoreErrorText}>
-                            En az 2 set skoru girilmesi zorunludur
+                            {t('notifications.minTwoSetsRequired')}
                           </Text>
                         </View>
                       )}
 
                       <View style={styles.scoresHeader}>
                         <Text style={styles.scorePlayerLabel}>{currentUser.name}</Text>
-                        <Text style={styles.scoreDivider}>vs</Text>
+                        <Text style={styles.scoreDivider}>{t('notifications.vs')}</Text>
                         <Text style={styles.scorePlayerLabel}>
-                          {getOpponents().length > 0 ? getOpponents()[0].name : 'Rakip'}
+                          {getOpponents().length > 0 ? getOpponents()[0].name : t('notifications.opponent')}
                         </Text>
                       </View>
 
@@ -894,7 +894,7 @@ const NotificationsScreen = ({ navigation }: any) => {
                         return (
                           <View key={index} style={styles.setRow}>
                             <Text style={[styles.setLabel, shouldShowError && styles.setLabelError]}>
-                              Set {index + 1}{index < 2 ? ' *' : ''}:
+                              {t('notifications.set')} {index + 1}{index < 2 ? ' *' : ''}:
                             </Text>
                             <TextInput
                               mode="outlined"
@@ -940,7 +940,7 @@ const NotificationsScreen = ({ navigation }: any) => {
                         <View style={styles.scoreErrorContainer}>
                           <MaterialCommunityIcons name="alert-circle" size={20} color="#DC3545" />
                           <Text style={styles.scoreErrorText}>
-                            Kazanan oyuncu ve yazılan skorlar uyuşmuyor
+                            {t('notifications.scoreMismatch')}
                           </Text>
                         </View>
                       )}
@@ -953,7 +953,7 @@ const NotificationsScreen = ({ navigation }: any) => {
                         style={styles.modalCancelButton}
                         disabled={submittingMatchResult}
                       >
-                        İptal
+                        {t('notifications.cancel')}
                       </Button>
                       <Button
                         mode="contained"
@@ -963,7 +963,7 @@ const NotificationsScreen = ({ navigation }: any) => {
                         loading={submittingMatchResult}
                         disabled={submittingMatchResult}
                       >
-                        Kaydet
+                        {t('notifications.save')}
                       </Button>
                     </View>
                   </>

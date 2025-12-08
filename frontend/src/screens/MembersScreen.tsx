@@ -356,7 +356,7 @@ const MembersScreen = () => {
       <Animated.View style={[
         styles.headerSection, 
         { 
-          backgroundColor: '#E1BEE7',
+          backgroundColor: '#BA68C8',
           height: headerHeight 
         }
       ]}>
@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerSection: {
-    backgroundColor: '#E1BEE7',
+    backgroundColor: '#BA68C8',
     padding: 20,
     paddingTop: 40,
     alignItems: 'center',
@@ -491,19 +491,19 @@ const styles = StyleSheet.create({
   compactTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1B1B1B',
+    color: '#FFFFFF',
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1B1B1B',
+    color: '#FFFFFF',
     marginBottom: 10,
     textAlign: 'center',
     paddingTop: 50,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: '#666666',
+    color: '#F3E5F5',
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -548,8 +548,8 @@ const styles = StyleSheet.create({
     borderColor: '#F0F0F0',
   },
   selectedFilterChip: {
-    backgroundColor: '#E1BEE7',
-    borderColor: '#E1BEE7',
+    backgroundColor: '#BA68C8',
+    borderColor: '#BA68C8',
   },
   filterText: {
     color: '#666666',

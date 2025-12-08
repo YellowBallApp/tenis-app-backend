@@ -25,7 +25,7 @@ import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useLanguage } from '../context/LanguageContext';
-import { userService, coachService, coachReviewService, matchHistoryService } from '../services/api';
+import { userService, coachService, coachReviewService, matchHistoryService, authService } from '../services/api';
 import { UsersStackParamList } from '../navigation/MainTabNavigator';
 
 type UsersScreenNavigationProp = StackNavigationProp<UsersStackParamList, 'UsersList'>;
@@ -41,6 +41,7 @@ const UsersScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [membersLoaded, setMembersLoaded] = useState(false);
   const [coachesLoaded, setCoachesLoaded] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   
   // Review modal states
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -52,9 +53,25 @@ const UsersScreen = () => {
   const [reviews, setReviews] = useState<any[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
 
+  // Mevcut kullanıcıyı yükle
+  useEffect(() => {
+    const loadCurrentUser = async () => {
+      try {
+        const profile = await authService.getProfile();
+        setCurrentUserId(profile.id);
+      } catch (error) {
+        console.error('Kullanıcı profili yüklenirken hata:', error);
+      }
+    };
+    
+    loadCurrentUser();
+  }, []);
+
   // İlk yükleme - hem members hem coaches verilerini bir kere çek
   useEffect(() => {
     const initialLoad = async () => {
+      if (currentUserId === null) return; // Mevcut kullanıcı ID'si yüklenene kadar bekle
+      
       try {
         setLoading(true);
         // Paralel olarak hem members hem coaches verilerini yükle
@@ -70,7 +87,7 @@ const UsersScreen = () => {
     };
     
     initialLoad();
-  }, []); // Sadece component mount olduğunda çalışır
+  }, [currentUserId]); // currentUserId değiştiğinde çalışır
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -89,9 +106,12 @@ const UsersScreen = () => {
       const usersData = await userService.getAllUsers();
       
       // Coach ve admin kullanıcılarını filtrele - sadece admin ve coach olmayan kullanıcıları göster
+      // Ayrıca mevcut kullanıcıyı da listeden çıkar
       const filteredUsers = usersData.filter((user: any) => {
         const userType = user.userType?.toLowerCase();
-        return userType !== 'coach' && userType !== 'admin';
+        return user.id !== currentUserId && 
+               userType !== 'coach' && 
+               userType !== 'admin';
       });
       
       // Her kullanıcı için maç istatistiklerini çek
@@ -162,9 +182,12 @@ const UsersScreen = () => {
       if (showLoading) setLoading(true);
       const coachesData = await coachService.getAllCoaches();
       
+      // Mevcut kullanıcıyı filtrele (eğer coach ise)
+      const filteredCoaches = coachesData.filter((coach: any) => coach.id !== currentUserId);
+      
       // Her antrenör için review sayısını çek
       const coachesWithReviewCounts = await Promise.all(
-        coachesData.map(async (coach: any) => {
+        filteredCoaches.map(async (coach: any) => {
           try {
             const reviews = await coachReviewService.getCoachReviews(coach.id);
             const reviewCount = Array.isArray(reviews) ? reviews.length : 0;
@@ -804,14 +827,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#9E9E9E',
   },
   coachAvatar: {
-    backgroundColor: '#E1BEE7',
+    backgroundColor: '#BA68C8',
     color: '#FFFFFF',
   },
   coachAvatarImage: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#E1BEE7',
+    backgroundColor: '#BA68C8',
   },
   cardInfo: {
     flex: 1,

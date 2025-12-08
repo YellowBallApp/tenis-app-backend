@@ -974,7 +974,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
   },
   headerSection: {
-    backgroundColor: '#E1BEE7',
+    backgroundColor: '#BA68C8',
     paddingBottom: 25,
     paddingHorizontal: 20,
     flexDirection: 'row',
@@ -1008,7 +1008,7 @@ const styles = StyleSheet.create({
   statsSection: {
     paddingHorizontal: 20,
     paddingVertical: 28,
-    backgroundColor: '#E1BEE7',
+    backgroundColor: '#BA68C8',
     flexDirection: 'row',
     gap: 12,
   },

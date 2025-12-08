@@ -1,7 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import HomeScreen from '../screens/HomeScreen';
 import GameModesScreen from '../screens/GameModesScreen';
 import UsersScreen from '../screens/UsersScreen';
@@ -133,12 +133,28 @@ const TabNavigator = () => {
           backgroundColor: '#FFFFFF',
           borderTopColor: '#E9ECEF',
           borderTopWidth: 1,
-          paddingBottom: 5,
-          paddingTop: 5,
-          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
+          height: 65,
+          elevation: 10,
+          shadowColor: '#000',
+          shadowOffset: {
+            width: 0,
+            height: -2,
+          },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
         },
         tabBarActiveTintColor: '#2E7D32',
-        tabBarInactiveTintColor: '#6C757D',
+        tabBarInactiveTintColor: '#9E9E9E',
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+          marginTop: 4,
+        },
+        tabBarIconStyle: {
+          marginTop: 4,
+        },
       }}
     >
       <Tab.Screen
@@ -146,8 +162,12 @@ const TabNavigator = () => {
         component={HomeScreen}
         options={{
           title: 'Ana Sayfa',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="home" color={color} size={size} />
+          tabBarIcon: ({ color, focused, size }) => (
+            <Ionicons 
+              name={focused ? "home" : "home-outline"} 
+              color={color} 
+              size={focused ? 28 : 26} 
+            />
           ),
         }}
       />
@@ -156,8 +176,12 @@ const TabNavigator = () => {
         component={GameModesStackNavigator}
         options={{
           title: 'Defi Lig',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="trophy" color={color} size={size} />
+          tabBarIcon: ({ color, focused, size }) => (
+            <MaterialCommunityIcons 
+              name={focused ? "trophy-variant" : "trophy-outline"} 
+              color={color} 
+              size={focused ? 28 : 26} 
+            />
           ),
         }}
       />
@@ -166,8 +190,12 @@ const TabNavigator = () => {
         component={UsersStackNavigator}
         options={{
           title: 'Kullanıcılar',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account-group" color={color} size={size} />
+          tabBarIcon: ({ color, focused, size }) => (
+            <Ionicons 
+              name={focused ? "people" : "people-outline"} 
+              color={color} 
+              size={focused ? 28 : 26} 
+            />
           ),
         }}
       />
@@ -176,8 +204,12 @@ const TabNavigator = () => {
         component={ProfileScreen}
         options={{
           title: 'Profil',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account" color={color} size={size} />
+          tabBarIcon: ({ color, focused, size }) => (
+            <Ionicons 
+              name={focused ? "person-circle" : "person-circle-outline"} 
+              color={color} 
+              size={focused ? 28 : 26} 
+            />
           ),
         }}
       />

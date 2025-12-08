@@ -272,7 +272,7 @@ const HomeScreen = () => {
               onPress={() => navigation.navigate('Notifications')}
               style={styles.notificationButton}
             >
-              <MaterialCommunityIcons name="bell-outline" size={24} color="#666666" />
+              <MaterialCommunityIcons name="bell-outline" size={24} color="#FFFFFF" />
               {unreadCount > 0 && (
                 <View style={styles.notificationBadge}>
                   <Text style={styles.notificationBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   heroSection: {
-    backgroundColor: '#E1BEE7',
+    backgroundColor: '#BA68C8',
     padding: 20,
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#D1C4E9',
+    backgroundColor: '#9575CD',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
   avatarInitials: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#7B1FA2',
+    color: '#FFFFFF',
   },
   userInfoContainer: {
     flex: 1,
@@ -487,13 +487,13 @@ const styles = StyleSheet.create({
   },
   welcomeText: {
     fontSize: 14,
-    color: '#666666',
+    color: '#F3E5F5',
     marginBottom: 4,
   },
   userName: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1B1B1B',
+    color: '#FFFFFF',
     marginBottom: 6,
   },
   tagsContainer: {
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   tag: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
@@ -510,7 +510,7 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#666666',
+    color: '#FFFFFF',
   },
   notificationButton: {
     position: 'relative',
@@ -519,6 +519,8 @@ const styles = StyleSheet.create({
     minHeight: 48,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#2E7D32',
+    borderRadius: 14,
   },
   notificationBadge: {
     position: 'absolute',
@@ -532,7 +534,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 4,
     borderWidth: 2,
-    borderColor: '#E1BEE7',
+    borderColor: '#BA68C8',
   },
   notificationBadgeText: {
     color: '#FFFFFF',

@@ -477,7 +477,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   profileAvatar: {
-    backgroundColor: '#E1BEE7',
+    backgroundColor: '#BA68C8',
     marginBottom: 16,
   },
   profileName: {

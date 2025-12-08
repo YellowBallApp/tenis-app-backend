@@ -91,23 +91,27 @@ const ProfileScreen = () => {
         leagueStandingsService.getStandingsByUserId(profileData.id).catch(() => []),
       ]);
       
-      // Points hesaplama: Tüm liglerin sıralamalarını kullan
-      // Her lig için ters sıralama puanı: 1. sıra = 100, 2. sıra = 99, vb.
+      // Sadece Defi Lig sıralamasını filtrele
+      const defiLigStandings = (userStandings || []).filter((standing: any) => {
+        const leagueName = standing.league?.name || '';
+        const leagueCode = standing.league?.code || '';
+        // "Defi Lig" isimli veya "DL2025" code'lu ligi bul
+        return leagueName.toLowerCase().includes('defi') || leagueCode === 'DL2025';
+      });
+      
+      // Points hesaplama: Sadece Defi Lig sıralamasını kullan
       let totalPoints = 0;
       let currentRank: number | null = null;
-      if (userStandings && Array.isArray(userStandings) && userStandings.length > 0) {
-        // Tüm standings'leri state'e kaydet
-        setUserStandings(userStandings);
+      if (defiLigStandings && defiLigStandings.length > 0) {
+        // Sadece Defi Lig standings'ini state'e kaydet
+        setUserStandings(defiLigStandings);
         
-        // İlk standing'in rank'ini al (geriye dönük uyumluluk için)
-        currentRank = userStandings[0].leagueRanking || null;
-        userStandings.forEach((standing: any) => {
-          // Her lig için maksimum 100 oyuncu varsayımıyla hesapla
-          // En iyi sıralama en yüksek puan
-          const maxPlayers = 100;
-          const rankingPoints = Math.max(0, maxPlayers - (standing.leagueRanking || maxPlayers) + 1);
-          totalPoints += rankingPoints;
-        });
+        // İlk standing'in rank'ini al
+        currentRank = defiLigStandings[0].leagueRanking || null;
+        // Defi Lig için puan hesapla
+        const maxPlayers = 100;
+        const rankingPoints = Math.max(0, maxPlayers - (currentRank || maxPlayers) + 1);
+        totalPoints = rankingPoints;
       } else {
         setUserStandings([]);
       }
@@ -427,35 +431,13 @@ const ProfileScreen = () => {
               <Text style={styles.statNumber}>{user.winRate}%</Text>
               <Text style={styles.statLabel}>{t('profile.winRate')}</Text>
             </View>
-            {/* Current Rank - Tüm Ligler */}
-            <View style={[styles.statCard, styles.rankCard]}>
+            {/* Current Rank - Defi Lig */}
+            <View style={styles.statCard}>
               <MaterialCommunityIcons name="trophy" size={24} color="#9E9E9E" />
+              <Text style={styles.statNumber}>
+                {userStandings.length > 0 ? `#${userStandings[0].leagueRanking || '-'}` : '-'}
+              </Text>
               <Text style={styles.statLabel}>{t('profile.currentRank')}</Text>
-              {userStandings.length > 0 ? (
-                <View style={[
-                  styles.rankingsList,
-                  userStandings.length > 2 && styles.rankingsListWrapped
-                ]}>
-                  {userStandings.map((standing: any, index: number) => (
-                    <View 
-                      key={standing.id || index} 
-                      style={[
-                        styles.rankingItem,
-                        userStandings.length > 2 && styles.rankingItemWrapped
-                      ]}
-                    >
-                      <Text style={styles.leagueName} numberOfLines={1}>
-                        {standing.league?.name || t('profile.league')}
-                      </Text>
-                      <Text style={styles.rankingNumber}>
-                        #{standing.leagueRanking || '-'}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              ) : (
-                <Text style={styles.statNumber}>-</Text>
-              )}
             </View>
             {/* Member Since */}
             <View style={styles.statCard}>
@@ -713,7 +695,7 @@ const ProfileScreen = () => {
                 onPress={handleGalleryPress}
                 activeOpacity={0.7}
               >
-                <View style={[styles.photoOptionIcon, { backgroundColor: '#E1BEE7' }]}>
+                <View style={[styles.photoOptionIcon, { backgroundColor: '#BA68C8' }]}>
                   <MaterialCommunityIcons name="image" size={32} color="#FFFFFF" />
                 </View>
                 <Text style={[styles.photoOptionTitle, themedStyles.text]}>{t('profile.selectFromGallery')}</Text>
@@ -728,7 +710,7 @@ const ProfileScreen = () => {
                 onPress={handleCameraPress}
                 activeOpacity={0.7}
               >
-                <View style={[styles.photoOptionIcon, { backgroundColor: '#E1BEE7' }]}>
+                <View style={[styles.photoOptionIcon, { backgroundColor: '#BA68C8' }]}>
                   <MaterialCommunityIcons name="camera" size={32} color="#FFFFFF" />
                 </View>
                 <Text style={[styles.photoOptionTitle, themedStyles.text]}>{t('profile.takePhoto')}</Text>
@@ -1172,7 +1154,7 @@ const styles = StyleSheet.create({
   },
   // Profile Header Card - Light Purple
   profileHeaderCard: {
-    backgroundColor: '#E1BEE7',
+    backgroundColor: '#BA68C8',
     marginHorizontal: 0,
     marginTop: 0,
     marginBottom: 20,
@@ -1209,7 +1191,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#D1C4E9',
+    backgroundColor: '#9575CD',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1237,12 +1219,12 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#1B1B1B',
+    color: '#FFFFFF',
     marginBottom: 4,
   },
   profileEmail: {
     fontSize: 14,
-    color: '#666666',
+    color: '#F3E5F5',
     marginBottom: 12,
   },
   tagsContainer: {
@@ -1307,48 +1289,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9E9E9E',
     textAlign: 'center',
-  },
-  rankCard: {
-    alignItems: 'center',
-    minHeight: 100,
-  },
-  rankingsList: {
-    marginTop: 8
-  },
-  rankingsListWrapped: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-  },
-  rankingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-    width: '100%',
-    justifyContent: 'center',
-  },
-  rankingItemWrapped: {
-    columnGap: 10,
-    width: '48%',
-    borderBottomWidth: 0,
-    paddingVertical: 4,
-    marginBottom: 8,
-    paddingHorizontal: 4,
-  },
-  leagueName: {
-    fontSize: 13,
-    color: 'gray',
-    fontWeight: '400',
-    width: '100%',
-    flex: 1,
-    marginRight: 4,
-  },
-  rankingNumber: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#4CAF50',
   },
   // Quick Actions
   quickActionsHorizontal: {

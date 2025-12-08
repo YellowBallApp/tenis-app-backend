@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#E1BEE7', // Light purple
+    backgroundColor: '#BA68C8', // Darker purple
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,

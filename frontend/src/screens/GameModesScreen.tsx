@@ -1,10 +1,9 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import {
   View,
   StyleSheet,
   ScrollView,
-  Dimensions,
-  Animated,
+  Platform,
 } from 'react-native';
 import {
   Card,
@@ -14,28 +13,13 @@ import {
   Chip,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLanguage } from '../context/LanguageContext';
-
-const { width } = Dimensions.get('window');
+import { StatusBar } from 'expo-status-bar';
 
 const GameModesScreen = ({ navigation }: any) => {
-  // Scroll animation
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const headerHeight = scrollY.interpolate({
-    inputRange: [0, 150],
-    outputRange: [180, 100],
-    extrapolate: 'clamp',
-  });
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, 100],
-    outputRange: [1, 0],
-    extrapolate: 'clamp',
-  });
-  const compactOpacity = scrollY.interpolate({
-    inputRange: [0, 100],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
+  const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
 
   const gameModes = [
     {
@@ -44,42 +28,30 @@ const GameModesScreen = ({ navigation }: any) => {
       subtitle: 'Çoklu Maç',
       description: 'Defi Lig formatında çoklu maç sistemi',
       icon: 'trophy',
-      color: '#28A745',
+      color: '#2E7D32',
       rules: ['Eleme sistemi', 'Final maçı', 'Ödül sistemi'],
     },
   ];
 
   return (
     <View style={styles.container}>
-      {/* Animated Header Section */}
-      <Animated.View style={[
+      <StatusBar style="light" />
+      {/* Fixed Header Section */}
+      <View style={[
         styles.headerSection,
-        { height: headerHeight }
+        { 
+          paddingTop: Platform.OS === 'android' ? insets.top + 8 : insets.top + 4
+        }
       ]}>
-        {/* Kompakt Başlık */}
-        <Animated.View style={[
-          styles.compactHeader,
-          { opacity: compactOpacity }
-        ]}>
-          <Title style={styles.compactTitle}>🏆 Defi Lig</Title>
-        </Animated.View>
-        
-        {/* Normal İçerik */}
-        <Animated.View style={{ opacity: headerOpacity }}>
-          <Title style={styles.headerTitle}>🏆 Defi Lig</Title>
-          <Text style={styles.headerSubtitle}>
-            Defi Lig formatında rekabetçi maçlara katılın ve lig sıralamasında yükselin
-          </Text>
-        </Animated.View>
-      </Animated.View>
+        <View style={styles.headerContent}>
+          <MaterialCommunityIcons name="trophy" size={24} color="#FFD700" />
+          <Title style={styles.headerTitle}>Defi Lig</Title>
+        </View>
+      </View>
       
-      <Animated.ScrollView
+      <ScrollView
         style={styles.scrollView}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
-        )}
-        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
       >
 
       {/* Game Modes Grid */}
@@ -88,8 +60,8 @@ const GameModesScreen = ({ navigation }: any) => {
           <Card key={mode.id} style={styles.gameModeCard}>
             <Card.Content>
               <View style={styles.modeHeader}>
-                <View style={[styles.modeIcon, { backgroundColor: mode.color }]}>
-                  <MaterialCommunityIcons name={mode.icon as any} size={32} color="#fff" />
+                <View style={[styles.modeIcon, { backgroundColor: '#BA68C8' }]}>
+                  <MaterialCommunityIcons name={mode.icon as any} size={32} color="#FFFFFF" />
                 </View>
                 <View style={styles.modeInfo}>
                   <Title style={styles.modeTitle}>{mode.title}</Title>
@@ -103,7 +75,7 @@ const GameModesScreen = ({ navigation }: any) => {
                 <Text style={styles.rulesTitle}>Kurallar:</Text>
                 {mode.rules.map((rule, index) => (
                   <View key={index} style={styles.ruleItem}>
-                    <MaterialCommunityIcons name="check-circle" size={16} color={mode.color} />
+                    <MaterialCommunityIcons name="check-circle" size={18} color="#2E7D32" />
                     <Text style={styles.ruleText}>{rule}</Text>
                   </View>
                 ))}
@@ -111,8 +83,8 @@ const GameModesScreen = ({ navigation }: any) => {
 
               <Button
                 mode="contained"
-                style={[styles.playButton, { backgroundColor: mode.color }]}
-                buttonColor={mode.color}
+                style={styles.playButton}
+                buttonColor="#2E7D32"
                 onPress={() => navigation.navigate('DefiLig')}
               >
                 Oyna
@@ -133,15 +105,27 @@ const GameModesScreen = ({ navigation }: any) => {
             </Text>
             <View style={styles.tipsContainer}>
               <Text style={styles.tipsTitle}>İpuçları:</Text>
-              <Text style={styles.tipText}>• Defi Lig rekabetçi oyuncular için tasarlanmıştır</Text>
-              <Text style={styles.tipText}>• Eleme sistemi ile ilerleyerek final maçına ulaşın</Text>
-              <Text style={styles.tipText}>• Her maçta puan kazanarak lig sıralamasında yükselin</Text>
-              <Text style={styles.tipText}>• Ödül sistemi ile başarılarınızı ödüllendirin</Text>
+              <View style={styles.tipItem}>
+                <MaterialCommunityIcons name="circle-small" size={20} color="#BA68C8" />
+                <Text style={styles.tipText}>Defi Lig rekabetçi oyuncular için tasarlanmıştır</Text>
+              </View>
+              <View style={styles.tipItem}>
+                <MaterialCommunityIcons name="circle-small" size={20} color="#BA68C8" />
+                <Text style={styles.tipText}>Eleme sistemi ile ilerleyerek final maçına ulaşın</Text>
+              </View>
+              <View style={styles.tipItem}>
+                <MaterialCommunityIcons name="circle-small" size={20} color="#BA68C8" />
+                <Text style={styles.tipText}>Her maçta puan kazanarak lig sıralamasında yükselin</Text>
+              </View>
+              <View style={styles.tipItem}>
+                <MaterialCommunityIcons name="circle-small" size={20} color="#BA68C8" />
+                <Text style={styles.tipText}>Ödül sistemi ile başarılarınızı ödüllendirin</Text>
+              </View>
             </View>
           </Card.Content>
         </Card>
       </View>
-      </Animated.ScrollView>
+      </ScrollView>
     </View>
   );
 };
@@ -149,74 +133,57 @@ const GameModesScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8F9FA',
   },
   scrollView: {
     flex: 1,
   },
   headerSection: {
-    backgroundColor: '#00B050',
-    padding: 20,
-    paddingTop: 40,
+    backgroundColor: '#BA68C8',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
     alignItems: 'center',
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    overflow: 'hidden',
+    justifyContent: 'center',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 2,
     },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  compactHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    paddingTop: 50,
-    paddingHorizontal: 20,
+  headerContent: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  compactTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    gap: 8,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 10,
-    textAlign: 'center',
-    paddingTop: 50,
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: '#E8F5E8',
-    textAlign: 'center',
-    lineHeight: 22,
+    marginBottom: 0,
   },
   gameModesGrid: {
     padding: 20,
   },
   gameModeCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: '#F0F0F0',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 2,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   modeHeader: {
     flexDirection: 'row',
@@ -280,18 +247,18 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   infoCard: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: '#F0F0F0',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   infoTitle: {
     fontSize: 18,
@@ -306,23 +273,25 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   tipsContainer: {
-    backgroundColor: '#FFFFFF',
-    padding: 15,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
+    marginTop: 10,
   },
   tipsTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#1B1B1B',
+    marginBottom: 12,
+  },
+  tipItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     marginBottom: 10,
   },
   tipText: {
     fontSize: 14,
-    color: '#6C757D',
-    marginBottom: 5,
-    lineHeight: 18,
+    color: '#666666',
+    lineHeight: 20,
+    flex: 1,
+    marginLeft: 4,
   },
 });
 
