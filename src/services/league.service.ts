@@ -102,9 +102,6 @@ export class LeagueService {
       // Lig dönemleri
       leagueStartDate: new Date('2025-02-01'),
       leagueEndDate: new Date('2025-06-05'),
-      eliminationStartDate: new Date('2025-06-05'),
-      eliminationEndDate: new Date('2025-06-19'),
-      finalDate: new Date('2025-06-19'),
       
       // Katılım bilgileri
       registrationFee: 150,
@@ -121,8 +118,8 @@ export class LeagueService {
       // Teklif kuralları
       offerResponseDays: 3,
       matchCompletionDays: 7,
-      postMatchCooldownHours: 24,
-      reofferCooldownDays: 15,
+      postMatchCooldownHoursLoser: 24,
+      postMatchCooldownHoursWinner: 12,
       consecutiveWOLimit: 3,
       
       // Sıra bazlı teklif limitleri
@@ -133,8 +130,6 @@ export class LeagueService {
         { range: '28-40', limit: 6 },
         { range: '40+', limit: 10 },
       ],
-      
-      responseTimeHour: 72,
       ...settingsData,
     };
 

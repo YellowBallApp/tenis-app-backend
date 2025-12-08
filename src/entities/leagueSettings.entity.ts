@@ -17,6 +17,12 @@ export class LeagueSettings {
   @Column({ type: 'text' })
   description: string;
 
+  @Column({ type: 'text', nullable: true })
+  leagueDescription: string | null; // Lig hakkında açıklama (frontend'de gösterilecek)
+
+  @Column({ type: 'text', nullable: true })
+  rewards: string | null; // Ödüller bilgisi (JSON string veya plain text)
+
   @OneToOne(() => League, league => league.settings)
   @JoinColumn()
   league: League;
@@ -40,15 +46,6 @@ export class LeagueSettings {
 
   @Column({ type: 'date' })
   leagueEndDate: Date;
-
-  @Column({ type: 'date' })
-  eliminationStartDate: Date;
-
-  @Column({ type: 'date' })
-  eliminationEndDate: Date;
-
-  @Column({ type: 'date' })
-  finalDate: Date;
 
   // === KATILIM BİLGİLERİ ===
 
@@ -95,10 +92,10 @@ export class LeagueSettings {
   matchCompletionDays: number;
 
   @Column('int')
-  postMatchCooldownHours: number;
+  postMatchCooldownHoursLoser: number; // Maç Sonrası Bekleme Süresi Saati (Kaybeden)
 
   @Column('int')
-  reofferCooldownDays: number;
+  postMatchCooldownHoursWinner: number; // Maç Sonrası Bekleme Süresi Saati (Kazanan)
 
   @Column('int')
   consecutiveWOLimit: number;
@@ -110,8 +107,5 @@ export class LeagueSettings {
     range: string;
     limit: number;
   }[];
-
-  @Column('int')
-  responseTimeHour: number;
 }
 

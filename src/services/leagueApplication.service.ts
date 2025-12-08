@@ -6,6 +6,8 @@ import { AppDataSource } from '../config/data-source';
 import { LeagueStandings } from '../entities/leagueStandings.entity';
 import notificationService from './notification.service';
 import { NotificationType } from '../enum/notificationType.enum';
+import { League } from '../entities/league.entity';
+import { User } from '../entities/user.entity';
 
 export class LeagueApplicationService {
   async createApplication(userId: string, leagueId: number, notes?: string): Promise<LeagueApplication> {
@@ -31,6 +33,54 @@ export class LeagueApplicationService {
 
     // APPROVED başvuru varsa ama kullanıcı ligde değilse (ligden çıkarılmışsa), yeni başvuru yapabilir
     // Bu durumda eski APPROVED başvuruyu görmezden geliyoruz
+
+    // Yaş aralığı kontrolü
+    const leagueRepository = AppDataSource.getRepository(League);
+    const league = await leagueRepository.findOne({
+      where: { id: leagueId },
+      relations: ['settings']
+    });
+    
+    if (league && league.settings) {
+      const userRepository = AppDataSource.getRepository(User);
+      const user = await userRepository.findOne({
+        where: { id: userId }
+      });
+      
+      if (user && user.birthDate) {
+        const today = new Date();
+        const birth = new Date(user.birthDate);
+        let age = today.getFullYear() - birth.getFullYear();
+        const monthDiff = today.getMonth() - birth.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+          age--;
+        }
+        
+        const { minAge, maxAge } = league.settings;
+        
+        // Yaş aralığı kontrolü
+        if (minAge !== null || maxAge !== null) {
+          // İki sayı girilmişse: aralık kontrolü
+          if (minAge !== null && maxAge !== null) {
+            if (age < minAge || age > maxAge) {
+              throw new AppError("USER_AGE_NOT_IN_RANGE");
+            }
+          }
+          // Sadece minAge girilmişse: o yaş ve üzeri
+          else if (minAge !== null && maxAge === null) {
+            if (age < minAge) {
+              throw new AppError("USER_AGE_NOT_IN_RANGE");
+            }
+          }
+          // Sadece maxAge girilmişse: o yaş ve altı
+          else if (maxAge !== null && minAge === null) {
+            if (age > maxAge) {
+              throw new AppError("USER_AGE_NOT_IN_RANGE");
+            }
+          }
+        }
+      }
+    }
 
     return await leagueApplicationRepository.create({
       user: { id: userId } as any,

@@ -133,11 +133,6 @@ const DefiLigScreen = ({ navigation }: any) => {
       
       // Her lig için standings'leri çek ve format düzenle
       const defaultDescription = t('defiLeague.defaultDescription');
-      const defaultRewards = [
-        t('defiLeague.rewards.badges'),
-        t('defiLeague.rewards.points'),
-        t('defiLeague.rewards.special'),
-      ];
       const defaultRules = [
         t('defiLeague.rules.format'),
         t('defiLeague.rules.challenge'),
@@ -172,7 +167,7 @@ const DefiLigScreen = ({ navigation }: any) => {
             settings: league.settings,
             color: leagueColors[index % leagueColors.length],
             icon: leagueIcons[index % leagueIcons.length],
-            rewards: defaultRewards,
+            rewards: [], // Artık settings'ten alınacak
             rules: defaultRules,
           };
         })
@@ -215,11 +210,11 @@ const DefiLigScreen = ({ navigation }: any) => {
           return;
         }
         
-        // Yaş kontrolü yap
+        // Yaş aralığı kontrolü yap
         const settings = selectedLig.settings;
         const userAge = currentUser.age;
         
-        if (settings && (settings.minAge !== null || settings.maxAge !== null)) {
+        if (settings && !isUserAgeInRange(settings, userAge)) {
           if (!userAge) {
             Alert.alert(
               t('defiLeague.alerts.ageInfoTitle'),
@@ -230,29 +225,14 @@ const DefiLigScreen = ({ navigation }: any) => {
             return;
           }
           
-          if (settings.minAge !== null && userAge < settings.minAge) {
-            Alert.alert(
-              t('defiLeague.alerts.ageMismatchTitle'),
-              t('defiLeague.alerts.minAgeMessage')
-                .replace('{{min}}', String(settings.minAge))
-                .replace('{{age}}', String(userAge)),
-              [{ text: t('common.ok') }]
-            );
-            setShowLigModal(false);
-            return;
-          }
-          
-          if (settings.maxAge !== null && userAge > settings.maxAge) {
-            Alert.alert(
-              t('defiLeague.alerts.ageMismatchTitle'),
-              t('defiLeague.alerts.maxAgeMessage')
-                .replace('{{max}}', String(settings.maxAge))
-                .replace('{{age}}', String(userAge)),
-              [{ text: t('common.ok') }]
-            );
-            setShowLigModal(false);
-            return;
-          }
+          const ageRange = formatAgeRange(settings);
+          Alert.alert(
+            'Yaş Aralığı Uygun Değil',
+            `Bu lig için yaş aralığı: ${ageRange}. Sizin yaşınız: ${userAge}`,
+            [{ text: t('common.ok') }]
+          );
+          setShowLigModal(false);
+          return;
         }
         
         setLoading(true);
@@ -309,19 +289,49 @@ const DefiLigScreen = ({ navigation }: any) => {
       return t('defiLeague.modal.noAgeLimit');
     }
 
+    // İki sayı girilmişse: "18 - 24"
     if (settings.minAge !== null && settings.maxAge !== null) {
       return `${settings.minAge} - ${settings.maxAge}`;
     }
 
-    if (settings.minAge !== null) {
-      return t('defiLeague.ageRangeUnlimited.min').replace('{{min}}', String(settings.minAge));
+    // Sadece minAge girilmişse: "18+"
+    if (settings.minAge !== null && settings.maxAge === null) {
+      return `${settings.minAge}+`;
     }
 
-    if (settings.maxAge !== null) {
-      return t('defiLeague.ageRangeUnlimited.max').replace('{{max}}', String(settings.maxAge));
+    // Sadece maxAge girilmişse: "65-"
+    if (settings.maxAge !== null && settings.minAge === null) {
+      return `-${settings.maxAge}`;
     }
 
     return t('defiLeague.modal.noAgeLimit');
+  };
+
+  // Yaş aralığı kontrolü - kullanıcı yaş aralığında mı?
+  const isUserAgeInRange = (settings?: any, userAge?: number | null): boolean => {
+    if (!settings || !userAge) return true; // Yaş bilgisi yoksa engelleme
+    
+    const { minAge, maxAge } = settings;
+    
+    // Yaş sınırı yoksa herkes girebilir
+    if (minAge === null && maxAge === null) return true;
+    
+    // İki sayı girilmişse: aralık kontrolü
+    if (minAge !== null && maxAge !== null) {
+      return userAge >= minAge && userAge <= maxAge;
+    }
+    
+    // Sadece minAge girilmişse: o yaş ve üzeri
+    if (minAge !== null && maxAge === null) {
+      return userAge >= minAge;
+    }
+    
+    // Sadece maxAge girilmişse: o yaş ve altı
+    if (maxAge !== null && minAge === null) {
+      return userAge <= maxAge;
+    }
+    
+    return true;
   };
 
   const currentUserLevelLabel = currentUser?.level || t('profile.member');
@@ -659,15 +669,27 @@ const DefiLigScreen = ({ navigation }: any) => {
                     )}
                   </View>
 
-                  <View style={styles.modalRewards}>
-                    <Text style={styles.modalRewardsTitle}>{t('defiLeague.rewardsTitle')}</Text>
-                    {selectedLig.rewards.map((reward: string, index: number) => (
-                      <View key={index} style={styles.modalRewardItem}>
-                        <MaterialCommunityIcons name="gift" size={16} color="#2E7D32" />
-                        <Text style={styles.modalRewardText}>{reward}</Text>
-                      </View>
-                    ))}
-                  </View>
+                  {/* Lig Açıklaması */}
+                  {selectedLig.settings?.leagueDescription && (
+                    <View style={styles.modalDescription}>
+                      <Text style={styles.modalDescriptionText}>
+                        {selectedLig.settings.leagueDescription}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Ödüller - sadece rewards alanı doluysa göster */}
+                  {selectedLig.settings?.rewards && selectedLig.settings.rewards.trim() !== '' && (
+                    <View style={styles.modalRewards}>
+                      <Text style={styles.modalRewardsTitle}>{t('defiLeague.rewardsTitle')}</Text>
+                      {selectedLig.settings.rewards.split('\n').filter((line: string) => line.trim() !== '').map((reward: string, index: number) => (
+                        <View key={index} style={styles.modalRewardItem}>
+                          <MaterialCommunityIcons name="gift" size={16} color="#2E7D32" />
+                          <Text style={styles.modalRewardText}>{reward.trim()}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
 
                   {!selectedLig.isUserInLeague && selectedLig.settings && (selectedLig.settings.minAge !== null || selectedLig.settings.maxAge !== null) && (() => {
                     const userAge = currentUser.age;
@@ -709,11 +731,16 @@ const DefiLigScreen = ({ navigation }: any) => {
                         selectedLig.applicationStatus === 'rejected' ? "close-circle" :
                         "account-plus"
                       }
-                      disabled={selectedLig.applicationStatus === 'pending' || selectedLig.applicationStatus === 'rejected'}
+                      disabled={
+                        selectedLig.applicationStatus === 'pending' || 
+                        selectedLig.applicationStatus === 'rejected' ||
+                        (!selectedLig.isUserInLeague && !isUserAgeInRange(selectedLig.settings, currentUser.age))
+                      }
                     >
                       {selectedLig.isUserInLeague ? t('defiLeague.modal.view') : 
                        selectedLig.applicationStatus === 'pending' ? 'Başvuru Beklemede' :
                        selectedLig.applicationStatus === 'rejected' ? 'Başvuru Reddedildi' :
+                       !isUserAgeInRange(selectedLig.settings, currentUser.age) ? 'Yaş Aralığı Uygun Değil' :
                        t('defiLeague.modal.join')}
                     </Button>
                   </View>
@@ -1048,6 +1075,9 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   modalDescription: {
+    marginBottom: 20,
+  },
+  modalDescriptionText: {
     fontSize: 15,
     color: '#6C757D',
     lineHeight: 22,

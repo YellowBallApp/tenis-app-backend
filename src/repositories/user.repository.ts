@@ -13,7 +13,7 @@ const userRepository = {
     surname?: string;
     phone?: string;
     gender?: string;
-    birthDate?: Date;
+    birthDate: Date;
   }): Promise<User> => {
     const user = repository.create(userData);
     return await repository.save(user);

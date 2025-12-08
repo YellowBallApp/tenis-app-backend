@@ -7,7 +7,7 @@ export const registerSchema = Joi.object({
   surname: Joi.string().min(2).max(50).optional(),
   phone: Joi.string().optional(),
   gender: Joi.string().valid('MALE', 'FEMALE', 'OTHER').optional(),
-  birthDate: Joi.date().max('now').optional()
+  birthDate: Joi.date().max('now').required()
 });
 
 export const loginSchema = Joi.object({

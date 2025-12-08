@@ -12,9 +12,9 @@ const authController = {
         throw new AppError("VALIDATION_ERROR");
       }
 
-      const { name, email, password, surname, phone, gender, age } = value;
+      const { name, email, password, surname, phone, gender, birthDate } = value;
 
-      const tokens = await authService.register(name, email, password, surname, phone, gender, age);
+      const tokens = await authService.register(name, email, password, birthDate, surname, phone, gender);
 
       return res.status(201).json({
         data: {

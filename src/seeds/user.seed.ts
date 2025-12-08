@@ -17,6 +17,13 @@ export const seedUsers = async () => {
   try {
     const hashedPassword = await hash("password123", 10);
 
+    // Helper function to calculate birth date from age
+    const getBirthDateFromAge = (age: number): Date => {
+      const today = new Date();
+      const birthYear = today.getFullYear() - age;
+      return new Date(birthYear, today.getMonth(), today.getDate());
+    };
+
     const usersData = [
       {
         email: "admin@example.com",
@@ -25,7 +32,7 @@ export const seedUsers = async () => {
         phone: "5551234567",
         password: hashedPassword,
         gender: "MALE",
-        age: 45,
+        birthDate: getBirthDateFromAge(45),
         title: "Kulüp Yöneticisi",
         userType: UserType.ADMIN,
         // ELO: Elite seviye
@@ -43,7 +50,7 @@ export const seedUsers = async () => {
         phone: "5551234568",
         password: hashedPassword,
         gender: "MALE",
-        age: 28,
+        birthDate: getBirthDateFromAge(28),
         title: "Üye",
         userType: UserType.RESTRICTED,
         // ELO: İleri seviye
@@ -61,7 +68,7 @@ export const seedUsers = async () => {
         phone: "5551234569",
         password: hashedPassword,
         gender: "MALE",
-        age: 32,
+        birthDate: getBirthDateFromAge(32),
         title: "Üye",
         userType: UserType.RESTRICTED,
         // ELO: Çok iyi
@@ -79,7 +86,7 @@ export const seedUsers = async () => {
         phone: "5551234570",
         password: hashedPassword,
         gender: "FEMALE",
-        age: 26,
+        birthDate: getBirthDateFromAge(26),
         title: "Üye",
         userType: UserType.STANDARD,
         // ELO: İyi
@@ -97,7 +104,7 @@ export const seedUsers = async () => {
         phone: "5551234571",
         password: hashedPassword,
         gender: "FEMALE",
-        age: 35,
+        birthDate: getBirthDateFromAge(35),
         title: "Üye",
         userType: UserType.STANDARD,
         // ELO: Orta üst
@@ -115,7 +122,7 @@ export const seedUsers = async () => {
         phone: "5551234572",
         password: hashedPassword,
         gender: "MALE",
-        age: 29,
+        birthDate: getBirthDateFromAge(29),
         title: "Üye",
         userType: UserType.RESTRICTED,
         // ELO: Orta
@@ -133,7 +140,7 @@ export const seedUsers = async () => {
         phone: "5551234573",
         password: hashedPassword,
         gender: "FEMALE",
-        age: 24,
+        birthDate: getBirthDateFromAge(24),
         title: "Üye",
         userType: UserType.STANDARD,
         // ELO: Orta alt
@@ -151,7 +158,7 @@ export const seedUsers = async () => {
         phone: "5551234574",
         password: hashedPassword,
         gender: "MALE",
-        age: 31,
+        birthDate: getBirthDateFromAge(31),
         title: "Üye",
         userType: UserType.STANDARD,
         // ELO: Başlangıç

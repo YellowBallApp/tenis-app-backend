@@ -17,7 +17,7 @@ const adminService = {
     surname?: string;
     phone?: string;
     gender?: string;
-    birthDate?: Date;
+    birthDate: Date;
     userType?: UserType;
     title?: string;
   }): Promise<User> => {

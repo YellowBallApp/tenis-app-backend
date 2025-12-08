@@ -20,10 +20,10 @@ const adminController = {
         title,
       } = req.body;
 
-      if (!name || !email || !password) {
+      if (!name || !email || !password || !birthDate) {
         return res.status(400).json({
           success: false,
-          message: "İsim, email ve şifre gereklidir",
+          message: "İsim, email, şifre ve doğum tarihi gereklidir",
         });
       }
 
@@ -34,7 +34,7 @@ const adminController = {
         surname,
         phone,
         gender,
-        birthDate: birthDate ? new Date(birthDate) : undefined,
+        birthDate: new Date(birthDate),
         userType: userType as UserType,
         title,
       });

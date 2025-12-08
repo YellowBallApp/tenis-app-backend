@@ -12,10 +12,10 @@ const authService = {
     name: string,
     email: string,
     password: string,
+    birthDate: Date,
     surname?: string,
     phone?: string,
-    gender?: string,
-    birthDate?: Date
+    gender?: string
   ): Promise<{ accessToken: string; refreshToken: string }> => {
     // Check if user already exists
     const existingUser = await userService.findByEmail(email).catch(() => null);
@@ -34,7 +34,7 @@ const authService = {
       surname,
       phone,
       gender,
-      birthDate: birthDate ? new Date(birthDate) : undefined,
+      birthDate: new Date(birthDate),
     });
 
     // Generate tokens

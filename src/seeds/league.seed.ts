@@ -29,9 +29,6 @@ export const seedLeagues = async () => {
       creator: "system",
       leagueStartDate: new Date("2025-02-01"),
       leagueEndDate: new Date("2025-06-05"),
-      eliminationStartDate: new Date("2025-06-05"),
-      eliminationEndDate: new Date("2025-06-19"),
-      finalDate: new Date("2025-06-19"),
       registrationFee: 150,
       minMatchCountForElimination: 15,
       minAge: 18,
@@ -42,8 +39,8 @@ export const seedLeagues = async () => {
       matchTiebreakPoints: 10,
       offerResponseDays: 3,
       matchCompletionDays: 7,
-      postMatchCooldownHours: 24,
-      reofferCooldownDays: 15,
+      postMatchCooldownHoursLoser: 24,
+      postMatchCooldownHoursWinner: 12,
       consecutiveWOLimit: 3,
       offerLimitsByRank: [
         { range: "1-11", limit: 3 },
@@ -52,7 +49,6 @@ export const seedLeagues = async () => {
         { range: "28-40", limit: 6 },
         { range: "40+", limit: 10 },
       ],
-      responseTimeHour: 72,
     });
     await leagueSettingsRepository.save(defiLigSettings);
 
@@ -70,9 +66,6 @@ export const seedLeagues = async () => {
       creator: "system",
       leagueStartDate: new Date("2025-06-15"),
       leagueEndDate: new Date("2025-09-15"),
-      eliminationStartDate: new Date("2025-09-15"),
-      eliminationEndDate: new Date("2025-09-30"),
-      finalDate: new Date("2025-09-30"),
       registrationFee: 100,
       minMatchCountForElimination: 10,
       minAge: 16,
@@ -83,15 +76,14 @@ export const seedLeagues = async () => {
       matchTiebreakPoints: 10,
       offerResponseDays: 2,
       matchCompletionDays: 5,
-      postMatchCooldownHours: 12,
-      reofferCooldownDays: 10,
+      postMatchCooldownHoursLoser: 12,
+      postMatchCooldownHoursWinner: 6,
       consecutiveWOLimit: 2,
       offerLimitsByRank: [
         { range: "1-10", limit: 4 },
         { range: "11-20", limit: 5 },
         { range: "20+", limit: 8 },
       ],
-      responseTimeHour: 48,
     });
     await leagueSettingsRepository.save(yazLigiSettings);
 
@@ -109,9 +101,6 @@ export const seedLeagues = async () => {
       creator: "system",
       leagueStartDate: new Date("2025-03-01"),
       leagueEndDate: new Date("2025-07-01"),
-      eliminationStartDate: new Date("2025-07-01"),
-      eliminationEndDate: new Date("2025-07-15"),
-      finalDate: new Date("2025-07-15"),
       registrationFee: 200,
       minMatchCountForElimination: 12,
       minAge: 18,
@@ -122,15 +111,14 @@ export const seedLeagues = async () => {
       matchTiebreakPoints: 10,
       offerResponseDays: 3,
       matchCompletionDays: 7,
-      postMatchCooldownHours: 24,
-      reofferCooldownDays: 15,
+      postMatchCooldownHoursLoser: 24,
+      postMatchCooldownHoursWinner: 12,
       consecutiveWOLimit: 3,
       offerLimitsByRank: [
         { range: "1-8", limit: 3 },
         { range: "9-16", limit: 4 },
         { range: "16+", limit: 6 },
       ],
-      responseTimeHour: 72,
     });
     await leagueSettingsRepository.save(ciftlerLigiSettings);
     

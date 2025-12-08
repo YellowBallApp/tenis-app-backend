@@ -13,6 +13,8 @@ interface LeagueApplication {
     name: string;
     email: string;
     userType?: 'restricted' | 'standard' | 'admin' | 'coach';
+    birthDate?: string;
+    age?: number;
   };
   league: {
     id: number;
@@ -21,7 +23,7 @@ interface LeagueApplication {
   };
 }
 
-type SortField = 'user' | 'userType' | 'league' | 'status' | 'date' | null;
+type SortField = 'user' | 'userType' | 'age' | 'league' | 'status' | 'date' | null;
 type SortDirection = 'asc' | 'desc';
 
 const LeagueApplications = () => {
@@ -79,6 +81,10 @@ const LeagueApplications = () => {
             case 'userType':
               aValue = a.user.userType || '';
               bValue = b.user.userType || '';
+              break;
+            case 'age':
+              aValue = a.user.age || 0;
+              bValue = b.user.age || 0;
               break;
             case 'league':
               aValue = a.league.name.toLowerCase();
@@ -252,6 +258,12 @@ const LeagueApplications = () => {
                   </th>
                   <th 
                     className="text-left py-3 px-4 text-soft-white font-semibold cursor-pointer hover:bg-white/5 transition-all"
+                    onClick={() => handleSort('age')}
+                  >
+                    Yaş {getSortIcon('age')}
+                  </th>
+                  <th 
+                    className="text-left py-3 px-4 text-soft-white font-semibold cursor-pointer hover:bg-white/5 transition-all"
                     onClick={() => handleSort('league')}
                   >
                     Lig {getSortIcon('league')}
@@ -274,12 +286,26 @@ const LeagueApplications = () => {
               <tbody>
                 {applications.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-8 text-soft-white/60">
+                    <td colSpan={7} className="text-center py-8 text-soft-white/60">
                       Başvuru bulunmamaktadır
                     </td>
                   </tr>
                 ) : (
-                  applications.map((application) => (
+                  applications.map((application) => {
+                    const calculateAge = (birthDate?: string): number | null => {
+                      if (!birthDate) return null;
+                      const today = new Date();
+                      const birth = new Date(birthDate);
+                      let age = today.getFullYear() - birth.getFullYear();
+                      const monthDiff = today.getMonth() - birth.getMonth();
+                      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+                        age--;
+                      }
+                      return age;
+                    };
+                    const userAge = application.user.age ?? calculateAge(application.user.birthDate);
+                    
+                    return (
                     <tr key={application.id} className="border-b border-white/5 hover:bg-white/5">
                       <td className="py-3 px-4">
                         <div>
@@ -291,6 +317,9 @@ const LeagueApplications = () => {
                         <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-500/20 text-blue-400">
                           {getUserTypeLabel(application.user.userType)}
                         </span>
+                      </td>
+                      <td className="py-3 px-4 text-soft-white/80">
+                        {userAge !== null ? `${userAge} yaş` : '-'}
                       </td>
                       <td className="py-3 px-4">
                         <div>
@@ -330,7 +359,8 @@ const LeagueApplications = () => {
                         )}
                       </td>
                     </tr>
-                  ))
+                    );
+                  })
                 )}
               </tbody>
             </table>

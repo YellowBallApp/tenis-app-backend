@@ -27,8 +27,8 @@ import {
   @Column( {type: "varchar", nullable: true })
   gender: string | null;
 
-  @Column({ type: "date", nullable: true })
-  birthDate: Date | null;
+  @Column({ type: "date" })
+  birthDate: Date;
 
   @Column()
   password: string;

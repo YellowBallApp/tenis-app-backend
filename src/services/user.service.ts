@@ -13,7 +13,7 @@ const userService = {
     surname?: string;
     phone?: string;
     gender?: string;
-    birthDate?: Date;
+    birthDate: Date;
   }): Promise<User> => {
     return await userRepository.create(userData);
   },

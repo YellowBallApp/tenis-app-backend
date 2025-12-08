@@ -191,6 +191,11 @@ const rawErrors = {
         code: 1038,
         key: "LEAGUE_APPLICATION_NOT_PENDING",
         message: "League application is not in pending status"
+    },
+    USER_AGE_NOT_IN_RANGE: {
+        code: 1039,
+        key: "USER_AGE_NOT_IN_RANGE",
+        message: "User age is not within the required age range for this league"
     }
 } as const;
 

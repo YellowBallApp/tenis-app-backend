@@ -528,10 +528,11 @@ const Users = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-soft-white/90 mb-2">
-                    Doğum Tarihi
+                    Doğum Tarihi *
                   </label>
                   <input
                     type="date"
+                    required
                     className="glass w-full px-4 py-3 text-soft-white placeholder-soft-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all"
                     value={formData.birthDate}
                     onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}

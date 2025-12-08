@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import leagueApplicationService from '../services/leagueApplication.service';
 import { AppError } from '../utils/error/app.error';
+import { calculateAge } from '../utils/age.utils';
 
 export class LeagueApplicationController {
   // Kullanıcı lige başvur
@@ -40,9 +41,16 @@ export class LeagueApplicationController {
   getAllApplications = async (req: Request, res: Response) => {
     try {
       const applications = await leagueApplicationService.findAll();
+      const applicationsWithAge = applications.map(app => ({
+        ...app,
+        user: {
+          ...app.user,
+          age: calculateAge(app.user.birthDate),
+        }
+      }));
       return res.status(200).json({
         success: true,
-        data: applications,
+        data: applicationsWithAge,
       });
     } catch (error: any) {
       const appError = error instanceof AppError
@@ -64,9 +72,16 @@ export class LeagueApplicationController {
       const leagueId = parseInt(req.params.leagueId);
       const status = req.query.status as any;
       const applications = await leagueApplicationService.findByLeagueId(leagueId, status);
+      const applicationsWithAge = applications.map(app => ({
+        ...app,
+        user: {
+          ...app.user,
+          age: calculateAge(app.user.birthDate),
+        }
+      }));
       return res.status(200).json({
         success: true,
-        data: applications,
+        data: applicationsWithAge,
       });
     } catch (error: any) {
       const appError = error instanceof AppError

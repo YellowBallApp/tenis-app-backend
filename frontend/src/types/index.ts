@@ -46,11 +46,10 @@ export interface ApiError {
 export interface LeagueSettings {
   id: number;
   description: string;
+  leagueDescription?: string | null;
+  rewards?: string | null;
   leagueStartDate: string;
   leagueEndDate: string;
-  eliminationStartDate: string;
-  eliminationEndDate: string;
-  finalDate: string;
   registrationFee: number;
   minMatchCountForElimination: number;
   minAge: number | null;
@@ -61,11 +60,10 @@ export interface LeagueSettings {
   matchTiebreakPoints: number;
   offerResponseDays: number;
   matchCompletionDays: number;
-  postMatchCooldownHours: number;
-  reofferCooldownDays: number;
+  postMatchCooldownHoursLoser: number;
+  postMatchCooldownHoursWinner: number;
   consecutiveWOLimit: number;
   offerLimitsByRank: { range: string; limit: number }[];
-  responseTimeHour: number;
 }
 
 export interface League {
