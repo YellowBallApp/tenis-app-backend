@@ -232,17 +232,11 @@ const MemberDetailScreen = () => {
             <MaterialCommunityIcons name="trophy" size={24} color="#666666" />
             <Text style={styles.statLabel}>{t('profile.currentRank')}</Text>
             {userStandings.length > 0 ? (
-              <View style={[
-                styles.rankingsList,
-                userStandings.length > 2 && styles.rankingsListWrapped
-              ]}>
+              <View style={styles.rankingsList}>
                 {userStandings.map((standing: any, index: number) => (
                   <View 
                     key={standing.id || index} 
-                    style={[
-                      styles.rankingItem,
-                      userStandings.length > 2 && styles.rankingItemWrapped
-                    ]}
+                    style={styles.rankingItem}
                   >
                     <Text style={styles.leagueName} numberOfLines={1}>
                       {standing.league?.name || t('profile.league')}
@@ -429,7 +423,7 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     gap: 12,
     backgroundColor: '#F8F9FA',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
   },
   statCard: {
     width: (width - 80) / 2,

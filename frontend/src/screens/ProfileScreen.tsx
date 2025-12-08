@@ -91,29 +91,29 @@ const ProfileScreen = () => {
         leagueStandingsService.getStandingsByUserId(profileData.id).catch(() => []),
       ]);
       
-      // Sadece Defi Lig sıralamasını filtrele
+      // Tüm lig sıralamalarını kaydet
+      if (userStandings && Array.isArray(userStandings)) {
+        setUserStandings(userStandings);
+      } else {
+        setUserStandings([]);
+      }
+      
+      // Points hesaplama: Defi Lig sıralamasını kullan
+      let totalPoints = 0;
+      let currentRank: number | null = null;
       const defiLigStandings = (userStandings || []).filter((standing: any) => {
         const leagueName = standing.league?.name || '';
         const leagueCode = standing.league?.code || '';
-        // "Defi Lig" isimli veya "DL2025" code'lu ligi bul
         return leagueName.toLowerCase().includes('defi') || leagueCode === 'DL2025';
       });
       
-      // Points hesaplama: Sadece Defi Lig sıralamasını kullan
-      let totalPoints = 0;
-      let currentRank: number | null = null;
       if (defiLigStandings && defiLigStandings.length > 0) {
-        // Sadece Defi Lig standings'ini state'e kaydet
-        setUserStandings(defiLigStandings);
-        
         // İlk standing'in rank'ini al
         currentRank = defiLigStandings[0].leagueRanking || null;
         // Defi Lig için puan hesapla
         const maxPlayers = 100;
         const rankingPoints = Math.max(0, maxPlayers - (currentRank || maxPlayers) + 1);
         totalPoints = rankingPoints;
-      } else {
-        setUserStandings([]);
       }
       
       // Join date sadece yıl olarak
@@ -431,13 +431,29 @@ const ProfileScreen = () => {
               <Text style={styles.statNumber}>{user.winRate}%</Text>
               <Text style={styles.statLabel}>{t('profile.winRate')}</Text>
             </View>
-            {/* Current Rank - Defi Lig */}
-            <View style={styles.statCard}>
+            {/* Current Rank - Tüm Ligler */}
+            <View style={[styles.statCard, styles.rankCard]}>
               <MaterialCommunityIcons name="trophy" size={24} color="#9E9E9E" />
-              <Text style={styles.statNumber}>
-                {userStandings.length > 0 ? `#${userStandings[0].leagueRanking || '-'}` : '-'}
-              </Text>
               <Text style={styles.statLabel}>{t('profile.currentRank')}</Text>
+              {userStandings.length > 0 ? (
+                <View style={styles.rankingsList}>
+                  {userStandings.map((standing: any, index: number) => (
+                    <View 
+                      key={standing.id || index} 
+                      style={styles.rankingItem}
+                    >
+                      <Text style={styles.leagueName} numberOfLines={1}>
+                        {standing.league?.name || t('profile.league')}
+                      </Text>
+                      <Text style={styles.rankingNumber}>
+                        #{standing.leagueRanking || '-'}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.statNumber}>-</Text>
+              )}
             </View>
             {/* Member Since */}
             <View style={styles.statCard}>
@@ -1260,7 +1276,7 @@ const styles = StyleSheet.create({
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
   },
   statCard: {
     width: (width - 80) / 2,
@@ -1289,6 +1305,35 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9E9E9E',
     textAlign: 'center',
+  },
+  rankCard: {
+    alignItems: 'center',
+    minHeight: 100,
+  },
+  rankingsList: {
+    marginTop: 8,
+  },
+  rankingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    width: '100%',
+    justifyContent: 'center',
+  },
+  leagueName: {
+    fontSize: 13,
+    color: 'gray',
+    fontWeight: '400',
+    width: '100%',
+    flex: 1,
+    marginRight: 4,
+  },
+  rankingNumber: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#4CAF50',
   },
   // Quick Actions
   quickActionsHorizontal: {
