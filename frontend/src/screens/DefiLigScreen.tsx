@@ -26,7 +26,7 @@ import {
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLanguage } from '../context/LanguageContext';
-import { authService, leagueService, leagueStandingsService, matchHistoryService } from '../services/api';
+import { authService, leagueService, leagueStandingsService, matchHistoryService, leagueApplicationService } from '../services/api';
 import { User } from '../types';
 import { useThemedStyles } from '../hooks/useThemedStyles';
 
@@ -143,6 +143,9 @@ const DefiLigScreen = ({ navigation }: any) => {
         t('defiLeague.rules.update'),
       ];
 
+      // Kullanıcının tüm başvurularını çek
+      const userApplications = await leagueApplicationService.getUserApplications();
+      
       const formattedLeagues = await Promise.all(
         allLeagues.map(async (league: any, index: number) => {
           const standings = await leagueStandingsService.getStandingsByLeagueId(league.id);
@@ -152,6 +155,10 @@ const DefiLigScreen = ({ navigation }: any) => {
             standing.user.id === profileData.id
           );
           
+          // Kullanıcının bu lig için başvurusu var mı kontrol et
+          const application = userApplications.find((app: any) => app.league.id === league.id);
+          const applicationStatus = application ? application.status : null;
+          
           return {
             id: league.id,
             name: league.name || league.code,
@@ -159,6 +166,7 @@ const DefiLigScreen = ({ navigation }: any) => {
             description: league.description || defaultDescription,
             playerCount: standings.length || 0,
             isUserInLeague: isUserInThisLeague,
+            applicationStatus: applicationStatus, // 'pending', 'approved', 'rejected' veya null
             settings: league.settings,
             color: leagueColors[index % leagueColors.length],
             icon: leagueIcons[index % leagueIcons.length],
@@ -184,8 +192,27 @@ const DefiLigScreen = ({ navigation }: any) => {
 
   const startLig = async () => {
     try {
-      // Eğer kullanıcı ligde değilse, önce lige katıl
+      // Eğer kullanıcı ligde değilse, başvuru yap
       if (!selectedLig.isUserInLeague) {
+        // Başvuru durumunu kontrol et
+        if (selectedLig.applicationStatus === 'pending') {
+          Alert.alert(
+            'Başvuru Beklemede',
+            'Başvurunuz alınmıştır. Onay bekleniyor.'
+          );
+          setShowLigModal(false);
+          return;
+        }
+        
+        if (selectedLig.applicationStatus === 'rejected') {
+          Alert.alert(
+            'Başvuru Reddedildi',
+            'Lig başvurunuz reddedilmiştir.'
+          );
+          setShowLigModal(false);
+          return;
+        }
+        
         // Yaş kontrolü yap
         const settings = selectedLig.settings;
         const userAge = currentUser.age;
@@ -228,24 +255,27 @@ const DefiLigScreen = ({ navigation }: any) => {
         
         setLoading(true);
         
-        await leagueStandingsService.joinLeague(currentUser.id, selectedLig.id);
+        // Başvuru yap
+        await leagueApplicationService.createApplication(selectedLig.id);
         
         Alert.alert(
-          t('defiLeague.alerts.joinSuccessTitle'),
-          t('defiLeague.alerts.joinSuccessMessage').replace('{{league}}', selectedLig.name)
+          'Başvuru Alındı',
+          'Başvurunuz alınmıştır. Onay bekleniyor.'
         );
         
         // Ligleri yeniden yükle
         await loadData();
         setLoading(false);
+        setShowLigModal(false);
+        return;
       }
       
       setShowLigModal(false);
       // Navigate to Lig Sıralama screen
       navigation.navigate('LigSiralama', { lig: selectedLig });
     } catch (error: any) {
-      console.error('Lige katılma hatası:', error);
-      const errorMessage = error.response?.data?.message || t('defiLeague.alerts.joinErrorMessage');
+      console.error('Lige başvuru hatası:', error);
+      const errorMessage = error.response?.data?.message || 'Başvuru yapılırken bir hata oluştu';
       Alert.alert(t('common.error'), errorMessage);
       setLoading(false);
     }
@@ -671,9 +701,18 @@ const DefiLigScreen = ({ navigation }: any) => {
                       onPress={startLig}
                       style={styles.modalStartButton}
                       buttonColor="#2E7D32"
-                      icon={selectedLig.isUserInLeague ? "eye" : "account-plus"}
+                      icon={
+                        selectedLig.isUserInLeague ? "eye" : 
+                        selectedLig.applicationStatus === 'pending' ? "clock-outline" :
+                        selectedLig.applicationStatus === 'rejected' ? "close-circle" :
+                        "account-plus"
+                      }
+                      disabled={selectedLig.applicationStatus === 'pending' || selectedLig.applicationStatus === 'rejected'}
                     >
-                      {selectedLig.isUserInLeague ? t('defiLeague.modal.view') : t('defiLeague.modal.join')}
+                      {selectedLig.isUserInLeague ? t('defiLeague.modal.view') : 
+                       selectedLig.applicationStatus === 'pending' ? 'Başvuru Beklemede' :
+                       selectedLig.applicationStatus === 'rejected' ? 'Başvuru Reddedildi' :
+                       t('defiLeague.modal.join')}
                     </Button>
                   </View>
                 </>

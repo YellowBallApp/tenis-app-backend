@@ -171,6 +171,26 @@ const rawErrors = {
         code: 1034,
         key: "REVIEW_NOT_FOUND",
         message: "Review not found"
+    },
+    LEAGUE_APPLICATION_NOT_FOUND: {
+        code: 1035,
+        key: "LEAGUE_APPLICATION_NOT_FOUND",
+        message: "League application not found"
+    },
+    LEAGUE_APPLICATION_ALREADY_PENDING: {
+        code: 1036,
+        key: "LEAGUE_APPLICATION_ALREADY_PENDING",
+        message: "You already have a pending application for this league"
+    },
+    LEAGUE_APPLICATION_ALREADY_APPROVED: {
+        code: 1037,
+        key: "LEAGUE_APPLICATION_ALREADY_APPROVED",
+        message: "You are already approved for this league"
+    },
+    LEAGUE_APPLICATION_NOT_PENDING: {
+        code: 1038,
+        key: "LEAGUE_APPLICATION_NOT_PENDING",
+        message: "League application is not in pending status"
     }
 } as const;
 

@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { HiLogout, HiChevronDown, HiChevronRight } from 'react-icons/hi';
 import { IoTennisball } from 'react-icons/io5';
-import { MdDashboard, MdPeople, MdEvent, MdRateReview, MdSportsTennis } from 'react-icons/md';
+import { MdDashboard, MdPeople, MdEvent, MdRateReview, MdSportsTennis, MdEmojiEvents } from 'react-icons/md';
 import { useAuth } from '../context/AuthContext';
 import { useEffect, useState } from 'react';
 import api from '../utils/api';
@@ -15,12 +15,18 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [pendingReviewsCount, setPendingReviewsCount] = useState(0);
+  const [pendingApplicationsCount, setPendingApplicationsCount] = useState(0);
   const [reservationsExpanded, setReservationsExpanded] = useState(false);
+  const [leaguesExpanded, setLeaguesExpanded] = useState(false);
 
   useEffect(() => {
     fetchPendingReviewsCount();
+    fetchPendingApplicationsCount();
     // Her 30 saniyede bir güncelle
-    const interval = setInterval(fetchPendingReviewsCount, 30000);
+    const interval = setInterval(() => {
+      fetchPendingReviewsCount();
+      fetchPendingApplicationsCount();
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -33,15 +39,27 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     }
   };
 
+  const fetchPendingApplicationsCount = async () => {
+    try {
+      const response = await api.get('/league-applications/pending/count');
+      setPendingApplicationsCount(response.data.data.count || 0);
+    } catch (error) {
+      console.error('Pending applications count fetch error:', error);
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  // Rezervasyonlar alt menüsü aktif mi kontrol et
+  // Rezervasyonlar ve Ligler alt menüsü aktif mi kontrol et
   useEffect(() => {
     if (location.pathname.startsWith('/reservations')) {
       setReservationsExpanded(true);
+    }
+    if (location.pathname.startsWith('/leagues')) {
+      setLeaguesExpanded(true);
     }
   }, [location.pathname]);
 
@@ -57,6 +75,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         { path: '/reservations', label: 'Rezervasyon Saatleri Yönetimi' },
         { path: '/reservations/user-reservations', label: 'Kullanıcı Rezervasyonları' },
         { path: '/reservations/templates', label: 'Rezervasyon Şablonu' }
+      ]
+    },
+    { 
+      path: '/leagues', 
+      label: 'Lig Yönetimi', 
+      icon: MdEmojiEvents,
+      badge: pendingApplicationsCount,
+      children: [
+        { path: '/leagues', label: 'Ligler' },
+        { path: '/leagues/applications', label: 'Lig Başvuruları', badge: pendingApplicationsCount },
+        { path: '/leagues/standings', label: 'Lig Sıralamaları' }
       ]
     },
     { path: '/reviews', label: 'Yorumlar', icon: MdRateReview, badge: pendingReviewsCount },
@@ -81,7 +110,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               const IconComponent = item.icon;
               const isActive = location.pathname === item.path || (item.children && item.children.some(child => location.pathname === child.path));
               const hasChildren = item.children && item.children.length > 0;
-              const isExpanded = hasChildren && (item.path === '/reservations' ? reservationsExpanded : false);
+              const isExpanded = hasChildren && (
+                item.path === '/reservations' ? reservationsExpanded :
+                item.path === '/leagues' ? leaguesExpanded :
+                false
+              );
 
               if (hasChildren) {
                 return (
@@ -90,6 +123,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                       onClick={() => {
                         if (item.path === '/reservations') {
                           setReservationsExpanded(!reservationsExpanded);
+                        } else if (item.path === '/leagues') {
+                          setLeaguesExpanded(!leaguesExpanded);
                         }
                       }}
                       className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-300 ${
@@ -119,13 +154,18 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                             <Link
                               key={child.path}
                               to={child.path}
-                              className={`block px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 ${
+                              className={`flex items-center justify-between px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 ${
                                 isChildActive
                                   ? 'bg-soft-purple/50 text-soft-white shadow-md'
                                   : 'text-soft-white/70 hover:bg-white/5 hover:text-soft-white'
                               }`}
                             >
-                              {child.label}
+                              <span>{child.label}</span>
+                              {child.badge !== undefined && child.badge > 0 && (
+                                <span className="px-2 py-1 text-xs font-bold bg-soft-green text-soft-navy rounded-full min-w-[24px] text-center">
+                                  {child.badge}
+                                </span>
+                              )}
                             </Link>
                           );
                         })}

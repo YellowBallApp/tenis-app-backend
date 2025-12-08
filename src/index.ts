@@ -26,6 +26,7 @@ import cronRoutes from "./routes/cron.routes";
 import coachReviewRoutes from "./routes/coachReview.routes";
 import weatherRoutes from "./routes/weather.routes";
 import adminRoutes from "./routes/admin.routes";
+import leagueApplicationRoutes from "./routes/leagueApplication.routes";
 import { getLocalNetworkIP } from "./utils/network";
 import { errorHandler } from "./utils/error/app.error";
 import { runSeeds } from "./seeds/index";
@@ -147,6 +148,7 @@ app.use("/api/elo", eloRoutes);
 app.use("/api/cron", cronRoutes);
 app.use("/api/coach-reviews", coachReviewRoutes);
 app.use("/api/weather", weatherRoutes);
+app.use("/api/league-applications", leagueApplicationRoutes);
 app.use("/api/admin", adminRoutes);
 
 // Error handler middleware (tüm route'lardan sonra)

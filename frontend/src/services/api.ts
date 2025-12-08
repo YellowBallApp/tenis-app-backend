@@ -891,7 +891,7 @@ export const leagueStandingsService = {
     return response.data.data;
   },
 
-  // Kullanıcıyı lige ekle
+  // Kullanıcıyı lige ekle (DEPRECATED - use leagueApplicationService instead)
   joinLeague: async (userId: string, leagueId: number) => {
     const response = await api.post('/league/join', { userId, leagueId });
     return response.data;
@@ -1324,6 +1324,26 @@ export const reservationTimeSlotService = {
 };
 
 // Reservation Template Service
+export const leagueApplicationService = {
+  // Lige başvur
+  createApplication: async (leagueId: number, notes?: string) => {
+    const response = await api.post('/league-applications', { leagueId, notes });
+    return response.data;
+  },
+
+  // Kullanıcının başvurularını getir
+  getUserApplications: async () => {
+    const response = await api.get('/league-applications/my-applications');
+    return response.data.data || [];
+  },
+
+  // Belirli bir lige ait başvuruyu kontrol et
+  checkApplication: async (leagueId: number) => {
+    const applications = await leagueApplicationService.getUserApplications();
+    return applications.find((app: any) => app.league.id === leagueId);
+  },
+};
+
 export const reservationTemplateService = {
   // Belirli bir gün için aktif saat dilimlerini getir (public endpoint)
   getActiveTimeSlotsForDay: async (dayOfWeek: number) => {

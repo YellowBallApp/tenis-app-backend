@@ -8,6 +8,9 @@ import Courts from './pages/Courts';
 import Reservations from './pages/Reservations';
 import ReservationTemplates from './pages/ReservationTemplates';
 import Reviews from './pages/Reviews';
+import Leagues from './pages/Leagues';
+import LeagueApplications from './pages/LeagueApplications';
+import LeagueStandings from './pages/LeagueStandings';
 
 function App() {
   return (
@@ -68,6 +71,30 @@ function App() {
             element={
               <ProtectedRoute>
                 <Reviews />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/leagues"
+            element={
+              <ProtectedRoute>
+                <Leagues />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/leagues/applications"
+            element={
+              <ProtectedRoute>
+                <LeagueApplications />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/leagues/standings"
+            element={
+              <ProtectedRoute>
+                <LeagueStandings />
               </ProtectedRoute>
             }
           />
