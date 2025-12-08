@@ -49,10 +49,7 @@ const ReservationTemplates = () => {
   const getTemplatesForDay = (dayOfWeek: number): TimeSlot[] => {
     return templates
       .filter(t => t.dayOfWeek === dayOfWeek)
-      .sort((a, b) => {
-        if (a.order !== b.order) return a.order - b.order;
-        return a.time.localeCompare(b.time);
-      });
+      .sort((a, b) => a.time.localeCompare(b.time)); // Sadece saate göre sırala (küçükten büyüğe)
   };
 
   const handleAddSlot = async () => {
@@ -133,10 +130,7 @@ const ReservationTemplates = () => {
       for (let dayOfWeek = 0; dayOfWeek <= 6; dayOfWeek++) {
         const dayTemplates = templates
           .filter(t => t.dayOfWeek === dayOfWeek)
-          .sort((a, b) => {
-            if (a.order !== b.order) return a.order - b.order;
-            return a.time.localeCompare(b.time);
-          });
+          .sort((a, b) => a.time.localeCompare(b.time)); // Sadece saate göre sırala (küçükten büyüğe)
         
         // Her gün için order'ı 1'den başlat
         dayTemplates.forEach((template, index) => {
@@ -255,7 +249,6 @@ const ReservationTemplates = () => {
                     </button>
                     <HiClock className="text-soft-green text-lg" />
                     <span className="text-soft-white font-medium text-lg">{slot.time}</span>
-                    <span className="text-xs text-soft-white/60">Sıra: {slot.order}</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <button

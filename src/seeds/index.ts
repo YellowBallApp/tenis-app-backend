@@ -9,6 +9,7 @@ import { seedComments } from "./comment.seed";
 import { seedCoaches } from "./coach.seed";
 import { seedCourts } from "./court.seed";
 import { seedEloHistory } from "./eloHistory.seed";
+import { seedReservationTemplates } from "./reservationTemplate.seed";
 
 export async function runSeeds() {
     const queryRunner = AppDataSource.createQueryRunner();
@@ -20,6 +21,7 @@ export async function runSeeds() {
 
         await seedUsers();
         await seedCourts();
+        await seedReservationTemplates(); // Rezervasyon şablonları (kortlardan sonra)
         await seedLeagues();
         await seedLeagueStandings();
         await seedMatches();

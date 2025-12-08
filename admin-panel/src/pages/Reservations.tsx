@@ -143,8 +143,12 @@ const Reservations = () => {
         return;
       }
 
-      // Seçilen tarihin haftanın gününü hesapla (0 = Pazar, 1 = Pazartesi, ..., 6 = Cumartesi)
-      const dayOfWeek = selectedDate.getDay();
+      // Seçilen tarihin haftanın gününü hesapla
+      // JavaScript: 0 = Pazar, 1 = Pazartesi, ..., 6 = Cumartesi
+      // Backend: 0 = Pazartesi, 1 = Salı, ..., 6 = Pazar
+      const jsDayOfWeek = selectedDate.getDay();
+      // Mapping: JS 0 (Pazar) -> Backend 6, JS 1 (Pazartesi) -> Backend 0, etc.
+      const dayOfWeek = jsDayOfWeek === 0 ? 6 : jsDayOfWeek - 1;
 
       // Önce şablondan saat dilimlerini al
       try {

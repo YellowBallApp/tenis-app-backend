@@ -18,10 +18,11 @@ const reservationTemplateRepository = {
   },
 
   findActiveByDay: async (dayOfWeek: number): Promise<ReservationTemplate[]> => {
-    return await repository.find({
+    const templates = await repository.find({
       where: { dayOfWeek, isActive: true },
-      order: { order: 'ASC', time: 'ASC' },
     });
+    // Saate göre sırala (küçükten büyüğe)
+    return templates.sort((a, b) => a.time.localeCompare(b.time));
   },
 
   findById: async (id: number): Promise<ReservationTemplate | null> => {

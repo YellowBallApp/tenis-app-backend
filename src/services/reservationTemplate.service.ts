@@ -66,10 +66,13 @@ export class ReservationTemplateService {
     return await reservationTemplateRepository.bulkUpdate(templates);
   }
 
-  // Belirli bir gün için aktif saat dilimlerini string array olarak döndür
+  // Belirli bir gün için aktif saat dilimlerini string array olarak döndür (sıralı)
   async getActiveTimeSlotsForDay(dayOfWeek: number): Promise<string[]> {
     const templates = await reservationTemplateRepository.findActiveByDay(dayOfWeek);
-    return templates.map((t: ReservationTemplate) => t.time);
+    // Saate göre sırala (küçükten büyüğe)
+    return templates
+      .map((t: ReservationTemplate) => t.time)
+      .sort((a: string, b: string) => a.localeCompare(b));
   }
 
   // Varsayılan şablonları oluştur (her gün 08:00-23:00 arası 1'er saat aralıkla)
