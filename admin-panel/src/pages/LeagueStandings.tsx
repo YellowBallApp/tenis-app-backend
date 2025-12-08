@@ -287,34 +287,34 @@ const LeagueStandings = () => {
               <div className="text-center py-8 text-soft-white/60">Yükleniyor...</div>
             ) : (
               <>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-white/10">
-                        <th className="text-left py-3 px-4 text-soft-white font-semibold">Sıra</th>
-                        <th className="text-left py-3 px-4 text-soft-white font-semibold">Kullanıcı</th>
-                        <th className="text-left py-3 px-4 text-soft-white font-semibold">E-posta</th>
-                        <th className="text-left py-3 px-4 text-soft-white font-semibold">İşlemler</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {standings.length === 0 ? (
-                        <tr>
-                          <td colSpan={4} className="text-center py-8 text-soft-white/60">
-                            Bu ligde henüz oyuncu bulunmamaktadır
-                          </td>
-                        </tr>
-                      ) : (
-                        <DndContext
-                          sensors={sensors}
-                          collisionDetection={closestCenter}
-                          onDragEnd={handleDragEnd}
-                        >
-                          <SortableContext
-                            items={standings.map(s => s.id)}
-                            strategy={verticalListSortingStrategy}
-                          >
-                            {standings.map((standing, index) => {
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={standings.map(s => s.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-white/10">
+                            <th className="text-left py-3 px-4 text-soft-white font-semibold">Sıra</th>
+                            <th className="text-left py-3 px-4 text-soft-white font-semibold">Kullanıcı</th>
+                            <th className="text-left py-3 px-4 text-soft-white font-semibold">E-posta</th>
+                            <th className="text-left py-3 px-4 text-soft-white font-semibold">İşlemler</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {standings.length === 0 ? (
+                            <tr>
+                              <td colSpan={4} className="text-center py-8 text-soft-white/60">
+                                Bu ligde henüz oyuncu bulunmamaktadır
+                              </td>
+                            </tr>
+                          ) : (
+                            standings.map((standing, index) => {
                               const displayRanking = getDisplayRanking(standing, index);
                               return (
                                 <SortableRow
@@ -333,13 +333,13 @@ const LeagueStandings = () => {
                                   }}
                                 />
                               );
-                            })}
-                          </SortableContext>
-                        </DndContext>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </SortableContext>
+                </DndContext>
                 
                 {/* Save All / Cancel All Buttons */}
                 {hasChanges && (
