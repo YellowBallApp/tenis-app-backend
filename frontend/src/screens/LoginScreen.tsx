@@ -168,19 +168,6 @@ const LoginScreen = ({ navigation }: any) => {
             )}
           </TouchableOpacity>
         </View>
-
-        {/* Sign Up Link */}
-        <View style={styles.signUpSection}>
-          <Text style={styles.signUpText}>
-            {t('auth.dontHaveAccount')}{' '}
-            <Text 
-              style={styles.signUpLink}
-              onPress={() => navigation.navigate('Register')}
-            >
-              {t('auth.signUp')}
-            </Text>
-          </Text>
-        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
