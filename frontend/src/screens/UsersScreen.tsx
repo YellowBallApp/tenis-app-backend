@@ -34,7 +34,7 @@ const UsersScreen = () => {
   const navigation = useNavigation<UsersScreenNavigationProp>();
   const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'members' | 'coaches'>('coaches');
+  const [activeTab, setActiveTab] = useState<'members' | 'coaches'>('members');
   const [members, setMembers] = useState<any[]>([]);
   const [coaches, setCoaches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

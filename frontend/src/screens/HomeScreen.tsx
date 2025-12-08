@@ -11,7 +11,7 @@ import {
   Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, useFocusEffect, CommonActions } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, CommonActions, useRoute } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { MainTabParamList } from '../navigation/MainTabNavigator';
 import {
@@ -21,6 +21,7 @@ import {
   Text,
   Avatar,
   Chip,
+  Snackbar,
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { reservationService, announcementService, userService, courtService, coachService, notificationService, authService, matchHistoryService, leagueStandingsService } from '../services/api';
@@ -35,6 +36,7 @@ type HomeScreenNavigationProp = BottomTabNavigationProp<MainTabParamList, 'Home'
 
 const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
+  const route = useRoute();
   const { logout } = useAuth();
   const { t, language } = useLanguage();
   const { themedStyles, theme } = useThemedStyles();
@@ -49,6 +51,7 @@ const HomeScreen = () => {
     upcomingCount: 0,
   });
   const [unreadCount, setUnreadCount] = useState(0);
+  const [showReservationSuccess, setShowReservationSuccess] = useState(false);
   
   // Scroll animation kaldırıldı - header artık collapsible değil
   const scrollViewRef = useRef<any>(null);
@@ -82,7 +85,15 @@ const HomeScreen = () => {
       
       // Okunmamış bildirim sayısını güncelle
       loadUnreadCount();
-    }, [])
+      
+      // Route params'tan rezervasyon başarı mesajını kontrol et
+      const params = route.params as { showReservationSuccess?: boolean } | undefined;
+      if (params?.showReservationSuccess) {
+        setShowReservationSuccess(true);
+        // Params'ı temizle (bir sonraki açılışta tekrar göstermemek için)
+        navigation.setParams({ showReservationSuccess: undefined });
+      }
+    }, [route.params, navigation])
   );
 
   const loadUnreadCount = async () => {
@@ -311,7 +322,12 @@ const HomeScreen = () => {
         <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>{t('home.quickActions')}</Title>
         <View style={styles.quickActionsRow}>
           {quickActions.map((action, index) => (
-            <TouchableOpacity key={index} onPress={action.action} activeOpacity={0.7}>
+            <TouchableOpacity 
+              key={index} 
+              onPress={action.action} 
+              activeOpacity={0.7}
+              style={styles.actionCardWrapper}
+            >
               <View style={[styles.actionCard, themedStyles.card]}>
                 <View style={styles.actionContent}>
                   <View style={[styles.actionIcon, { backgroundColor: action.color === '#9E9E9E' ? '#F5F5F5' : action.color }]}>
@@ -321,7 +337,7 @@ const HomeScreen = () => {
                       color={action.color === '#9E9E9E' ? '#666666' : '#fff'} 
                     />
                   </View>
-                  <Text style={[styles.actionTitle, themedStyles.text]}>{action.title}</Text>
+                  <Text style={[styles.actionTitle, themedStyles.text]} numberOfLines={2}>{action.title}</Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -411,6 +427,23 @@ const HomeScreen = () => {
         )}
       </View>
       </ScrollView>
+
+      {/* Success Snackbar */}
+      <Snackbar
+        visible={showReservationSuccess}
+        onDismiss={() => setShowReservationSuccess(false)}
+        duration={3000}
+        style={styles.successSnackbar}
+        action={{
+          label: t('common.ok'),
+          onPress: () => setShowReservationSuccess(false),
+        }}
+      >
+        <View style={styles.snackbarContent}>
+          <MaterialCommunityIcons name="check-circle" size={24} color="#FFFFFF" />
+          <Text style={styles.snackbarText}>{t('reservation.success')}</Text>
+        </View>
+      </Snackbar>
     </View>
   );
 };
@@ -579,7 +612,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   section: {
-    padding: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 0,
     paddingTop: 0,
   },
   sectionTitle: {
@@ -592,7 +626,11 @@ const styles = StyleSheet.create({
   quickActionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 8,
+  },
+  actionCardWrapper: {
+    flex: 1,
+    minWidth: 0,
   },
   quickActionsGrid: {
     flexDirection: 'row',
@@ -602,6 +640,7 @@ const styles = StyleSheet.create({
   },
   actionCard: {
     flex: 1,
+    minWidth: 0,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     borderWidth: 1,
@@ -614,10 +653,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 3,
+    maxWidth: '100%',
   },
   actionContent: {
     alignItems: 'center',
-    padding: 18,
+    padding: 14,
+    minWidth: 0,
   },
   actionIcon: {
     width: 56,
@@ -803,6 +844,26 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 10,
     fontStyle: 'italic',
+  },
+  successSnackbar: {
+    backgroundColor: '#4CAF50',
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    borderRadius: 12,
+    elevation: 6,
+  },
+  snackbarContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  snackbarText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 12,
+    flex: 1,
   },
 });
 

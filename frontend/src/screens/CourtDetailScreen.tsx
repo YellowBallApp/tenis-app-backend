@@ -19,11 +19,13 @@ import {
   Title,
   Searchbar,
   Avatar,
+  Snackbar,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useLanguage } from '../context/LanguageContext';
-import { courtService, reservationService, weatherService, userService, authService, matchChallengeService, leagueStandingsService, reservationTemplateService, reservationTimeSlotService } from '../services/api';
+import { courtService, reservationService, weatherService, userService, authService, matchChallengeService, leagueStandingsService, reservationTemplateService, reservationTimeSlotService, notificationService } from '../services/api';
+import { NotificationType } from '../types';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
@@ -60,12 +62,78 @@ const CourtDetailScreen = () => {
   const [selectedOpponentIndex, setSelectedOpponentIndex] = useState<number | null>(null);
   const [users, setUsers] = useState<any[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserType, setCurrentUserType] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [reservationBlocked, setReservationBlocked] = useState(false);
+  const [blockReason, setBlockReason] = useState<string>('');
+  const [checkingBlockStatus, setCheckingBlockStatus] = useState(true);
+  const [showSuccessSnackbar, setShowSuccessSnackbar] = useState(false);
+  const [showErrorSnackbar, setShowErrorSnackbar] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
+
+  // Rezervasyon engeli kontrolü
+  const checkReservationBlock = React.useCallback(async () => {
+    try {
+      setCheckingBlockStatus(true);
+      setReservationBlocked(false);
+      
+      // Aktif rezervasyon kontrolü (hem owner hem participant olarak)
+      const hasActive = await reservationService.hasActiveReservation();
+      if (hasActive) {
+        setReservationBlocked(true);
+        setBlockReason('Şu anda aktif bir rezervasyonunuz var. Yeni rezervasyon oluşturmadan önce mevcut rezervasyonunuzun bitmesini bekleyin.');
+        setCheckingBlockStatus(false);
+        return;
+      }
+
+      // Bekleyen maç sonucu kontrolü
+      const notifications = await notificationService.getUserNotifications(1, 20);
+      const pendingMatchResult = notifications.notifications.find(
+        (notif: any) => notif.type === NotificationType.MATCH_COMPLETED
+      );
+
+      if (pendingMatchResult) {
+        setReservationBlocked(true);
+        setBlockReason('Bekleyen maç sonucu girmeniz gereken bir maç var. Yeni rezervasyon oluşturmadan önce maç sonucunu girin.');
+        setCheckingBlockStatus(false);
+        return;
+      }
+
+      setReservationBlocked(false);
+      setBlockReason('');
+      setCheckingBlockStatus(false);
+    } catch (error) {
+      setCheckingBlockStatus(false);
+      setReservationBlocked(false);
+    }
+  }, []);
 
   useEffect(() => {
     loadCourtData();
     loadCurrentUser();
   }, [courtId]);
+
+  // Sayfa her açıldığında state'leri sıfırla
+  useFocusEffect(
+    React.useCallback(() => {
+      // Bugünün tarihini varsayılan olarak ayarla
+      const today = new Date().toISOString().split('T')[0];
+      setSelectedDate(today);
+      setSelectedTime('');
+      setSelectedPartner(null);
+      setSelectedOpponents([]);
+      setPlayerType('single');
+      setShowUserSelector(false);
+      setShowWeatherWarningModal(false);
+      setPendingTimeSelection(null);
+      setWeatherCache({});
+      setSearchQuery('');
+      setSelectedOpponentIndex(null);
+      
+      // Rezervasyon engeli kontrolü
+      checkReservationBlock();
+    }, [checkReservationBlock])
+  );
 
   // Zaman dilimlerini yükle
   const loadTimeSlots = React.useCallback(async () => {
@@ -122,7 +190,7 @@ const CourtDetailScreen = () => {
     if (court && selectedDate) {
       loadReservationsForDate();
     }
-  }, [court, selectedDate]);
+  }, [court, selectedDate, currentUserType]);
 
   // Hava durumu yükle (availableTimes ve allTimes değiştiğinde - tüm saatler için)
   useEffect(() => {
@@ -249,6 +317,11 @@ const CourtDetailScreen = () => {
     selectedDateOnly.setHours(0, 0, 0, 0);
     const isToday = selectedDateOnly.getTime() === today.getTime();
 
+    // RESTRICTED kullanıcı kontrolü
+    const isRestricted = currentUserType?.toLowerCase() === 'restricted';
+    const dayOfWeek = selectedDateObj.getDay(); // 0 = Pazar, 6 = Cumartesi
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
     const available = times.filter(time => {
       // Rezerve edilmiş mi kontrol et
       if (reservedTimes.includes(time)) return false;
@@ -256,6 +329,17 @@ const CourtDetailScreen = () => {
       // Bloke edilmiş mi kontrol et
       const hour = parseInt(time.split(':')[0]);
       if (blockedHourNumbers.includes(hour)) return false;
+
+      // RESTRICTED kullanıcılar için saat kısıtlaması
+      if (isRestricted) {
+        if (isWeekend) {
+          // Hafta sonu: Sadece 18:00-24:00 arası
+          if (hour < 18) return false;
+        } else {
+          // Hafta içi: Sadece 9:00-18:00 arası
+          if (hour < 9 || hour >= 18) return false;
+        }
+      }
 
       // Bugün ise geçmiş saatleri atla
       if (isToday) {
@@ -269,6 +353,30 @@ const CourtDetailScreen = () => {
     });
 
     setAvailableTimes(available);
+  };
+
+  // RESTRICTED kullanıcılar için saatin disabled olup olmadığını kontrol et
+  const isTimeSlotDisabledForUser = (timeSlot: string): boolean => {
+    if (currentUserType?.toLowerCase() !== 'restricted') {
+      return false;
+    }
+
+    if (!selectedDate) {
+      return false;
+    }
+
+    const selectedDateObj = new Date(selectedDate);
+    const dayOfWeek = selectedDateObj.getDay(); // 0 = Pazar, 6 = Cumartesi
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    const hour = parseInt(timeSlot.split(':')[0]);
+
+    if (isWeekend) {
+      // Hafta sonu: Sadece 18:00-24:00 arası izinli
+      return hour < 18;
+    } else {
+      // Hafta içi: Sadece 9:00-18:00 arası izinli
+      return hour < 9 || hour >= 18;
+    }
   };
 
   const getCourtDisplayInfo = (court: any) => {
@@ -351,6 +459,10 @@ const CourtDetailScreen = () => {
     try {
       const profile = await authService.getProfile();
       setCurrentUserId(profile.id);
+      setCurrentUserType(profile.userType || null);
+      
+      // Kullanıcı yüklendikten sonra rezervasyon engeli kontrolü yap
+      checkReservationBlock();
     } catch (error) {
       console.error('Kullanıcı profili yüklenirken hata:', error);
     }
@@ -506,6 +618,16 @@ const CourtDetailScreen = () => {
   };
 
   const handleReservation = async () => {
+    // Aktif rezervasyon kontrolü
+    if (reservationBlocked) {
+      Alert.alert(
+        t('common.error'),
+        blockReason || 'Yeni rezervasyon oluşturulamaz',
+        [{ text: t('common.ok') }]
+      );
+      return;
+    }
+
     if (!selectedDate || !selectedTime) {
       Alert.alert(
         t('common.error'),
@@ -515,20 +637,35 @@ const CourtDetailScreen = () => {
       return;
     }
 
+    // courtId'nin doğru olduğundan emin ol
+    if (!courtId || !court) {
+      Alert.alert(
+        t('common.error'),
+        'Kort bilgisi bulunamadı. Lütfen tekrar deneyin.',
+        [{ text: t('common.ok') }]
+      );
+      return;
+    }
+
+    // Değişkenleri try bloğunun dışında tanımla
+    let startDateTime: Date;
+    let endDateTime: Date;
+    let participantIds: string[] = [];
+
     try {
       setIsCreatingReservation(true);
 
       // Tarih ve saati birleştir
       const [hours, minutes] = selectedTime.split(':');
-      const startDateTime = new Date(selectedDate);
+      startDateTime = new Date(selectedDate);
       startDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
 
       // Bitiş saatini hesapla (60 dakika sonra - 1 saatlik rezervasyon)
-      const endDateTime = new Date(startDateTime);
+      endDateTime = new Date(startDateTime);
       endDateTime.setMinutes(startDateTime.getMinutes() + 60);
 
       // Build participant IDs based on game type
-      const participantIds: string[] = [];
+      participantIds = [];
       if (playerType === 'single' && selectedPartner) {
         participantIds.push(selectedPartner.id);
       } else if (playerType === 'double') {
@@ -538,6 +675,36 @@ const CourtDetailScreen = () => {
         selectedOpponents.forEach(opp => participantIds.push(opp.id));
       }
 
+      // RESTRICTED kullanıcı kontrolü - frontend'de de kontrol et
+      const isRestricted = currentUserType?.toLowerCase() === 'restricted';
+      if (isRestricted) {
+        const dayOfWeek = startDateTime.getDay(); // 0 = Pazar, 6 = Cumartesi
+        const hour = startDateTime.getHours();
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        
+        if (isWeekend) {
+          // Hafta sonu: Sadece 18:00-24:00 arası
+          if (hour < 18) {
+            Alert.alert(
+              t('common.error'),
+              'Kullanıcı tipiniz hafta sonları sadece 18:00-24:00 arası rezervasyon yapabilir',
+              [{ text: t('common.ok') }]
+            );
+            return;
+          }
+        } else {
+          // Hafta içi: Sadece 9:00-18:00 arası
+          if (hour < 9 || hour >= 18) {
+            Alert.alert(
+              t('common.error'),
+              'Kullanıcı tipiniz hafta içi sadece 09:00-18:00 arası rezervasyon yapabilir',
+              [{ text: t('common.ok') }]
+            );
+            return;
+          }
+        }
+      }
+
       const reservationData: {
         courtId: number;
         startTime: string;
@@ -545,60 +712,44 @@ const CourtDetailScreen = () => {
         participantIds?: string[];
         notes?: string;
       } = {
-        courtId: courtId,
+        courtId: typeof courtId === 'number' ? courtId : parseInt(courtId.toString()),
         startTime: startDateTime.toISOString(),
         endTime: endDateTime.toISOString(),
         participantIds: participantIds.length > 0 ? participantIds : undefined,
         notes: `Standart seans: ${court.name}`,
       };
 
-      console.log('📤 Rezervasyon verisi gönderiliyor:', reservationData);
-
       const reservation = await reservationService.createReservation(reservationData);
 
-      console.log('✅ Rezervasyon başarılı:', reservation);
-
       // Create challenges for opponents (don't await - let it run in background)
-      createChallengesForOpponents(startDateTime).catch(error => {
-        console.log('⚠️ Challenge oluşturma işlemi arka planda hata verdi:', error);
+      createChallengesForOpponents(startDateTime).catch(() => {
+        // Silently handle errors
       });
 
-      Alert.alert(
-        t('common.success'),
-        t('reservation.success'),
-        [
-          {
-            text: t('common.ok'),
-            onPress: () => {
-              // Rezervasyonlar listesine yönlendir (takvimi görmek için)
-              navigation.getParent()?.navigate('ReservationsList');
-            }
-          }
-        ]
-      );
-    } catch (error: any) {
-      console.error('❌ Rezervasyon hatası:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        code: error.code,
-      });
+      // Başarılı mesajını göster ve hemen ana sayfaya yönlendir
+      setShowSuccessSnackbar(true);
       
-      // Daha açıklayıcı hata mesajı
-      let errorMessage = t('reservation.errorCreating');
+      // Hemen ana sayfaya yönlendir (başarı mesajı ile)
+      navigation.getParent()?.navigate('Home', { 
+        showReservationSuccess: true 
+      });
+    } catch (error: any) {
+      // Backend'den gelen detaylı hata mesajını göster
+      let errorMsg = t('reservation.errorCreating');
+      
       if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
+        errorMsg = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMsg = error.response.data.error;
       } else if (error.message) {
-        errorMessage = error.message;
+        errorMsg = error.message;
       } else if (error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK') {
-        errorMessage = 'Sunucuya bağlanılamıyor. Lütfen internet bağlantınızı kontrol edin.';
+        errorMsg = 'Sunucuya bağlanılamıyor. Lütfen internet bağlantınızı kontrol edin.';
       }
 
-      Alert.alert(
-        t('common.error'),
-        errorMessage,
-        [{ text: t('common.ok') }]
-      );
+      // Hata mesajını state'e kaydet ve snackbar göster
+      setErrorMessage(errorMsg);
+      setShowErrorSnackbar(true);
     } finally {
       setIsCreatingReservation(false);
     }
@@ -641,6 +792,38 @@ const CourtDetailScreen = () => {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('reservation.courtDetails')}</Text>
         </View>
+
+        {/* Rezervasyon Engeli Mesajı */}
+        {(checkingBlockStatus || reservationBlocked) && (
+          <Card style={styles.blockCard} elevation={5}>
+            <Card.Content style={styles.blockCardContent}>
+              {checkingBlockStatus ? (
+                <View style={styles.blockContent}>
+                  <ActivityIndicator size="large" color="#FF9800" />
+                  <Text style={styles.blockText}>Kontrol ediliyor...</Text>
+                </View>
+              ) : reservationBlocked ? (
+                <View style={styles.blockContent}>
+                  <MaterialCommunityIcons name="alert-circle" size={48} color="#DC3545" />
+                  <Title style={styles.blockTitle}>Rezervasyon Oluşturulamaz</Title>
+                  <Text style={styles.blockText}>{blockReason}</Text>
+                  {/* Sadece bekleyen maç sonucu durumunda "Bildirimlere Git" butonu göster */}
+                  {blockReason.includes('maç sonucu') && (
+                    <Button
+                      mode="contained"
+                      buttonColor="#1976D2"
+                      icon="bell"
+                      onPress={() => navigation.getParent()?.navigate('Notifications')}
+                      style={styles.blockButton}
+                    >
+                      Bildirimlere Git
+                    </Button>
+                  )}
+                </View>
+              ) : null}
+            </Card.Content>
+          </Card>
+        )}
 
         {/* Top Visual Section */}
         <View style={styles.topVisualSection}>
@@ -706,9 +889,15 @@ const CourtDetailScreen = () => {
                 key={dateItem.date}
                 style={[
                   styles.dateCard,
-                  selectedDate === dateItem.date && styles.dateCardSelected
+                  selectedDate === dateItem.date && styles.dateCardSelected,
+                  (reservationBlocked || checkingBlockStatus) && styles.dateCardDisabled
                 ]}
-                onPress={() => setSelectedDate(dateItem.date)}
+                onPress={() => {
+                  if (!reservationBlocked && !checkingBlockStatus) {
+                    setSelectedDate(dateItem.date);
+                  }
+                }}
+                disabled={reservationBlocked || checkingBlockStatus}
               >
                 <Text style={[
                   styles.dateDayName,
@@ -734,13 +923,17 @@ const CourtDetailScreen = () => {
             <TouchableOpacity
               style={[
                 styles.gameTypeCard,
-                playerType === 'single' && styles.gameTypeCardSelected
+                playerType === 'single' && styles.gameTypeCardSelected,
+                (reservationBlocked || checkingBlockStatus) && styles.gameTypeCardDisabled
               ]}
               onPress={() => {
-                setPlayerType('single');
-                setSelectedPartner(null);
-                setSelectedOpponents([]);
+                if (!reservationBlocked && !checkingBlockStatus) {
+                  setPlayerType('single');
+                  setSelectedPartner(null);
+                  setSelectedOpponents([]);
+                }
               }}
+              disabled={reservationBlocked || checkingBlockStatus}
             >
               <MaterialCommunityIcons 
                 name="account" 
@@ -764,13 +957,17 @@ const CourtDetailScreen = () => {
             <TouchableOpacity
               style={[
                 styles.gameTypeCard,
-                playerType === 'double' && styles.gameTypeCardSelected
+                playerType === 'double' && styles.gameTypeCardSelected,
+                (reservationBlocked || checkingBlockStatus) && styles.gameTypeCardDisabled
               ]}
               onPress={() => {
-                setPlayerType('double');
-                setSelectedPartner(null);
-                setSelectedOpponents([]);
+                if (!reservationBlocked && !checkingBlockStatus) {
+                  setPlayerType('double');
+                  setSelectedPartner(null);
+                  setSelectedOpponents([]);
+                }
               }}
+              disabled={reservationBlocked || checkingBlockStatus}
             >
               <MaterialCommunityIcons 
                 name="account-group" 
@@ -800,12 +997,18 @@ const CourtDetailScreen = () => {
           {/* Single Mode - Opponent Selection */}
           {playerType === 'single' && (
             <TouchableOpacity
-              style={styles.playerSelectorCard}
+              style={[
+                styles.playerSelectorCard,
+                (reservationBlocked || checkingBlockStatus) && styles.playerSelectorCardDisabled
+              ]}
               onPress={() => {
-                setSelectorMode('opponent');
-                setShowUserSelector(true);
-                loadUsers();
+                if (!reservationBlocked && !checkingBlockStatus) {
+                  setSelectorMode('opponent');
+                  setShowUserSelector(true);
+                  loadUsers();
+                }
               }}
+              disabled={reservationBlocked || checkingBlockStatus}
             >
               {selectedPartner ? (
                 <View style={styles.selectedPlayerCard}>
@@ -848,12 +1051,18 @@ const CourtDetailScreen = () => {
               {/* Partner Selection */}
               <Text style={styles.playerSubsectionTitle}>{t('reservation.yourPartner')}</Text>
               <TouchableOpacity
-                style={styles.playerSelectorCard}
+                style={[
+                  styles.playerSelectorCard,
+                  (reservationBlocked || checkingBlockStatus) && styles.playerSelectorCardDisabled
+                ]}
                 onPress={() => {
-                  setSelectorMode('partner');
-                  setShowUserSelector(true);
-                  loadUsers();
+                  if (!reservationBlocked && !checkingBlockStatus) {
+                    setSelectorMode('partner');
+                    setShowUserSelector(true);
+                    loadUsers();
+                  }
                 }}
+                disabled={reservationBlocked || checkingBlockStatus}
               >
                 {selectedPartner ? (
                   <View style={styles.selectedPlayerCard}>
@@ -897,13 +1106,19 @@ const CourtDetailScreen = () => {
                   return (
                     <TouchableOpacity
                       key={index}
-                      style={styles.playerSelectorCard}
+                      style={[
+                        styles.playerSelectorCard,
+                        (reservationBlocked || checkingBlockStatus) && styles.playerSelectorCardDisabled
+                      ]}
                       onPress={() => {
-                        setSelectorMode('opponents');
-                        setSelectedOpponentIndex(index);
-                        setShowUserSelector(true);
-                        loadUsers();
+                        if (!reservationBlocked && !checkingBlockStatus) {
+                          setSelectorMode('opponents');
+                          setSelectedOpponentIndex(index);
+                          setShowUserSelector(true);
+                          loadUsers();
+                        }
                       }}
+                      disabled={reservationBlocked || checkingBlockStatus}
                     >
                       {currentOpponent ? (
                         <View style={styles.selectedPlayerCard}>
@@ -959,6 +1174,9 @@ const CourtDetailScreen = () => {
               // Rezerve edilmiş veya bloke edilmiş saatler disabled olmalı
               const isDisabled = isReserved || isBlocked;
               
+              // RESTRICTED kullanıcı kontrolü
+              const isDisabledForUser = isTimeSlotDisabledForUser(time);
+              
               // Bugün ise geçmiş saatleri kontrol et
               const now = new Date();
               const selectedDateObj = new Date(selectedDate);
@@ -976,7 +1194,7 @@ const CourtDetailScreen = () => {
                 isPastTime = timeDate < now;
               }
               
-              const finalDisabled = isDisabled || isPastTime;
+              const finalDisabled = isDisabled || isPastTime || isDisabledForUser;
               
               // Hava durumu bilgisini al (sadece müsait saatler için)
               const weatherInfo = weatherCache[time];
@@ -988,11 +1206,11 @@ const CourtDetailScreen = () => {
                   style={[
                     styles.timeSlotCard,
                     selectedTime === time && styles.timeSlotCardSelected,
-                    finalDisabled && styles.timeSlotCardDisabled,
+                    (finalDisabled || reservationBlocked || checkingBlockStatus) && styles.timeSlotCardDisabled,
                     isBlocked && styles.timeSlotCardBlocked
                   ]}
                   onPress={() => {
-                    if (!finalDisabled) {
+                    if (!finalDisabled && !reservationBlocked && !checkingBlockStatus) {
                       // Hava durumu kontrolü
                       if (showWeather && weatherInfo) {
                         setPendingTimeSelection(time);
@@ -1002,7 +1220,7 @@ const CourtDetailScreen = () => {
                       }
                     }
                   }}
-                  disabled={finalDisabled}
+                  disabled={finalDisabled || reservationBlocked || checkingBlockStatus}
                 >
                   <MaterialCommunityIcons 
                     name={finalDisabled ? (isBlocked ? "lock" : "lock") : "clock"} 
@@ -1031,6 +1249,19 @@ const CourtDetailScreen = () => {
                         {blockedReason}
                       </Text>
                     )}
+                    {isDisabledForUser && !isBlocked && (
+                      <Text style={styles.timeSlotBlockedReason} numberOfLines={1}>
+                        {currentUserType?.toLowerCase() === 'restricted' 
+                          ? (() => {
+                              const dayOfWeek = new Date(selectedDate).getDay();
+                              const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                              return isWeekend 
+                                ? 'Hafta sonu 18:00-24:00 arası' 
+                                : 'Hafta içi 09:00-18:00 arası';
+                            })()
+                          : ''}
+                      </Text>
+                    )}
                   </View>
                   {showWeather && !finalDisabled && (
                     <MaterialCommunityIcons 
@@ -1056,12 +1287,19 @@ const CourtDetailScreen = () => {
       {selectedTime && (
         <View style={styles.buttonContainer}>
           <TouchableOpacity
-            style={styles.continueButton}
+            style={[
+              styles.continueButton,
+              (reservationBlocked || checkingBlockStatus) && styles.continueButtonDisabled
+            ]}
             onPress={handleReservation}
-            disabled={isCreatingReservation}
+            disabled={isCreatingReservation || reservationBlocked || checkingBlockStatus}
           >
             <LinearGradient
-              colors={isCreatingReservation ? ['#BDBDBD', '#9E9E9E'] : ['#2E7D32', '#1B5E20']}
+              colors={
+                isCreatingReservation || reservationBlocked || checkingBlockStatus
+                  ? ['#BDBDBD', '#9E9E9E']
+                  : ['#2E7D32', '#1B5E20']
+              }
               style={styles.continueButtonGradient}
             >
               {isCreatingReservation ? (
@@ -1269,6 +1507,43 @@ const CourtDetailScreen = () => {
           </Card>
         </Modal>
       </Portal>
+
+      {/* Success Snackbar */}
+      <Snackbar
+        visible={showSuccessSnackbar}
+        onDismiss={() => setShowSuccessSnackbar(false)}
+        duration={2000}
+        style={styles.successSnackbar}
+        action={{
+          label: t('common.ok'),
+          onPress: () => {
+            setShowSuccessSnackbar(false);
+            navigation.getParent()?.navigate('Home');
+          },
+        }}
+      >
+        <View style={styles.snackbarContent}>
+          <MaterialCommunityIcons name="check-circle" size={24} color="#FFFFFF" />
+          <Text style={styles.snackbarText}>{t('reservation.success')}</Text>
+        </View>
+      </Snackbar>
+
+      {/* Error Snackbar */}
+      <Snackbar
+        visible={showErrorSnackbar}
+        onDismiss={() => setShowErrorSnackbar(false)}
+        duration={4000}
+        style={styles.errorSnackbar}
+        action={{
+          label: t('common.ok'),
+          onPress: () => setShowErrorSnackbar(false),
+        }}
+      >
+        <View style={styles.snackbarContent}>
+          <MaterialCommunityIcons name="alert-circle" size={24} color="#FFFFFF" />
+          <Text style={styles.snackbarText}>{errorMessage}</Text>
+        </View>
+      </Snackbar>
     </>
   );
 };
@@ -1412,6 +1687,15 @@ const styles = StyleSheet.create({
   dateDayNumberSelected: {
     color: '#FFFFFF',
   },
+  dateCardDisabled: {
+    opacity: 0.5,
+  },
+  gameTypeCardDisabled: {
+    opacity: 0.5,
+  },
+  playerSelectorCardDisabled: {
+    opacity: 0.5,
+  },
   timeSlotsSection: {
     padding: 20,
     paddingBottom: 40,
@@ -1517,6 +1801,50 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  continueButtonDisabled: {
+    opacity: 0.6,
+  },
+  blockCard: {
+    margin: 20,
+    marginTop: 20,
+    marginBottom: 20,
+    backgroundColor: '#FFF3E0',
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF9800',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    borderRadius: 12,
+  },
+  blockCardContent: {
+    padding: 20,
+  },
+  blockContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+  },
+  blockTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#DC3545',
+    marginTop: 16,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  blockText: {
+    fontSize: 16,
+    color: '#424242',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 24,
+  },
+  blockButton: {
+    marginTop: 8,
+    borderRadius: 12,
   },
   weatherModalContainer: {
     margin: 20,
@@ -1782,6 +2110,35 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#BDBDBD',
     marginTop: 12,
+  },
+  successSnackbar: {
+    backgroundColor: '#4CAF50',
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    borderRadius: 12,
+    elevation: 6,
+  },
+  errorSnackbar: {
+    backgroundColor: '#F44336',
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    borderRadius: 12,
+    elevation: 6,
+  },
+  snackbarContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  snackbarText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 12,
+    flex: 1,
   },
 });
 

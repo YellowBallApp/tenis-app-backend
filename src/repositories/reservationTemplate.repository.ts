@@ -41,7 +41,7 @@ const reservationTemplateRepository = {
     const template = repository.create({
       dayOfWeek: data.dayOfWeek,
       time: data.time,
-      order: data.order ?? 0,
+      order: data.order ?? 1,
       isActive: data.isActive !== undefined ? data.isActive : true,
     });
     return await repository.save(template);

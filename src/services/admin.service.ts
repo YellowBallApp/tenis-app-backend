@@ -17,7 +17,7 @@ const adminService = {
     surname?: string;
     phone?: string;
     gender?: string;
-    age?: number;
+    birthDate?: Date;
     userType?: UserType;
     title?: string;
   }): Promise<User> => {
@@ -64,7 +64,7 @@ const adminService = {
       surname?: string;
       phone?: string;
       gender?: string;
-      age?: number;
+      birthDate?: Date;
       userType?: UserType;
       title?: string;
       email?: string;
@@ -93,7 +93,7 @@ const adminService = {
     if (updateData.surname !== undefined) user.surname = updateData.surname;
     if (updateData.phone !== undefined) user.phone = updateData.phone;
     if (updateData.gender !== undefined) user.gender = updateData.gender;
-    if (updateData.age !== undefined) user.age = updateData.age;
+    if (updateData.birthDate !== undefined) user.birthDate = updateData.birthDate;
     if (updateData.userType !== undefined) user.userType = updateData.userType;
     if (updateData.title !== undefined) user.title = updateData.title;
 

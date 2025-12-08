@@ -12,22 +12,22 @@ interface TimeSlot {
 }
 
 const weekDays = [
-  { value: 0, label: 'Pazar', short: 'Paz' },
-  { value: 1, label: 'Pazartesi', short: 'Pzt' },
-  { value: 2, label: 'Salı', short: 'Sal' },
-  { value: 3, label: 'Çarşamba', short: 'Çar' },
-  { value: 4, label: 'Perşembe', short: 'Per' },
-  { value: 5, label: 'Cuma', short: 'Cum' },
-  { value: 6, label: 'Cumartesi', short: 'Cmt' },
+  { value: 0, label: 'Pazartesi', short: 'Pzt' },
+  { value: 1, label: 'Salı', short: 'Sal' },
+  { value: 2, label: 'Çarşamba', short: 'Çar' },
+  { value: 3, label: 'Perşembe', short: 'Per' },
+  { value: 4, label: 'Cuma', short: 'Cum' },
+  { value: 5, label: 'Cumartesi', short: 'Cmt' },
+  { value: 6, label: 'Pazar', short: 'Paz' },
 ];
 
 const ReservationTemplates = () => {
   const [templates, setTemplates] = useState<TimeSlot[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDay, setSelectedDay] = useState<number>(1); // Pazartesi
+  const [selectedDay, setSelectedDay] = useState<number>(0); // Pazartesi
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingSlot, setEditingSlot] = useState<TimeSlot | null>(null);
-  const [newSlot, setNewSlot] = useState({ time: '', order: 0, isActive: true });
+  const [newSlot, setNewSlot] = useState({ time: '', order: 1, isActive: true });
 
   useEffect(() => {
     fetchTemplates();
@@ -74,19 +74,19 @@ const ReservationTemplates = () => {
         const dayTemplates = getTemplatesForDay(selectedDay);
         const maxOrder = dayTemplates.length > 0 
           ? Math.max(...dayTemplates.map(t => t.order))
-          : -1;
+          : 0;
         
         await api.post('/reservation-templates', {
           ...newSlot,
           dayOfWeek: selectedDay,
-          order: maxOrder + 1, // Her gün için ayrı order
+          order: maxOrder + 1, // Her gün için ayrı order, 1'den başlar
         });
         alert('Saat dilimi başarıyla eklendi');
       }
 
       setShowAddModal(false);
       setEditingSlot(null);
-      setNewSlot({ time: '', order: 0, isActive: true });
+      setNewSlot({ time: '', order: 1, isActive: true });
       await fetchTemplates();
     } catch (error: any) {
       alert(error.response?.data?.message || 'İşlem başarısız');
@@ -126,7 +126,7 @@ const ReservationTemplates = () => {
     if (!confirm('Tüm değişiklikleri kaydetmek istediğinize emin misiniz?')) return;
 
     try {
-      // Tüm günlerin şablonlarını al ve her gün için order'ı 0'dan başlat
+      // Tüm günlerin şablonlarını al ve her gün için order'ı 1'den başlat
       const allTemplatesToSave: any[] = [];
       
       // Her gün için ayrı ayrı işle
@@ -138,13 +138,13 @@ const ReservationTemplates = () => {
             return a.time.localeCompare(b.time);
           });
         
-        // Her gün için order'ı 0'dan başlat
+        // Her gün için order'ı 1'den başlat
         dayTemplates.forEach((template, index) => {
           allTemplatesToSave.push({
             id: template.id,
             dayOfWeek: template.dayOfWeek,
             time: template.time,
-            order: index, // Her gün için 0'dan başlar
+            order: index + 1, // Her gün için 1'den başlar
             isActive: template.isActive,
           });
         });
@@ -220,7 +220,7 @@ const ReservationTemplates = () => {
             <button
               onClick={() => {
                 setEditingSlot(null);
-                setNewSlot({ time: '', order: 0, isActive: true });
+                setNewSlot({ time: '', order: 1, isActive: true });
                 setShowAddModal(true);
               }}
               className="px-4 py-2 bg-soft-green hover:bg-soft-green/80 text-white rounded-lg font-medium transition-colors flex items-center space-x-2"
@@ -321,27 +321,27 @@ const ReservationTemplates = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-soft-white/90 mb-2">
-                    Saat (HH:mm) *
+                    Saat (24 saat formatı) *
                   </label>
-                  <input
-                    type="time"
+                  <select
                     required
                     className="glass w-full px-4 py-3 text-soft-white rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all"
                     value={newSlot.time}
                     onChange={(e) => setNewSlot({ ...newSlot, time: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-soft-white/90 mb-2">
-                    Sıra
-                  </label>
-                  <input
-                    type="number"
-                    className="glass w-full px-4 py-3 text-soft-white rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all"
-                    value={newSlot.order}
-                    onChange={(e) => setNewSlot({ ...newSlot, order: parseInt(e.target.value) || 0 })}
-                    min="0"
-                  />
+                  >
+                    <option value="">Saat seçiniz</option>
+                    {Array.from({ length: 24 }, (_, hour) => {
+                      return Array.from({ length: 4 }, (_, minuteIndex) => {
+                        const minute = minuteIndex * 15;
+                        const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                        return (
+                          <option key={timeString} value={timeString}>
+                            {timeString}
+                          </option>
+                        );
+                      });
+                    }).flat()}
+                  </select>
                 </div>
                 <div className="flex items-center space-x-2">
                   <input
@@ -361,7 +361,7 @@ const ReservationTemplates = () => {
                     onClick={() => {
                       setShowAddModal(false);
                       setEditingSlot(null);
-                      setNewSlot({ time: '', order: 0, isActive: true });
+                      setNewSlot({ time: '', order: 1, isActive: true });
                     }}
                     className="flex-1 px-4 py-3 glass hover:bg-white/10 text-soft-white/80 hover:text-soft-white font-medium rounded-lg transition-all"
                   >

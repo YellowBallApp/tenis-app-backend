@@ -118,6 +118,8 @@ export class ReservationService {
       // Kullanıcı tipi kontrolü - RESTRICTED kullanıcılar için zaman kısıtlaması (Admin için geçerli değil)
       if (!isAdmin && user.userType === UserType.RESTRICTED) {
         const startTime = new Date(data.startTime);
+        // Local saat kullan (frontend ile uyumlu olması için)
+        // Frontend'de local saat seçiliyor, backend'de de local saat kontrolü yapmalıyız
         const dayOfWeek = startTime.getDay(); // 0 = Pazar, 6 = Cumartesi
         const hour = startTime.getHours();
         

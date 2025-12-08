@@ -35,6 +35,7 @@ import { useThemedStyles } from '../hooks/useThemedStyles';
 import { authService, matchHistoryService, leagueStandingsService } from '../services/api';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'react-native';
+import { calculateAge } from '../utils/age.utils';
 
 const { width } = Dimensions.get('window');
 
@@ -66,7 +67,7 @@ const ProfileScreen = () => {
   // Form states
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
-  const [editAge, setEditAge] = useState('');
+  const [editBirthDate, setEditBirthDate] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -127,7 +128,8 @@ const ProfileScreen = () => {
         email: profileData.email,
         phone: profileData.phone,
         surname: profileData.surname,
-        age: (profileData as any).age,
+        age: calculateAge((profileData as any).birthDate),
+        birthDate: (profileData as any).birthDate,
         profilePhoto: (profileData as any).profilePhoto,
         title: profileData.title, // Backend'den gelen ham değer
         points: totalPoints,
@@ -178,7 +180,15 @@ const ProfileScreen = () => {
     if (user) {
       setEditName(user.name);
       setEditEmail(user.email);
-      setEditAge(user.age ? user.age.toString() : '');
+      // birthDate'i formatla (YYYY-MM-DD)
+      const birthDate = (user as any).birthDate;
+      if (birthDate) {
+        const date = new Date(birthDate);
+        const formattedDate = date.toISOString().split('T')[0];
+        setEditBirthDate(formattedDate);
+      } else {
+        setEditBirthDate('');
+      }
       setShowEditProfileModal(true);
     }
   };
@@ -619,16 +629,15 @@ const ProfileScreen = () => {
               
               <TextInput
                 mode="outlined"
-                label={t('profile.age')}
-                value={editAge}
-                onChangeText={setEditAge}
+                label={t('profile.birthDate') || 'Doğum Tarihi'}
+                value={editBirthDate}
+                onChangeText={setEditBirthDate}
                 style={[styles.textInput, themedStyles.input]}
                 left={<TextInput.Icon icon="calendar" />}
                 outlineColor="#E0E0E0"
                 activeOutlineColor="#E1BEE7"
                 textColor={theme.colors.text}
-                keyboardType="numeric"
-                placeholder={t('profile.enterAge')}
+                placeholder="YYYY-MM-DD"
               />
 
               <View style={styles.modalButtons}>
@@ -649,13 +658,13 @@ const ProfileScreen = () => {
                         name: editName,
                       };
                       
-                      // Yaş girilmişse ekle
-                      if (editAge && editAge.trim() !== '') {
-                        const ageNumber = parseInt(editAge, 10);
-                        if (!isNaN(ageNumber) && ageNumber > 0 && ageNumber < 150) {
-                          updateData.age = ageNumber;
+                      // Doğum tarihi girilmişse ekle
+                      if (editBirthDate && editBirthDate.trim() !== '') {
+                        const birthDate = new Date(editBirthDate);
+                        if (!isNaN(birthDate.getTime()) && birthDate <= new Date()) {
+                          updateData.birthDate = editBirthDate;
                         } else {
-                          Alert.alert(t('common.error'), t('profile.invalidAge'));
+                          Alert.alert(t('common.error'), t('profile.invalidBirthDate') || 'Geçersiz doğum tarihi');
                           return;
                         }
                       }

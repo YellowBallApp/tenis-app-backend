@@ -12,6 +12,7 @@ export interface User {
   phone?: string;
   gender?: string | null;
   age?: number | null;
+  birthDate?: string | null;
   userType?: 'restricted' | 'standard' | 'admin' | 'coach';
 }
 
@@ -29,7 +30,7 @@ export interface RegisterCredentials {
   name: string;
   email: string;
   password: string;
-  age?: number;
+  birthDate?: string;
 }
 
 export interface ApiResponse<T> {

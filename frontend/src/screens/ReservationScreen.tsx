@@ -124,6 +124,7 @@ const ReservationScreen = () => {
   const [blockReason, setBlockReason] = useState<string>('');
   const [checkingBlockStatus, setCheckingBlockStatus] = useState(true);
   const [blockedHours, setBlockedHours] = useState<Array<{hour: number, reason: string | null}>>([]);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -254,6 +255,7 @@ const ReservationScreen = () => {
   // Sayfa her açıldığında tüm seçimleri resetle ve engel kontrolü yap
   useFocusEffect(
     React.useCallback(() => {
+      // ÖNEMLİ: State'leri hemen sıfırla, async işlemlerden önce
       // Bugünün tarihini varsayılan olarak ayarla (court listesi için next available time hesaplaması için)
       const todayDate = new Date().toISOString().split('T')[0];
       
@@ -270,23 +272,39 @@ const ReservationScreen = () => {
       setCourtSearchQuery('');
       setCourtFilter('all');
       setCurrentScrollY(0);
+      setShowCalendar(false);
+      setShowUserSelector(false);
+      setShowSuccessSnackbar(false);
+      setShowWeatherWarningModal(false);
+      setPendingTimeSelection(null);
+      setWeatherCache({});
+      setCourtReservations([]);
+      setBlockedHours([]);
+      setAllReservationsForDate([]);
+      setAllBlockedHours({});
+      
+      // İlk yükleme başladı
+      setIsInitializing(true);
       
       // Kortları ve verileri yeniden yükle
       const loadAllData = async () => {
-        const courtsList = await courtService.getActiveCourts();
-        const normalizedCourts = courtsList.map((court: any) => ({
-          ...court,
-          closed: !!(court.closed),
-          indoors: !!(court.indoors),
-        }));
-        setCourts(normalizedCourts);
-        
-        // Kortlar yüklendikten sonra rezervasyonları da yükle
-        if (todayDate) {
-          await loadReservationsForDate(todayDate, normalizedCourts);
+        try {
+          const courtsList = await courtService.getActiveCourts();
+          const normalizedCourts = courtsList.map((court: any) => ({
+            ...court,
+            closed: !!(court.closed),
+            indoors: !!(court.indoors),
+          }));
+          setCourts(normalizedCourts);
+          
+          // Kortlar yüklendikten sonra rezervasyonları da yükle
+          if (todayDate) {
+            await loadReservationsForDate(todayDate, normalizedCourts);
+          }
+        } catch (error) {
+          console.error('Veriler yüklenirken hata:', error);
         }
       };
-      loadAllData();
       
       // Rezervasyon engeli kontrolü - her sayfa açıldığında kontrol et
       const checkReservationBlock = async () => {
@@ -334,26 +352,32 @@ const ReservationScreen = () => {
         }
       };
 
-      checkReservationBlock();
-      
-      // Scroll'u en üste getir
-      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-      
-      // Animasyonları başlat
-      fadeAnim.setValue(0);
-      slideAnim.setValue(50);
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      // Paralel olarak verileri yükle ve engel kontrolü yap
+      Promise.all([loadAllData(), checkReservationBlock()]).then(() => {
+        setIsInitializing(false);
+        
+        // Scroll'u en üste getir
+        scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+        
+        // Animasyonları başlat
+        fadeAnim.setValue(0);
+        slideAnim.setValue(50);
+        Animated.parallel([
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(slideAnim, {
+            toValue: 0,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      }).catch((error) => {
+        console.error('Sayfa yüklenirken hata:', error);
+        setIsInitializing(false);
+      });
     }, [fadeAnim, slideAnim, loadCourts, loadReservationsForDate])
   );
 
@@ -1077,17 +1101,23 @@ const ReservationScreen = () => {
           </Card>
         )}
 
-        <Animated.View 
-          style={[
-            styles.contentContainer,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }]
-            },
-            (reservationBlocked || checkingBlockStatus) && styles.disabledContainer
-          ]}
-          pointerEvents={reservationBlocked || checkingBlockStatus ? 'none' : 'auto'}
-        >
+        {isInitializing ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#2E7D32" />
+            <Text style={styles.loadingText}>Yükleniyor...</Text>
+          </View>
+        ) : (
+          <Animated.View 
+            style={[
+              styles.contentContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }]
+              },
+              (reservationBlocked || checkingBlockStatus) && styles.disabledContainer
+            ]}
+            pointerEvents={reservationBlocked || checkingBlockStatus ? 'none' : 'auto'}
+          >
           {/* Court Selection - Direct Display */}
           <View ref={step2Ref}>
             <Card style={styles.stepCard}>
@@ -1173,8 +1203,16 @@ const ReservationScreen = () => {
                         return (
                           <TouchableOpacity
                             key={court.id}
-                            onPress={() => handleCourtSelect(court.id.toString())}
-                            style={styles.newCourtCardContainer}
+                            onPress={() => {
+                              if (!reservationBlocked && !checkingBlockStatus) {
+                                handleCourtSelect(court.id.toString());
+                              }
+                            }}
+                            style={[
+                              styles.newCourtCardContainer,
+                              (reservationBlocked || checkingBlockStatus) && styles.newCourtCardContainerDisabled
+                            ]}
+                            disabled={reservationBlocked || checkingBlockStatus}
                           >
                             <View style={styles.newCourtCard}>
                               {/* Top Right Chips */}
@@ -1232,16 +1270,23 @@ const ReservationScreen = () => {
 
                               {/* Book Now Button */}
                               <TouchableOpacity
-                                style={styles.newCourtBookButton}
+                                style={[
+                                  styles.newCourtBookButton,
+                                  (reservationBlocked || checkingBlockStatus) && styles.newCourtBookButtonDisabled
+                                ]}
                                 onPress={() => handleCourtSelect(court.id.toString())}
+                                disabled={reservationBlocked || checkingBlockStatus}
                               >
-                                <Text style={styles.newCourtBookText}>
+                                <Text style={[
+                                  styles.newCourtBookText,
+                                  (reservationBlocked || checkingBlockStatus) && styles.newCourtBookTextDisabled
+                                ]}>
                                   {t('reservation.bookNow')}
                                 </Text>
                                 <MaterialCommunityIcons 
                                   name="arrow-right" 
                                   size={20} 
-                                  color="#2E7D32" 
+                                  color={(reservationBlocked || checkingBlockStatus) ? "#BDBDBD" : "#2E7D32"} 
                                 />
                               </TouchableOpacity>
                             </View>
@@ -1254,7 +1299,8 @@ const ReservationScreen = () => {
             </Card>
           </View>
 
-        </Animated.View>
+          </Animated.View>
+        )}
       </ScrollView>
 
       {/* Calendar Modal */}
@@ -2116,6 +2162,18 @@ const styles = StyleSheet.create({
   disabledContainer: {
     opacity: 0.5,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+    minHeight: 400,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666666',
+  },
   disabledSelector: {
     opacity: 0.5,
   },
@@ -2272,6 +2330,9 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 16,
   },
+  newCourtCardContainerDisabled: {
+    opacity: 0.5,
+  },
   newCourtCard: {
     backgroundColor: '#E8F5E8',
     borderRadius: 16,
@@ -2354,6 +2415,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#2E7D32',
+  },
+  newCourtBookButtonDisabled: {
+    opacity: 0.5,
+  },
+  newCourtBookTextDisabled: {
+    color: '#BDBDBD',
   },
 });
 

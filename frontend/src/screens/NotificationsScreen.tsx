@@ -509,8 +509,8 @@ const NotificationsScreen = ({ navigation }: any) => {
           </View>
         </View>
 
-        {/* Action Buttons - Only show if needed */}
-        {isPendingMatch && challenge && (
+        {/* Action Buttons - Only show if needed (not for reservation notifications) */}
+        {isPendingMatch && challenge && notification.relatedEntityType !== 'reservation' && (
           <View style={styles.cardActionsContainer}>
             {!isProcessing ? (
               <View style={styles.actionButtons}>

@@ -80,9 +80,9 @@ export class ReservationTemplateService {
       '20:00', '21:00', '22:00', '23:00'
     ];
 
-    // Her gün için (0 = Pazar, 1 = Pazartesi, ..., 6 = Cumartesi)
+    // Her gün için (0 = Pazartesi, 1 = Salı, ..., 6 = Pazar)
     for (let dayOfWeek = 0; dayOfWeek <= 6; dayOfWeek++) {
-      // Her gün için order'ı 0'dan başlat
+      // Her gün için order'ı 1'den başlat
       for (let i = 0; i < defaultHours.length; i++) {
         const time = defaultHours[i];
         const existing = await reservationTemplateRepository.findByDayAndTime(dayOfWeek, time);
@@ -90,22 +90,22 @@ export class ReservationTemplateService {
           await reservationTemplateRepository.create({
             dayOfWeek,
             time,
-            order: i, // Her gün için 0'dan başlar
+            order: i + 1, // Her gün için 1'den başlar
             isActive: true,
           });
         } else {
-          // Mevcut şablon varsa order'ını güncelle (her gün için 0'dan başlamalı)
+          // Mevcut şablon varsa order'ını güncelle (her gün için 1'den başlamalı)
           await reservationTemplateRepository.update(existing.id, {
-            order: i,
+            order: i + 1,
           });
         }
       }
     }
   }
 
-  // Tüm şablonların order'larını her gün için 0'dan başlatacak şekilde güncelle
+  // Tüm şablonların order'larını her gün için 1'den başlatacak şekilde güncelle
   async updateAllTemplateOrders(): Promise<void> {
-    // Her gün için (0 = Pazar, 1 = Pazartesi, ..., 6 = Cumartesi)
+    // Her gün için (0 = Pazartesi, 1 = Salı, ..., 6 = Pazar)
     for (let dayOfWeek = 0; dayOfWeek <= 6; dayOfWeek++) {
       // O günün tüm şablonlarını al ve sırala
       const dayTemplates = await reservationTemplateRepository.findByDay(dayOfWeek);
@@ -113,10 +113,10 @@ export class ReservationTemplateService {
       // Saate göre sırala (order'a göre değil, çünkü order'lar yanlış olabilir)
       dayTemplates.sort((a: ReservationTemplate, b: ReservationTemplate) => a.time.localeCompare(b.time));
       
-      // Her şablon için order'ı 0'dan başlat
+      // Her şablon için order'ı 1'den başlat
       for (let i = 0; i < dayTemplates.length; i++) {
         await reservationTemplateRepository.update(dayTemplates[i].id, {
-          order: i, // Her gün için 0'dan başlar
+          order: i + 1, // Her gün için 1'den başlar
         });
       }
     }

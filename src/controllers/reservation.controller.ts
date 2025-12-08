@@ -69,11 +69,54 @@ export class ReservationController {
       
       const { courtId, startTime, endTime, participantIds, notes } = req.body;
 
+      // Validation: Gerekli alanları kontrol et
+      if (!courtId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Kort ID (courtId) gereklidir',
+        });
+      }
+
+      if (!startTime || !endTime) {
+        return res.status(400).json({
+          success: false,
+          message: 'Başlangıç ve bitiş zamanı (startTime, endTime) gereklidir',
+        });
+      }
+
+      // courtId'yi number'a çevir
+      const courtIdNumber = typeof courtId === 'string' ? parseInt(courtId, 10) : courtId;
+      
+      if (isNaN(courtIdNumber)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Kort ID (courtId) geçerli bir sayı olmalıdır',
+        });
+      }
+
+      // Tarihleri kontrol et
+      const startDate = new Date(startTime);
+      const endDate = new Date(endTime);
+
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: 'Başlangıç ve bitiş zamanı geçerli tarih formatında olmalıdır',
+        });
+      }
+
+      if (startDate >= endDate) {
+        return res.status(400).json({
+          success: false,
+          message: 'Bitiş zamanı başlangıç zamanından sonra olmalıdır',
+        });
+      }
+
       const isAdmin = req.currentUser.userType === 'admin';
       const reservation = await this.reservationService.createReservation(userId, {
-        courtId,
-        startTime: new Date(startTime),
-        endTime: new Date(endTime),
+        courtId: courtIdNumber,
+        startTime: startDate,
+        endTime: endDate,
         participantIds,
         notes,
       }, isAdmin);
