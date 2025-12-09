@@ -92,10 +92,30 @@ export class LeagueController {
         data: league,
       });
     } catch (error: any) {
-      const appError = error instanceof AppError
-        ? error
-        : new AppError("UNKNOWN_ERROR");
+      // AppError ise direkt kullan
+      if (error instanceof AppError) {
+        return res.status(error.status).json({
+          success: false,
+          errorKey: error.errorKey,
+          errorCode: error.errorCode,
+          message: error.message,
+        });
+      }
       
+      // TypeORM hatalarını yakala
+      if (error.code === '23505' || error.code === 'ER_DUP_ENTRY') {
+        const duplicateError = new AppError('LEAGUE_CODE_ALREADY_EXISTS');
+        return res.status(duplicateError.status).json({
+          success: false,
+          errorKey: duplicateError.errorKey,
+          errorCode: duplicateError.errorCode,
+          message: duplicateError.message,
+        });
+      }
+      
+      // Diğer hatalar için generic error
+      console.error('League creation error:', error);
+      const appError = new AppError("UNKNOWN_ERROR");
       return res.status(appError.status).json({
         success: false,
         errorKey: appError.errorKey,
@@ -159,11 +179,32 @@ export class LeagueController {
     try {
       const leagueId = req.query.leagueId ? parseInt(req.query.leagueId as string) : undefined;
       const settings = await this.leagueService.getLeagueSettings(leagueId);
+      
+      // Settings null ise 404 döndür (admin panelinden oluşturulmalı)
+      if (!settings) {
+        return res.status(404).json({
+          success: false,
+          message: 'Lig ayarları bulunamadı. Lütfen admin panelinden ayarları oluşturun.',
+        });
+      }
+      
       return res.status(200).json({
         success: true,
         data: settings,
       });
     } catch (error: any) {
+      // AppError ise uygun status code ile döndür
+      if (error instanceof AppError) {
+        return res.status(error.status).json({
+          success: false,
+          errorKey: error.errorKey,
+          errorCode: error.errorCode,
+          message: error.message,
+        });
+      }
+      
+      // Diğer hatalar için 500
+      console.error('League settings fetch error:', error);
       return res.status(500).json({
         success: false,
         message: error.message || 'Lig ayarları alınırken bir hata oluştu',

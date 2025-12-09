@@ -82,6 +82,26 @@ const ProfileScreen = () => {
     loadProfile();
   }, []);
 
+  // Date picker modal açıldığında scroll yap
+  useEffect(() => {
+    if (showDatePickerModal) {
+      // Modal açıldığında seçili yıla scroll yap
+      if (yearScrollViewRef.current && selectedYear) {
+        const currentYear = new Date().getFullYear();
+        const yearIndex = currentYear - selectedYear;
+        setTimeout(() => {
+          yearScrollViewRef.current?.scrollTo({ y: yearIndex * 50, animated: true });
+        }, 100);
+      }
+      // Seçili aya scroll yap
+      if (monthScrollViewRef.current && selectedMonth) {
+        setTimeout(() => {
+          monthScrollViewRef.current?.scrollTo({ y: (selectedMonth - 1) * 50, animated: true });
+        }, 100);
+      }
+    }
+  }, [showDatePickerModal, selectedYear, selectedMonth]);
+
   const loadProfile = async () => {
     try {
       setLoading(true);
@@ -1165,22 +1185,6 @@ const ProfileScreen = () => {
         dismissable={true}
         visible={showDatePickerModal}
         onDismiss={() => setShowDatePickerModal(false)}
-        onShow={() => {
-          // Modal açıldığında seçili yıla scroll yap
-          if (yearScrollViewRef.current && selectedYear) {
-            const currentYear = new Date().getFullYear();
-            const yearIndex = currentYear - selectedYear;
-            setTimeout(() => {
-              yearScrollViewRef.current?.scrollTo({ y: yearIndex * 50, animated: true });
-            }, 100);
-          }
-          // Seçili aya scroll yap
-          if (monthScrollViewRef.current && selectedMonth) {
-            setTimeout(() => {
-              monthScrollViewRef.current?.scrollTo({ y: (selectedMonth - 1) * 50, animated: true });
-            }, 100);
-          }
-        }}
         contentContainerStyle={styles.datePickerModalContainer}
       >
         <Card style={[styles.datePickerModalCard, themedStyles.card]}>

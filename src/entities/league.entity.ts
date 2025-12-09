@@ -23,6 +23,9 @@ export class League {
 
   @Column({ type: 'text', nullable: true })
   description?: string;
+
+  @Column({ type: 'varchar', length: 50, nullable: true, default: 'trophy' })
+  icon?: string;
   
   @OneToOne(() => LeagueSettings, settings => settings.league, { nullable: false })
   settings: LeagueSettings;

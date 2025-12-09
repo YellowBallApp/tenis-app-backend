@@ -16,7 +16,37 @@ export class LeagueService {
   // ==================== League Entity CRUD ====================
   
   async createLeague(leagueData: Partial<League>): Promise<League> {
-    return await this.leagueRepository.create(leagueData);
+    // Validation: name ve code zorunlu alanlar
+    if (!leagueData.name || !leagueData.code) {
+      throw new AppError('MISSING_REQUIRED_FIELDS');
+    }
+
+    // Code'un unique olduğunu kontrol et
+    const existingLeague = await this.leagueRepository.findByCode(leagueData.code);
+    if (existingLeague) {
+      throw new AppError('LEAGUE_CODE_ALREADY_EXISTS');
+    }
+
+    try {
+      // Icon varsayılan değeri
+      if (!leagueData.icon) {
+        leagueData.icon = 'trophy';
+      }
+      
+      // League'i oluştur (settings admin panelinden oluşturulacak)
+      const league = await this.leagueRepository.create(leagueData);
+      
+      // League'i döndür
+      return await this.leagueRepository.findById(league.id);
+    } catch (error: any) {
+      // TypeORM unique constraint violation hatası
+      if (error.code === '23505' || error.code === 'ER_DUP_ENTRY') {
+        throw new AppError('LEAGUE_CODE_ALREADY_EXISTS');
+      }
+      
+      // Diğer hataları tekrar fırlat
+      throw error;
+    }
   }
 
   async findLeagueById(id: number): Promise<League> {
@@ -51,13 +81,21 @@ export class LeagueService {
   async getLeagueSettings(leagueId?: number) {
     try {
       if (leagueId) {
+        // Önce league'in var olup olmadığını kontrol et
+        const league = await this.leagueRepository.findById(leagueId);
+        if (!league) {
+          throw new AppError('LEAGUE_NOT_FOUND');
+        }
+
+        // Settings'i bul
         const settings = await this.leagueSettingsRepository.findOne({
           where: { league: { id: leagueId } },
           relations: ['league'],
         });
         
+        // Settings yoksa null döndür (admin panelinden oluşturulmalı)
         if (!settings) {
-          throw new AppError('LEAGUE_NOT_FOUND');
+          return null;
         }
         
         return settings;
@@ -69,11 +107,16 @@ export class LeagueService {
       });
       
       if (!settings || settings.length === 0) {
-        throw new AppError('LEAGUE_NOT_FOUND');
+        return null;
       }
       
       return settings[0];
     } catch (error) {
+      // AppError ise direkt fırlat
+      if (error instanceof AppError) {
+        throw error;
+      }
+      // Diğer hataları tekrar fırlat
       throw error;
     }
   }
@@ -81,13 +124,33 @@ export class LeagueService {
   // Lig ayarlarını güncelle
   async updateLeagueSettings(leagueId: number, settingsData: Partial<LeagueSettings>) {
     try {
-      const existingSettings = await this.getLeagueSettings(leagueId);
+      // Önce league'in var olup olmadığını kontrol et
+      const league = await this.leagueRepository.findById(leagueId);
+      if (!league) {
+        throw new AppError('LEAGUE_NOT_FOUND');
+      }
+
+      // Mevcut settings'i bul
+      let existingSettings = await this.leagueSettingsRepository.findOne({
+        where: { league: { id: leagueId } },
+        relations: ['league'],
+      });
       
+      // Settings yoksa yeni oluştur (admin panelinden güncelleme yapılırken)
+      if (!existingSettings) {
+        existingSettings = await this.createLeagueSettings(league, settingsData);
+        return existingSettings;
+      }
+      
+      // Mevcut settings'i güncelle
       Object.assign(existingSettings, settingsData);
       existingSettings.updater = 'admin'; // Bu kısmı authentication'dan alınacak
       
       return await this.leagueSettingsRepository.save(existingSettings);
     } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
       throw new Error('Lig ayarları güncellenirken bir hata oluştu');
     }
   }

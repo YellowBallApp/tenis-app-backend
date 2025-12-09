@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, Text } from 'react-native';
+import { View, ActivityIndicator, Text, Platform } from 'react-native';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider } from './src/context/AuthContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { LanguageProvider } from './src/context/LanguageContext';
@@ -13,8 +12,17 @@ import CustomSplashScreen from './src/components/SplashScreen';
 
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 
-// Keep the splash screen visible while we fetch resources
-SplashScreen.preventAutoHideAsync();
+// Web platformu için expo-splash-screen'i koşullu olarak import et
+let SplashScreen: any = null;
+if (Platform.OS !== 'web') {
+  try {
+    SplashScreen = require('expo-splash-screen');
+    // Keep the splash screen visible while we fetch resources
+    SplashScreen.preventAutoHideAsync();
+  } catch (error) {
+    console.warn('expo-splash-screen modülü yüklenemedi:', error);
+  }
+}
 
 // ThemeProvider içinde olması gerektiği için AppContent component'i oluşturuyoruz
 const AppContent = () => {

@@ -196,6 +196,11 @@ const rawErrors = {
         code: 1039,
         key: "USER_AGE_NOT_IN_RANGE",
         message: "User age is not within the required age range for this league"
+    },
+    LEAGUE_CODE_ALREADY_EXISTS: {
+        code: 1040,
+        key: "LEAGUE_CODE_ALREADY_EXISTS",
+        message: "A league with this code already exists"
     }
 } as const;
 

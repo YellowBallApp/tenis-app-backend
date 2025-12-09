@@ -681,6 +681,13 @@ export const authService = {
     const response = await api.put<ApiResponse<User>>('/user/profile', profileData);
     return response.data.data;
   },
+
+  changePassword: async (passwordData: {
+    currentPassword: string;
+    newPassword: string;
+  }): Promise<void> => {
+    await api.post('/user/change-password', passwordData);
+  },
 };
 
 export const userService = {
@@ -771,9 +778,18 @@ export const leagueService = {
             ...league,
             settings: settingsResponse.data.data
           };
-        } catch (error) {
-          console.error(`League ${league.id} settings fetch error:`, error);
-          return league;
+        } catch (error: any) {
+          // 404 veya 400 hatası ise sadece logla, 500 ise daha detaylı logla
+          if (error.response?.status === 404 || error.response?.status === 400) {
+            console.warn(`League ${league.id} için settings bulunamadı (otomatik oluşturulacak)`);
+          } else {
+            console.error(`League ${league.id} settings fetch error:`, error);
+          }
+          // Settings olmadan da league'i döndür
+          return {
+            ...league,
+            settings: null
+          };
         }
       })
     );

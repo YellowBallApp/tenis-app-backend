@@ -19,12 +19,11 @@ const leagueRepository = {
     return league;
   },
 
-  findByCode: async (code: string): Promise<League> => {
+  findByCode: async (code: string): Promise<League | null> => {
     const league = await repository.findOne({
       where: { code },
       relations: ['settings', 'standings'],
     });
-    if (!league) throw new AppError("LEAGUE_NOT_FOUND");
     return league;
   },
 
