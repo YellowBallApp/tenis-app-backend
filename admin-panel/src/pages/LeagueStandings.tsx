@@ -1,5 +1,21 @@
 import { useEffect, useState } from 'react';
-import { HiPencil, HiCheck, HiX, HiSave } from 'react-icons/hi';
+import { HiX, HiSave, HiMenu } from 'react-icons/hi';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import Layout from '../components/Layout';
 import api from '../utils/api';
 
@@ -25,7 +41,14 @@ const LeagueStandings = () => {
   const [leagues, setLeagues] = useState<any[]>([]);
   const [pendingChanges, setPendingChanges] = useState<Record<number, number | null>>({});
   const [saving, setSaving] = useState(false);
-  const [inputFocused, setInputFocused] = useState<Record<number, boolean>>({});
+  
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     fetchLeagues();
@@ -72,34 +95,6 @@ const LeagueStandings = () => {
     }
   };
 
-  const handleRankingChange = (id: number, newRanking: number) => {
-    setPendingChanges(prev => ({
-      ...prev,
-      [id]: newRanking
-    }));
-  };
-
-  const handleInputFocus = (id: number, currentValue: number) => {
-    setInputFocused(prev => ({
-      ...prev,
-      [id]: true
-    }));
-    // Eğer henüz değişiklik yapılmamışsa, input'u temizle
-    if (pendingChanges[id] === undefined) {
-      setPendingChanges(prev => ({
-        ...prev,
-        [id]: currentValue
-      }));
-    }
-  };
-
-  const handleInputBlur = (id: number) => {
-    setInputFocused(prev => {
-      const newState = { ...prev };
-      delete newState[id];
-      return newState;
-    });
-  };
 
   const handleCancelAll = () => {
     setPendingChanges({});
@@ -149,7 +144,6 @@ const LeagueStandings = () => {
       await Promise.all([...updatePromises, ...deletePromises]);
       
       setPendingChanges({});
-      setInputFocused({});
       await fetchStandings();
       alert('Tüm değişiklikler başarıyla kaydedildi');
     } catch (error: any) {
@@ -160,18 +154,28 @@ const LeagueStandings = () => {
     }
   };
 
-  const getDisplayRanking = (standing: LeagueStanding) => {
+  const getDisplayRanking = (standing: LeagueStanding, index: number) => {
     if (pendingChanges[standing.id] === null) {
       return ''; // Silme işlemi için boş göster
     }
-    if (pendingChanges[standing.id] !== undefined) {
-      return pendingChanges[standing.id] || '';
+    
+    // Eğer pending changes'de varsa onu kullan
+    if (pendingChanges[standing.id] !== undefined && pendingChanges[standing.id] !== null) {
+      return pendingChanges[standing.id];
     }
-    // Input focus olduğunda ve henüz değişiklik yoksa boş göster
-    if (inputFocused[standing.id]) {
-      return '';
+    
+    // Pending changes yoksa, mevcut standings'deki index'e göre hesapla
+    // Ama silinmemiş oyuncuları sayarak
+    let validRanking = 0;
+    for (let i = 0; i <= index; i++) {
+      const currentId = standings[i].id;
+      // Eğer bu oyuncu silinmemişse say
+      if (pendingChanges[currentId] !== null) {
+        validRanking++;
+      }
     }
-    return standing.leagueRanking;
+    
+    return validRanking;
   };
 
   const hasChanges = Object.keys(pendingChanges).length > 0;
@@ -186,6 +190,61 @@ const LeagueStandings = () => {
 
   const isMarkedForDeletion = (id: number) => {
     return pendingChanges[id] === null;
+  };
+
+  // Drag and drop handler
+  const handleDragEnd = (event: { active: { id: number }; over: { id: number } | null }) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setStandings((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        
+        if (oldIndex === -1 || newIndex === -1) {
+          return items; // Geçersiz indeks, değişiklik yapma
+        }
+        
+        const newItems = arrayMove(items, oldIndex, newIndex);
+        
+        // Yeni sıralamaya göre ranking'leri güncelle
+        // Sadece silinmemiş oyunculara 1'den başlayarak unique ranking ver
+        const updatedChanges: Record<number, number> = {};
+        let validRanking = 0;
+        
+        newItems.forEach((item) => {
+          // Eğer bu oyuncu silinmemişse, ona unique ranking ver
+          const isDeleted = pendingChanges[item.id] === null;
+          if (!isDeleted) {
+            validRanking++;
+            updatedChanges[item.id] = validRanking;
+          }
+        });
+        
+        // Pending changes'e ekle (mevcut silme işlemlerini koru)
+        setPendingChanges((prev) => {
+          const newChanges: Record<number, number | null> = {};
+          
+          // Önce mevcut silme işlemlerini koru
+          Object.keys(prev).forEach((idStr) => {
+            const id = parseInt(idStr);
+            if (prev[id] === null) {
+              newChanges[id] = null; // Silme işlemlerini koru
+            }
+          });
+          
+          // Sonra yeni ranking'leri ekle (silinmemiş oyuncular için)
+          Object.keys(updatedChanges).forEach((idStr) => {
+            const id = parseInt(idStr);
+            newChanges[id] = updatedChanges[id];
+          });
+          
+          return newChanges;
+        });
+        
+        return newItems;
+      });
+    }
   };
 
   if (loading && !selectedLeague) {
@@ -228,109 +287,59 @@ const LeagueStandings = () => {
               <div className="text-center py-8 text-soft-white/60">Yükleniyor...</div>
             ) : (
               <>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-white/10">
-                        <th className="text-left py-3 px-4 text-soft-white font-semibold">Sıra</th>
-                        <th className="text-left py-3 px-4 text-soft-white font-semibold">Kullanıcı</th>
-                        <th className="text-left py-3 px-4 text-soft-white font-semibold">E-posta</th>
-                        <th className="text-left py-3 px-4 text-soft-white font-semibold">İşlemler</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {standings.length === 0 ? (
-                        <tr>
-                          <td colSpan={4} className="text-center py-8 text-soft-white/60">
-                            Bu ligde henüz oyuncu bulunmamaktadır
-                          </td>
-                        </tr>
-                      ) : (
-                        standings.map((standing) => {
-                          const displayRanking = getDisplayRanking(standing);
-                          const isChanged = pendingChanges[standing.id] !== undefined;
-                          const isDeleted = isMarkedForDeletion(standing.id);
-                          
-                          return (
-                            <tr 
-                              key={standing.id} 
-                              className={`border-b border-white/5 hover:bg-white/5 ${
-                                isDeleted ? 'bg-red-500/10 opacity-60' : 
-                                isChanged ? 'bg-yellow-500/10' : ''
-                              }`}
-                            >
-                              <td className="py-3 px-4">
-                                <input
-                                  type="number"
-                                  value={displayRanking}
-                                  onChange={(e) => {
-                                    const value = e.target.value;
-                                    if (value === '') {
-                                      // Boş değer girildiğinde, orijinal değeri kullan
-                                      setPendingChanges(prev => {
-                                        const newState = { ...prev };
-                                        delete newState[standing.id];
-                                        return newState;
-                                      });
-                                    } else {
-                                      // Kullanıcı yazmaya başladığında değeri güncelle
-                                      handleRankingChange(standing.id, parseInt(value) || 1);
-                                    }
-                                  }}
-                                  onFocus={(e) => {
-                                    handleInputFocus(standing.id, standing.leagueRanking);
-                                    // Input'a focus olduğunda tüm metni seç (böylece yazmaya başladığında eski değer silinir)
-                                    e.target.select();
-                                  }}
-                                  onBlur={() => handleInputBlur(standing.id)}
-                                  className="w-20 px-2 py-1 bg-white/10 border border-white/20 rounded text-soft-white focus:outline-none focus:border-soft-green"
-                                  min="1"
-                                  disabled={isDeleted}
-                                />
-                                {isChanged && !isDeleted && (
-                                  <span className="ml-2 text-xs text-yellow-400">*</span>
-                                )}
-                                {isDeleted && (
-                                  <span className="ml-2 text-xs text-red-400">Silinecek</span>
-                                )}
-                              </td>
-                              <td className={`py-3 px-4 font-medium ${isDeleted ? 'text-soft-white/50 line-through' : 'text-soft-white'}`}>
-                                {standing.user.name}
-                              </td>
-                              <td className={`py-3 px-4 text-sm ${isDeleted ? 'text-soft-white/50' : 'text-soft-white/80'}`}>
-                                {standing.user.email}
-                              </td>
-                              <td className="py-3 px-4">
-                                <button
-                                  onClick={() => {
-                                    if (isDeleted) {
-                                      // Silme işlemini iptal et
-                                      setPendingChanges(prev => {
-                                        const newState = { ...prev };
-                                        delete newState[standing.id];
-                                        return newState;
-                                      });
-                                    } else {
-                                      handleDelete(standing.id);
-                                    }
-                                  }}
-                                  className={`p-2 rounded-lg transition-all ${
-                                    isDeleted 
-                                      ? 'text-green-400 hover:bg-green-400/20' 
-                                      : 'text-red-400 hover:bg-red-400/20'
-                                  }`}
-                                  title={isDeleted ? 'Silme İptal' : 'Çıkar'}
-                                >
-                                  <HiX />
-                                </button>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={standings.map(s => s.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-white/10">
+                            <th className="text-left py-3 px-4 text-soft-white font-semibold">Sıra</th>
+                            <th className="text-left py-3 px-4 text-soft-white font-semibold">Kullanıcı</th>
+                            <th className="text-left py-3 px-4 text-soft-white font-semibold">E-posta</th>
+                            <th className="text-left py-3 px-4 text-soft-white font-semibold">İşlemler</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {standings.length === 0 ? (
+                            <tr>
+                              <td colSpan={4} className="text-center py-8 text-soft-white/60">
+                                Bu ligde henüz oyuncu bulunmamaktadır
                               </td>
                             </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                          ) : (
+                            standings.map((standing, index) => {
+                              const displayRanking = getDisplayRanking(standing, index);
+                              return (
+                                <SortableRow
+                                  key={standing.id}
+                                  standing={standing}
+                                  displayRanking={displayRanking}
+                                  isChanged={pendingChanges[standing.id] !== undefined && pendingChanges[standing.id] !== null}
+                                  isDeleted={isMarkedForDeletion(standing.id)}
+                                  onDelete={handleDelete}
+                                  onCancelDelete={() => {
+                                    setPendingChanges(prev => {
+                                      const newState = { ...prev };
+                                      delete newState[standing.id];
+                                      return newState;
+                                    });
+                                  }}
+                                />
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </SortableContext>
+                </DndContext>
                 
                 {/* Save All / Cancel All Buttons */}
                 {hasChanges && (
@@ -372,6 +381,98 @@ const LeagueStandings = () => {
         )}
       </div>
     </Layout>
+  );
+};
+
+// Sortable Row Component
+interface SortableRowProps {
+  standing: LeagueStanding;
+  displayRanking: number | string;
+  isChanged: boolean;
+  isDeleted: boolean;
+  onDelete: (id: number) => void;
+  onCancelDelete: () => void;
+}
+
+const SortableRow = ({
+  standing,
+  displayRanking,
+  isChanged,
+  isDeleted,
+  onDelete,
+  onCancelDelete,
+}: SortableRowProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: standing.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <tr
+      ref={setNodeRef}
+      style={style}
+      className={`border-b border-white/5 hover:bg-white/5 ${
+        isDeleted ? 'bg-red-500/10 opacity-60' : 
+        isChanged ? 'bg-yellow-500/10' : ''
+      } ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+    >
+      <td className="py-3 px-4">
+        <div className="flex items-center gap-2">
+          <button
+            {...attributes}
+            {...listeners}
+            className="p-1 text-soft-white/60 hover:text-soft-white transition-colors cursor-grab active:cursor-grabbing"
+            title="Sürükle"
+          >
+            <HiMenu className="text-xl" />
+          </button>
+          <span className="w-12 px-2 py-1 bg-white/10 border border-white/20 rounded text-soft-white text-center font-semibold">
+            {displayRanking}
+          </span>
+          {isChanged && !isDeleted && (
+            <span className="text-xs text-yellow-400">*</span>
+          )}
+          {isDeleted && (
+            <span className="text-xs text-red-400">Silinecek</span>
+          )}
+        </div>
+      </td>
+      <td className={`py-3 px-4 font-medium ${isDeleted ? 'text-soft-white/50 line-through' : 'text-soft-white'}`}>
+        {standing.user.name}
+      </td>
+      <td className={`py-3 px-4 text-sm ${isDeleted ? 'text-soft-white/50' : 'text-soft-white/80'}`}>
+        {standing.user.email}
+      </td>
+      <td className="py-3 px-4">
+        <button
+          onClick={() => {
+            if (isDeleted) {
+              onCancelDelete();
+            } else {
+              onDelete(standing.id);
+            }
+          }}
+          className={`p-2 rounded-lg transition-all ${
+            isDeleted 
+              ? 'text-green-400 hover:bg-green-400/20' 
+              : 'text-red-400 hover:bg-red-400/20'
+          }`}
+          title={isDeleted ? 'Silme İptal' : 'Çıkar'}
+        >
+          <HiX />
+        </button>
+      </td>
+    </tr>
   );
 };
 

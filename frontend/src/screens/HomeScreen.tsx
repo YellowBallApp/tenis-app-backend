@@ -148,13 +148,16 @@ const HomeScreen = () => {
         } : reservation.court,
       }));
       
-      const normalizedAnnouncements = (announcementsData || []).slice(0, 1).map((announcement: any) => ({
-        ...announcement,
-        isPinned: !!(announcement.isPinned),
-      }));
+      // Sadece isPinned olan duyuruları göster (birden fazla olabilir)
+      const pinnedAnnouncements = (announcementsData || [])
+        .map((announcement: any) => ({
+          ...announcement,
+          isPinned: !!(announcement.isPinned),
+        }))
+        .filter((announcement: any) => announcement.isPinned);
       
       setReservations(normalizedReservations);
-      setAnnouncements(normalizedAnnouncements);
+      setAnnouncements(pinnedAnnouncements);
       
       // Kullanıcı istatistiklerini güncelle
       const wins = matchStats.wins || 0;

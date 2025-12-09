@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { HiLogout, HiChevronDown, HiChevronRight } from 'react-icons/hi';
 import { IoTennisball } from 'react-icons/io5';
-import { MdDashboard, MdPeople, MdEvent, MdRateReview, MdSportsTennis, MdEmojiEvents } from 'react-icons/md';
+import { MdDashboard, MdPeople, MdEvent, MdRateReview, MdSportsTennis, MdEmojiEvents, MdNotifications } from 'react-icons/md';
 import { useAuth } from '../context/AuthContext';
 import { useEffect, useState } from 'react';
 import api from '../utils/api';
@@ -89,6 +89,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       ]
     },
     { path: '/reviews', label: 'Yorumlar', icon: MdRateReview, badge: pendingReviewsCount },
+    { path: '/announcements', label: 'Duyurular', icon: MdNotifications },
   ];
 
   return (

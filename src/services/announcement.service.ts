@@ -1,6 +1,8 @@
 import { AppDataSource } from '../config/data-source';
 import { Announcement } from '../entities/announcement.entity';
 import { User } from '../entities/user.entity';
+import notificationService from './notification.service';
+import { NotificationType } from '../enum/notificationType.enum';
 
 export class AnnouncementService {
   private announcementRepository;
@@ -42,15 +44,54 @@ export class AnnouncementService {
         throw new Error('Kullanıcı bulunamadı');
       }
 
+      // Yeni duyuru otomatik olarak isPinned=true olsun (eğer açıkça false belirtilmediyse)
+      const willBePinned = data.isPinned !== false;
+
+      // Eğer yeni duyuru pinned olacaksa, eski pinned duyuruları false yap
+      if (willBePinned) {
+        await this.announcementRepository.update(
+          { isPinned: true },
+          { isPinned: false }
+        );
+      }
+
       const announcement = this.announcementRepository.create({
         title: data.title,
         content: data.content,
         author,
         targetGroup: data.targetGroup || 'all',
-        isPinned: data.isPinned || false,
+        isPinned: willBePinned,
       });
 
-      return await this.announcementRepository.save(announcement);
+      const savedAnnouncement = await this.announcementRepository.save(announcement);
+
+      // Tüm kullanıcılara bildirim gönder
+      try {
+        const allUsers = await this.userRepository.find();
+        const notificationMessage = `📢 Yeni Duyuru: ${data.title}`;
+        
+        // Her kullanıcıya bildirim gönder
+        const notificationPromises = allUsers.map(user => 
+          notificationService.createNotification({
+            recipientId: user.id,
+            type: NotificationType.SYSTEM_NOTIFICATION,
+            message: notificationMessage,
+            relatedEntityId: savedAnnouncement.id,
+            relatedEntityType: 'announcement',
+          }).catch(err => {
+            console.error(`Kullanıcı ${user.id} için bildirim gönderilemedi:`, err);
+            return null;
+          })
+        );
+
+        await Promise.all(notificationPromises);
+        console.log(`${allUsers.length} kullanıcıya duyuru bildirimi gönderildi`);
+      } catch (notificationError) {
+        console.error('Bildirim gönderme hatası:', notificationError);
+        // Bildirim hatası duyuru oluşturmayı engellemez
+      }
+
+      return savedAnnouncement;
     } catch (error: any) {
       throw new Error(error.message || 'Duyuru oluşturulurken bir hata oluştu');
     }
@@ -65,6 +106,14 @@ export class AnnouncementService {
 
       if (!announcement) {
         throw new Error('Duyuru bulunamadı');
+      }
+
+      // Eğer isPinned true yapılıyorsa, diğer pinned duyuruları false yap
+      if (data.isPinned === true && !announcement.isPinned) {
+        await this.announcementRepository.update(
+          { isPinned: true },
+          { isPinned: false }
+        );
       }
 
       Object.assign(announcement, data);
