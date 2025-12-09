@@ -1751,9 +1751,6 @@ const styles = StyleSheet.create({
     marginBottom: 20, // mb-5
     backgroundColor: '#FFFFFF',
     fontSize: 16,
-    borderRadius: 16, // rounded-2xl
-    borderWidth: 1,
-    borderColor: '#E5E7EB', // gray-200
   },
   modalButtons: {
     flexDirection: 'row',

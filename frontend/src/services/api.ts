@@ -757,6 +757,40 @@ export const coachReviewService = {
   },
 };
 
+export const memberReviewService = {
+  // Üyeye review oluştur
+  createReview: async (memberId: string, rating: number, comment: string) => {
+    const response = await api.post('/member-reviews', {
+      memberId,
+      rating,
+      comment,
+    });
+    return response.data.data;
+  },
+
+  // Üyenin tüm review'larını getir (tüm yorumlar - hem onaylı hem bekleyen)
+  getMemberReviews: async (memberId: string) => {
+    const response = await api.get(`/member-reviews/member/${memberId}?onlyApproved=false`);
+    console.log('📥 Üye yorumları API yanıtı:', response.data);
+    return response.data.data;
+  },
+
+  // Kullanıcının review'ını güncelle
+  updateReview: async (reviewId: number, rating: number, comment: string) => {
+    const response = await api.put(`/member-reviews/${reviewId}`, {
+      rating,
+      comment,
+    });
+    return response.data.data;
+  },
+
+  // Review sil
+  deleteReview: async (reviewId: number) => {
+    const response = await api.delete(`/member-reviews/${reviewId}`);
+    return response.data;
+  },
+};
+
 export const leagueService = {
   // ==================== League Entity CRUD ====================
   

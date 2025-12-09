@@ -493,6 +493,17 @@ export default {
     noMatches: 'No match history yet',
     winRate: 'Win Rate',
     memberSince: 'Member Since',
+    rateMember: 'Rate Member',
+    rateMemberSubtitle: 'Share your rating and review for',
+    writeReview: 'Write Review',
+    yourRating: 'Your Rating:',
+    yourComment: 'Your Comment',
+    commentPlaceholder: 'Share your experience...',
+    send: 'Send',
+    ratingRequired: 'Please give a star rating.',
+    commentRequired: 'Please write a comment.',
+    reviewSuccess: 'Your review has been submitted successfully!',
+    basedOn: 'Based on',
   },
   
   coaches: {
