@@ -2,25 +2,330 @@ import { useEffect, useState } from 'react';
 import { HiPencil, HiTrash, HiPlus } from 'react-icons/hi';
 import Layout from '../components/Layout';
 import api from '../utils/api';
+// @ts-ignore - @mdi/js types may not be available in some environments  
+import * as mdiIcons from '@mdi/js';
 
 interface League {
   id: number;
   name: string;
   code: string;
   description?: string;
+  icon?: string;
   createdAt: string;
   updatedAt: string;
 }
+
+// Tüm MaterialCommunityIcons iconları (popüler ve kullanışlı olanlar)
+const ALL_MATERIAL_ICONS = [
+  // Ödüller ve Başarı
+  { name: 'trophy', category: 'trophy' },
+  { name: 'trophy-outline', category: 'trophy' },
+  { name: 'trophy-variant', category: 'trophy' },
+  { name: 'trophy-variant-outline', category: 'trophy' },
+  { name: 'trophy-award', category: 'trophy' },
+  { name: 'medal', category: 'trophy' },
+  { name: 'medal-outline', category: 'trophy' },
+  { name: 'crown', category: 'trophy' },
+  { name: 'crown-outline', category: 'trophy' },
+  { name: 'star', category: 'trophy' },
+  { name: 'star-outline', category: 'trophy' },
+  { name: 'star-circle', category: 'trophy' },
+  { name: 'star-circle-outline', category: 'trophy' },
+  { name: 'star-four-points', category: 'trophy' },
+  { name: 'star-four-points-outline', category: 'trophy' },
+  { name: 'trophy-broken', category: 'trophy' },
+  { name: 'trophy-account', category: 'trophy' },
+  
+  // Spor ve Tenis
+  { name: 'tennis', category: 'sport' },
+  { name: 'tennis-ball', category: 'sport' },
+  { name: 'soccer', category: 'sport' },
+  { name: 'basketball', category: 'sport' },
+  { name: 'basketball-hoop', category: 'sport' },
+  { name: 'football', category: 'sport' },
+  { name: 'football-helmet', category: 'sport' },
+  { name: 'baseball', category: 'sport' },
+  { name: 'baseball-bat', category: 'sport' },
+  { name: 'golf', category: 'sport' },
+  { name: 'golf-tee', category: 'sport' },
+  { name: 'hockey-puck', category: 'sport' },
+  { name: 'hockey-sticks', category: 'sport' },
+  { name: 'volleyball', category: 'sport' },
+  { name: 'table-tennis', category: 'sport' },
+  { name: 'badminton', category: 'sport' },
+  { name: 'swim', category: 'sport' },
+  { name: 'run', category: 'sport' },
+  { name: 'bike', category: 'sport' },
+  { name: 'ski', category: 'sport' },
+  { name: 'skate', category: 'sport' },
+  { name: 'weight-lifter', category: 'sport' },
+  { name: 'dumbbell', category: 'sport' },
+  { name: 'karate', category: 'sport' },
+  { name: 'martial-arts', category: 'sport' },
+  { name: 'yoga', category: 'sport' },
+  { name: 'racing-helmet', category: 'sport' },
+  { name: 'racing-flag', category: 'sport' },
+  
+  // Sosyal ve Grup
+  { name: 'account-group', category: 'social' },
+  { name: 'account-group-outline', category: 'social' },
+  { name: 'account-multiple', category: 'social' },
+  { name: 'account-multiple-outline', category: 'social' },
+  { name: 'account-supervisor', category: 'social' },
+  { name: 'account-supervisor-outline', category: 'social' },
+  { name: 'account-tie', category: 'social' },
+  { name: 'account-tie-outline', category: 'social' },
+  { name: 'account', category: 'social' },
+  { name: 'account-outline', category: 'social' },
+  { name: 'account-circle', category: 'social' },
+  { name: 'account-circle-outline', category: 'social' },
+  { name: 'account-box', category: 'social' },
+  { name: 'account-box-outline', category: 'social' },
+  { name: 'account-heart', category: 'social' },
+  { name: 'account-heart-outline', category: 'social' },
+  { name: 'handshake', category: 'social' },
+  { name: 'handshake-outline', category: 'social' },
+  { name: 'account-network', category: 'social' },
+  { name: 'account-network-outline', category: 'social' },
+  
+  // Semboller ve İşaretler
+  { name: 'flag', category: 'symbol' },
+  { name: 'flag-outline', category: 'symbol' },
+  { name: 'flag-variant', category: 'symbol' },
+  { name: 'flag-variant-outline', category: 'symbol' },
+  { name: 'flag-triangle', category: 'symbol' },
+  { name: 'shield', category: 'symbol' },
+  { name: 'shield-outline', category: 'symbol' },
+  { name: 'shield-check', category: 'symbol' },
+  { name: 'shield-check-outline', category: 'symbol' },
+  { name: 'shield-star', category: 'symbol' },
+  { name: 'shield-star-outline', category: 'symbol' },
+  { name: 'target', category: 'symbol' },
+  { name: 'target-variant', category: 'symbol' },
+  { name: 'bullseye', category: 'symbol' },
+  { name: 'bullseye-arrow', category: 'symbol' },
+  { name: 'diamond-stone', category: 'symbol' },
+  { name: 'diamond-outline', category: 'symbol' },
+  { name: 'diamond', category: 'symbol' },
+  { name: 'hexagon', category: 'symbol' },
+  { name: 'hexagon-outline', category: 'symbol' },
+  { name: 'octagon', category: 'symbol' },
+  { name: 'octagon-outline', category: 'symbol' },
+  { name: 'circle', category: 'symbol' },
+  { name: 'circle-outline', category: 'symbol' },
+  { name: 'square', category: 'symbol' },
+  { name: 'square-outline', category: 'symbol' },
+  { name: 'triangle', category: 'symbol' },
+  { name: 'triangle-outline', category: 'symbol' },
+  
+  // Genel ve Popüler
+  { name: 'fire', category: 'general' },
+  { name: 'fire-outline', category: 'general' },
+  { name: 'lightning-bolt', category: 'general' },
+  { name: 'lightning-bolt-outline', category: 'general' },
+  { name: 'rocket', category: 'general' },
+  { name: 'rocket-outline', category: 'general' },
+  { name: 'rocket-launch', category: 'general' },
+  { name: 'rocket-launch-outline', category: 'general' },
+  { name: 'flash', category: 'general' },
+  { name: 'flash-outline', category: 'general' },
+  { name: 'flash-auto', category: 'general' },
+  { name: 'flame', category: 'general' },
+  { name: 'flame-outline', category: 'general' },
+  { name: 'heart', category: 'general' },
+  { name: 'heart-outline', category: 'general' },
+  { name: 'heart-pulse', category: 'general' },
+  { name: 'heart-multiple', category: 'general' },
+  { name: 'heart-multiple-outline', category: 'general' },
+  { name: 'thumb-up', category: 'general' },
+  { name: 'thumb-up-outline', category: 'general' },
+  { name: 'thumb-down', category: 'general' },
+  { name: 'thumb-down-outline', category: 'general' },
+  { name: 'check-circle', category: 'general' },
+  { name: 'check-circle-outline', category: 'general' },
+  { name: 'check', category: 'general' },
+  { name: 'check-all', category: 'general' },
+  { name: 'close-circle', category: 'general' },
+  { name: 'close-circle-outline', category: 'general' },
+  { name: 'close', category: 'general' },
+  { name: 'plus-circle', category: 'general' },
+  { name: 'plus-circle-outline', category: 'general' },
+  { name: 'minus-circle', category: 'general' },
+  { name: 'minus-circle-outline', category: 'general' },
+  { name: 'plus', category: 'general' },
+  { name: 'minus', category: 'general' },
+  { name: 'bell', category: 'general' },
+  { name: 'bell-outline', category: 'general' },
+  { name: 'bell-ring', category: 'general' },
+  { name: 'bell-ring-outline', category: 'general' },
+  { name: 'cog', category: 'general' },
+  { name: 'cog-outline', category: 'general' },
+  { name: 'settings', category: 'general' },
+  { name: 'settings-outline', category: 'general' },
+  { name: 'wrench', category: 'general' },
+  { name: 'wrench-outline', category: 'general' },
+  { name: 'toolbox', category: 'general' },
+  { name: 'toolbox-outline', category: 'general' },
+  { name: 'hammer', category: 'general' },
+  { name: 'hammer-wrench', category: 'general' },
+  { name: 'calendar', category: 'general' },
+  { name: 'calendar-outline', category: 'general' },
+  { name: 'calendar-clock', category: 'general' },
+  { name: 'calendar-clock-outline', category: 'general' },
+  { name: 'clock', category: 'general' },
+  { name: 'clock-outline', category: 'general' },
+  { name: 'clock-time-four', category: 'general' },
+  { name: 'clock-time-four-outline', category: 'general' },
+  { name: 'timer', category: 'general' },
+  { name: 'timer-outline', category: 'general' },
+  { name: 'timer-sand', category: 'general' },
+  { name: 'timer-sand-empty', category: 'general' },
+  { name: 'chart-line', category: 'general' },
+  { name: 'chart-line-variant', category: 'general' },
+  { name: 'chart-bar', category: 'general' },
+  { name: 'chart-bar-stacked', category: 'general' },
+  { name: 'chart-pie', category: 'general' },
+  { name: 'chart-donut', category: 'general' },
+  { name: 'chart-donut-variant', category: 'general' },
+  { name: 'trending-up', category: 'general' },
+  { name: 'trending-down', category: 'general' },
+  { name: 'arrow-up', category: 'general' },
+  { name: 'arrow-down', category: 'general' },
+  { name: 'arrow-left', category: 'general' },
+  { name: 'arrow-right', category: 'general' },
+  { name: 'arrow-up-circle', category: 'general' },
+  { name: 'arrow-down-circle', category: 'general' },
+  { name: 'arrow-left-circle', category: 'general' },
+  { name: 'arrow-right-circle', category: 'general' },
+  { name: 'chevron-up', category: 'general' },
+  { name: 'chevron-down', category: 'general' },
+  { name: 'chevron-left', category: 'general' },
+  { name: 'chevron-right', category: 'general' },
+  { name: 'play-circle', category: 'general' },
+  { name: 'play-circle-outline', category: 'general' },
+  { name: 'pause-circle', category: 'general' },
+  { name: 'pause-circle-outline', category: 'general' },
+  { name: 'stop-circle', category: 'general' },
+  { name: 'stop-circle-outline', category: 'general' },
+  { name: 'skip-next', category: 'general' },
+  { name: 'skip-previous', category: 'general' },
+  { name: 'fast-forward', category: 'general' },
+  { name: 'rewind', category: 'general' },
+  { name: 'home', category: 'general' },
+  { name: 'home-outline', category: 'general' },
+  { name: 'home-variant', category: 'general' },
+  { name: 'home-variant-outline', category: 'general' },
+  { name: 'map', category: 'general' },
+  { name: 'map-outline', category: 'general' },
+  { name: 'map-marker', category: 'general' },
+  { name: 'map-marker-outline', category: 'general' },
+  { name: 'map-marker-radius', category: 'general' },
+  { name: 'map-marker-radius-outline', category: 'general' },
+  { name: 'compass', category: 'general' },
+  { name: 'compass-outline', category: 'general' },
+  { name: 'navigation', category: 'general' },
+  { name: 'navigation-outline', category: 'general' },
+  { name: 'information', category: 'general' },
+  { name: 'information-outline', category: 'general' },
+  { name: 'alert', category: 'general' },
+  { name: 'alert-outline', category: 'general' },
+  { name: 'alert-circle', category: 'general' },
+  { name: 'alert-circle-outline', category: 'general' },
+  { name: 'help-circle', category: 'general' },
+  { name: 'help-circle-outline', category: 'general' },
+  { name: 'question-mark', category: 'general' },
+  { name: 'question-mark-circle', category: 'general' },
+  { name: 'question-mark-circle-outline', category: 'general' },
+  { name: 'magnify', category: 'general' },
+  { name: 'magnify-plus', category: 'general' },
+  { name: 'magnify-minus', category: 'general' },
+  { name: 'filter', category: 'general' },
+  { name: 'filter-outline', category: 'general' },
+  { name: 'sort', category: 'general' },
+  { name: 'sort-alphabetical', category: 'general' },
+  { name: 'sort-numeric', category: 'general' },
+  { name: 'sort-variant', category: 'general' },
+  { name: 'eye', category: 'general' },
+  { name: 'eye-outline', category: 'general' },
+  { name: 'eye-off', category: 'general' },
+  { name: 'eye-off-outline', category: 'general' },
+  { name: 'lock', category: 'general' },
+  { name: 'lock-outline', category: 'general' },
+  { name: 'lock-open', category: 'general' },
+  { name: 'lock-open-outline', category: 'general' },
+  { name: 'key', category: 'general' },
+  { name: 'key-outline', category: 'general' },
+  { name: 'key-variant', category: 'general' },
+  { name: 'bookmark', category: 'general' },
+  { name: 'bookmark-outline', category: 'general' },
+  { name: 'bookmark-plus', category: 'general' },
+  { name: 'bookmark-plus-outline', category: 'general' },
+  { name: 'tag', category: 'general' },
+  { name: 'tag-outline', category: 'general' },
+  { name: 'tag-multiple', category: 'general' },
+  { name: 'tag-multiple-outline', category: 'general' },
+  { name: 'label', category: 'general' },
+  { name: 'label-outline', category: 'general' },
+];
+
+// MaterialCommunityIcons isimlerini MDI path formatına çeviren helper fonksiyon
+// MaterialCommunityIcons isim formatı: 'trophy', 'trophy-outline' gibi
+// MDI formatı: 'mdiTrophy', 'mdiTrophyOutline' gibi
+const getIconPath = (iconName: string): string | null => {
+  try {
+    // Icon ismini MDI formatına çevir
+    // 'trophy' -> 'mdiTrophy', 'trophy-outline' -> 'mdiTrophyOutline'
+    const parts = iconName.split('-');
+    const mdiName = 'mdi' + parts
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+      .join('');
+    
+    // @mdi/js'den icon path'ini al
+    const iconPath = (mdiIcons as any)[mdiName];
+    
+    // Eğer bulunamazsa, alternatif isimleri dene
+    if (!iconPath) {
+      // Bazı iconlar farklı isimlerle olabilir
+      const alternativeNames = [
+        mdiName.replace(/Outline$/, ''),
+        mdiName.replace(/Variant$/, ''),
+        mdiName.replace(/OutlineVariant$/, 'VariantOutline'),
+      ];
+      
+      for (const altName of alternativeNames) {
+        const altPath = (mdiIcons as any)[altName];
+        if (altPath) {
+          return altPath;
+        }
+      }
+      
+      // Debug: İlk 10 icon için log
+      if (iconName === 'trophy' || iconName === 'crown' || iconName === 'tennis') {
+        console.warn(`Icon not found: ${iconName} -> ${mdiName}`, {
+          available: Object.keys(mdiIcons).filter(k => k.toLowerCase().includes(iconName.toLowerCase())).slice(0, 5)
+        });
+      }
+    }
+    
+    return iconPath || null;
+  } catch (error) {
+    console.error(`Error getting icon path for ${iconName}:`, error);
+    return null;
+  }
+};
 
 const Leagues = () => {
   const [leagues, setLeagues] = useState<League[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingLeague, setEditingLeague] = useState<League | null>(null);
+  const [iconSearch, setIconSearch] = useState('');
+  const [selectedIconCategory, setSelectedIconCategory] = useState<string>('all');
   const [formData, setFormData] = useState({
     name: '',
     code: '',
     description: '',
+    icon: 'trophy',
     leagueDescription: '',
     rewards: '',
     // Yaş Aralıkları
@@ -70,6 +375,7 @@ const Leagues = () => {
         name: '',
         code: '',
         description: '',
+        icon: 'trophy',
         leagueDescription: '',
         rewards: '',
         minAge: '',
@@ -117,6 +423,7 @@ const Leagues = () => {
         name: league.name,
         code: league.code,
         description: league.description || '',
+        icon: league.icon || 'trophy',
         leagueDescription: settings?.leagueDescription || '',
         rewards: settings?.rewards || '',
         minAge: settings?.minAge != null ? String(settings.minAge) : '',
@@ -145,6 +452,7 @@ const Leagues = () => {
         name: league.name,
         code: league.code,
         description: league.description || '',
+        icon: league.icon || 'trophy',
         leagueDescription: '',
         rewards: '',
         minAge: '',
@@ -178,6 +486,7 @@ const Leagues = () => {
           name: formData.name,
           code: formData.code,
           description: formData.description,
+          icon: formData.icon,
         });
         // Settings'i güncelle
         await api.put(`/league/settings/${editingLeague.id}`, {
@@ -206,6 +515,7 @@ const Leagues = () => {
           name: formData.name,
           code: formData.code,
           description: formData.description,
+          icon: formData.icon,
         });
         const leagueId = leagueResponse.data.data.id;
         // Settings'i güncelle
@@ -364,6 +674,109 @@ const Leagues = () => {
                   className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
                   rows={3}
                 />
+              </div>
+
+              {/* Icon Seçici */}
+              <div>
+                <label className="block text-soft-white mb-2">Lig İkonu</label>
+                
+                {/* Arama ve Kategori Filtreleri */}
+                <div className="mb-3 space-y-2">
+                  <input
+                    type="text"
+                    placeholder="Icon ara... (örn: trophy, tennis, star)"
+                    value={iconSearch}
+                    onChange={(e) => setIconSearch(e.target.value)}
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green text-sm"
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { value: 'all', label: 'Tümü' },
+                      { value: 'trophy', label: 'Ödüller' },
+                      { value: 'sport', label: 'Spor' },
+                      { value: 'social', label: 'Sosyal' },
+                      { value: 'symbol', label: 'Semboller' },
+                      { value: 'general', label: 'Genel' },
+                    ].map((cat) => (
+                      <button
+                        key={cat.value}
+                        type="button"
+                        onClick={() => setSelectedIconCategory(cat.value)}
+                        className={`px-3 py-1 rounded-lg text-sm transition-all ${
+                          selectedIconCategory === cat.value
+                            ? 'bg-soft-green text-soft-navy font-semibold'
+                            : 'bg-white/10 text-soft-white hover:bg-white/20'
+                        }`}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Icon Listesi */}
+                <div className="grid grid-cols-6 gap-2 p-4 bg-white/5 rounded-xl border border-white/10 max-h-96 overflow-y-auto">
+                  {(() => {
+                    // Filtreleme
+                    let filteredIcons = ALL_MATERIAL_ICONS;
+                    
+                    // Kategori filtresi
+                    if (selectedIconCategory !== 'all') {
+                      filteredIcons = filteredIcons.filter(icon => icon.category === selectedIconCategory);
+                    }
+                    
+                    // Arama filtresi
+                    if (iconSearch.trim()) {
+                      const searchLower = iconSearch.toLowerCase();
+                      filteredIcons = filteredIcons.filter(icon => 
+                        icon.name.toLowerCase().includes(searchLower)
+                      );
+                    }
+
+                    return filteredIcons.map((icon) => {
+                      const iconPath = getIconPath(icon.name);
+                      return (
+                        <button
+                          key={icon.name}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, icon: icon.name })}
+                          className={`p-2 rounded-lg border-2 transition-all flex flex-col items-center justify-center ${
+                            formData.icon === icon.name
+                              ? 'border-soft-green bg-soft-green/20 scale-105'
+                              : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
+                          }`}
+                          title={icon.name}
+                        >
+                          {iconPath ? (
+                            <svg 
+                              width="24" 
+                              height="24" 
+                              viewBox="0 0 24 24"
+                              style={{ display: 'block' }}
+                            >
+                              <path 
+                                d={iconPath} 
+                                fill="#FFFFFF"
+                                stroke="none"
+                              />
+                            </svg>
+                          ) : (
+                            <div className="w-6 h-6 flex items-center justify-center text-xs text-soft-white/50 border border-white/20 rounded">
+                              ?
+                            </div>
+                          )}
+                        </button>
+                      );
+                    });
+                  })()}
+                </div>
+                <p className="text-xs text-soft-white/60 mt-2">
+                  Seçilen icon: <span className="font-semibold text-soft-green">{formData.icon}</span>
+                  <span className="ml-2">({(() => {
+                    const filtered = ALL_MATERIAL_ICONS.filter(i => i.name === formData.icon);
+                    return filtered.length > 0 ? filtered[0].category : 'genel';
+                  })()} kategorisi - Mobil uygulamada MaterialCommunityIcons ile gösterilecek)</span>
+                </p>
               </div>
               
               {/* Lig Açıklaması (Frontend'de gösterilecek) */}
