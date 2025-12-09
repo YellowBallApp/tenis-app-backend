@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Image,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -21,12 +22,14 @@ import {
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useLanguage } from '../context/LanguageContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { coachService, coachReviewService } from '../services/api';
 
 const CoachDetailScreen = () => {
   const route = useRoute();
   const navigation = useNavigation();
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
   const { coachId } = route.params as { coachId: number };
   
   const [coach, setCoach] = useState<any>(null);
@@ -193,8 +196,8 @@ const CoachDetailScreen = () => {
   if (loading || !coach) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#2E7D32" />
-        <Text style={{ marginTop: 10, color: '#9E9E9E' }}>{t('common.loading')}</Text>
+        <ActivityIndicator size="large" color="#54CE8F" />
+        <Text style={{ marginTop: 10, color: '#717182' }}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -207,40 +210,47 @@ const CoachDetailScreen = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: 0 }}>
+        {/* Profile Header */}
+        <View style={[styles.profileHeader, { paddingTop: insets.top + 60 }]}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.navigate('UsersList' as never);
+              }
+            }}
           >
-            <MaterialCommunityIcons name="arrow-left" size={24} color="#1B1B1B" />
+            <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
           </TouchableOpacity>
-        </View>
-
-        {/* Profile Header */}
-        <View style={styles.profileHeader}>
-          <View style={styles.profileHeaderContent}>
+          {coach.profilePhoto ? (
+            <Image
+              source={{ uri: coach.profilePhoto }}
+              style={styles.profileAvatar}
+            />
+          ) : (
             <Avatar.Text
-              size={100}
+              size={120}
               label={getInitials(coach.name)}
               style={styles.profileAvatar}
-              labelStyle={{ color: '#FFFFFF', fontSize: 40, fontWeight: '600' }}
+              labelStyle={{ color: '#FFFFFF', fontSize: 48, fontWeight: '700' }}
             />
-            <Text style={styles.profileName}>{coach.name}</Text>
-            <Text style={styles.profileRole}>{translateSpecialty(coach.specialty)}</Text>
-            <View style={styles.profileTags}>
-              <View style={styles.experienceTag}>
-                <Text style={styles.experienceTagText}>{coach.experience}</Text>
-              </View>
-              <View style={styles.ratingTag}>
-                <MaterialIcons name="star" size={16} color="#FFD700" />
-                <Text style={styles.ratingTagText}>
-                  {coach.rating && typeof coach.rating === 'number' ? coach.rating.toFixed(1) : '0.0'}
-                </Text>
-              </View>
+          )}
+          <Text style={styles.profileName}>{coach.name}</Text>
+          <Text style={styles.profileRole}>{translateSpecialty(coach.specialty)}</Text>
+          <View style={styles.profileTags}>
+            <View style={styles.experienceTag}>
+              <Text style={styles.experienceTagText}>{coach.experience}</Text>
+            </View>
+            <View style={styles.ratingTag}>
+              <MaterialIcons name="star" size={16} color="#FFD700" />
+              <Text style={styles.ratingTagText}>
+                {coach.rating && typeof coach.rating === 'number' ? coach.rating.toFixed(1) : '0.0'}
+              </Text>
             </View>
           </View>
         </View>
@@ -275,13 +285,13 @@ const CoachDetailScreen = () => {
             <Text style={styles.cardTitle}>{t('coaches.contactInformation')}</Text>
             {coach.email && (
               <View style={styles.contactRow}>
-                <MaterialCommunityIcons name="email-outline" size={20} color="#666666" />
+                <MaterialCommunityIcons name="email-outline" size={20} color="#9CA3AF" />
                 <Text style={styles.contactText}>{coach.email}</Text>
               </View>
             )}
             {coach.phone && (
               <View style={styles.contactRow}>
-                <MaterialCommunityIcons name="phone-outline" size={20} color="#666666" />
+                <MaterialCommunityIcons name="phone-outline" size={20} color="#9CA3AF" />
                 <Text style={styles.contactText}>{coach.phone}</Text>
               </View>
             )}
@@ -453,129 +463,142 @@ const CoachDetailScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FAFCFB', // New design background
   },
   scrollView: {
     flex: 1,
   },
-  header: {
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
   backButton: {
+    position: 'absolute',
+    top: 60,
+    left: 24, // px-6
     width: 40,
     height: 40,
+    borderRadius: 20, // rounded-full
+    backgroundColor: 'rgba(255, 255, 255, 0.2)', // white/20
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 10,
   },
   profileHeader: {
-    backgroundColor: '#F8F9FA',
-    paddingBottom: 24,
-  },
-  profileHeaderContent: {
+    backgroundColor: '#B4AEBD', // New design purple
+    paddingBottom: 40, // pb-10
+    paddingHorizontal: 24, // px-6
     alignItems: 'center',
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
   },
   profileAvatar: {
-    backgroundColor: '#BA68C8',
-    marginBottom: 16,
+    width: 120, // w-30
+    height: 120, // h-30
+    borderRadius: 60, // rounded-full
+    marginBottom: 20, // mb-5
+    backgroundColor: 'rgba(255, 255, 255, 0.3)', // white/30
   },
   profileName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginBottom: 8,
+    fontSize: 24, // text-2xl
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 8, // mb-2
   },
   profileRole: {
-    fontSize: 16,
-    color: '#666666',
-    marginBottom: 16,
+    fontSize: 14, // text-sm
+    color: '#F3E5F5', // Light purple
+    marginBottom: 16, // mb-4
   },
   profileTags: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 8, // gap-2
+    flexWrap: 'wrap',
+    justifyContent: 'center',
   },
   experienceTag: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)', // white/20
+    borderRadius: 9999, // rounded-full
+    paddingHorizontal: 12, // px-3
+    paddingVertical: 6, // py-1.5
   },
   experienceTagText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1B1B1B',
+    fontSize: 11, // text-xs
+    fontWeight: '500',
+    color: '#FFFFFF',
   },
   ratingTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)', // white/20
+    borderRadius: 9999, // rounded-full
+    paddingHorizontal: 12, // px-3
+    paddingVertical: 6, // py-1.5
+    gap: 6, // gap-1.5
   },
   ratingTagText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1B1B1B',
+    fontSize: 11, // text-xs
+    fontWeight: '500',
+    color: '#FFFFFF',
   },
   actionButtonsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingHorizontal: 20,
-    paddingBottom: 24,
+    paddingHorizontal: 24, // px-6
+    paddingVertical: 24, // py-6
+    gap: 12, // gap-3
+    backgroundColor: '#FAFCFB',
   },
   actionButton: {
     alignItems: 'center',
     flex: 1,
   },
   actionIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
+    width: 64, // w-16
+    height: 64, // h-16
+    borderRadius: 16, // rounded-2xl
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 8, // mb-2
   },
   actionIconGreen: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#54CE8F', // Primary green
   },
   actionIconGrey: {
-    backgroundColor: '#9E9E9E',
+    backgroundColor: '#B4AEBD', // Purple/gray
   },
   actionButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1B1B1B',
+    fontSize: 12, // text-xs
+    fontWeight: '500',
+    color: '#030213', // Dark text
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    marginHorizontal: 20,
-    marginBottom: 16,
+    borderRadius: 16, // rounded-2xl
+    marginHorizontal: 24, // mx-6
+    marginBottom: 24, // mb-6
     borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderColor: '#F3F4F6', // gray-100
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginBottom: 16,
+    fontSize: 18, // text-lg
+    fontWeight: '600',
+    color: '#030213',
+    marginBottom: 16, // mb-4
   },
   contactRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    gap: 12,
+    marginBottom: 12, // mb-3
+    gap: 12, // gap-3
   },
   contactText: {
-    fontSize: 15,
-    color: '#1B1B1B',
+    fontSize: 14, // text-sm
+    color: '#717182', // Medium gray
     flex: 1,
   },
   reviewsHeader: {

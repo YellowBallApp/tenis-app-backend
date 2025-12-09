@@ -14,6 +14,12 @@ export default {
     search: 'Ara...',
     error: 'Hata',
     success: 'Başarılı',
+    clear: 'Temizle',
+    today: 'Bugün',
+    yesterday: 'Dün',
+    daysAgo: 'gün önce',
+    weeksAgo: 'hafta önce',
+    monthsAgo: 'ay önce',
   },
   
   auth: {
@@ -172,6 +178,14 @@ export default {
     intermediate: 'Intermediate',
     expert: 'Expert',
     beginner: 'Beginner',
+    confirmBooking: 'Rezervasyonu Onayla',
+    reservationDetails: 'Rezervasyon Detayları',
+    date: 'Tarih',
+    time: 'Saat',
+    confirm: 'Rezervasyonu Onayla',
+    minutes: 'dakika',
+    you: 'Sen',
+    court: 'Kort',
   },
 
   reservationsList: {
@@ -232,7 +246,7 @@ export default {
     time: 'Saat:',
     selectWinner: 'Kazanan Oyuncu',
     you: 'Siz',
-    selectCourt: 'Kort Seçin',
+    selectCourt: 'Kort',
     selectCourtPlaceholder: 'Kort seçin',
     setScores: 'Set Skorları (Minimum 2 Set Zorunlu)',
     addSet: 'Set Ekle',
@@ -407,6 +421,9 @@ export default {
     age: 'Yaş',
     enterAge: 'Yaşınızı girin',
     invalidAge: 'Lütfen geçerli bir yaş girin',
+    birthDate: 'Doğum Tarihi',
+    year: 'Yıl',
+    month: 'Ay',
     profilePhoto: 'Profil Fotoğrafı',
     selectFromGallery: 'Galeriden Seç',
     takePhoto: 'Fotoğraf Çek',
@@ -474,6 +491,7 @@ export default {
     lost: 'Kaybetti',
     noMatches: 'Henüz maç geçmişi yok',
     winRate: 'Kazanma Oranı',
+    memberSince: 'Üyelik Tarihi',
   },
   
   coaches: {

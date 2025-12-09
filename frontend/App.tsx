@@ -2,14 +2,19 @@ import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, Text } from 'react-native';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider } from './src/context/AuthContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { LanguageProvider } from './src/context/LanguageContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import './src/utils/ErrorLogger'; // Initialize error logger
 import { initializeAPI } from './src/services/api';
+import CustomSplashScreen from './src/components/SplashScreen';
 
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
 
 // ThemeProvider içinde olması gerektiği için AppContent component'i oluşturuyoruz
 const AppContent = () => {
@@ -27,6 +32,7 @@ const AppContent = () => {
 };
 
 export default function App() {
+  const [isSplashReady, setIsSplashReady] = useState(false);
   const [isAPIReady, setIsAPIReady] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
@@ -49,19 +55,22 @@ export default function App() {
     setupAPI();
   }, []);
 
-  // API hazır olana kadar loading göster
-  if (!isAPIReady) {
+  // Splash screen göster - API hazır olana kadar
+  useEffect(() => {
+    // API hazır olduğunda ve minimum 2 saniye geçtiğinde splash'i kapat
+    if (isAPIReady && !isSplashReady) {
+      const timer = setTimeout(() => {
+        setIsSplashReady(true);
+      }, 2000); // Minimum 2 saniye göster
+
+      return () => clearTimeout(timer);
+    }
+  }, [isAPIReady, isSplashReady]);
+
+  if (!isSplashReady || !isAPIReady) {
     return (
       <SafeAreaProvider>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1a1a1a' }}>
-          <ActivityIndicator size="large" color="#4CAF50" />
-          <Text style={{ marginTop: 16, color: '#fff', fontSize: 16 }}>
-            Backend sunucusu aranıyor...
-          </Text>
-          <Text style={{ marginTop: 8, color: '#888', fontSize: 12 }}>
-            IP adresi otomatik keşfediliyor
-          </Text>
-        </View>
+        <CustomSplashScreen onFinish={() => {}} />
       </SafeAreaProvider>
     );
   }

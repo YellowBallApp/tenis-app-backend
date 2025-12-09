@@ -13,11 +13,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   Card,
-  Title,
   Text,
   Portal,
   Modal,
-  Button,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
@@ -243,7 +241,7 @@ const ReservationsListScreen = ({ navigation }: any) => {
     if (reservation) {
       return (
         <View style={styles.reservedCell}>
-          <MaterialCommunityIcons name="account-check" size={16} color="#2E7D32" />
+          <MaterialCommunityIcons name="account-check" size={16} color="#54CE8F" />
           <Text style={styles.reservedText}>{reservation.user.name}</Text>
         </View>
       );
@@ -252,7 +250,7 @@ const ReservationsListScreen = ({ navigation }: any) => {
     if (isBlocked) {
       return (
         <View style={styles.blockedCell}>
-          <MaterialCommunityIcons name="lock" size={16} color="#D32F2F" />
+          <MaterialCommunityIcons name="lock" size={16} color="#EF4444" />
           <Text style={styles.blockedText} numberOfLines={2}>
             {blockedReason || t('reservation.blocked')}
           </Text>
@@ -269,17 +267,23 @@ const ReservationsListScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       
       {/* Header */}
       <View style={[styles.headerSection, { paddingTop: Platform.OS === 'android' ? insets.top + 20 : insets.top + 12 }]}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Home' as never);
+            }
+          }}
           style={styles.backButton}
         >
-          <MaterialCommunityIcons name="arrow-left" size={28} color="#1B1B1B" />
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
         </TouchableOpacity>
-        <Title style={styles.headerTitle}>{t('reservationsList.title')}</Title>
+        <Text style={styles.headerTitle}>{t('reservationsList.title')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -289,16 +293,16 @@ const ReservationsListScreen = ({ navigation }: any) => {
           style={styles.dateSelector}
           onPress={() => setShowCalendar(true)}
         >
-          <MaterialCommunityIcons name="calendar" size={24} color="#2E7D32" />
+          <MaterialCommunityIcons name="calendar" size={20} color="#54CE8F" />
           <Text style={styles.dateText}>{formatDate(selectedDate)}</Text>
-          <MaterialCommunityIcons name="chevron-down" size={24} color="#2E7D32" />
+          <MaterialCommunityIcons name="chevron-down" size={20} color="#9CA3AF" />
         </TouchableOpacity>
       </View>
 
       {/* Reservations Table */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2E7D32" />
+          <ActivityIndicator size="large" color="#54CE8F" />
           <Text style={styles.loadingText}>{t('reservationsList.loading')}</Text>
         </View>
       ) : (
@@ -314,18 +318,18 @@ const ReservationsListScreen = ({ navigation }: any) => {
                 <View style={[styles.headerCell, styles.timeHeaderCell]}>
                   <Text style={styles.headerCellText}>{t('reservationsList.timeHeader')}</Text>
                 </View>
-                {courts.map(court => (
-                  <View key={court.id} style={styles.headerCell}>
-                    <MaterialCommunityIcons 
-                      name="tennis" 
-                      size={20} 
-                      color="#FFFFFF" 
-                    />
-                    <Text style={styles.headerCellText}>
-                      {court.name}
-                    </Text>
-                  </View>
-                ))}
+                    {courts.map(court => (
+                      <View key={court.id} style={styles.headerCell}>
+                        <MaterialCommunityIcons 
+                          name="tennis" 
+                          size={18} 
+                          color="#FFFFFF" 
+                        />
+                        <Text style={styles.headerCellText}>
+                          {court.name}
+                        </Text>
+                      </View>
+                    ))}
               </View>
 
               {/* Table Body */}
@@ -333,7 +337,7 @@ const ReservationsListScreen = ({ navigation }: any) => {
                 {timeSlots.map(timeSlot => (
                   <View key={timeSlot} style={styles.tableRow}>
                     <View style={[styles.cell, styles.timeCell]}>
-                      <MaterialCommunityIcons name="clock-outline" size={16} color="#2E7D32" />
+                      <MaterialCommunityIcons name="clock-outline" size={16} color="#54CE8F" />
                       <Text style={styles.timeCellText}>{timeSlot}</Text>
                     </View>
                     {courts.map(court => (
@@ -376,9 +380,12 @@ const ReservationsListScreen = ({ navigation }: any) => {
           <Card style={styles.calendarCard}>
             <Card.Content>
               <View style={styles.calendarHeader}>
-                <Title style={styles.calendarTitle}>{t('reservation.selectDate')}</Title>
-                <TouchableOpacity onPress={() => setShowCalendar(false)}>
-                  <MaterialCommunityIcons name="close" size={24} color="#757575" />
+                <Text style={styles.calendarTitle}>{t('reservation.selectDate')}</Text>
+                <TouchableOpacity 
+                  onPress={() => setShowCalendar(false)}
+                  style={styles.modalCloseButton}
+                >
+                  <MaterialCommunityIcons name="close" size={20} color="#9CA3AF" />
                 </TouchableOpacity>
               </View>
 
@@ -387,24 +394,24 @@ const ReservationsListScreen = ({ navigation }: any) => {
                 markedDates={{
                   [selectedDate]: {
                     selected: true,
-                    selectedColor: '#2E7D32',
+                    selectedColor: '#54CE8F',
                     selectedTextColor: '#FFFFFF'
                   }
                 }}
                 theme={{
                   backgroundColor: '#FFFFFF',
                   calendarBackground: '#FFFFFF',
-                  textSectionTitleColor: '#2E7D32',
-                  selectedDayBackgroundColor: '#2E7D32',
+                  textSectionTitleColor: '#54CE8F',
+                  selectedDayBackgroundColor: '#54CE8F',
                   selectedDayTextColor: '#FFFFFF',
-                  todayTextColor: '#2E7D32',
-                  dayTextColor: '#2F4F4F',
-                  textDisabledColor: '#BDBDBD',
-                  dotColor: '#2E7D32',
+                  todayTextColor: '#54CE8F',
+                  dayTextColor: '#030213',
+                  textDisabledColor: '#9CA3AF',
+                  dotColor: '#54CE8F',
                   selectedDotColor: '#FFFFFF',
-                  arrowColor: '#2E7D32',
-                  monthTextColor: '#2E7D32',
-                  indicatorColor: '#2E7D32',
+                  arrowColor: '#54CE8F',
+                  monthTextColor: '#030213',
+                  indicatorColor: '#54CE8F',
                   textDayFontFamily: 'System',
                   textMonthFontFamily: 'System',
                   textDayHeaderFontFamily: 'System',
@@ -426,59 +433,65 @@ const ReservationsListScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FAFCFB', // New design background
   },
   headerSection: {
-    backgroundColor: '#FFFFFF',
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+    backgroundColor: '#B4AEBD', // New design purple
+    paddingBottom: 24, // pb-6
+    paddingHorizontal: 24, // px-6
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
   },
   backButton: {
-    padding: 8,
-    borderRadius: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20, // rounded-full
+    backgroundColor: 'rgba(255, 255, 255, 0.2)', // white/20
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
+    fontSize: 24, // text-2xl
+    fontWeight: '600',
+    color: '#FFFFFF',
     flex: 1,
     textAlign: 'center',
   },
   placeholder: {
-    width: 44,
+    width: 40,
   },
   dateSection: {
-    padding: 20,
-    backgroundColor: '#F8F9FA',
+    padding: 24, // px-6
+    paddingTop: 20, // pt-5
+    paddingBottom: 16, // pb-4
+    backgroundColor: '#FAFCFB',
   },
   dateSelector: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
-    padding: 15,
-    borderRadius: 16,
+    padding: 16, // p-4
+    borderRadius: 16, // rounded-2xl
     borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderColor: '#E5E7EB', // gray-200
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 0,
     },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+    gap: 12, // gap-3
   },
   dateText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1B1B1B',
-    marginHorizontal: 10,
+    fontSize: 16, // text-base
+    fontWeight: '500',
+    color: '#030213',
     flex: 1,
     textAlign: 'center',
   },
@@ -486,58 +499,61 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    padding: 40, // p-10
+    backgroundColor: '#FAFCFB',
   },
   loadingText: {
-    marginTop: 10,
-    color: '#6C757D',
-    fontSize: 16,
+    marginTop: 16, // mt-4
+    color: '#717182', // Medium gray
+    fontSize: 14, // text-sm
   },
   tableWrapper: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 24, // px-6
+    paddingBottom: 16, // pb-4
   },
   tableScrollView: {
     flex: 1,
   },
   tableContainer: {
-    borderRadius: 16,
+    borderRadius: 16, // rounded-2xl
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // gray-200
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 0,
     },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#2E7D32',
+    backgroundColor: '#54CE8F', // Primary green
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     overflow: 'hidden',
   },
   headerCell: {
     width: 100,
-    padding: 12,
+    padding: 12, // p-3
     alignItems: 'center',
     justifyContent: 'center',
     borderRightWidth: 1,
     borderRightColor: 'rgba(255,255,255,0.2)',
+    gap: 4, // gap-1
   },
   timeHeaderCell: {
     width: 80,
-    backgroundColor: '#1B5E20',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)', // Dark overlay
   },
   headerCellText: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 12,
-    marginTop: 4,
+    fontWeight: '600',
+    fontSize: 12, // text-xs
     textAlign: 'center',
   },
   tableBody: {
@@ -546,75 +562,78 @@ const styles = StyleSheet.create({
   tableRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#E9ECEF',
+    borderBottomColor: '#E5E7EB', // gray-200
   },
   cell: {
     width: 100,
     minHeight: 60,
-    padding: 8,
+    padding: 8, // p-2
     justifyContent: 'center',
     alignItems: 'center',
     borderRightWidth: 1,
-    borderRightColor: '#E9ECEF',
+    borderRightColor: '#E5E7EB', // gray-200
     backgroundColor: '#FFFFFF',
   },
   timeCell: {
     width: 80,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#F3F4F6', // gray-100
     flexDirection: 'row',
-    gap: 6,
+    gap: 8, // gap-2
+    alignItems: 'center',
   },
   timeCellText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#2E7D32',
+    fontSize: 14, // text-sm
+    fontWeight: '500',
+    color: '#030213',
   },
   reservedCell: {
     flex: 1,
     width: '100%',
-    backgroundColor: '#E8F5E8',
-    borderRadius: 12,
-    padding: 8,
+    backgroundColor: '#F0FDF4', // green-50
+    borderRadius: 12, // rounded-xl
+    padding: 8, // p-2
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 4,
+    gap: 4, // gap-1
+    borderWidth: 1,
+    borderColor: '#D1FAE5', // green-100
   },
   reservedText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#2E7D32',
+    fontSize: 11, // text-xs
+    fontWeight: '500',
+    color: '#030213',
     textAlign: 'center',
   },
   emptyCell: {
     flex: 1,
     width: '100%',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
-    padding: 8,
+    backgroundColor: '#F3F4F6', // gray-100
+    borderRadius: 12, // rounded-xl
+    padding: 8, // p-2
     justifyContent: 'center',
     alignItems: 'center',
   },
   emptyText: {
-    fontSize: 12,
-    color: '#9E9E9E',
+    fontSize: 11, // text-xs
+    color: '#9CA3AF', // gray-400
     fontStyle: 'italic',
   },
   blockedCell: {
     flex: 1,
     width: '100%',
-    backgroundColor: '#FFEBEE',
-    borderRadius: 12,
-    padding: 8,
+    backgroundColor: '#FEF2F2', // red-50
+    borderRadius: 12, // rounded-xl
+    padding: 8, // p-2
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 4,
+    gap: 4, // gap-1
     borderWidth: 1,
-    borderColor: '#F44336',
+    borderColor: '#FEE2E2', // red-100
   },
   blockedText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#D32F2F',
+    fontSize: 10, // text-xs
+    fontWeight: '500',
+    color: '#EF4444', // red-500
     textAlign: 'center',
     flexShrink: 1,
   },
@@ -622,49 +641,69 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    gap: 20,
+    padding: 20, // p-5
+    gap: 16, // gap-4
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
+    borderTopColor: '#E5E7EB', // gray-200
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 8, // gap-2
   },
   legendBox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
+    width: 16, // w-4
+    height: 16, // h-4
+    borderRadius: 4, // rounded
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: '#E5E7EB', // gray-200
   },
   legendText: {
-    fontSize: 14,
-    color: '#6C757D',
+    fontSize: 12, // text-xs
+    color: '#717182', // Medium gray
   },
   calendarModal: {
-    margin: 20,
+    margin: 20, // m-5
     flex: 1,
     justifyContent: 'center',
   },
   calendarCard: {
-    borderRadius: 20,
+    borderRadius: 16, // rounded-2xl
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#E5E7EB', // gray-200
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 0,
+    },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   calendarHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16, // mb-4
+    paddingBottom: 16, // pb-4
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB', // gray-200
   },
   calendarTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
+    fontSize: 20, // text-xl
+    fontWeight: '600',
+    color: '#030213',
+    flex: 1,
+  },
+  modalCloseButton: {
+    width: 32, // w-8
+    height: 32, // h-8
+    borderRadius: 16, // rounded-full
+    backgroundColor: '#F3F4F6', // gray-100
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

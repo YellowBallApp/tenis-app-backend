@@ -60,14 +60,24 @@ const HomeScreen = () => {
     { 
       title: t('home.reservationMake'), 
       icon: 'calendar-plus', 
-      color: '#2E7D32', 
+      color: '#54CE8F', // Primary green
       action: () => {
         // Reservation sayfasına git (stack'in ilk ekranı ReservationList olacak)
         navigation.navigate('Reservation');
       }
     },
-    { title: t('home.reservationsList'), icon: 'calendar-text', color: '#9E9E9E', action: () => navigation.navigate('ReservationsList') },
-    { title: t('home.matchHistory'), icon: 'history', color: '#2E7D32', action: () => navigation.navigate('MatchHistory') },
+    { 
+      title: t('home.reservationsList'), 
+      icon: 'calendar-text', 
+      color: '#B4AEBD', // Primary purple
+      action: () => navigation.navigate('ReservationsList') 
+    },
+    { 
+      title: t('home.matchHistory'), 
+      icon: 'history', 
+      color: '#54CE8F', // Primary green
+      action: () => navigation.navigate('MatchHistory') 
+    },
   ];
 
   // İlk yüklemede veri çek
@@ -91,7 +101,7 @@ const HomeScreen = () => {
       if (params?.showReservationSuccess) {
         setShowReservationSuccess(true);
         // Params'ı temizle (bir sonraki açılışta tekrar göstermemek için)
-        navigation.setParams({ showReservationSuccess: undefined });
+        navigation.setParams({ showReservationSuccess: false } as any);
       }
     }, [route.params, navigation])
   );
@@ -283,7 +293,7 @@ const HomeScreen = () => {
               onPress={() => navigation.navigate('Notifications')}
               style={styles.notificationButton}
             >
-              <MaterialCommunityIcons name="bell-outline" size={24} color="#FFFFFF" />
+              <MaterialCommunityIcons name="bell" size={22} color="#FFFFFF" />
               {unreadCount > 0 && (
                 <View style={styles.notificationBadge}>
                   <Text style={styles.notificationBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
@@ -294,17 +304,17 @@ const HomeScreen = () => {
         </View>
         <View style={[styles.heroStats, { marginTop: 16 }]}>
           <View style={styles.statCard}>
-            <MaterialCommunityIcons name="trophy-outline" size={20} color="#666666" />
+            <MaterialCommunityIcons name="trophy" size={24} color="#FFFFFF" />
             <Text style={styles.statNumber}>{userStats.wins}</Text>
             <Text style={styles.statLabel}>{t('home.wins')}</Text>
           </View>
           <View style={styles.statCard}>
-            <MaterialCommunityIcons name="trending-up" size={20} color="#666666" />
+            <MaterialCommunityIcons name="trending-up" size={24} color="#FFFFFF" />
             <Text style={styles.statNumber}>{userStats.ranking ? `#${userStats.ranking}` : '-'}</Text>
             <Text style={styles.statLabel}>{t('home.ranking')}</Text>
           </View>
           <View style={styles.statCard}>
-            <MaterialCommunityIcons name="calendar-outline" size={20} color="#666666" />
+            <MaterialCommunityIcons name="calendar" size={24} color="#FFFFFF" />
             <Text style={styles.statNumber}>{userStats.upcomingCount}</Text>
             <Text style={styles.statLabel}>{t('home.upcoming')}</Text>
           </View>
@@ -330,11 +340,11 @@ const HomeScreen = () => {
             >
               <View style={[styles.actionCard, themedStyles.card]}>
                 <View style={styles.actionContent}>
-                  <View style={[styles.actionIcon, { backgroundColor: action.color === '#9E9E9E' ? '#F5F5F5' : action.color }]}>
+                  <View style={[styles.actionIcon, { backgroundColor: action.color }]}>
                     <MaterialCommunityIcons 
                       name={action.icon as any} 
                       size={24} 
-                      color={action.color === '#9E9E9E' ? '#666666' : '#fff'} 
+                      color="#FFFFFF" 
                     />
                   </View>
                   <Text style={[styles.actionTitle, themedStyles.text]} numberOfLines={2}>{action.title}</Text>
@@ -451,25 +461,25 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FAFCFB', // New design background color
   },
   scrollView: {
     flex: 1,
   },
   heroSection: {
-    backgroundColor: '#BA68C8',
+    backgroundColor: '#B4AEBD', // Primary purple from design
     padding: 20,
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 2,
     },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   heroContent: {
     marginBottom: 12,
@@ -552,22 +562,21 @@ const styles = StyleSheet.create({
     minHeight: 48,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#2E7D32',
-    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)', // white/20
+    borderRadius: 16,
   },
   notificationBadge: {
     position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: '#4CAF50',
+    top: 2,
+    right: 2,
+    backgroundColor: '#54CE8F', // Primary green
     borderRadius: 10,
     minWidth: 18,
     height: 18,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 4,
-    borderWidth: 2,
-    borderColor: '#BA68C8',
+    borderWidth: 0,
   },
   notificationBadgeText: {
     color: '#FFFFFF',
@@ -579,36 +588,27 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 0,
     marginBottom: 12,
-    gap: 10,
+    gap: 12,
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)', // white/20 with backdrop blur effect
+    borderRadius: 16, // rounded-2xl
+    padding: 16,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    borderWidth: 0,
     minWidth: 0,
   },
   statNumber: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginTop: 4,
+    color: '#FFFFFF',
+    marginTop: 8,
   },
   statLabel: {
-    fontSize: 10,
-    color: '#666666',
-    marginTop: 2,
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)', // white/70
+    marginTop: 4,
     textAlign: 'center',
   },
   section: {
@@ -617,9 +617,9 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#030213', // Dark text from design
     marginBottom: 16,
     marginTop: 8,
   },
@@ -642,17 +642,17 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 16, // rounded-2xl
     borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderColor: '#E5E7EB', // gray-200
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 1,
     },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
     maxWidth: '100%',
   },
   actionContent: {
@@ -661,12 +661,12 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   actionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 12, // rounded-xl
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
     position: 'relative',
   },
   badge: {
@@ -689,11 +689,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   actionTitle: {
-    fontSize: 13,
-    color: '#1B1B1B',
+    fontSize: 12,
+    color: '#374151', // gray-700
     textAlign: 'center',
-    fontWeight: '600',
-    lineHeight: 18,
+    fontWeight: '500',
+    lineHeight: 16,
   },
   matchCard: {
     backgroundColor: '#FFFFFF',
@@ -746,10 +746,10 @@ const styles = StyleSheet.create({
     color: '#666666',
   },
   confirmedBadge: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#54CE8F', // Primary green
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: 9999, // rounded-full
   },
   confirmedBadgeText: {
     color: '#FFFFFF',

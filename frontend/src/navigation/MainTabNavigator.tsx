@@ -1,9 +1,10 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import HomeScreen from '../screens/HomeScreen';
-import GameModesScreen from '../screens/GameModesScreen';
 import UsersScreen from '../screens/UsersScreen';
 import CoachDetailScreen from '../screens/CoachDetailScreen';
 import MemberDetailScreen from '../screens/MemberDetailScreen';
@@ -14,12 +15,12 @@ import ReservationsListScreen from '../screens/ReservationsListScreen';
 import MatchHistoryScreen from '../screens/MatchHistoryScreen';
 import DefiLigScreen from '../screens/DefiLigScreen';
 import LigSiralamaScreen from '../screens/LigSiralamaScreen';
-import LigAyarlariScreen from '../screens/LigAyarlariScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
+import BookingConfirmScreen from '../screens/BookingConfirmScreen';
 
 export type MainTabParamList = {
   Home: undefined;
-  GameModes: undefined;
+  DefiLig: undefined;
   Users: undefined;
   Profile: undefined;
   Reservation: { opponentId?: string; opponentName?: string; matchChallengeId?: number } | undefined;
@@ -31,6 +32,15 @@ export type MainTabParamList = {
 export type ReservationStackParamList = {
   ReservationList: undefined;
   CourtDetail: { courtId: number };
+  BookingConfirm: {
+    courtId: number;
+    selectedDate: string;
+    selectedTime: string;
+    playerType: 'single' | 'double';
+    selectedPartner: any;
+    selectedOpponents: any[];
+    court: any;
+  };
 };
 
 export type UsersStackParamList = {
@@ -39,43 +49,34 @@ export type UsersStackParamList = {
   MemberDetail: { memberId: string };
 };
 
-export type GameModesStackParamList = {
-  GameModesList: undefined;
+export type DefiLigStackParamList = {
   DefiLig: undefined;
   LigSiralama: { lig: any; openMatchResultModal?: boolean; challengeId?: number };
-  LigAyarlari: undefined;
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
-const GameModesStack = createStackNavigator<GameModesStackParamList>();
+const DefiLigStack = createStackNavigator<DefiLigStackParamList>();
 const UsersStack = createStackNavigator<UsersStackParamList>();
 const ReservationStack = createStackNavigator<ReservationStackParamList>();
 
-// GameModes Stack Navigator
-const GameModesStackNavigator = () => {
+// DefiLig Stack Navigator
+const DefiLigStackNavigator = () => {
   return (
-    <GameModesStack.Navigator
+    <DefiLigStack.Navigator
+      initialRouteName="DefiLig"
       screenOptions={{
         headerShown: false,
       }}
     >
-      <GameModesStack.Screen 
-        name="GameModesList" 
-        component={GameModesScreen}
-      />
-      <GameModesStack.Screen 
+      <DefiLigStack.Screen 
         name="DefiLig" 
         component={DefiLigScreen}
       />
-      <GameModesStack.Screen 
+      <DefiLigStack.Screen 
         name="LigSiralama" 
         component={LigSiralamaScreen}
       />
-      <GameModesStack.Screen 
-        name="LigAyarlari" 
-        component={LigAyarlariScreen}
-      />
-    </GameModesStack.Navigator>
+    </DefiLigStack.Navigator>
   );
 };
 
@@ -120,40 +121,65 @@ const ReservationStackNavigator = () => {
         name="CourtDetail" 
         component={CourtDetailScreen}
       />
+      <ReservationStack.Screen 
+        name="BookingConfirm" 
+        component={BookingConfirmScreen}
+      />
     </ReservationStack.Navigator>
   );
 };
 
 const TabNavigator = () => {
+  const insets = useSafeAreaInsets();
+  
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false, // Tüm sayfalarda header'ı gizle
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
-          borderTopColor: '#E9ECEF',
+          borderTopColor: '#E5E7EB', // gray-200 from design
           borderTopWidth: 1,
-          paddingBottom: 8,
-          paddingTop: 8,
-          height: 65,
-          elevation: 10,
+          paddingBottom: Math.max(insets.bottom, 8), // Safe area bottom or minimum 8
+          paddingTop: 6, // Reduced top padding
+          paddingHorizontal: 8, // px-2 equivalent
+          height: Platform.OS === 'ios' 
+            ? 49 + Math.max(insets.bottom, 8) // iOS default + safe area
+            : 56 + Math.max(insets.bottom, 8), // Android default + safe area
+          elevation: 0,
           shadowColor: '#000',
           shadowOffset: {
             width: 0,
-            height: -2,
+            height: 0,
           },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
+          shadowOpacity: 0,
+          shadowRadius: 0,
         },
-        tabBarActiveTintColor: '#2E7D32',
-        tabBarInactiveTintColor: '#9E9E9E',
+        tabBarActiveTintColor: '#54CE8F', // Primary green from design
+        tabBarInactiveTintColor: '#9CA3AF', // gray-400 from design
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-          marginTop: 4,
+          fontSize: 12, // text-xs
+          fontWeight: '400',
+          marginTop: 4, // gap-1 equivalent (4px between icon and label)
+          marginBottom: 0,
+          paddingBottom: 0,
+          lineHeight: 14,
+          paddingTop: 0,
+          includeFontPadding: false, // Android specific - removes extra padding
         },
         tabBarIconStyle: {
-          marginTop: 4,
+          marginTop: 0,
+          marginBottom: 0,
+          width: 24,
+          height: 24,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 0, // No vertical padding to prevent overflow
+          paddingHorizontal: 16, // px-4
+          justifyContent: 'center',
+          alignItems: 'center',
+          flex: 1,
+          height: '100%',
         },
       }}
     >
@@ -166,21 +192,21 @@ const TabNavigator = () => {
             <Ionicons 
               name={focused ? "home" : "home-outline"} 
               color={color} 
-              size={focused ? 28 : 26} 
+              size={24} 
             />
           ),
         }}
       />
       <Tab.Screen
-        name="GameModes"
-        component={GameModesStackNavigator}
+        name="DefiLig"
+        component={DefiLigStackNavigator}
         options={{
           title: 'Defi Lig',
           tabBarIcon: ({ color, focused, size }) => (
             <MaterialCommunityIcons 
-              name={focused ? "trophy-variant" : "trophy-outline"} 
+              name={focused ? "trophy" : "trophy-outline"} 
               color={color} 
-              size={focused ? 28 : 26} 
+              size={24} 
             />
           ),
         }}
@@ -194,7 +220,7 @@ const TabNavigator = () => {
             <Ionicons 
               name={focused ? "people" : "people-outline"} 
               color={color} 
-              size={focused ? 28 : 26} 
+              size={24} 
             />
           ),
         }}
@@ -208,7 +234,7 @@ const TabNavigator = () => {
             <Ionicons 
               name={focused ? "person-circle" : "person-circle-outline"} 
               color={color} 
-              size={focused ? 28 : 26} 
+              size={24} 
             />
           ),
         }}

@@ -13,13 +13,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   Card,
-  Title,
   Text,
-  Button,
   ActivityIndicator,
-  Chip,
-  Divider,
-  Appbar,
   Portal,
   Modal,
   TextInput,
@@ -275,14 +270,10 @@ const NotificationsScreen = ({ navigation }: any) => {
         const reservationData = await reservationService.getReservationById(reservationId);
         setReservationForMatch(reservationData);
         
-        // Kortları yükle
-        const courtsData = await courtService.getActiveCourts();
-        setCourts(courtsData);
-        
-        // Rezervasyondaki kortu varsayılan olarak seç
-        if (reservationData.court) {
-          setSelectedCourt(reservationData.court.id);
-        }
+      // Rezervasyondaki kortu kullan (değiştirilemez)
+      if (reservationData.court) {
+        setSelectedCourt(reservationData.court.id);
+      }
         
         // State'leri sıfırla
         setMatchSets([
@@ -306,7 +297,7 @@ const NotificationsScreen = ({ navigation }: any) => {
       const challenge = challengeDetails[notification.id];
       if (challenge && challenge.league) {
         // LigSiralamaScreen'e yönlendir ve challenge'ı parametre olarak gönder
-        navigation.navigate('GameModes', {
+        navigation.navigate('DefiLig', {
           screen: 'LigSiralama',
           params: {
             lig: challenge.league,
@@ -370,8 +361,9 @@ const NotificationsScreen = ({ navigation }: any) => {
       return;
     }
 
-    if (!selectedCourt) {
-      Alert.alert(t('notifications.warning'), t('notifications.selectCourtRequired'));
+    // Kort seçimi rezervasyondan alınır, kontrol etmeye gerek yok
+    if (!reservationForMatch?.court?.id) {
+      Alert.alert(t('common.error') || 'Hata', 'Rezervasyon kort bilgisi bulunamadı');
       return;
     }
 
@@ -433,6 +425,7 @@ const NotificationsScreen = ({ navigation }: any) => {
         matchDate: new Date(reservationForMatch.startTime),
         indoorCourt: reservationForMatch.court?.indoors || false,
         courtGround: reservationForMatch.court?.groundType || 'hard',
+        courtId: reservationForMatch.court?.id,
       });
 
       // Bildirimleri sil (hem backend hem frontend)
@@ -487,7 +480,7 @@ const NotificationsScreen = ({ navigation }: any) => {
             <MaterialCommunityIcons
               name={isPendingMatch ? 'sword-cross' : isMatchCompleted ? 'trophy' : notification.relatedEntityType === 'reservation' ? 'calendar' : 'bell'}
               size={24}
-              color="#2E7D32"
+              color="#54CE8F"
             />
           </View>
           <View style={styles.notificationContent}>
@@ -514,30 +507,24 @@ const NotificationsScreen = ({ navigation }: any) => {
           <View style={styles.cardActionsContainer}>
             {!isProcessing ? (
               <View style={styles.actionButtons}>
-                <Button
-                  mode="contained"
-                  buttonColor="#2E7D32"
-                  icon="check"
+                <TouchableOpacity
                   onPress={() => handleAcceptChallenge(notification)}
                   style={styles.acceptButton}
-                  compact
                 >
-                  {t('notifications.accept')}
-                </Button>
-                <Button
-                  mode="outlined"
-                  textColor="#DC3545"
-                  icon="close"
+                  <MaterialCommunityIcons name="check" size={18} color="#FFFFFF" />
+                  <Text style={styles.acceptButtonText}>{t('notifications.accept')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
                   onPress={() => handleRejectChallenge(notification)}
                   style={styles.rejectButton}
-                  compact
                 >
-                  {t('notifications.reject')}
-                </Button>
+                  <MaterialCommunityIcons name="close" size={18} color="#EF4444" />
+                  <Text style={styles.rejectButtonText}>{t('notifications.reject')}</Text>
+                </TouchableOpacity>
               </View>
             ) : (
               <View style={styles.processingContainer}>
-                <ActivityIndicator size="small" color="#2E7D32" />
+                <ActivityIndicator size="small" color="#54CE8F" />
                 <Text style={styles.processingText}>{t('notifications.processing')}</Text>
               </View>
             )}
@@ -546,16 +533,13 @@ const NotificationsScreen = ({ navigation }: any) => {
 
         {isMatchCompleted && (
           <View style={styles.cardActionsContainer}>
-            <Button
-              mode="contained"
-              buttonColor="#2E7D32"
-              icon="clipboard-check"
+            <TouchableOpacity
               onPress={() => handleOpenMatchResult(notification)}
               style={styles.matchResultButton}
-              compact
             >
-              {t('notifications.enterMatchResult')}
-            </Button>
+              <MaterialCommunityIcons name="clipboard-check" size={18} color="#FFFFFF" />
+              <Text style={styles.matchResultButtonText}>{t('notifications.enterMatchResult')}</Text>
+            </TouchableOpacity>
           </View>
         )}
       </TouchableOpacity>
@@ -587,16 +571,22 @@ const NotificationsScreen = ({ navigation }: any) => {
   if (loading && !refreshing) {
     return (
       <>
-        <StatusBar style="dark" />
+        <StatusBar style="light" />
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <MaterialCommunityIcons name="arrow-left" size={24} color="#1B1B1B" />
+          <TouchableOpacity onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Home' as never);
+            }
+          }} style={styles.backButton}>
+            <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('notifications.title')}</Text>
           <View style={{ width: 24 }} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2E7D32" />
+          <ActivityIndicator size="large" color="#54CE8F" />
           <Text style={styles.loadingText}>{t('notifications.loading')}</Text>
         </View>
       </>
@@ -605,12 +595,18 @@ const NotificationsScreen = ({ navigation }: any) => {
 
   return (
     <>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <MaterialCommunityIcons name="arrow-left" size={24} color="#1B1B1B" />
+          <TouchableOpacity onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Home' as never);
+            }
+          }} style={styles.backButton}>
+            <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('notifications.title')}</Text>
           {notifications.some((n) => !n.isRead) && (
@@ -661,7 +657,7 @@ const NotificationsScreen = ({ navigation }: any) => {
       <ScrollView
         style={styles.scrollView}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#2E7D32']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#54CE8F']} />
         }
       >
         {getFilteredNotifications().length === 0 ? (
@@ -679,25 +675,29 @@ const NotificationsScreen = ({ navigation }: any) => {
 
         {totalPages > 1 && (
           <View style={styles.paginationContainer}>
-            <Button
-              mode="outlined"
+            <TouchableOpacity
               onPress={handlePreviousPage}
-              disabled={!!(page === 1)}
-              icon="chevron-left"
+              disabled={page === 1}
+              style={[styles.paginationButton, page === 1 && styles.paginationButtonDisabled]}
             >
-              {t('notifications.previous')}
-            </Button>
+              <MaterialCommunityIcons name="chevron-left" size={20} color={page === 1 ? "#9CA3AF" : "#030213"} />
+              <Text style={[styles.paginationButtonText, page === 1 && styles.paginationButtonTextDisabled]}>
+                {t('notifications.previous')}
+              </Text>
+            </TouchableOpacity>
             <Text style={styles.pageInfo}>
               {t('notifications.page')} {page} / {totalPages}
             </Text>
-            <Button
-              mode="outlined"
+            <TouchableOpacity
               onPress={handleNextPage}
-              disabled={!!(page === totalPages)}
-              icon="chevron-right"
+              disabled={page === totalPages}
+              style={[styles.paginationButton, page === totalPages && styles.paginationButtonDisabled]}
             >
-              {t('notifications.next')}
-            </Button>
+              <Text style={[styles.paginationButtonText, page === totalPages && styles.paginationButtonTextDisabled]}>
+                {t('notifications.next')}
+              </Text>
+              <MaterialCommunityIcons name="chevron-right" size={20} color={page === totalPages ? "#9CA3AF" : "#030213"} />
+            </TouchableOpacity>
           </View>
         )}
       </ScrollView>
@@ -719,16 +719,18 @@ const NotificationsScreen = ({ navigation }: any) => {
               <ScrollView showsVerticalScrollIndicator={true} style={styles.modalScrollView}>
                 <Card.Content>
                 <View style={styles.modalHeader}>
-                  <MaterialCommunityIcons name="trophy" size={40} color="#FFD700" />
-                  <Title style={styles.modalTitle}>{t('notifications.enterMatchResult')}</Title>
-                  <TouchableOpacity onPress={() => setShowReservationMatchResultModal(false)}>
-                    <MaterialCommunityIcons name="close" size={28} color="#757575" />
+                  <Text style={styles.modalTitle}>{t('notifications.enterMatchResult')}</Text>
+                  <TouchableOpacity 
+                    onPress={() => setShowReservationMatchResultModal(false)}
+                    style={styles.modalCloseButton}
+                  >
+                    <MaterialCommunityIcons name="close" size={20} color="#9CA3AF" />
                   </TouchableOpacity>
                 </View>
 
                 {loadingReservation ? (
                   <View style={styles.modalLoadingContainer}>
-                    <ActivityIndicator size="large" color="#2E7D32" />
+                    <ActivityIndicator size="large" color="#54CE8F" />
                     <Text style={styles.modalLoadingText}>{t('notifications.loading')}</Text>
                   </View>
                 ) : currentUser && reservationForMatch ? (
@@ -739,19 +741,31 @@ const NotificationsScreen = ({ navigation }: any) => {
 
                     {/* Reservation Details */}
                     <View style={styles.reservationDetailsContainer}>
-                      <Text style={styles.reservationDetailText}>
-                        <MaterialCommunityIcons name="tennis-ball" size={16} color="#6C757D" /> {t('notifications.court')} {reservationForMatch.court?.name || t('notifications.unknown')}
-                      </Text>
-                      <Text style={styles.reservationDetailText}>
-                        <MaterialCommunityIcons name="calendar" size={16} color="#6C757D" /> {t('notifications.date')} {new Date(reservationForMatch.startTime).toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
-                      </Text>
-                      <Text style={styles.reservationDetailText}>
-                        <MaterialCommunityIcons name="clock-outline" size={16} color="#6C757D" /> {t('notifications.time')} {new Date(reservationForMatch.startTime).toLocaleTimeString(language === 'tr' ? 'tr-TR' : 'en-US', { hour: '2-digit', minute: '2-digit' })} - {new Date(reservationForMatch.endTime).toLocaleTimeString(language === 'tr' ? 'tr-TR' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
-                      </Text>
+                      <View style={styles.reservationDetailRow}>
+                        <MaterialCommunityIcons name="tennis-ball" size={16} color="#9CA3AF" />
+                        <Text style={styles.reservationDetailText}>
+                          {t('notifications.court')} {reservationForMatch.court?.name || t('notifications.unknown')}
+                        </Text>
+                      </View>
+                      <View style={styles.reservationDetailRow}>
+                        <MaterialCommunityIcons name="calendar" size={16} color="#9CA3AF" />
+                        <Text style={styles.reservationDetailText}>
+                          {t('notifications.date')} {new Date(reservationForMatch.startTime).toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </Text>
+                      </View>
+                      <View style={styles.reservationDetailRow}>
+                        <MaterialCommunityIcons name="clock-outline" size={16} color="#9CA3AF" />
+                        <Text style={styles.reservationDetailText}>
+                          {t('notifications.time')} {new Date(reservationForMatch.startTime).toLocaleTimeString(language === 'tr' ? 'tr-TR' : 'en-US', { hour: '2-digit', minute: '2-digit' })} - {new Date(reservationForMatch.endTime).toLocaleTimeString(language === 'tr' ? 'tr-TR' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                      </View>
                     </View>
 
                     {/* Kazanan Seçimi */}
-                    <Text style={styles.sectionLabel}>{t('notifications.selectWinner')}</Text>
+                    <View style={styles.winnerSectionHeader}>
+                      <MaterialCommunityIcons name="trophy" size={20} color="#54CE8F" />
+                      <Text style={styles.sectionLabel}>{t('notifications.selectWinner')}</Text>
+                    </View>
                     <View style={[
                       styles.winnerSelectionContainer,
                       scoreMismatch && styles.errorBorder
@@ -799,7 +813,7 @@ const NotificationsScreen = ({ navigation }: any) => {
                             )}
                           </View>
                           <Avatar.Text 
-                            size={36} 
+                            size={40} 
                             label={getOpponents()[0].name.charAt(0)} 
                             style={styles.winnerAvatar}
                           />
@@ -812,59 +826,39 @@ const NotificationsScreen = ({ navigation }: any) => {
 
                     {/* Kort Seçimi */}
                     <View style={styles.courtSelectionSection}>
-                      <Text style={styles.sectionLabel}>{t('notifications.selectCourt')} *</Text>
-                      <Menu
-                        visible={courtMenuVisible}
-                        onDismiss={() => setCourtMenuVisible(false)}
-                        anchorPosition="bottom"
-                        contentStyle={styles.menuContent}
-                        anchor={
-                          <TouchableOpacity
-                            style={styles.courtDropdownButton}
-                            onPress={() => setCourtMenuVisible(true)}
-                          >
-                            <View style={styles.courtDropdownContent}>
-                              <MaterialCommunityIcons 
-                                name="tennis" 
-                                size={20} 
-                                color="#2E7D32" 
-                              />
-                              <Text style={styles.courtDropdownText}>
-                                {selectedCourt 
-                                  ? courts.find(c => c.id === selectedCourt)?.name 
-                                  : t('notifications.selectCourtPlaceholder')}
-                              </Text>
-                            </View>
-                            <MaterialCommunityIcons 
-                              name="chevron-down" 
-                              size={24} 
-                              color="#757575" 
-                            />
-                          </TouchableOpacity>
-                        }
-                      >
-                        {courts.map((court) => (
-                          <Menu.Item
-                            key={court.id}
-                            onPress={() => {
-                              setSelectedCourt(court.id);
-                              setCourtMenuVisible(false);
-                            }}
-                            title={court.name}
-                            leadingIcon="tennis"
-                            style={selectedCourt === court.id && styles.selectedMenuItem}
+                      <View style={styles.courtSectionHeader}>
+                        <MaterialCommunityIcons name="tennis" size={20} color="#54CE8F" />
+                        <Text style={styles.sectionLabel}>{t('notifications.selectCourt') || 'Kort'}</Text>
+                      </View>
+                      <View style={[styles.courtDropdownButton, styles.courtDropdownButtonDisabled]}>
+                        <View style={styles.courtDropdownContent}>
+                          <MaterialCommunityIcons 
+                            name="tennis" 
+                            size={20} 
+                            color="#9CA3AF" 
                           />
-                        ))}
-                      </Menu>
+                          <Text style={[styles.courtDropdownText, styles.courtDropdownTextDisabled]}>
+                            {reservationForMatch?.court?.name || 'Kort'}
+                          </Text>
+                        </View>
+                        <MaterialCommunityIcons 
+                          name="lock" 
+                          size={20} 
+                          color="#9CA3AF" 
+                        />
+                      </View>
                     </View>
 
                     {/* Set Skorları */}
                     <View style={styles.scoresSection}>
                       <View style={styles.scoresSectionHeader}>
-                        <Text style={styles.sectionLabel}>{t('notifications.setScores')}</Text>
+                        <View style={styles.scoresHeaderTitle}>
+                          <MaterialCommunityIcons name="scoreboard" size={20} color="#54CE8F" />
+                          <Text style={styles.sectionLabel}>{t('notifications.setScores')}</Text>
+                        </View>
                         {matchSets.length < 5 && (
                           <TouchableOpacity onPress={addSet} style={styles.addSetButton}>
-                            <MaterialCommunityIcons name="plus-circle" size={24} color="#2E7D32" />
+                            <MaterialCommunityIcons name="plus-circle" size={20} color="#54CE8F" />
                             <Text style={styles.addSetText}>{t('notifications.addSet')}</Text>
                           </TouchableOpacity>
                         )}
@@ -872,7 +866,9 @@ const NotificationsScreen = ({ navigation }: any) => {
 
                       {scoreError && (
                         <View style={styles.scoreErrorContainer}>
-                          <MaterialCommunityIcons name="alert-circle" size={20} color="#DC3545" />
+                          <View style={styles.scoreErrorIconContainer}>
+                            <MaterialCommunityIcons name="alert-circle" size={20} color="#EF4444" />
+                          </View>
                           <Text style={styles.scoreErrorText}>
                             {t('notifications.minTwoSetsRequired')}
                           </Text>
@@ -881,7 +877,9 @@ const NotificationsScreen = ({ navigation }: any) => {
 
                       <View style={styles.scoresHeader}>
                         <Text style={styles.scorePlayerLabel}>{currentUser.name}</Text>
-                        <Text style={styles.scoreDivider}>{t('notifications.vs')}</Text>
+                        <View style={styles.vsContainer}>
+                          <Text style={styles.scoreDivider}>{t('notifications.vs') || 'VS'}</Text>
+                        </View>
                         <Text style={styles.scorePlayerLabel}>
                           {getOpponents().length > 0 ? getOpponents()[0].name : t('notifications.opponent')}
                         </Text>
@@ -906,8 +904,8 @@ const NotificationsScreen = ({ navigation }: any) => {
                               keyboardType="numeric"
                               maxLength={2}
                               style={styles.scoreInput}
-                              outlineColor={shouldShowError ? "#DC3545" : "#E0E0E0"}
-                              activeOutlineColor={shouldShowError ? "#DC3545" : "#2E7D32"}
+                              outlineColor={shouldShowError ? "#EF4444" : "#E5E7EB"}
+                              activeOutlineColor={shouldShowError ? "#EF4444" : "#54CE8F"}
                               error={shouldShowError}
                               dense
                             />
@@ -922,14 +920,14 @@ const NotificationsScreen = ({ navigation }: any) => {
                               keyboardType="numeric"
                               maxLength={2}
                               style={styles.scoreInput}
-                              outlineColor={shouldShowError ? "#DC3545" : "#E0E0E0"}
-                              activeOutlineColor={shouldShowError ? "#DC3545" : "#2E7D32"}
+                              outlineColor={shouldShowError ? "#EF4444" : "#E5E7EB"}
+                              activeOutlineColor={shouldShowError ? "#EF4444" : "#54CE8F"}
                               error={shouldShowError}
                               dense
                             />
                             {matchSets.length > 1 && (
                               <TouchableOpacity onPress={() => removeSet(index)} style={styles.removeSetButton}>
-                                <MaterialCommunityIcons name="close-circle" size={24} color="#DC3545" />
+                                <MaterialCommunityIcons name="close-circle" size={20} color="#EF4444" />
                               </TouchableOpacity>
                             )}
                           </View>
@@ -938,7 +936,9 @@ const NotificationsScreen = ({ navigation }: any) => {
 
                       {scoreMismatch && (
                         <View style={styles.scoreErrorContainer}>
-                          <MaterialCommunityIcons name="alert-circle" size={20} color="#DC3545" />
+                          <View style={styles.scoreErrorIconContainer}>
+                            <MaterialCommunityIcons name="alert-circle" size={20} color="#EF4444" />
+                          </View>
                           <Text style={styles.scoreErrorText}>
                             {t('notifications.scoreMismatch')}
                           </Text>
@@ -947,24 +947,24 @@ const NotificationsScreen = ({ navigation }: any) => {
                     </View>
 
                     <View style={styles.modalButtons}>
-                      <Button
-                        mode="outlined"
+                      <TouchableOpacity
                         onPress={() => setShowReservationMatchResultModal(false)}
-                        style={styles.modalCancelButton}
+                        style={[styles.modalCancelButton, submittingMatchResult && styles.modalButtonDisabled]}
                         disabled={submittingMatchResult}
                       >
-                        {t('notifications.cancel')}
-                      </Button>
-                      <Button
-                        mode="contained"
+                        <Text style={styles.cancelButtonText}>{t('notifications.cancel')}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
                         onPress={submitMatchResult}
-                        style={styles.modalSendButton}
-                        buttonColor="#2E7D32"
-                        loading={submittingMatchResult}
+                        style={[styles.modalSendButton, submittingMatchResult && styles.modalButtonDisabled]}
                         disabled={submittingMatchResult}
                       >
-                        {t('notifications.save')}
-                      </Button>
+                        {submittingMatchResult ? (
+                          <ActivityIndicator size="small" color="#FFFFFF" />
+                        ) : (
+                          <Text style={styles.saveButtonText}>{t('notifications.save')}</Text>
+                        )}
+                      </TouchableOpacity>
                     </View>
                   </>
                 ) : null}
@@ -996,92 +996,113 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 24, // px-6
     paddingTop: 60,
-    paddingBottom: 20,
-    backgroundColor: '#FFFFFF',
+    paddingBottom: 24, // pb-6
+    backgroundColor: '#B4AEBD', // New design purple
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
   },
   backButton: {
-    padding: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 20, // rounded-full
+    backgroundColor: 'rgba(255, 255, 255, 0.2)', // white/20
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
+    fontSize: 24, // text-2xl
+    fontWeight: '600',
+    color: '#FFFFFF',
     flex: 1,
-    marginLeft: 16,
+    marginLeft: 16, // ml-4
+    textAlign: 'center',
   },
   markAllText: {
-    fontSize: 14,
-    color: '#2E7D32',
-    fontWeight: '600',
+    fontSize: 14, // text-sm
+    color: '#FFFFFF',
+    fontWeight: '500',
   },
   filterContainer: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+    backgroundColor: '#FAFCFB',
+    paddingHorizontal: 24, // px-6
+    paddingBottom: 16, // pb-4
+    paddingTop: 16, // pt-4
   },
   filterScrollContent: {
-    gap: 12,
+    gap: 12, // gap-3
   },
   filterButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 24,
-    backgroundColor: '#F0F0F0',
+    paddingHorizontal: 16, // px-4
+    paddingVertical: 10, // py-2.5
+    borderRadius: 9999, // rounded-full
+    backgroundColor: '#F3F4F6', // gray-100
   },
   filterButtonActive: {
-    backgroundColor: '#2E7D32',
+    backgroundColor: '#54CE8F', // Primary green
   },
   filterButtonText: {
-    fontSize: 15,
+    fontSize: 14, // text-sm
     fontWeight: '500',
-    color: '#666666',
+    color: '#717182', // Medium gray
   },
   filterButtonTextActive: {
     color: '#FFFFFF',
   },
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAFCFB', // New design background
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FAFCFB',
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#6C757D',
+    marginTop: 16, // mt-4
+    fontSize: 14, // text-sm
+    color: '#717182', // Medium gray
   },
   scrollView: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAFCFB',
   },
   notificationCard: {
-    marginHorizontal: 20,
-    marginVertical: 8,
-    padding: 16,
-    borderRadius: 16,
+    marginHorizontal: 24, // mx-6
+    marginVertical: 6, // my-1.5
+    padding: 20, // p-5
+    borderRadius: 16, // rounded-2xl
     backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F3F4F6', // gray-100
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   unreadCard: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#FFFFFF',
+    borderLeftWidth: 4,
+    borderLeftColor: '#54CE8F', // Primary green
   },
   cardContent: {
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
   notificationIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#C8E6C9',
+    width: 48, // w-12
+    height: 48, // h-12
+    borderRadius: 24, // rounded-full
+    backgroundColor: '#F0FDF4', // green-50
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 12, // mr-3
   },
   notificationContent: {
     flex: 1,
@@ -1093,33 +1114,33 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   notificationTitle: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
+    fontSize: 16, // text-base
+    fontWeight: '600',
+    color: '#030213',
     flex: 1,
   },
   notificationMessage: {
-    fontSize: 15,
-    color: '#666666',
+    fontSize: 14, // text-sm
+    color: '#717182', // Medium gray
     lineHeight: 20,
-    marginBottom: 6,
+    marginBottom: 8, // mb-2
   },
   notificationDate: {
-    fontSize: 13,
-    color: '#9E9E9E',
+    fontSize: 12, // text-xs
+    color: '#9CA3AF', // gray-400
   },
   unreadDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#2E7D32',
-    marginLeft: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#54CE8F', // Primary green
+    marginLeft: 8, // ml-2
   },
   cardActionsContainer: {
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: 16, // mt-4
+    paddingTop: 16, // pt-4
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
+    borderTopColor: '#E5E7EB', // gray-200
   },
   notificationCardOld: {
     margin: 12,
@@ -1151,19 +1172,57 @@ const styles = StyleSheet.create({
   },
   actionButtons: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 12, // gap-3
   },
   acceptButton: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: 16, // rounded-2xl
+    backgroundColor: '#54CE8F', // Primary green
+    paddingVertical: 12, // py-3
+    paddingHorizontal: 16, // px-4
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8, // gap-2
+  },
+  acceptButtonText: {
+    fontSize: 14, // text-sm
+    fontWeight: '500',
+    color: '#FFFFFF',
   },
   rejectButton: {
     flex: 1,
-    borderColor: '#DC3545',
-    borderRadius: 12,
+    borderRadius: 16, // rounded-2xl
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // gray-200
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 12, // py-3
+    paddingHorizontal: 16, // px-4
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8, // gap-2
+  },
+  rejectButtonText: {
+    fontSize: 14, // text-sm
+    fontWeight: '500',
+    color: '#EF4444', // red-500
   },
   matchResultButton: {
-    borderRadius: 12,
+    borderRadius: 16, // rounded-2xl
+    backgroundColor: '#54CE8F', // Primary green
+    paddingVertical: 12, // py-3
+    paddingHorizontal: 16, // px-4
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8, // gap-2
+    width: '100%',
+  },
+  matchResultButtonText: {
+    fontSize: 14, // text-sm
+    fontWeight: '500',
+    color: '#FFFFFF',
   },
   processingContainer: {
     flexDirection: 'row',
@@ -1172,9 +1231,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   processingText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#6C757D',
+    marginLeft: 8, // ml-2
+    fontSize: 14, // text-sm
+    color: '#717182', // Medium gray
   },
   // Reservation Match Result Modal Styles
   modalContainer: {
@@ -1187,16 +1246,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalCard: {
-    borderRadius: 20,
+    borderRadius: 16, // rounded-2xl
     backgroundColor: '#FFFFFF',
-    elevation: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // gray-200
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 6,
+      height: 0,
     },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
     maxHeight: '95%',
   },
   modalScrollView: {
@@ -1206,22 +1267,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 24,
-    paddingBottom: 18,
+    marginBottom: 16, // mb-4
+    paddingBottom: 16, // pb-4
     borderBottomWidth: 1,
-    borderBottomColor: '#E9ECEF',
+    borderBottomColor: '#E5E7EB', // gray-200
   },
   modalTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
+    fontSize: 20, // text-xl
+    fontWeight: '600',
+    color: '#030213',
     flex: 1,
-    marginLeft: 12,
+  },
+  modalCloseButton: {
+    width: 32, // w-8
+    height: 32, // h-8
+    borderRadius: 16, // rounded-full
+    backgroundColor: '#F3F4F6', // gray-100
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalSubtitle: {
-    fontSize: 15,
-    color: '#6C757D',
-    marginBottom: 20,
+    fontSize: 14, // text-sm
+    color: '#717182', // Medium gray
+    marginBottom: 24, // mb-6
     lineHeight: 22,
   },
   modalLoadingContainer: {
@@ -1236,97 +1304,110 @@ const styles = StyleSheet.create({
     color: '#6C757D',
   },
   reservationDetailsContainer: {
-    backgroundColor: '#E8F5E9',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: '#4CAF50',
+    backgroundColor: '#F0FDF4', // green-50
+    borderRadius: 12, // rounded-xl
+    padding: 20, // p-5
+    marginBottom: 24, // mb-6
+    borderWidth: 1,
+    borderColor: '#D1FAE5', // green-100
   },
-  reservationDetailText: {
-    fontSize: 14,
-    color: '#333',
-    marginBottom: 5,
+  reservationDetailRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 12, // mb-3
+    gap: 12, // gap-3
+  },
+  reservationDetailText: {
+    fontSize: 14, // text-sm
+    color: '#030213',
   },
   sectionLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginBottom: 14,
-    marginTop: 10,
+    fontSize: 16, // text-base
+    fontWeight: '600',
+    color: '#030213',
+    marginLeft: 8,
+    marginBottom: 16,
+  },
+  winnerSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   winnerSelectionContainer: {
-    marginVertical: 20,
-    gap: 15,
-    padding: 10,
+    gap: 16,
     borderRadius: 12,
   },
   errorBorder: {
     borderWidth: 2,
-    borderColor: '#DC3545',
-    backgroundColor: '#FFF5F5',
+    borderColor: '#EF4444', // red-500
+    backgroundColor: '#FEF2F2', // red-50
   },
   winnerOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 18,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: '#E0E0E0',
-    backgroundColor: '#FAFAFA',
+    padding: 18, // p-4.5
+    borderRadius: 12, // rounded-xl
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // gray-200
+    backgroundColor: '#FFFFFF',
   },
   winnerOptionSelected: {
-    borderColor: '#2E7D32',
-    backgroundColor: '#E8F5E9',
+    borderColor: '#54CE8F', // Primary green
+    backgroundColor: '#F0FDF4', // green-50
   },
   radioButton: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#757575',
-    marginRight: 16,
+    borderColor: '#54CE8F',
+    marginRight: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   radioButtonInner: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#2E7D32',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#54CE8F', // Primary green
   },
   winnerAvatar: {
-    backgroundColor: '#2E7D32',
-    marginRight: 16,
+    backgroundColor: '#54CE8F', // Primary green
+    marginRight: 14, // mr-3.5
   },
   winnerInfo: {
     flex: 1,
   },
   winnerName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
+    fontSize: 16, // text-base
+    fontWeight: '600',
+    color: '#030213',
+    marginBottom: 4,
   },
   winnerLabel: {
-    fontSize: 12,
-    color: '#757575',
-    marginTop: 2,
+    fontSize: 13, // text-sm
+    color: '#717182', // Medium gray
   },
   courtSelectionSection: {
-    marginVertical: 20,
+    marginBottom: 24,
+  },
+  courtSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   courtDropdownButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
+    padding: 18, // p-4.5
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12, // rounded-xl
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    marginTop: 8,
+    borderColor: '#E5E7EB', // gray-200
+  },
+  courtDropdownButtonDisabled: {
+    opacity: 0.7,
   },
   courtDropdownContent: {
     flexDirection: 'row',
@@ -1334,12 +1415,15 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   courtDropdownText: {
-    fontSize: 16,
-    color: '#424242',
+    fontSize: 16, // text-base
+    color: '#030213',
     fontWeight: '500',
   },
+  courtDropdownTextDisabled: {
+    color: '#717182',
+  },
   selectedMenuItem: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#F0FDF4', // green-50
   },
   menuContent: {
     marginTop: 8,
@@ -1351,14 +1435,18 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
   },
   scoresSection: {
-    marginTop: 10,
-    marginBottom: 20,
+    marginBottom: 24,
   },
   scoresSectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 20,
+  },
+  scoresHeaderTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   addSetButton: {
     flexDirection: 'row',
@@ -1366,130 +1454,178 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   addSetText: {
-    fontSize: 13,
-    color: '#2E7D32',
+    fontSize: 12, // text-xs
+    color: '#54CE8F', // Primary green
     fontWeight: '500',
-    marginLeft: 4,
+    marginLeft: 4, // ml-1
   },
   scoresHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-    paddingVertical: 8,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
+    marginBottom: 20,
+    paddingHorizontal: 8,
   },
   scorePlayerLabel: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#2E7D32',
+    fontSize: 14, // text-sm
+    fontWeight: '600',
+    color: '#030213',
     flex: 1,
     textAlign: 'center',
   },
+  vsContainer: {
+    paddingHorizontal: 12,
+  },
   scoreDivider: {
-    fontSize: 12,
-    color: '#6C757D',
-    paddingHorizontal: 8,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#9CA3AF',
+    letterSpacing: 1,
   },
   setRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    justifyContent: 'space-between',
+    marginBottom: 20,
+    gap: 12,
   },
   setLabel: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '500',
-    color: '#1B1B1B',
-    width: 50,
+    color: '#030213',
+    width: 70,
   },
   setLabelError: {
-    color: '#DC3545',
+    color: '#EF4444',
   },
   scoreInput: {
     flex: 1,
-    height: 48,
+    height: 52, // h-13
     backgroundColor: '#FFFFFF',
-    textAlign: 'center',
-    fontSize: 16,
   },
   scoreSeparator: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#6C757D',
+    color: '#717182',
     paddingHorizontal: 8,
   },
   removeSetButton: {
-    marginLeft: 8,
     padding: 4,
   },
   scoreErrorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFEBEE',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#DC3545',
+    backgroundColor: '#FEF2F2', // red-50
+    padding: 12, // p-3
+    borderRadius: 12, // rounded-xl
+    marginBottom: 16, // mb-4
+    borderWidth: 1,
+    borderColor: '#FEE2E2', // red-100
+  },
+  scoreErrorIconContainer: {
+    marginRight: 8,
   },
   scoreErrorText: {
-    fontSize: 13,
-    color: '#DC3545',
-    marginLeft: 8,
     flex: 1,
+    fontSize: 14, // text-sm
+    color: '#EF4444', // red-500
     fontWeight: '500',
   },
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
-    gap: 12,
+    marginTop: 28, // mt-7
+    gap: 16, // gap-4
   },
   modalCancelButton: {
     flex: 1,
-    borderRadius: 12,
-    paddingVertical: 4,
+    borderRadius: 16, // rounded-2xl
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // gray-200
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 18, // py-4.5
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalSendButton: {
     flex: 1,
-    borderRadius: 12,
-    paddingVertical: 4,
+    borderRadius: 16, // rounded-2xl
+    backgroundColor: '#54CE8F', // Primary green
+    paddingVertical: 18, // py-4.5
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalButtonDisabled: {
+    opacity: 0.5,
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#030213',
+    textAlign: 'center',
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
   snackbar: {
-    backgroundColor: '#2E7D32',
-    marginBottom: 20,
+    backgroundColor: '#54CE8F', // Primary green
+    marginBottom: 20, // mb-5
     fontStyle: 'italic',
     textAlign: 'center',
-    paddingVertical: 8,
+    paddingVertical: 8, // py-2
   },
   emptyCard: {
-    marginHorizontal: 20,
-    marginTop: 40,
+    marginHorizontal: 24, // mx-6
+    marginTop: 40, // mt-10
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 16, // rounded-2xl
+    borderWidth: 1,
+    borderColor: '#F3F4F6', // gray-100
   },
   emptyContainer: {
     alignItems: 'center',
-    paddingVertical: 48,
+    paddingVertical: 48, // py-12
   },
   emptyText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#9E9E9E',
+    marginTop: 16, // mt-4
+    fontSize: 14, // text-sm
+    color: '#717182', // Medium gray
   },
   paginationContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    padding: 16, // p-4
+    backgroundColor: '#FAFCFB',
+    marginTop: 8, // mt-2
+  },
+  paginationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10, // py-2.5
+    paddingHorizontal: 16, // px-4
+    borderRadius: 12, // rounded-xl
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // gray-200
     backgroundColor: '#FFFFFF',
-    marginTop: 8,
+    gap: 8, // gap-2
+  },
+  paginationButtonDisabled: {
+    opacity: 0.5,
+  },
+  paginationButtonText: {
+    fontSize: 14, // text-sm
+    fontWeight: '500',
+    color: '#030213',
+  },
+  paginationButtonTextDisabled: {
+    color: '#9CA3AF',
   },
   pageInfo: {
-    fontSize: 14,
-    color: '#495057',
+    fontSize: 14, // text-sm
+    color: '#030213',
     fontWeight: '500',
   },
 });

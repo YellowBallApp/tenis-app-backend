@@ -13,27 +13,39 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-// Light Theme - Mevcut tenis teması
+// Light Theme - EGEV Tennis App UI/UX Design
 const lightTheme = {
   ...MD3LightTheme,
   colors: {
     ...MD3LightTheme.colors,
-    primary: '#2E7D32', // Koyu yeşil
-    secondary: '#4CAF50',
-    background: '#FFFFFF',
-    surface: '#F8F9FA',
-    text: '#1B1B1B',
+    primary: '#54CE8F', // Primary Green (butonlar, aksan renkler)
+    secondary: '#B4AEBD', // Primary Purple (header'lar)
+    background: '#FAFCFB', // Background color
+    surface: '#FFFFFF', // Card backgrounds
+    text: '#030213', // Dark text
     onPrimary: '#FFFFFF',
     onSecondary: '#FFFFFF',
-    onBackground: '#1B1B1B',
-    onSurface: '#1B1B1B',
+    onBackground: '#030213',
+    onSurface: '#030213',
     error: '#DC3545',
-    placeholder: '#6C757D',
+    placeholder: '#717182', // Medium gray text
     backdrop: 'rgba(0, 0, 0, 0.5)',
-    outline: '#E0E0E0',
-    surfaceVariant: '#F5F5F5',
+    outline: '#E5E7EB', // Border color
+    surfaceVariant: '#F3F4F6', // Muted backgrounds
+    // Additional colors from design system
+    purple: '#B4AEBD', // Primary purple for headers
+    green: '#54CE8F', // Primary green for buttons
+    gray50: '#F9FAFB',
+    gray100: '#F3F4F6',
+    gray200: '#E5E7EB',
+    gray300: '#D1D5DB',
+    gray400: '#9CA3AF',
+    gray500: '#6B7280',
+    gray600: '#4B5563',
+    gray700: '#374151',
+    gray900: '#1F2937',
   },
-  roundness: 12,
+  roundness: 10, // rounded-2xl equivalent
 };
 
 // Dark Theme - Yumuşak karanlık tenis teması

@@ -65,11 +65,7 @@ const ReservationMatchResultScreen = () => {
       const reservationData = await reservationService.getReservationById(reservationId);
       setReservation(reservationData);
 
-      // Kortları yükle
-      const courtsData = await courtService.getActiveCourts();
-      setCourts(courtsData);
-
-      // Rezervasyondaki kortu varsayılan olarak seç
+      // Rezervasyondaki kortu kullan (değiştirilemez)
       if (reservationData.court) {
         setSelectedCourt(reservationData.court.id);
       }
@@ -81,7 +77,11 @@ const ReservationMatchResultScreen = () => {
       setLoading(false);
       // Hata durumunda da geri dön
       setTimeout(() => {
-        navigation.goBack();
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        } else {
+          navigation.navigate('Home' as never);
+        }
       }, 2000);
     }
   };
@@ -139,8 +139,9 @@ const ReservationMatchResultScreen = () => {
       return;
     }
 
-    if (!selectedCourt) {
-      Alert.alert('Uyarı', 'Lütfen kort seçin');
+    // Kort seçimi rezervasyondan alınır, kontrol etmeye gerek yok
+    if (!reservation?.court?.id) {
+      Alert.alert(t('common.error') || 'Hata', 'Rezervasyon kort bilgisi bulunamadı');
       return;
     }
 
@@ -169,7 +170,7 @@ const ReservationMatchResultScreen = () => {
 
     const opponents = getOpponents();
     if (opponents.length === 0) {
-      Alert.alert('Hata', 'Rakip bulunamadı');
+      Alert.alert(t('common.error') || 'Hata', t('notifications.opponentNotFound') || 'Rakip bulunamadı');
       return;
     }
 
@@ -210,6 +211,7 @@ const ReservationMatchResultScreen = () => {
         matchDate: new Date(reservation.startTime),
         indoorCourt: reservation.court?.indoors || false,
         courtGround: reservation.court?.groundType || 'hard',
+        courtId: reservation.court?.id,
       });
 
       // Bu rezervasyon için gönderilen tüm bildirimleri sil
@@ -224,16 +226,20 @@ const ReservationMatchResultScreen = () => {
       setSubmitting(false);
 
       // Başarı bildirimi göster
-      setSnackbarMessage(`Maç sonucu kaydedildi: ${scoreString}`);
+      setSnackbarMessage(`${t('notifications.matchResultSaved') || 'Maç sonucu kaydedildi'}: ${scoreString}`);
       setSnackbarVisible(true);
 
       // 2 saniye sonra geri dön
       setTimeout(() => {
-        navigation.goBack();
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        } else {
+          navigation.navigate('Home' as never);
+        }
       }, 2000);
     } catch (error: any) {
       console.error('Maç sonucu kaydetme hatası:', error);
-      Alert.alert('Hata', error.response?.data?.message || 'Maç sonucu kaydedilemedi');
+      Alert.alert(t('common.error') || 'Hata', error.response?.data?.message || t('notifications.matchResultSaveError') || 'Maç sonucu kaydedilemedi');
       setSubmitting(false);
     }
   };
@@ -259,23 +265,37 @@ const ReservationMatchResultScreen = () => {
   const opponents = getOpponents();
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar style="auto" />
+    <View style={styles.container}>
+      <StatusBar style="light" />
       
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        <Card style={styles.card}>
-          <Card.Content>
-            <View style={styles.header}>
-              <MaterialCommunityIcons name="trophy" size={32} color="#FFD700" />
-              <Title style={styles.title}>Maç Sonucu Gir</Title>
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        <View style={styles.headerContent}>
+          <MaterialCommunityIcons name="trophy" size={28} color="#FFFFFF" />
+          <Text style={styles.headerTitle}>{t('notifications.enterMatchResult') || 'Maç Sonucu Gir'}</Text>
+        </View>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Winner Selection Card */}
+        <Card style={styles.winnerCard}>
+          <Card.Content style={styles.winnerCardContent}>
+            <View style={styles.winnerCardHeader}>
+              <MaterialCommunityIcons name="trophy" size={20} color="#54CE8F" />
+              <Text style={styles.sectionLabel}>{t('notifications.selectWinner') || 'Kazanan Oyuncu'}</Text>
             </View>
-
-            <Text style={styles.subtitle}>
-              Maç sonucunu ve set skorlarını girin
-            </Text>
-
-            {/* Kazanan Seçimi */}
-            <Text style={styles.sectionLabel}>Kazanan Oyuncu</Text>
+            
             <View style={[
               styles.winnerSelectionContainer,
               scoreMismatch && styles.errorBorder
@@ -297,13 +317,13 @@ const ReservationMatchResultScreen = () => {
                   )}
                 </View>
                 <Avatar.Text 
-                  size={36} 
+                  size={40} 
                   label={currentUser.name.charAt(0)} 
                   style={styles.winnerAvatar}
                 />
                 <View style={styles.winnerInfo}>
                   <Text style={styles.winnerName}>{currentUser.name}</Text>
-                  <Text style={styles.winnerLabel}>(Siz)</Text>
+                  <Text style={styles.winnerLabel}>{t('notifications.you') || '(Siz)'}</Text>
                 </View>
               </TouchableOpacity>
 
@@ -325,7 +345,7 @@ const ReservationMatchResultScreen = () => {
                     )}
                   </View>
                   <Avatar.Text 
-                    size={36} 
+                    size={40} 
                     label={opponents[0].name.charAt(0)} 
                     style={styles.winnerAvatar}
                   />
@@ -335,165 +355,166 @@ const ReservationMatchResultScreen = () => {
                 </TouchableOpacity>
               )}
             </View>
+          </Card.Content>
+        </Card>
 
-            {/* Kort Seçimi */}
-            <View style={styles.courtSelectionSection}>
-              <Text style={styles.sectionLabel}>Kort Seçin *</Text>
-              <Menu
-                visible={courtMenuVisible}
-                onDismiss={() => setCourtMenuVisible(false)}
-                anchorPosition="bottom"
-                contentStyle={styles.menuContent}
-                anchor={
-                  <TouchableOpacity
-                    style={styles.courtDropdownButton}
-                    onPress={() => setCourtMenuVisible(true)}
-                  >
-                    <View style={styles.courtDropdownContent}>
-                      <MaterialCommunityIcons 
-                        name="tennis" 
-                        size={20} 
-                        color="#00B050" 
-                      />
-                      <Text style={styles.courtDropdownText}>
-                        {selectedCourt 
-                          ? courts.find(c => c.id === selectedCourt)?.name 
-                          : 'Kort seçin'}
-                      </Text>
-                    </View>
-                    <MaterialCommunityIcons 
-                      name="chevron-down" 
-                      size={24} 
-                      color="#757575" 
-                    />
-                  </TouchableOpacity>
-                }
-              >
-                {courts.map((court) => (
-                  <Menu.Item
-                    key={court.id}
-                    onPress={() => {
-                      setSelectedCourt(court.id);
-                      setCourtMenuVisible(false);
-                    }}
-                    title={court.name}
-                    leadingIcon="tennis"
-                  />
-                ))}
-              </Menu>
+        {/* Court Selection Card */}
+        <Card style={styles.courtCard}>
+          <Card.Content style={styles.courtCardContent}>
+            <View style={styles.courtCardHeader}>
+              <MaterialCommunityIcons name="tennis" size={20} color="#54CE8F" />
+              <Text style={styles.sectionLabel}>{t('notifications.selectCourt') || 'Kort'}</Text>
             </View>
-
-            {/* Set Skorları */}
-            <View style={styles.scoresSection}>
-              <View style={styles.scoresSectionHeader}>
-                <Text style={styles.sectionLabel}>Set Skorları (Minimum 2 Set Zorunlu)</Text>
-                {matchSets.length < 5 && (
-                  <TouchableOpacity onPress={addSet} style={styles.addSetButton}>
-                    <MaterialCommunityIcons name="plus-circle" size={24} color="#00B050" />
-                    <Text style={styles.addSetText}>Set Ekle</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              {scoreError && (
-                <View style={styles.scoreErrorContainer}>
-                  <MaterialCommunityIcons name="alert-circle" size={20} color="#DC3545" />
-                  <Text style={styles.scoreErrorText}>
-                    En az 2 set skoru girilmesi zorunludur
-                  </Text>
-                </View>
-              )}
-
-              <View style={styles.scoresHeader}>
-                <Text style={styles.scorePlayerLabel}>{currentUser.name}</Text>
-                <Text style={styles.scoreDivider}>vs</Text>
-                <Text style={styles.scorePlayerLabel}>
-                  {opponents.length > 0 ? opponents[0].name : 'Rakip'}
+            <View style={[styles.courtDropdownButton, styles.courtDropdownButtonDisabled]}>
+              <View style={styles.courtDropdownContent}>
+                <MaterialCommunityIcons 
+                  name="tennis" 
+                  size={20} 
+                  color="#9CA3AF" 
+                />
+                <Text style={[styles.courtDropdownText, styles.courtDropdownTextDisabled]}>
+                  {reservation?.court?.name || 'Kort'}
                 </Text>
               </View>
-
-              {matchSets.map((set, index) => {
-                const isSetFilled = set.userScore && set.opponentScore;
-                const shouldShowError = (scoreError && !isSetFilled && index < 2) || scoreMismatch;
-                
-                return (
-                  <View key={index} style={styles.setRow}>
-                    <Text style={[styles.setLabel, shouldShowError && styles.setLabelError]}>
-                      Set {index + 1}{index < 2 ? ' *' : ''}:
-                    </Text>
-                    <TextInput
-                      mode="outlined"
-                      value={set.userScore}
-                      onChangeText={(value) => {
-                        updateSetScore(index, 'userScore', value);
-                        setScoreMismatch(false);
-                      }}
-                      keyboardType="numeric"
-                      maxLength={2}
-                      style={styles.scoreInput}
-                      contentStyle={styles.scoreInputContent}
-                      outlineColor={shouldShowError ? "#DC3545" : "#E0E0E0"}
-                      activeOutlineColor={shouldShowError ? "#DC3545" : "#00B050"}
-                      error={shouldShowError}
-                      dense
-                    />
-                    <Text style={styles.scoreSeparator}>-</Text>
-                    <TextInput
-                      mode="outlined"
-                      value={set.opponentScore}
-                      onChangeText={(value) => {
-                        updateSetScore(index, 'opponentScore', value);
-                        setScoreMismatch(false);
-                      }}
-                      keyboardType="numeric"
-                      maxLength={2}
-                      style={styles.scoreInput}
-                      contentStyle={styles.scoreInputContent}
-                      outlineColor={shouldShowError ? "#DC3545" : "#E0E0E0"}
-                      activeOutlineColor={shouldShowError ? "#DC3545" : "#00B050"}
-                      error={shouldShowError}
-                      dense
-                    />
-                    {matchSets.length > 1 && (
-                      <TouchableOpacity onPress={() => removeSet(index)} style={styles.removeSetButton}>
-                        <MaterialCommunityIcons name="close-circle" size={24} color="#DC3545" />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                );
-              })}
-
-              {scoreMismatch && (
-                <View style={styles.scoreErrorContainer}>
-                  <MaterialCommunityIcons name="alert-circle" size={20} color="#DC3545" />
-                  <Text style={styles.scoreErrorText}>
-                    Kazanan oyuncu ve yazılan skorlar uyuşmuyor
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            <View style={styles.buttons}>
-              <Button
-                mode="outlined"
-                onPress={() => navigation.goBack()}
-                style={styles.cancelButton}
-              >
-                İptal
-              </Button>
-              <Button
-                mode="contained"
-                onPress={submitMatchResult}
-                style={styles.submitButton}
-                buttonColor="#00B050"
-                loading={submitting}
-                disabled={submitting}
-              >
-                Kaydet
-              </Button>
+              <MaterialCommunityIcons 
+                name="lock" 
+                size={20} 
+                color="#9CA3AF" 
+              />
             </View>
           </Card.Content>
         </Card>
+
+        {/* Scores Card */}
+        <Card style={styles.scoresCard}>
+          <Card.Content style={styles.scoresCardContent}>
+            <View style={styles.scoresSectionHeader}>
+              <View style={styles.scoresHeaderTitle}>
+                <MaterialCommunityIcons name="scoreboard" size={20} color="#54CE8F" />
+                <Text style={styles.sectionLabel}>{t('notifications.setScores') || 'Set Skorları (Minimum 2 Set Zorunlu)'}</Text>
+              </View>
+              {matchSets.length < 5 && (
+                <TouchableOpacity onPress={addSet} style={styles.addSetButton}>
+                  <MaterialCommunityIcons name="plus-circle" size={20} color="#54CE8F" />
+                  <Text style={styles.addSetText}>{t('notifications.addSet') || 'Set Ekle'}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {scoreError && (
+              <View style={styles.scoreErrorContainer}>
+                <View style={styles.scoreErrorIconContainer}>
+                  <MaterialCommunityIcons name="alert-circle" size={20} color="#EF4444" />
+                </View>
+                <Text style={styles.scoreErrorText}>
+                  {t('notifications.minTwoSetsRequired') || 'En az 2 set skoru girilmesi zorunludur'}
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.scoresHeader}>
+              <Text style={styles.scorePlayerLabel}>{currentUser.name}</Text>
+              <View style={styles.vsContainer}>
+                <Text style={styles.scoreDivider}>VS</Text>
+              </View>
+              <Text style={styles.scorePlayerLabel}>
+                {opponents.length > 0 ? opponents[0].name : t('notifications.opponent') || 'Rakip'}
+              </Text>
+            </View>
+
+            {matchSets.map((set, index) => {
+              const isSetFilled = set.userScore && set.opponentScore;
+              const shouldShowError = (scoreError && !isSetFilled && index < 2) || scoreMismatch;
+              
+              return (
+                <View key={index} style={styles.setRow}>
+                  <Text style={[styles.setLabel, shouldShowError && styles.setLabelError]}>
+                    {t('notifications.set') || 'Set'} {index + 1}{index < 2 ? ' *' : ''}:
+                  </Text>
+                  <TextInput
+                    mode="outlined"
+                    value={set.userScore}
+                    onChangeText={(value) => {
+                      updateSetScore(index, 'userScore', value);
+                      setScoreMismatch(false);
+                    }}
+                    keyboardType="numeric"
+                    maxLength={2}
+                    style={styles.scoreInput}
+                    contentStyle={styles.scoreInputContent}
+                    outlineColor={shouldShowError ? "#EF4444" : "#E5E7EB"}
+                    activeOutlineColor={shouldShowError ? "#EF4444" : "#54CE8F"}
+                    error={shouldShowError}
+                    dense
+                  />
+                  <Text style={styles.scoreSeparator}>-</Text>
+                  <TextInput
+                    mode="outlined"
+                    value={set.opponentScore}
+                    onChangeText={(value) => {
+                      updateSetScore(index, 'opponentScore', value);
+                      setScoreMismatch(false);
+                    }}
+                    keyboardType="numeric"
+                    maxLength={2}
+                    style={styles.scoreInput}
+                    contentStyle={styles.scoreInputContent}
+                    outlineColor={shouldShowError ? "#EF4444" : "#E5E7EB"}
+                    activeOutlineColor={shouldShowError ? "#EF4444" : "#54CE8F"}
+                    error={shouldShowError}
+                    dense
+                  />
+                  {matchSets.length > 1 && (
+                    <TouchableOpacity onPress={() => removeSet(index)} style={styles.removeSetButton}>
+                      <MaterialCommunityIcons name="close-circle" size={20} color="#EF4444" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              );
+            })}
+
+            {scoreMismatch && (
+              <View style={styles.scoreErrorContainer}>
+                <View style={styles.scoreErrorIconContainer}>
+                  <MaterialCommunityIcons name="alert-circle" size={20} color="#EF4444" />
+                </View>
+                <Text style={styles.scoreErrorText}>
+                  {t('notifications.scoreMismatch') || 'Kazanan oyuncu ve yazılan skorlar uyuşmuyor'}
+                </Text>
+              </View>
+            )}
+          </Card.Content>
+        </Card>
+
+        {/* Action Buttons */}
+        <View style={styles.buttonsContainer}>
+          <TouchableOpacity
+            onPress={() => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.navigate('Home' as never);
+              }
+            }}
+            style={styles.cancelButton}
+          >
+            <Text style={styles.cancelButtonText}>{t('common.cancel') || 'İptal'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={submitMatchResult}
+            style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
+            disabled={submitting}
+          >
+            {submitting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <MaterialCommunityIcons name="check-circle" size={20} color="#FFFFFF" />
+                <Text style={styles.submitButtonText}>{t('common.save') || 'Kaydet'}</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
       <Snackbar
@@ -547,43 +568,65 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     color: '#212121',
   },
+  winnerCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+  },
+  winnerCardContent: {
+    padding: 24,
+  },
+  winnerCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   winnerSelectionContainer: {
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 8,
-    marginBottom: 24,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   errorBorder: {
-    borderColor: '#DC3545',
+    borderColor: '#EF4444',
+    borderWidth: 2,
   },
   winnerOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: '#F3F4F6',
   },
   winnerOptionSelected: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#F0FDF4',
   },
   radioButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#00B050',
+    borderColor: '#54CE8F',
     marginRight: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   radioButtonInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#00B050',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#54CE8F',
   },
   winnerAvatar: {
-    marginRight: 12,
+    marginRight: 14,
+    backgroundColor: '#54CE8F',
   },
   winnerInfo: {
     flex: 1,
@@ -591,71 +634,123 @@ const styles = StyleSheet.create({
   winnerName: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#030213',
+    marginBottom: 4,
   },
   winnerLabel: {
-    fontSize: 12,
-    color: '#757575',
+    fontSize: 13,
+    color: '#717182',
   },
-  courtSelectionSection: {
-    marginBottom: 24,
+  courtCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+  },
+  courtCardContent: {
+    padding: 24,
+  },
+  courtCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   courtDropdownButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 8,
-    padding: 16,
-    backgroundColor: '#FFFFFF',
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    padding: 18,
+    backgroundColor: '#F9FAFB',
+  },
+  courtDropdownButtonDisabled: {
+    opacity: 0.7,
   },
   courtDropdownContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
   },
   courtDropdownText: {
-    marginLeft: 8,
     fontSize: 16,
+    color: '#030213',
+    fontWeight: '500',
+  },
+  courtDropdownTextDisabled: {
+    color: '#717182',
   },
   menuContent: {
     backgroundColor: '#FFFFFF',
+    borderRadius: 12,
   },
-  scoresSection: {
-    marginBottom: 24,
+  scoresCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+  },
+  scoresCardContent: {
+    padding: 24,
   },
   scoresSectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 20,
+  },
+  scoresHeaderTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   addSetButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
   },
   addSetText: {
-    marginLeft: 4,
-    color: '#00B050',
+    color: '#54CE8F',
     fontWeight: '600',
+    fontSize: 14,
   },
   scoreErrorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFEBEE',
+    backgroundColor: '#FEF2F2',
     padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+  },
+  scoreErrorIconContainer: {
+    marginRight: 8,
   },
   scoreErrorText: {
-    marginLeft: 8,
-    color: '#DC3545',
+    flex: 1,
+    color: '#EF4444',
     fontSize: 14,
+    fontWeight: '500',
   },
   scoresHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 20,
     paddingHorizontal: 8,
   },
   scorePlayerLabel: {
@@ -663,30 +758,35 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
     textAlign: 'center',
+    color: '#030213',
+  },
+  vsContainer: {
+    paddingHorizontal: 12,
   },
   scoreDivider: {
     fontSize: 14,
-    color: '#757575',
-    marginHorizontal: 8,
+    fontWeight: '600',
+    color: '#9CA3AF',
+    letterSpacing: 1,
   },
   setRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    justifyContent: 'space-between',
+    marginBottom: 20,
+    gap: 12,
   },
   setLabel: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '500',
-    color: '#1B1B1B',
-    width: 50,
+    color: '#030213',
+    width: 70,
   },
   setLabelError: {
-    color: '#DC3545',
+    color: '#EF4444',
   },
   scoreInput: {
     flex: 1,
-    height: 40,
+    height: 52,
     backgroundColor: '#FFFFFF',
   },
   scoreInputContent: {
@@ -695,25 +795,50 @@ const styles = StyleSheet.create({
   scoreSeparator: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#6C757D',
+    color: '#717182',
     paddingHorizontal: 8,
   },
   removeSetButton: {
-    marginLeft: 8,
     padding: 4,
   },
-  buttons: {
+  buttonsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 16,
     marginTop: 24,
+    paddingHorizontal: 4,
   },
   cancelButton: {
     flex: 1,
-    marginRight: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#030213',
   },
   submitButton: {
     flex: 1,
-    marginLeft: 8,
+    borderRadius: 16,
+    backgroundColor: '#54CE8F',
+    paddingVertical: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  submitButtonDisabled: {
+    opacity: 0.6,
+  },
+  submitButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   snackbar: {
     marginBottom: 16,
@@ -721,11 +846,11 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#757575',
+    color: '#717182',
   },
   errorText: {
     fontSize: 16,
-    color: '#DC3545',
+    color: '#EF4444',
     marginBottom: 16,
   },
 });

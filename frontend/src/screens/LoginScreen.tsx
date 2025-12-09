@@ -8,6 +8,7 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput as RNTextInput,
+  Image,
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -85,10 +86,12 @@ const LoginScreen = ({ navigation }: any) => {
       >
         {/* Logo and Title Section */}
         <View style={styles.headerSection}>
-          <View style={styles.logoContainer}>
-            <MaterialCommunityIcons name="trophy" size={32} color="#FFFFFF" />
-          </View>
-          <Text style={styles.appTitle}>EGEV Tenis</Text>
+          <Image 
+            source={require('../../assets/egevlogo.png')} 
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+          
         </View>
 
         {/* Welcome Section */}
@@ -103,7 +106,7 @@ const LoginScreen = ({ navigation }: any) => {
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>{t('auth.emailOrPhone')}</Text>
             <View style={styles.inputWrapper}>
-              <MaterialCommunityIcons name="email-outline" size={20} color="#9E9E9E" style={styles.inputIcon} />
+              <MaterialCommunityIcons name="email" size={20} color="#9CA3AF" style={styles.inputIcon} />
               <RNTextInput
                 style={styles.input}
                 placeholder={t('auth.enterEmailOrPhone')}
@@ -121,7 +124,7 @@ const LoginScreen = ({ navigation }: any) => {
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>{t('auth.password')}</Text>
             <View style={styles.inputWrapper}>
-              <MaterialCommunityIcons name="lock-outline" size={20} color="#9E9E9E" style={styles.inputIcon} />
+              <MaterialCommunityIcons name="lock" size={20} color="#9CA3AF" style={styles.inputIcon} />
               <RNTextInput
                 style={[styles.input, styles.passwordInput]}
                 placeholder={t('auth.enterPassword')}
@@ -137,9 +140,9 @@ const LoginScreen = ({ navigation }: any) => {
                 style={styles.eyeIcon}
               >
                 <MaterialCommunityIcons 
-                  name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                  name={showPassword ? "eye-off" : "eye"} 
                   size={20} 
-                  color="#9E9E9E" 
+                  color="#9CA3AF" 
                 />
               </TouchableOpacity>
             </View>
@@ -176,69 +179,73 @@ const LoginScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAFCFB', // New design background
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 40,
+    paddingHorizontal: 32, // px-8 equivalent
+    paddingTop: 80, // pt-20 equivalent
+    paddingBottom: 48, // pb-12 equivalent
   },
   headerSection: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 48,
+    marginBottom: 48, // mb-12 equivalent
   },
-  logoContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#BA68C8', // Darker purple
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
+  logoImage: {
+    width: 200,
+    height: 200,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   appTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#424242',
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#030213', // Dark text
+    textAlign: 'center',
   },
   welcomeSection: {
-    marginBottom: 32,
+    marginBottom: 32, // mb-8 equivalent
   },
   welcomeTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#424242',
+    fontSize: 30, // text-3xl equivalent
+    fontWeight: '600',
+    color: '#030213', // Dark text from design
     marginBottom: 8,
   },
   welcomeSubtitle: {
     fontSize: 16,
-    color: '#424242',
+    color: '#717182', // Medium gray
     fontWeight: '400',
   },
   formSection: {
     marginBottom: 32,
   },
   inputContainer: {
-    marginBottom: 24,
+    marginBottom: 20, // mb-5 equivalent
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: '400',
-    color: '#424242',
-    marginBottom: 8,
+    fontWeight: '500',
+    color: '#374151', // gray-700
+    marginBottom: 8, // mb-2 equivalent
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 12,
+    borderColor: '#E5E7EB', // gray-200
+    borderRadius: 16, // rounded-2xl
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    height: 56,
+    paddingHorizontal: 16, // px-4 equivalent
+    height: 56, // py-4 equivalent
   },
   inputIcon: {
     marginRight: 12,
@@ -246,7 +253,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#424242',
+    color: '#030213', // Dark text
     paddingVertical: 0,
   },
   passwordInput: {
@@ -256,32 +263,32 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   errorText: {
-    color: '#F44336',
+    color: '#DC3545', // Error color
     fontSize: 14,
     marginBottom: 16,
     textAlign: 'center',
   },
   forgotPasswordContainer: {
     alignItems: 'flex-end',
-    marginBottom: 32,
+    marginBottom: 32, // mt-8 equivalent
   },
   forgotPasswordText: {
     fontSize: 14,
-    color: '#9E9E9E',
+    color: '#B4AEBD', // Primary purple
     fontWeight: '400',
   },
   loginButton: {
-    backgroundColor: '#66BB6A', // Light green
-    borderRadius: 12,
-    height: 56,
+    backgroundColor: '#54CE8F', // Primary green from design
+    borderRadius: 16, // rounded-2xl
+    height: 56, // py-4 equivalent
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#66BB6A',
+    shadowColor: '#54CE8F',
     shadowOffset: {
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 4,
   },
@@ -292,19 +299,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
-  },
-  signUpSection: {
-    alignItems: 'center',
-    marginTop: 'auto',
-  },
-  signUpText: {
-    fontSize: 14,
-    color: '#424242',
-    fontWeight: '400',
-  },
-  signUpLink: {
-    color: '#66BB6A',
-    fontWeight: '600',
   },
 });
 

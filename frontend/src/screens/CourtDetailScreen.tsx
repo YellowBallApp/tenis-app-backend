@@ -22,7 +22,10 @@ import {
   Snackbar,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useRoute, useNavigation, useFocusEffect, CompositeNavigationProp } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { ReservationStackParamList, MainTabParamList } from '../navigation/MainTabNavigator';
 import { useLanguage } from '../context/LanguageContext';
 import { courtService, reservationService, weatherService, userService, authService, matchChallengeService, leagueStandingsService, reservationTemplateService, reservationTimeSlotService, notificationService } from '../services/api';
 import { NotificationType } from '../types';
@@ -30,9 +33,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 
+type CourtDetailScreenNavigationProp = CompositeNavigationProp<
+  StackNavigationProp<ReservationStackParamList, 'CourtDetail'>,
+  BottomTabNavigationProp<MainTabParamList>
+>;
+
 const CourtDetailScreen = () => {
   const route = useRoute();
-  const navigation = useNavigation();
+  const navigation = useNavigation<CourtDetailScreenNavigationProp>();
   const { t, language } = useLanguage();
   const { courtId } = route.params as { courtId: number };
   
@@ -70,6 +78,7 @@ const CourtDetailScreen = () => {
   const [showSuccessSnackbar, setShowSuccessSnackbar] = useState(false);
   const [showErrorSnackbar, setShowErrorSnackbar] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [containerWidth, setContainerWidth] = useState<number>(width);
 
   // Rezervasyon engeli kontrolü
   const checkReservationBlock = React.useCallback(async () => {
@@ -651,112 +660,16 @@ const CourtDetailScreen = () => {
       return;
     }
 
-    // Değişkenleri try bloğunun dışında tanımla
-    let startDateTime: Date;
-    let endDateTime: Date;
-    let participantIds: string[] = [];
-
-    try {
-      setIsCreatingReservation(true);
-
-      // Tarih ve saati birleştir
-      const [hours, minutes] = selectedTime.split(':');
-      startDateTime = new Date(selectedDate);
-      startDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-
-      // Bitiş saatini hesapla (60 dakika sonra - 1 saatlik rezervasyon)
-      endDateTime = new Date(startDateTime);
-      endDateTime.setMinutes(startDateTime.getMinutes() + 60);
-
-      // Build participant IDs based on game type
-      participantIds = [];
-      if (playerType === 'single' && selectedPartner) {
-        participantIds.push(selectedPartner.id);
-      } else if (playerType === 'double') {
-        if (selectedPartner) {
-          participantIds.push(selectedPartner.id);
-        }
-        selectedOpponents.forEach(opp => participantIds.push(opp.id));
-      }
-
-      // RESTRICTED kullanıcı kontrolü - frontend'de de kontrol et
-      const isRestricted = currentUserType?.toLowerCase() === 'restricted';
-      if (isRestricted) {
-        const dayOfWeek = startDateTime.getDay(); // 0 = Pazar, 6 = Cumartesi
-        const hour = startDateTime.getHours();
-        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-        
-        if (isWeekend) {
-          // Hafta sonu: Sadece 18:00-24:00 arası
-          if (hour < 18) {
-            Alert.alert(
-              t('common.error'),
-              'Kullanıcı tipiniz hafta sonları sadece 18:00-24:00 arası rezervasyon yapabilir',
-              [{ text: t('common.ok') }]
-            );
-            return;
-          }
-        } else {
-          // Hafta içi: Sadece 9:00-18:00 arası
-          if (hour < 9 || hour >= 18) {
-            Alert.alert(
-              t('common.error'),
-              'Kullanıcı tipiniz hafta içi sadece 09:00-18:00 arası rezervasyon yapabilir',
-              [{ text: t('common.ok') }]
-            );
-            return;
-          }
-        }
-      }
-
-      const reservationData: {
-        courtId: number;
-        startTime: string;
-        endTime: string;
-        participantIds?: string[];
-        notes?: string;
-      } = {
-        courtId: typeof courtId === 'number' ? courtId : parseInt(courtId.toString()),
-        startTime: startDateTime.toISOString(),
-        endTime: endDateTime.toISOString(),
-        participantIds: participantIds.length > 0 ? participantIds : undefined,
-        notes: `Standart seans: ${court.name}`,
-      };
-
-      const reservation = await reservationService.createReservation(reservationData);
-
-      // Create challenges for opponents (don't await - let it run in background)
-      createChallengesForOpponents(startDateTime).catch(() => {
-        // Silently handle errors
-      });
-
-      // Başarılı mesajını göster ve hemen ana sayfaya yönlendir
-      setShowSuccessSnackbar(true);
-      
-      // Hemen ana sayfaya yönlendir (başarı mesajı ile)
-      navigation.getParent()?.navigate('Home', { 
-        showReservationSuccess: true 
-      });
-    } catch (error: any) {
-      // Backend'den gelen detaylı hata mesajını göster
-      let errorMsg = t('reservation.errorCreating');
-      
-      if (error.response?.data?.message) {
-        errorMsg = error.response.data.message;
-      } else if (error.response?.data?.error) {
-        errorMsg = error.response.data.error;
-      } else if (error.message) {
-        errorMsg = error.message;
-      } else if (error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK') {
-        errorMsg = 'Sunucuya bağlanılamıyor. Lütfen internet bağlantınızı kontrol edin.';
-      }
-
-      // Hata mesajını state'e kaydet ve snackbar göster
-      setErrorMessage(errorMsg);
-      setShowErrorSnackbar(true);
-    } finally {
-      setIsCreatingReservation(false);
-    }
+    // BookingConfirm sayfasına navigate et
+    navigation.navigate('BookingConfirm', {
+      courtId: typeof courtId === 'number' ? courtId : parseInt(String(courtId)),
+      selectedDate,
+      selectedTime,
+      playerType,
+      selectedPartner,
+      selectedOpponents,
+      court,
+    });
   };
 
   if (loading) {
@@ -790,7 +703,13 @@ const CourtDetailScreen = () => {
         <View style={styles.header}>
           <TouchableOpacity 
             style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.navigate('ReservationList' as never);
+              }
+            }}
           >
             <MaterialCommunityIcons name="arrow-left" size={24} color="#1B1B1B" />
           </TouchableOpacity>
@@ -829,27 +748,33 @@ const CourtDetailScreen = () => {
           </Card>
         )}
 
-        {/* Top Visual Section */}
-        <View style={styles.topVisualSection}>
+        {/* Top Visual Section - Court Image */}
+        <LinearGradient
+          colors={['#D1FAE5', '#ECFDF5']} // from-green-100 to-green-50
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.topVisualSection}
+        >
           {/* Chips */}
           <View style={styles.topChipsContainer}>
             <View style={styles.topChip}>
               <Text style={styles.topChipText}>{displayCourt.surface}</Text>
             </View>
             <View style={styles.topChip}>
+              <MaterialCommunityIcons 
+                name={court.indoors ? "home-roof" : "weather-sunny"} 
+                size={12} 
+                color="#374151" 
+              />
               <Text style={styles.topChipText}>{displayCourt.type}</Text>
             </View>
           </View>
 
           {/* Tennis Ball Icon */}
           <View style={styles.tennisBallContainer}>
-            <MaterialCommunityIcons 
-              name="tennis-ball" 
-              size={120} 
-              color="#4CAF50" 
-            />
+            <Text style={{ fontSize: 112 }}>🎾</Text>
           </View>
-        </View>
+        </LinearGradient>
 
         {/* Court Information Section */}
         <View style={styles.infoSection}>
@@ -857,9 +782,9 @@ const CourtDetailScreen = () => {
           
           <View style={styles.locationContainer}>
             <MaterialCommunityIcons 
-              name="map-marker-outline" 
-              size={16} 
-              color="#666666" 
+              name="map-marker" 
+              size={18} 
+              color="#717182" 
             />
             <Text style={styles.locationText}>
               {`${displayCourt.surface} • ${displayCourt.type}`}
@@ -869,9 +794,9 @@ const CourtDetailScreen = () => {
           {/* Info Box */}
           <View style={styles.infoBox}>
             <MaterialCommunityIcons 
-              name="information-outline" 
+              name="information" 
               size={20} 
-              color="#666666" 
+              color="#B4AEBD" 
             />
             <Text style={styles.infoText}>
               {t('reservation.standardSession')}
@@ -939,11 +864,16 @@ const CourtDetailScreen = () => {
               }}
               disabled={reservationBlocked || checkingBlockStatus}
             >
-              <MaterialCommunityIcons 
-                name="account" 
-                size={32} 
-                color={playerType === 'single' ? '#FFFFFF' : '#666666'} 
-              />
+              <View style={[
+                styles.gameTypeIconContainer,
+                playerType === 'single' && styles.gameTypeIconContainerSelected
+              ]}>
+                <MaterialCommunityIcons 
+                  name="account" 
+                  size={28} 
+                  color={playerType === 'single' ? '#FFFFFF' : '#9CA3AF'} 
+                />
+              </View>
               <Text style={[
                 styles.gameTypeTitle,
                 playerType === 'single' && styles.gameTypeTitleSelected
@@ -973,11 +903,16 @@ const CourtDetailScreen = () => {
               }}
               disabled={reservationBlocked || checkingBlockStatus}
             >
-              <MaterialCommunityIcons 
-                name="account-group" 
-                size={32} 
-                color={playerType === 'double' ? '#FFFFFF' : '#666666'} 
-              />
+              <View style={[
+                styles.gameTypeIconContainer,
+                playerType === 'double' && styles.gameTypeIconContainerSelected
+              ]}>
+                <MaterialCommunityIcons 
+                  name="account-group" 
+                  size={28} 
+                  color={playerType === 'double' ? '#FFFFFF' : '#9CA3AF'} 
+                />
+              </View>
               <Text style={[
                 styles.gameTypeTitle,
                 playerType === 'double' && styles.gameTypeTitleSelected
@@ -1019,13 +954,17 @@ const CourtDetailScreen = () => {
                   <Avatar.Text
                     size={48}
                     label={getInitials(selectedPartner.name)}
-                    style={styles.playerAvatar}
+                    style={[
+                      styles.playerAvatar,
+                      selectorMode === 'partner' && { backgroundColor: '#54CE8F' }, // Partner: green
+                      selectorMode === 'opponent' && { backgroundColor: '#B4AEBD' } // Opponent: purple
+                    ]}
                     labelStyle={styles.playerAvatarLabel}
                   />
                   <View style={styles.selectedPlayerInfo}>
                     <Text style={styles.selectedPlayerName}>{selectedPartner.name}</Text>
                     <Text style={styles.selectedPlayerDetails}>
-                      {t('reservation.rank')} #{selectedPartner.currentRank || 0} • {selectedPartner.title || t('reservation.intermediate')}
+                      {t('reservation.rank')} #{selectedPartner.currentRank || 0}
                     </Text>
                   </View>
                   <TouchableOpacity
@@ -1035,12 +974,12 @@ const CourtDetailScreen = () => {
                     }}
                     style={styles.removePlayerButton}
                   >
-                    <MaterialCommunityIcons name="close" size={20} color="#F44336" />
+                    <MaterialCommunityIcons name="close" size={16} color="#6B7280" />
                   </TouchableOpacity>
                 </View>
               ) : (
                 <View style={styles.playerSelectorPlaceholder}>
-                  <MaterialCommunityIcons name="account-plus" size={32} color="#BDBDBD" />
+                  <MaterialCommunityIcons name="account" size={32} color="#9CA3AF" />
                   <Text style={styles.playerSelectorPlaceholderText}>
                     {t('reservation.selectOpponentPlayer')}
                   </Text>
@@ -1129,7 +1068,7 @@ const CourtDetailScreen = () => {
                           <Avatar.Text
                             size={48}
                             label={getInitials(currentOpponent.name)}
-                            style={styles.playerAvatar}
+                            style={[styles.playerAvatar, { backgroundColor: '#B4AEBD' }]} // Opponent: purple
                             labelStyle={styles.playerAvatarLabel}
                           />
                           <View style={styles.selectedPlayerInfo}>
@@ -1169,8 +1108,14 @@ const CourtDetailScreen = () => {
         {/* Available Time Slots */}
         <View style={styles.timeSlotsSection}>
           <Text style={styles.sectionTitle}>{t('reservation.availableTimeSlots')}</Text>
-          <View style={styles.timeGrid}>
-            {allTimes.map((time) => {
+          <View 
+            style={styles.timeGrid}
+            onLayout={(event) => {
+              const { width: layoutWidth } = event.nativeEvent.layout;
+              setContainerWidth(layoutWidth);
+            }}
+          >
+            {allTimes.map((time, index) => {
               const isReserved = isTimeReserved(time);
               const isBlocked = isTimeBlocked(time);
               const blockedReason = getBlockedReason(time);
@@ -1204,10 +1149,27 @@ const CourtDetailScreen = () => {
               const weatherInfo = weatherCache[time];
               const showWeather = !!(weatherInfo && (weatherInfo.isRainy || weatherInfo.isSnowy) && !finalDisabled);
               
+              // 3 sütunlu grid için pozisyon hesaplama
+              const columnIndex = index % 3; // 0, 1, 2
+              const isLastInRow = columnIndex === 2; // Her satırın son sütunu
+              
+              // 3 sütun için kesin width hesaplama
+              // containerWidth zaten padding'ler dahil değil (timeGrid container'ı)
+              // 3 kart arasında 2 gap var, her gap 12px = 24px toplam
+              // Her kart genişliği: (container genişliği - gap*2) / 3
+              const gapsBetweenCards = 12 * 2; // 24px (3 kart arasında 2 gap)
+              const cardWidth = Math.floor((containerWidth - gapsBetweenCards) / 3);
+               
               return (
                 <TouchableOpacity
                   key={time}
                   style={[
+                    {
+                      // 3 sütunlu grid için width ve margin ayarları
+                      width: cardWidth,
+                      marginRight: isLastInRow ? 0 : 12,
+                      marginBottom: 12,
+                    },
                     styles.timeSlotCard,
                     selectedTime === time && styles.timeSlotCardSelected,
                     (finalDisabled || reservationBlocked || checkingBlockStatus) && styles.timeSlotCardDisabled,
@@ -1226,20 +1188,20 @@ const CourtDetailScreen = () => {
                   }}
                   disabled={finalDisabled || reservationBlocked || checkingBlockStatus}
                 >
-                  <MaterialCommunityIcons 
-                    name={finalDisabled ? (isBlocked ? "lock" : "lock") : "clock"} 
-                    size={18} 
-                    color={
-                      isBlocked
-                        ? "#F44336"
-                        : finalDisabled 
-                          ? "#BDBDBD" 
-                          : selectedTime === time 
-                            ? "#2E7D32" 
-                            : "#666666"
-                    } 
-                  />
                   <View style={styles.timeSlotContent}>
+                    <MaterialCommunityIcons 
+                      name={finalDisabled ? (isBlocked ? "lock" : "lock") : "clock"} 
+                      size={18} 
+                      color={
+                        isBlocked
+                          ? "#F44336"
+                          : finalDisabled 
+                            ? "#9CA3AF" 
+                            : selectedTime === time 
+                              ? "#FFFFFF" 
+                              : "#1F2937"
+                      } 
+                    />
                     <Text style={[
                       styles.timeSlotText,
                       selectedTime === time && styles.timeSlotTextSelected,
@@ -1270,9 +1232,9 @@ const CourtDetailScreen = () => {
                   {showWeather && !finalDisabled && (
                     <MaterialCommunityIcons 
                       name={weatherInfo?.isSnowy ? "weather-snowy" : "weather-rainy"} 
-                      size={18} 
-                      color={selectedTime === time ? "#2E7D32" : "#2196F3"} 
-                      style={{ marginLeft: 4 }}
+                      size={16} 
+                      color={selectedTime === time ? "#FFFFFF" : "#2196F3"} 
+                      style={{ position: 'absolute', top: 4, right: 4 }}
                     />
                   )}
                 </TouchableOpacity>
@@ -1288,32 +1250,33 @@ const CourtDetailScreen = () => {
       </ScrollView>
 
       {/* Continue to Booking Button - Fixed at bottom */}
-      {selectedTime && (
+      {(() => {
+        // Tüm gerekli seçimlerin yapılıp yapılmadığını kontrol et
+        const hasDate = !!selectedDate;
+        const hasTime = !!selectedTime;
+        const hasPlayers = playerType === 'single' 
+          ? !!selectedPartner  // Single için opponent seçilmeli
+          : (!!selectedPartner && selectedOpponents.length === 2); // Double için partner + 2 opponent
+        
+        return hasDate && hasTime && hasPlayers;
+      })() && (
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={[
               styles.continueButton,
-              (reservationBlocked || checkingBlockStatus) && styles.continueButtonDisabled
+              (reservationBlocked || checkingBlockStatus || isCreatingReservation) && styles.continueButtonDisabled
             ]}
             onPress={handleReservation}
-            disabled={isCreatingReservation || reservationBlocked || checkingBlockStatus}
+            disabled={reservationBlocked || checkingBlockStatus}
           >
-            <LinearGradient
-              colors={
-                isCreatingReservation || reservationBlocked || checkingBlockStatus
-                  ? ['#BDBDBD', '#9E9E9E']
-                  : ['#2E7D32', '#1B5E20']
-              }
-              style={styles.continueButtonGradient}
-            >
-              {isCreatingReservation ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={styles.continueButtonText}>
-                  {t('reservation.continueToBooking')}
-                </Text>
-              )}
-            </LinearGradient>
+            <View style={[
+              styles.continueButtonGradient,
+              (reservationBlocked || checkingBlockStatus) && { backgroundColor: '#BDBDBD' }
+            ]}>
+              <Text style={styles.continueButtonText}>
+                {t('reservation.continueToBooking')}
+              </Text>
+            </View>
           </TouchableOpacity>
         </View>
       )}
@@ -1555,138 +1518,141 @@ const CourtDetailScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAFCFB', // New design background
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAFCFB',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 60,
-    paddingBottom: 16,
+    paddingHorizontal: 24, // px-6
+    paddingTop: 48, // pt-12
+    paddingBottom: 16, // pb-4
     backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB', // gray-200
   },
   backButton: {
     marginRight: 16,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
+    fontSize: 20, // text-2xl
+    fontWeight: '600',
+    color: '#030213', // Dark text from design
   },
   topVisualSection: {
-    backgroundColor: '#E8F5E8',
-    padding: 20,
-    paddingTop: 40,
-    paddingBottom: 60,
+    height: 224, // h-56 equivalent
     position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   topChipsContainer: {
+    position: 'absolute',
+    top: 16, // top-4
+    right: 16, // right-4
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 8,
-    marginBottom: 20,
+    gap: 8, // gap-2
+    zIndex: 1,
   },
   topChip: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)', // white/90
+    paddingHorizontal: 12, // px-3
+    paddingVertical: 4, // py-1
+    borderRadius: 9999, // rounded-full
   },
   topChipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#666666',
+    fontSize: 11, // text-xs (sm in design)
+    fontWeight: '500',
+    color: '#374151', // gray-700
   },
   tennisBallContainer: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   infoSection: {
-    padding: 20,
+    padding: 24, // px-6 py-6
     backgroundColor: '#FFFFFF',
   },
   courtName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginBottom: 8,
+    fontSize: 20, // text-xl
+    fontWeight: '600',
+    color: '#030213', // Dark text
+    marginBottom: 12, // mb-3
   },
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    gap: 6,
+    marginBottom: 16, // mb-4
+    gap: 8, // gap-2
   },
   locationText: {
-    fontSize: 14,
-    color: '#666666',
+    fontSize: 14, // text-sm
+    color: '#717182', // Medium gray
   },
   infoBox: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    padding: 16,
-    borderRadius: 12,
-    gap: 12,
+    alignItems: 'flex-start',
+    backgroundColor: '#DBEAFE', // blue-50 from design
+    padding: 16, // p-4
+    borderRadius: 12, // rounded-xl
+    gap: 12, // gap-3
   },
   infoText: {
     flex: 1,
-    fontSize: 14,
-    color: '#666666',
+    fontSize: 14, // text-sm
+    color: '#374151', // gray-700
     lineHeight: 20,
   },
   dateSection: {
-    padding: 20,
-    backgroundColor: '#FFFFFF',
+    padding: 24, // px-6 py-6
+    backgroundColor: 'transparent',
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginBottom: 16,
+    fontSize: 18, // text-lg
+    fontWeight: '600',
+    color: '#030213', // Dark text
+    marginBottom: 16, // mb-4
   },
   dateScrollView: {
-    marginHorizontal: -20,
-    paddingHorizontal: 20,
+    marginHorizontal: -24,
+    paddingHorizontal: 24,
   },
   dateScrollContent: {
-    gap: 12,
+    gap: 12, // gap-3
     paddingHorizontal: 0,
   },
   dateCard: {
-    width: 70,
-    height: 70,
+    width: 80, // w-20 equivalent
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderRadius: 16, // rounded-2xl
+    borderWidth: 2,
+    borderColor: '#E5E7EB', // gray-200
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    paddingVertical: 16, // py-4
+    marginRight: 12, // gap-3
   },
   dateCardSelected: {
-    backgroundColor: '#2E7D32',
-    borderColor: '#2E7D32',
+    backgroundColor: '#54CE8F', // Primary green
+    borderColor: '#54CE8F',
   },
   dateDayName: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#666666',
-    marginBottom: 4,
+    fontSize: 14, // text-sm
+    fontWeight: '500',
+    color: '#6B7280', // gray-500
+    marginBottom: 4, // mb-1
   },
   dateDayNameSelected: {
     color: '#FFFFFF',
   },
   dateDayNumber: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
+    fontSize: 20, // text-xl
+    fontWeight: '600',
+    color: '#1F2937', // gray-800
   },
   dateDayNumberSelected: {
     color: '#FFFFFF',
@@ -1701,36 +1667,39 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   timeSlotsSection: {
-    padding: 20,
-    paddingBottom: 40,
-    backgroundColor: '#FFFFFF',
+    padding: 24, // px-6
+    paddingBottom: 128, // pb-32 (for button space)
+    backgroundColor: 'transparent',
   },
   scrollContent: {
     paddingBottom: 20,
   },
   scrollContentWithButton: {
-    paddingBottom: 100, // Buton için alan bırak
+    paddingBottom: 128, // Buton için alan bırak
   },
   timeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
   },
   timeSlotCard: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-    width: (width - 64) / 3,
+    borderWidth: 2,
+    borderColor: '#E5E7EB', // gray-200
+    borderRadius: 12, // rounded-xl
+    paddingVertical: 16, // py-4
+    paddingHorizontal: 12,
+    gap: 4, // gap-1
+    // NOT: width ve marginRight inline style ile dinamik hesaplanıyor (3 sütun için zorunlu)
+    // marginBottom inline style'da tanımlı
   },
   timeSlotCardSelected: {
-    backgroundColor: '#E8F5E8',
-    borderColor: '#2E7D32',
+    backgroundColor: '#54CE8F', // Primary green
+    borderColor: '#54CE8F',
   },
   timeSlotCardDisabled: {
     backgroundColor: '#F5F5F5',
@@ -1743,17 +1712,17 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   timeSlotContent: {
-    flex: 1,
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'center',
+    gap: 4, // gap-1
   },
   timeSlotText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666666',
+    fontSize: 14, // text-sm
+    fontWeight: '500',
+    color: '#1F2937', // gray-800
   },
   timeSlotTextSelected: {
-    color: '#2E7D32',
+    color: '#FFFFFF',
   },
   timeSlotTextDisabled: {
     color: '#BDBDBD',
@@ -1781,30 +1750,31 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 20,
+    padding: 24, // px-6 py-4 (py-6 in design but py-4 for button)
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: '#E5E7EB', // gray-200
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   continueButton: {
     width: '100%',
-    borderRadius: 12,
+    borderRadius: 16, // rounded-2xl
     overflow: 'hidden',
   },
   continueButtonGradient: {
-    paddingVertical: 16,
+    paddingVertical: 16, // py-4
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#54CE8F', // Primary green
   },
   continueButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '500',
   },
   continueButtonDisabled: {
     opacity: 0.6,
@@ -1923,78 +1893,93 @@ const styles = StyleSheet.create({
   },
   // Game Type Section Styles
   gameTypeSection: {
-    padding: 20,
+    padding: 24, // px-6 py-6
     backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB', // gray-200
   },
   gameTypeCards: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 12, // gap-3
   },
   gameTypeCard: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 16,
-    padding: 20,
+    borderWidth: 2,
+    borderColor: '#E5E7EB', // gray-200
+    borderRadius: 16, // rounded-2xl
+    padding: 20, // p-5
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 120,
+    minHeight: 140,
   },
   gameTypeCardSelected: {
-    backgroundColor: '#E8F5E8',
-    borderColor: '#2E7D32',
-    borderWidth: 2,
+    backgroundColor: '#F0FDF4', // green-50
+    borderColor: '#54CE8F', // Primary green
+  },
+  gameTypeIconContainer: {
+    width: 56, // w-14
+    height: 56, // h-14
+    borderRadius: 12, // rounded-xl
+    backgroundColor: '#F3F4F6', // gray-100
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8, // gap-2
+  },
+  gameTypeIconContainerSelected: {
+    backgroundColor: '#54CE8F', // Primary green
   },
   gameTypeTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginTop: 12,
+    fontSize: 14, // text-sm
+    fontWeight: '500',
+    color: '#6B7280', // gray-500
+    marginTop: 8, // gap-2
     marginBottom: 4,
   },
   gameTypeTitleSelected: {
-    color: '#2E7D32',
+    color: '#54CE8F', // Primary green
   },
   gameTypeSubtitle: {
-    fontSize: 12,
-    color: '#666666',
+    fontSize: 12, // text-xs
+    color: '#9CA3AF', // gray-400
   },
   gameTypeSubtitleSelected: {
-    color: '#2E7D32',
+    color: '#54CE8F',
   },
   // Players Section Styles
   playersSection: {
-    padding: 20,
+    padding: 24, // px-6 py-6
     backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB', // gray-200
   },
   playerSubsectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1B1B1B',
-    marginBottom: 12,
-    marginTop: 8,
+    fontSize: 14, // text-sm
+    fontWeight: '500',
+    color: '#374151', // gray-700
+    marginBottom: 8, // mb-2
+    marginTop: 0,
   },
   playerSelectorCard: {
     backgroundColor: '#FFFFFF',
     borderWidth: 2,
-    borderColor: '#E0E0E0',
+    borderColor: '#D1D5DB', // gray-300
     borderStyle: 'dashed',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 12,
+    borderRadius: 16, // rounded-2xl
+    padding: 16, // p-4
+    marginBottom: 16, // gap-4 for space-y-4
     minHeight: 80,
   },
   selectedPlayerCard: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   playerAvatar: {
-    backgroundColor: '#E8F5E8',
-    marginRight: 12,
+    marginRight: 12, // gap-3
   },
   playerAvatarLabel: {
-    color: '#2E7D32',
+    color: '#FFFFFF',
     fontWeight: 'bold',
   },
   selectedPlayerInfo: {
@@ -2002,26 +1987,31 @@ const styles = StyleSheet.create({
   },
   selectedPlayerName: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
+    fontWeight: '600',
+    color: '#030213', // Dark text
     marginBottom: 4,
   },
   selectedPlayerDetails: {
-    fontSize: 14,
-    color: '#666666',
+    fontSize: 14, // text-sm
+    color: '#9CA3AF', // gray-400
   },
   removePlayerButton: {
-    padding: 4,
-  },
-  playerSelectorPlaceholder: {
-    flexDirection: 'row',
+    width: 32, // w-8
+    height: 32, // h-8
+    borderRadius: 16, // rounded-full
+    backgroundColor: '#F3F4F6', // gray-100
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+  },
+  playerSelectorPlaceholder: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8, // gap-2
   },
   playerSelectorPlaceholderText: {
-    fontSize: 14,
-    color: '#BDBDBD',
+    fontSize: 14, // text-sm
+    color: '#9CA3AF', // gray-400
   },
   opponentsContainer: {
     gap: 12,

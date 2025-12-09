@@ -212,7 +212,13 @@ const LigAyarlariScreen = ({ navigation }: any) => {
             icon="arrow-left"
             size={24}
             iconColor="#FFFFFF"
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.navigate('DefiLig' as never);
+              }
+            }}
           />
           <View style={styles.headerInfo}>
             <Title style={styles.headerTitle}>Lig Ayarları</Title>
@@ -234,7 +240,13 @@ const LigAyarlariScreen = ({ navigation }: any) => {
             icon="arrow-left"
             size={20}
             iconColor="#FFFFFF"
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.navigate('DefiLig' as never);
+              }
+            }}
             style={styles.compactBackButton}
           />
           <Text style={styles.compactTitle}>⚙️ Lig Ayarları</Text>

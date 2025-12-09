@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,34 +7,26 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  SafeAreaView,
-  Platform,
-  Animated,
+  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Card,
-  Title,
-  Button,
   Text,
   Avatar,
-  Chip,
   Portal,
   Modal,
-  ProgressBar,
   Divider,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLanguage } from '../context/LanguageContext';
 import { authService, leagueService, leagueStandingsService, matchHistoryService, leagueApplicationService } from '../services/api';
 import { User } from '../types';
-import { useThemedStyles } from '../hooks/useThemedStyles';
 import { calculateAge } from '../utils/age.utils';
 
 const { width } = Dimensions.get('window');
 
 const DefiLigScreen = ({ navigation }: any) => {
-  const { themedStyles, theme } = useThemedStyles();
   const { t, language } = useLanguage();
   const insets = useSafeAreaInsets();
   const [showLigModal, setShowLigModal] = useState(false);
@@ -51,26 +43,6 @@ const DefiLigScreen = ({ navigation }: any) => {
     badges: 0,
   });
 
-  // Collapsible header animation
-  const scrollY = useRef(new Animated.Value(0)).current;
-  
-  const headerHeight = scrollY.interpolate({
-    inputRange: [0, 100],
-    outputRange: [200, 130],
-    extrapolate: 'clamp',
-  });
-  
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, 100],
-    outputRange: [1, 0],
-    extrapolate: 'clamp',
-  });
-  
-  const compactOpacity = scrollY.interpolate({
-    inputRange: [0, 100],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
 
   useEffect(() => {
     loadData();
@@ -339,107 +311,96 @@ const DefiLigScreen = ({ navigation }: any) => {
 
   if (loading || !currentUser) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#2E7D32" />
-        <Text style={{ marginTop: 10, color: '#6C757D' }}>{t('defiLeague.loadingText')}</Text>
+      <View style={styles.container}>
+        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+          <View style={{ width: 40 }} />
+          <View style={styles.headerContent}>
+            <MaterialCommunityIcons name="trophy" size={28} color="#FFD700" />
+            <Text style={styles.headerTitle}>{t('defiLeague.headerTitle') || 'Defi Lig'}</Text>
+          </View>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#54CE8F" />
+          <Text style={{ marginTop: 16, fontSize: 14, color: '#717182' }}>{t('defiLeague.loadingText') || 'Yükleniyor...'}</Text>
+        </View>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, themedStyles.container]}>
-      <Animated.View style={[styles.headerSection, { backgroundColor: theme.colors.primary, height: headerHeight, overflow: 'hidden', paddingTop: Platform.OS === 'android' ? insets.top + 20 : 50 }]}>
-        <Animated.View style={[styles.headerTop, { opacity: headerOpacity }]}>
-          <TouchableOpacity 
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <MaterialCommunityIcons name="arrow-left" size={28} color="#FFFFFF" />
-          </TouchableOpacity>
-          <View style={styles.headerTextContainer}>
-            <Title style={styles.headerTitle}>{t('defiLeague.headerTitle')}</Title>
-            <Text style={styles.headerSubtitle}>
-              {t('defiLeague.headerSubtitle')}
-            </Text>
-          </View>
-          <TouchableOpacity 
-            onPress={() => navigation.navigate('LigAyarlari')}
-            style={styles.settingsButton}
-          >
-            <MaterialCommunityIcons name="cog" size={28} color="#FFFFFF" />
-          </TouchableOpacity>
-        </Animated.View>
-        
-        {/* Compact Header */}
-        <Animated.View style={[styles.compactHeader, { opacity: compactOpacity, paddingTop: Platform.OS === 'android' ? insets.top + 10 : 50 }]}>
-          <TouchableOpacity 
-            onPress={() => navigation.goBack()}
-            style={styles.compactBackButton}
-          >
-            <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          <Text style={styles.compactTitle}>{t('defiLeague.compactTitle')}</Text>
-          <TouchableOpacity 
-            onPress={() => navigation.navigate('LigAyarlari')}
-            style={styles.compactSettingsButton}
-          >
-            <MaterialCommunityIcons name="cog" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-        </Animated.View>
-      </Animated.View>
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <View style={{ width: 40 }} />
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>{t('defiLeague.headerTitle') || 'Defi Lig'}</Text>
+        </View>
+        <View style={{ width: 40 }} />
+      </View>
 
-      <Animated.ScrollView
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
-        )}
-        scrollEventThrottle={16}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
 
-        {/* Current User Card - Belirgin Gösterim */}
+        {/* Current User Card */}
         <View style={styles.currentUserSection}>
-          <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>{t('defiLeague.you')}</Title>
-          <Card style={[styles.currentUserHighlightCard, themedStyles.card]}>
-            <Card.Content>
-              <View style={styles.currentUserHighlightHeader}>
+          <View style={styles.sectionHeader}>
+            <MaterialCommunityIcons name="account-circle" size={20} color="#54CE8F" />
+            <Text style={styles.sectionTitle}>{t('defiLeague.you') || 'Siz'}</Text>
+          </View>
+          <Card style={styles.currentUserCard}>
+            <Card.Content style={styles.currentUserCardContent}>
+              <View style={styles.currentUserHeader}>
                 <Avatar.Text 
-                  size={60} 
+                  size={64} 
                   label={currentUser.name.charAt(0)} 
-                  style={styles.currentUserHighlightAvatar}
+                  style={styles.currentUserAvatar}
                 />
-                
-                <View style={styles.currentUserHighlightInfo}>
-                  <Title style={[styles.currentUserHighlightName, themedStyles.title]}>{currentUser.name}</Title>
-                  <Text style={[styles.currentUserHighlightLevel, themedStyles.subtitle]}>{currentUserLevelLabel} • {currentUserRankLabel}</Text>
+                <View style={styles.currentUserInfo}>
+                  <Text style={styles.currentUserName}>{currentUser.name}</Text>
+                  <View style={styles.currentUserBadges}>
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{currentUserLevelLabel}</Text>
+                    </View>
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{currentUserRankLabel}</Text>
+                    </View>
+                  </View>
                 </View>
-                
-                <View style={styles.currentUserPositionContainer}>
+                <View style={styles.currentUserPosition}>
                   <MaterialCommunityIcons 
                     name="trophy" 
                     size={24} 
-                    color="#FFD700" 
+                    color="#54CE8F" 
                   />
-                  <Text style={styles.currentUserPositionText}>
-                    #{currentUser.position}
-                  </Text>
+                  <Text style={styles.currentUserPositionText}>#{currentUser.position || '-'}</Text>
                 </View>
               </View>
               
-              <View style={styles.currentUserHighlightStats}>
-                <View style={styles.currentUserHighlightStatItem}>
-                  <MaterialCommunityIcons name="percent" size={20} color="#4CAF50" />
-                  <Text style={styles.currentUserHighlightStatNumber}>{currentUser.winRate}%</Text>
-                  <Text style={styles.currentUserHighlightStatLabel}>{t('defiLeague.currentUserStats.win')}</Text>
+              <View style={styles.currentUserStats}>
+                <View style={styles.statItem}>
+                  <View style={styles.statIconContainer}>
+                    <MaterialCommunityIcons name="percent" size={20} color="#54CE8F" />
+                  </View>
+                  <Text style={styles.statNumber}>{currentUser.winRate || 0}%</Text>
+                  <Text style={styles.statLabel}>{t('defiLeague.currentUserStats.win') || 'Kazanma'}</Text>
                 </View>
-                <View style={styles.currentUserHighlightStatItem}>
-                  <MaterialCommunityIcons name="tennis" size={20} color="#2E7D32" />
-                  <Text style={styles.currentUserHighlightStatNumber}>{currentUser.matchesPlayed}</Text>
-                  <Text style={styles.currentUserHighlightStatLabel}>{t('defiLeague.currentUserStats.matches')}</Text>
+                <View style={styles.statItem}>
+                  <View style={styles.statIconContainer}>
+                    <MaterialCommunityIcons name="tennis" size={20} color="#54CE8F" />
+                  </View>
+                  <Text style={styles.statNumber}>{currentUser.matchesPlayed || 0}</Text>
+                  <Text style={styles.statLabel}>{t('defiLeague.currentUserStats.matches') || 'Maç'}</Text>
                 </View>
-                <View style={styles.currentUserHighlightStatItem}>
-                  <MaterialCommunityIcons name="star" size={20} color="#FFD700" />
-                  <Text style={styles.currentUserHighlightStatNumber}>{currentUser.points}</Text>
-                  <Text style={styles.currentUserHighlightStatLabel}>{t('defiLeague.currentUserStats.points')}</Text>
+                <View style={styles.statItem}>
+                  <View style={styles.statIconContainer}>
+                    <MaterialCommunityIcons name="star" size={20} color="#54CE8F" />
+                  </View>
+                  <Text style={styles.statNumber}>{currentUser.points || 0}</Text>
+                  <Text style={styles.statLabel}>{t('defiLeague.currentUserStats.points') || 'Puan'}</Text>
                 </View>
               </View>
             </Card.Content>
@@ -447,56 +408,44 @@ const DefiLigScreen = ({ navigation }: any) => {
         </View>
 
         {/* Ligler Listesi */}
-        <View style={styles.ligSection}>
-          <View style={styles.ligHeaderContainer}>
-            <Title style={styles.sectionTitle}>{t('defiLeague.activeLeagues')}</Title>
-            <Text style={styles.pageIndicator}>
-              {pageIndicatorText}
-            </Text>
+        <View style={styles.leaguesSection}>
+          <View style={styles.sectionHeader}>
+            <MaterialCommunityIcons name="trophy-outline" size={20} color="#54CE8F" />
+            <Text style={styles.sectionTitle}>{t('defiLeague.activeLeagues') || 'Aktif Ligler'}</Text>
+            {totalPages > 1 && (
+              <Text style={styles.pageIndicator}>{pageIndicatorText}</Text>
+            )}
           </View>
           
           {currentLeagues.map((lig, index) => (
-            <Card key={lig.id} style={[styles.ligCard, themedStyles.card, { marginBottom: index < currentLeagues.length - 1 ? 16 : 0 }]}>
-              <Card.Content>
-                <TouchableOpacity onPress={() => openLigModal(lig)}>
-                  <View style={styles.ligHeader}>
-                    <View style={[styles.ligIcon, { backgroundColor: lig.color }]}>
+            <Card key={lig.id} style={styles.leagueCard}>
+              <TouchableOpacity onPress={() => openLigModal(lig)} activeOpacity={0.7}>
+                <Card.Content style={styles.leagueCardContent}>
+                  <View style={styles.leagueHeader}>
+                    <View style={[styles.leagueIcon, { backgroundColor: '#B4AEBD' }]}>
                       <MaterialCommunityIcons 
                         name={lig.icon as any} 
-                        size={40} 
+                        size={32} 
                         color="#FFFFFF" 
                       />
                     </View>
-                    <View style={styles.ligInfo}>
-                      <Title style={styles.ligName}>{lig.name}</Title>
-                      <Text style={styles.ligPlayers}>
-                        <MaterialCommunityIcons name="account-group" size={16} color={lig.color} />
-                        {' '}{lig.playerCount} {t('defiLeague.playerCountSuffix')}
-                      </Text>
+                    <View style={styles.leagueInfo}>
+                      <Text style={styles.leagueName}>{lig.name}</Text>
+                      <View style={styles.leagueMeta}>
+                        <MaterialCommunityIcons name="account-group" size={16} color="#717182" />
+                        <Text style={styles.leaguePlayerCount}>
+                          {lig.playerCount} {t('defiLeague.playerCountSuffix') || 'oyuncu'}
+                        </Text>
+                      </View>
                     </View>
                     <MaterialCommunityIcons 
                       name="chevron-right" 
-                      size={28} 
-                      color={lig.color} 
+                      size={24} 
+                      color="#9CA3AF" 
                     />
                   </View>
-
-                  <View style={styles.ligQuickInfo}>
-                    <View style={styles.quickInfoItem}>
-                      <MaterialCommunityIcons name="tennis" size={20} color={lig.color} />
-                      <Text style={styles.quickInfoText}>{t('defiLeague.quickInfo.format')}</Text>
-                    </View>
-                    <View style={styles.quickInfoItem}>
-                      <MaterialCommunityIcons name="trophy" size={20} color="#FFD700" />
-                      <Text style={styles.quickInfoText}>{t('defiLeague.quickInfo.badges')}</Text>
-                    </View>
-                    <View style={styles.quickInfoItem}>
-                      <MaterialCommunityIcons name="chart-line" size={20} color="#4CAF50" />
-                      <Text style={styles.quickInfoText}>{t('defiLeague.quickInfo.points')}</Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              </Card.Content>
+                </Card.Content>
+              </TouchableOpacity>
             </Card>
           ))}
           
@@ -510,11 +459,11 @@ const DefiLigScreen = ({ navigation }: any) => {
               >
                 <MaterialCommunityIcons 
                   name="chevron-left" 
-                  size={24} 
-                  color={currentPage === 0 ? '#CCCCCC' : '#2E7D32'} 
+                  size={20} 
+                  color={currentPage === 0 ? '#9CA3AF' : '#54CE8F'} 
                 />
                 <Text style={[styles.paginationButtonText, currentPage === 0 && styles.paginationButtonTextDisabled]}>
-                  {t('defiLeague.pagination.previous')}
+                  {t('defiLeague.pagination.previous') || 'Önceki'}
                 </Text>
               </TouchableOpacity>
 
@@ -536,12 +485,12 @@ const DefiLigScreen = ({ navigation }: any) => {
                 style={[styles.paginationButton, currentPage === totalPages - 1 && styles.paginationButtonDisabled]}
               >
                 <Text style={[styles.paginationButtonText, currentPage === totalPages - 1 && styles.paginationButtonTextDisabled]}>
-                  {t('defiLeague.pagination.next')}
+                  {t('defiLeague.pagination.next') || 'Sonraki'}
                 </Text>
                 <MaterialCommunityIcons 
                   name="chevron-right" 
-                  size={24} 
-                  color={currentPage === totalPages - 1 ? '#CCCCCC' : '#2E7D32'} 
+                  size={20} 
+                  color={currentPage === totalPages - 1 ? '#9CA3AF' : '#54CE8F'} 
                 />
               </TouchableOpacity>
             </View>
@@ -550,200 +499,209 @@ const DefiLigScreen = ({ navigation }: any) => {
 
         {/* Quick Stats */}
         <View style={styles.statsSection}>
-          <Title style={styles.sectionTitle}>{t('defiLeague.statsTitle')}</Title>
+          <View style={styles.sectionHeader}>
+            <MaterialCommunityIcons name="chart-bar" size={20} color="#54CE8F" />
+            <Text style={styles.sectionTitle}>{t('defiLeague.statsTitle') || 'İstatistikler'}</Text>
+          </View>
           <View style={styles.statsGrid}>
             <Card style={styles.statCard}>
-              <Card.Content style={styles.statContent}>
-                <MaterialCommunityIcons name="trophy" size={32} color="#FFD700" />
+              <Card.Content style={styles.statCardContent}>
+                <View style={styles.statIconBox}>
+                  <MaterialCommunityIcons name="trophy" size={24} color="#54CE8F" />
+                </View>
                 <Text style={styles.statNumber}>{matchStats.leagueWins}</Text>
-                <Text style={styles.statLabel}>{t('defiLeague.stats.leagueWins')}</Text>
+                <Text style={styles.statLabel}>{t('defiLeague.stats.leagueWins') || 'Lig Galibiyeti'}</Text>
               </Card.Content>
             </Card>
             <Card style={styles.statCard}>
-              <Card.Content style={styles.statContent}>
-                <MaterialCommunityIcons name="tennis" size={32} color="#4CAF50" />
+              <Card.Content style={styles.statCardContent}>
+                <View style={styles.statIconBox}>
+                  <MaterialCommunityIcons name="tennis" size={24} color="#54CE8F" />
+                </View>
                 <Text style={styles.statNumber}>{matchStats.totalMatches}</Text>
-                <Text style={styles.statLabel}>{t('defiLeague.stats.totalMatches')}</Text>
+                <Text style={styles.statLabel}>{t('defiLeague.stats.totalMatches') || 'Toplam Maç'}</Text>
               </Card.Content>
             </Card>
             <Card style={styles.statCard}>
-              <Card.Content style={styles.statContent}>
-                <MaterialCommunityIcons name="percent" size={32} color="#81C784" />
+              <Card.Content style={styles.statCardContent}>
+                <View style={styles.statIconBox}>
+                  <MaterialCommunityIcons name="percent" size={24} color="#54CE8F" />
+                </View>
                 <Text style={styles.statNumber}>{matchStats.winRate}%</Text>
-                <Text style={styles.statLabel}>{t('defiLeague.stats.winRate')}</Text>
+                <Text style={styles.statLabel}>{t('defiLeague.stats.winRate') || 'Kazanma Oranı'}</Text>
               </Card.Content>
             </Card>
             <Card style={styles.statCard}>
-              <Card.Content style={styles.statContent}>
-                <MaterialCommunityIcons name="medal" size={32} color="#FF9800" />
+              <Card.Content style={styles.statCardContent}>
+                <View style={styles.statIconBox}>
+                  <MaterialCommunityIcons name="medal" size={24} color="#54CE8F" />
+                </View>
                 <Text style={styles.statNumber}>{matchStats.badges}</Text>
-                <Text style={styles.statLabel}>{t('defiLeague.stats.badges')}</Text>
+                <Text style={styles.statLabel}>{t('defiLeague.stats.badges') || 'Rozetler'}</Text>
               </Card.Content>
             </Card>
           </View>
         </View>
-
-        {/* Recent Achievements */}
-        <View style={styles.achievementsSection}>
-          <Title style={styles.sectionTitle}>{t('defiLeague.achievementsTitle')}</Title>
-          <Card style={styles.achievementCard}>
-            <Card.Content>
-              <View style={styles.achievementItem}>
-                <MaterialCommunityIcons name="trophy-award" size={40} color="#FFD700" />
-                <View style={styles.achievementInfo}>
-                  <Text style={styles.achievementTitle}>{t('defiLeague.achievements.firstWinTitle')}</Text>
-                  <Text style={styles.achievementDescription}>{t('defiLeague.achievements.firstWinDescription')}</Text>
-                </View>
-              </View>
-            </Card.Content>
-          </Card>
-          <Card style={styles.achievementCard}>
-            <Card.Content>
-              <View style={styles.achievementItem}>
-                <MaterialCommunityIcons name="fire" size={40} color="#FF6B35" />
-                <View style={styles.achievementInfo}>
-                  <Text style={styles.achievementTitle}>{t('defiLeague.achievements.streakTitle')}</Text>
-                  <Text style={styles.achievementDescription}>{t('defiLeague.achievements.streakDescription')}</Text>
-                </View>
-              </View>
-            </Card.Content>
-          </Card>
-        </View>
-      </Animated.ScrollView>
+      </ScrollView>
 
       {/* Lig Detay Modal */}
       <Portal>
         <Modal
-        dismissable={false}
+          dismissable={false}
           visible={!!showLigModal}
           onDismiss={() => setShowLigModal(false)}
           contentContainerStyle={styles.modalContainer}
         >
-          <Card style={[styles.modalCard, themedStyles.card]}>
+          <Card style={styles.modalCard}>
             <ScrollView 
               showsVerticalScrollIndicator={true}
               style={styles.modalScrollView}
             >
-              <Card.Content style={{ paddingHorizontal: 20, paddingVertical: 20 }}>
+              <Card.Content style={styles.modalContent}>
                 {selectedLig && (
                   <>
                     <View style={styles.modalHeader}>
-                    <View style={[styles.modalIcon, { backgroundColor: selectedLig.color }]}>
-                      <MaterialCommunityIcons 
-                        name={selectedLig.icon as any} 
-                        size={32} 
-                        color="#FFFFFF" 
-                      />
-                    </View>
-                    <View style={styles.modalInfo}>
-                      <Title style={[styles.modalTitle, themedStyles.title]}>{selectedLig.name}</Title>
-                      <Text style={[styles.modalDescription, themedStyles.subtitle]}>{selectedLig.description}</Text>
-                    </View>
-                  </View>
-
-                  <Divider style={styles.modalDivider} />
-
-                  <View style={styles.modalDetails}>
-                    <View style={styles.detailRow}>
-                      <MaterialCommunityIcons name="account-group" size={20} color={theme.colors.primary} />
-                      <Text style={styles.detailLabel}>{t('defiLeague.modal.playerCount')}</Text>
-                      <Text style={styles.detailValue}>{selectedLig.playerCount}</Text>
-                    </View>
-                    {selectedLig.settings && (selectedLig.settings.minAge !== null || selectedLig.settings.maxAge !== null) && (
-                      <View style={styles.detailRow}>
-                        <MaterialCommunityIcons name="calendar-account" size={20} color="#1976D2" />
-                        <Text style={styles.detailLabel}>{t('defiLeague.modal.ageRange')}</Text>
-                        <Text style={styles.detailValue}>
-                          {formatAgeRange(selectedLig.settings)}
-                        </Text>
-                      </View>
-                    )}
-                    {selectedLig.settings && (
-                      <View style={styles.detailRow}>
-                        <MaterialCommunityIcons name="currency-try" size={20} color="#FF9800" />
-                        <Text style={styles.detailLabel}>{t('defiLeague.modal.fee')}</Text>
-                        <Text style={styles.detailValue}>
-                          {selectedLig.settings.registrationFee != null ? `${selectedLig.settings.registrationFee} ₺` : '-'}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-
-                  {/* Lig Açıklaması */}
-                  {selectedLig.settings?.leagueDescription && (
-                    <View style={styles.modalDescription}>
-                      <Text style={styles.modalDescriptionText}>
-                        {selectedLig.settings.leagueDescription}
-                      </Text>
-                    </View>
-                  )}
-
-                  {/* Ödüller - sadece rewards alanı doluysa göster */}
-                  {selectedLig.settings?.rewards && selectedLig.settings.rewards.trim() !== '' && (
-                    <View style={styles.modalRewards}>
-                      <Text style={styles.modalRewardsTitle}>{t('defiLeague.rewardsTitle')}</Text>
-                      {selectedLig.settings.rewards.split('\n').filter((line: string) => line.trim() !== '').map((reward: string, index: number) => (
-                        <View key={index} style={styles.modalRewardItem}>
-                          <MaterialCommunityIcons name="gift" size={16} color="#2E7D32" />
-                          <Text style={styles.modalRewardText}>{reward.trim()}</Text>
+                      <View style={styles.modalHeaderLeft}>
+                        <View style={[styles.modalIcon, { backgroundColor: '#B4AEBD' }]}>
+                          <MaterialCommunityIcons 
+                            name={selectedLig.icon as any} 
+                            size={28} 
+                            color="#FFFFFF" 
+                          />
                         </View>
-                      ))}
+                        <View style={styles.modalInfo}>
+                          <Text style={styles.modalTitle}>{selectedLig.name}</Text>
+                          <Text style={styles.modalSubtitle}>{selectedLig.description}</Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => setShowLigModal(false)}
+                        style={styles.modalCloseButton}
+                      >
+                        <MaterialCommunityIcons name="close" size={20} color="#9CA3AF" />
+                      </TouchableOpacity>
                     </View>
-                  )}
 
-                  {!selectedLig.isUserInLeague && selectedLig.settings && (selectedLig.settings.minAge !== null || selectedLig.settings.maxAge !== null) && (() => {
-                    const userAge = currentUser.age;
-                    const settings = selectedLig.settings;
-                    const isAgeValid = userAge && 
-                      (settings.minAge === null || userAge >= settings.minAge) &&
-                      (settings.maxAge === null || userAge <= settings.maxAge);
-                    
-                    if (!isAgeValid) {
-                      return (
-                        <View style={styles.ageWarning}>
-                          <MaterialCommunityIcons name="alert-circle" size={20} color="#D32F2F" />
-                          <Text style={styles.ageWarningText}>
-                            {!userAge 
-                              ? t('defiLeague.ageWarnings.infoRequired')
-                              : t('defiLeague.ageWarnings.notEligible')}
+                    <Divider style={styles.modalDivider} />
+
+                    <View style={styles.modalDetails}>
+                      <View style={styles.detailRow}>
+                        <View style={styles.detailIconContainer}>
+                          <MaterialCommunityIcons name="account-group" size={20} color="#54CE8F" />
+                        </View>
+                        <Text style={styles.detailLabel}>{t('defiLeague.modal.playerCount') || 'Oyuncu Sayısı'}</Text>
+                        <Text style={styles.detailValue}>{selectedLig.playerCount}</Text>
+                      </View>
+                      {selectedLig.settings && (selectedLig.settings.minAge !== null || selectedLig.settings.maxAge !== null) && (
+                        <View style={styles.detailRow}>
+                          <View style={styles.detailIconContainer}>
+                            <MaterialCommunityIcons name="calendar-account" size={20} color="#B4AEBD" />
+                          </View>
+                          <Text style={styles.detailLabel}>{t('defiLeague.modal.ageRange') || 'Yaş Aralığı'}</Text>
+                          <Text style={styles.detailValue}>
+                            {formatAgeRange(selectedLig.settings)}
                           </Text>
                         </View>
-                      );
-                    }
-                  })()}
+                      )}
+                      {selectedLig.settings && (
+                        <View style={styles.detailRow}>
+                          <View style={styles.detailIconContainer}>
+                            <MaterialCommunityIcons name="currency-try" size={20} color="#54CE8F" />
+                          </View>
+                          <Text style={styles.detailLabel}>{t('defiLeague.modal.fee') || 'Katılım Ücreti'}</Text>
+                          <Text style={styles.detailValue}>
+                            {selectedLig.settings.registrationFee != null ? `${selectedLig.settings.registrationFee} ₺` : '-'}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
 
-                  <View style={styles.modalButtons}>
-                    <Button
-                      mode="outlined"
-                      onPress={() => setShowLigModal(false)}
-                      style={styles.modalCancelButton}
-                    >
-                      {t('common.cancel')}
-                    </Button>
-                    <Button
-                      mode="contained"
-                      onPress={startLig}
-                      style={styles.modalStartButton}
-                      buttonColor="#2E7D32"
-                      icon={
-                        selectedLig.isUserInLeague ? "eye" : 
-                        selectedLig.applicationStatus === 'pending' ? "clock-outline" :
-                        selectedLig.applicationStatus === 'rejected' ? "close-circle" :
-                        "account-plus"
+                    {/* Lig Açıklaması */}
+                    {selectedLig.settings?.leagueDescription && (
+                      <View style={styles.modalDescriptionBox}>
+                        <Text style={styles.modalDescriptionText}>
+                          {selectedLig.settings.leagueDescription}
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* Ödüller */}
+                    {selectedLig.settings?.rewards && selectedLig.settings.rewards.trim() !== '' && (
+                      <View style={styles.modalRewards}>
+                        <Text style={styles.modalRewardsTitle}>{t('defiLeague.rewardsTitle') || 'Ödüller'}</Text>
+                        {selectedLig.settings.rewards.split('\n').filter((line: string) => line.trim() !== '').map((reward: string, index: number) => (
+                          <View key={index} style={styles.modalRewardItem}>
+                            <MaterialCommunityIcons name="gift" size={18} color="#54CE8F" />
+                            <Text style={styles.modalRewardText}>{reward.trim()}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+
+                    {!selectedLig.isUserInLeague && selectedLig.settings && (selectedLig.settings.minAge !== null || selectedLig.settings.maxAge !== null) && (() => {
+                      const userAge = currentUser.age;
+                      const settings = selectedLig.settings;
+                      const isAgeValid = userAge && 
+                        (settings.minAge === null || userAge >= settings.minAge) &&
+                        (settings.maxAge === null || userAge <= settings.maxAge);
+                      
+                      if (!isAgeValid) {
+                        return (
+                          <View style={styles.ageWarning}>
+                            <View style={styles.ageWarningIconContainer}>
+                              <MaterialCommunityIcons name="alert-circle" size={20} color="#EF4444" />
+                            </View>
+                            <Text style={styles.ageWarningText}>
+                              {!userAge 
+                                ? t('defiLeague.ageWarnings.infoRequired') || 'Yaş bilgisi gereklidir'
+                                : t('defiLeague.ageWarnings.notEligible') || 'Yaş aralığı uygun değil'}
+                            </Text>
+                          </View>
+                        );
                       }
-                      disabled={
-                        selectedLig.applicationStatus === 'pending' || 
-                        selectedLig.applicationStatus === 'rejected' ||
-                        (!selectedLig.isUserInLeague && !isUserAgeInRange(selectedLig.settings, currentUser.age))
-                      }
-                    >
-                      {selectedLig.isUserInLeague ? t('defiLeague.modal.view') : 
-                       selectedLig.applicationStatus === 'pending' ? 'Başvuru Beklemede' :
-                       selectedLig.applicationStatus === 'rejected' ? 'Başvuru Reddedildi' :
-                       !isUserAgeInRange(selectedLig.settings, currentUser.age) ? 'Yaş Aralığı Uygun Değil' :
-                       t('defiLeague.modal.join')}
-                    </Button>
-                  </View>
+                    })()}
+
+                    <View style={styles.modalButtons}>
+                      <TouchableOpacity
+                        onPress={() => setShowLigModal(false)}
+                        style={styles.modalCancelButton}
+                      >
+                        <Text style={styles.modalCancelButtonText}>{t('common.cancel') || 'İptal'}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={startLig}
+                        style={[
+                          styles.modalStartButton,
+                          (selectedLig.applicationStatus === 'pending' || 
+                           selectedLig.applicationStatus === 'rejected' ||
+                           (!selectedLig.isUserInLeague && !isUserAgeInRange(selectedLig.settings, currentUser.age))) && 
+                          styles.modalStartButtonDisabled
+                        ]}
+                        disabled={
+                          selectedLig.applicationStatus === 'pending' || 
+                          selectedLig.applicationStatus === 'rejected' ||
+                          (!selectedLig.isUserInLeague && !isUserAgeInRange(selectedLig.settings, currentUser.age))
+                        }
+                      >
+                        <MaterialCommunityIcons 
+                          name={
+                            selectedLig.isUserInLeague ? "eye" : 
+                            selectedLig.applicationStatus === 'pending' ? "clock-outline" :
+                            selectedLig.applicationStatus === 'rejected' ? "close-circle" :
+                            "account-plus"
+                          } 
+                          size={20} 
+                          color="#FFFFFF" 
+                        />
+                        <Text style={styles.modalStartButtonText}>
+                          {selectedLig.isUserInLeague ? t('defiLeague.modal.view') || 'Görüntüle' : 
+                           selectedLig.applicationStatus === 'pending' ? 'Başvuru Beklemede' :
+                           selectedLig.applicationStatus === 'rejected' ? 'Başvuru Reddedildi' :
+                           !isUserAgeInRange(selectedLig.settings, currentUser.age) ? 'Yaş Aralığı Uygun Değil' :
+                           t('defiLeague.modal.join') || 'Katıl'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                 </>
               )}
               </Card.Content>
@@ -758,276 +716,230 @@ const DefiLigScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAFCFB',
   },
-  headerSection: {
-    backgroundColor: '#2E7D32',
-    padding: 20,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  headerTop: {
+  header: {
+    backgroundColor: '#B4AEBD',
+    paddingBottom: 24,
+    paddingHorizontal: 24,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
   },
   backButton: {
-    padding: 8,
-    borderRadius: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    marginRight: 10,
-  },
-  headerTextContainer: {
-    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: '#E8F5E8',
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  settingsButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    marginLeft: 10,
-  },
-  currentUserSection: {
-    padding: 20,
-    paddingBottom: 10,
-  },
-  currentUserHighlightCard: {
-    backgroundColor: '#F8FFF8',
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#2E7D32',
-    shadowColor: '#2E7D32',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  currentUserHighlightHeader: {
+  headerContent: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
+    justifyContent: 'center',
+    gap: 12,
   },
-  currentUserPositionContainer: {
-    flexDirection: 'column',
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  settingsButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+  currentUserSection: {
+    padding: 24,
+    paddingBottom: 8,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 8,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#030213',
+  },
+  currentUserCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 20,
+  },
+  currentUserCardContent: {
+    padding: 24,
+  },
+  currentUserHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  currentUserAvatar: {
+    backgroundColor: '#54CE8F',
+    marginRight: 16,
+  },
+  currentUserInfo: {
+    flex: 1,
+  },
+  currentUserName: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#030213',
+    marginBottom: 8,
+  },
+  currentUserBadges: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  badge: {
+    backgroundColor: 'rgba(84, 206, 143, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#54CE8F',
+  },
+  currentUserPosition: {
     alignItems: 'center',
   },
   currentUserPositionText: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFD700',
-    marginTop: 2,
+    fontWeight: '600',
+    color: '#54CE8F',
+    marginTop: 4,
   },
-  currentUserHighlightAvatar: {
-    backgroundColor: '#2E7D32',
-    marginRight: 15,
-  },
-  currentUserHighlightInfo: {
-    flex: 1,
-  },
-  currentUserHighlightName: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginBottom: 4,
-  },
-  currentUserHighlightLevel: {
-    fontSize: 13,
-    color: '#6C757D',
-  },
-  currentUserHighlightStats: {
+  currentUserStats: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginTop: 15,
-    paddingTop: 15,
+    paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: '#E9ECEF',
+    borderTopColor: '#F3F4F6',
   },
-  currentUserHighlightStatItem: {
+  statItem: {
     alignItems: 'center',
     flex: 1,
   },
-  currentUserHighlightStatNumber: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2E7D32',
-    marginTop: 5,
-    marginBottom: 3,
-  },
-  currentUserHighlightStatLabel: {
-    fontSize: 12,
-    color: '#6C757D',
-    textAlign: 'center',
-  },
-  ligSection: {
-    padding: 20,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginBottom: 15,
-  },
-  ligCard: {
-    backgroundColor: '#FFFFFF',
+  statIconContainer: {
+    width: 40,
+    height: 40,
     borderRadius: 20,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  ligHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  ligIcon: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 15,
-  },
-  ligInfo: {
-    flex: 1,
-  },
-  ligName: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
     marginBottom: 8,
   },
-  ligPlayers: {
-    fontSize: 14,
-    color: '#2E7D32',
-    fontWeight: '500',
+  statNumber: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#54CE8F',
+    marginBottom: 4,
   },
-  ligQuickInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: 15,
-    borderTopWidth: 1,
-    borderTopColor: '#E9ECEF',
-  },
-  quickInfoItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  quickInfoText: {
+  statLabel: {
     fontSize: 12,
-    color: '#6C757D',
-    marginTop: 5,
+    color: '#717182',
     textAlign: 'center',
   },
-  statsSection: {
+  leaguesSection: {
+    padding: 24,
+    paddingTop: 0,
+  },
+  leagueCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 16,
+  },
+  leagueCardContent: {
     padding: 20,
-    paddingBottom: 10,
+  },
+  leagueHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  leagueIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  leagueInfo: {
+    flex: 1,
+  },
+  leagueName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#030213',
+    marginBottom: 8,
+  },
+  leagueMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  leaguePlayerCount: {
+    fontSize: 14,
+    color: '#717182',
+  },
+  pageIndicator: {
+    fontSize: 14,
+    color: '#717182',
+    fontWeight: '500',
+    marginLeft: 'auto',
+  },
+  statsSection: {
+    padding: 24,
+    paddingTop: 0,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    gap: 12,
   },
   statCard: {
     width: (width - 60) / 2,
     backgroundColor: '#FFFFFF',
-    borderRadius: 15,
-    marginBottom: 15,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
+    borderColor: '#E5E7EB',
   },
-  statContent: {
+  statCardContent: {
     alignItems: 'center',
-    padding: 15,
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2E7D32',
-    marginTop: 10,
-    marginBottom: 5,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6C757D',
-    textAlign: 'center',
-  },
-  achievementsSection: {
     padding: 20,
-    paddingTop: 10,
-    paddingBottom: 40,
   },
-  achievementCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 15,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  achievementItem: {
-    flexDirection: 'row',
+  statIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
     alignItems: 'center',
-  },
-  achievementInfo: {
-    marginLeft: 15,
-    flex: 1,
-  },
-  achievementTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginBottom: 4,
-  },
-  achievementDescription: {
-    fontSize: 13,
-    color: '#6C757D',
+    marginBottom: 12,
   },
   modalContainer: {
     margin: 16,
@@ -1035,56 +947,64 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalCard: {
-    borderRadius: 20,
+    borderRadius: 16,
     backgroundColor: '#FFFFFF',
-    elevation: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     maxHeight: '85%',
-    paddingHorizontal: 4,
   },
   modalScrollView: {
     maxHeight: '100%',
   },
+  modalContent: {
+    padding: 24,
+  },
   modalHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
     marginBottom: 20,
   },
+  modalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
   modalIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 15,
+    marginRight: 16,
   },
   modalInfo: {
     flex: 1,
-    marginLeft: 12,
   },
   modalTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#030213',
     marginBottom: 6,
   },
-  modalDescription: {
-    marginBottom: 20,
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#717182',
+    lineHeight: 20,
   },
-  modalDescriptionText: {
-    fontSize: 15,
-    color: '#6C757D',
-    lineHeight: 22,
+  modalCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
   },
   modalDivider: {
-    backgroundColor: '#E9ECEF',
-    marginVertical: 15,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 20,
+    height: 1,
   },
   modalDetails: {
     marginBottom: 20,
@@ -1092,113 +1012,144 @@ const styles = StyleSheet.create({
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    paddingVertical: 2,
+    marginBottom: 16,
+    gap: 12,
+  },
+  detailIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   detailLabel: {
-    fontSize: 15,
-    color: '#6C757D',
-    marginLeft: 12,
+    fontSize: 14,
+    color: '#717182',
     flex: 1,
   },
   detailValue: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#030213',
+  },
+  modalDescriptionBox: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  modalDescriptionText: {
+    fontSize: 14,
+    color: '#030213',
+    lineHeight: 20,
   },
   modalRewards: {
     marginBottom: 20,
   },
   modalRewardsTitle: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#030213',
     marginBottom: 12,
   },
   modalRewardItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
-    paddingVertical: 2,
+    marginBottom: 12,
+    gap: 12,
   },
   modalRewardText: {
-    fontSize: 15,
-    color: '#6C757D',
-    marginLeft: 12,
+    fontSize: 14,
+    color: '#717182',
+    flex: 1,
   },
   ageWarning: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFEBEE',
-    padding: 14,
-    borderRadius: 8,
-    marginBottom: 15,
-    borderLeftWidth: 3,
-    borderLeftColor: '#D32F2F',
+    backgroundColor: '#FEF2F2',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+  },
+  ageWarningIconContainer: {
+    marginRight: 12,
   },
   ageWarningText: {
     fontSize: 14,
-    color: '#C62828',
-    marginLeft: 12,
+    color: '#EF4444',
     flex: 1,
     fontWeight: '500',
     lineHeight: 20,
   },
   modalButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 12,
     marginTop: 8,
   },
   modalCancelButton: {
     flex: 1,
-    marginRight: 8,
-    borderRadius: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#030213',
   },
   modalStartButton: {
     flex: 1,
-    marginLeft: 8,
-    borderRadius: 12,
-  },
-  ligHeaderContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    borderRadius: 16,
+    backgroundColor: '#54CE8F',
+    paddingVertical: 16,
     alignItems: 'center',
-    marginBottom: 15,
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
   },
-  pageIndicator: {
-    fontSize: 14,
-    color: '#6C757D',
+  modalStartButtonDisabled: {
+    opacity: 0.5,
+  },
+  modalStartButtonText: {
+    fontSize: 16,
     fontWeight: '600',
+    color: '#FFFFFF',
   },
   paginationContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 20,
-    paddingHorizontal: 10,
+    paddingHorizontal: 4,
   },
   paginationButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 10,
-    backgroundColor: '#F8F9FA',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: '#E5E7EB',
+    gap: 6,
   },
   paginationButtonDisabled: {
-    backgroundColor: '#F8F9FA',
     opacity: 0.5,
   },
   paginationButtonText: {
     fontSize: 14,
-    color: '#2E7D32',
+    color: '#54CE8F',
     fontWeight: '600',
-    marginHorizontal: 5,
   },
   paginationButtonTextDisabled: {
-    color: '#CCCCCC',
+    color: '#9CA3AF',
   },
   paginationDots: {
     flexDirection: 'row',
@@ -1209,41 +1160,12 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#E9ECEF',
+    backgroundColor: '#E5E7EB',
   },
   paginationDotActive: {
-    backgroundColor: '#2E7D32',
+    backgroundColor: '#54CE8F',
     width: 24,
     borderRadius: 4,
-  },
-  compactHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 110,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-  },
-  compactBackButton: {
-    padding: 6,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  compactTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    flex: 1,
-    textAlign: 'center',
-    marginHorizontal: 10,
-  },
-  compactSettingsButton: {
-    padding: 6,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
 });
 

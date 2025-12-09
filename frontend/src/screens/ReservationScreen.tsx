@@ -17,8 +17,6 @@ import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { ReservationStackParamList, MainTabParamList } from '../navigation/MainTabNavigator';
 import {
   Card,
-  Title,
-  Button,
   Text,
   TextInput,
   Chip,
@@ -1050,7 +1048,7 @@ const ReservationScreen = () => {
 
   return (
     <>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <ScrollView 
         ref={scrollViewRef} 
         style={styles.container} 
@@ -1063,52 +1061,64 @@ const ReservationScreen = () => {
           {/* Back Button */}
           <TouchableOpacity 
             style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.navigate('Home' as never);
+              }
+            }}
           >
-            <MaterialCommunityIcons name="arrow-left" size={24} color="#1B1B1B" />
+            <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
           </TouchableOpacity>
 
           <View style={styles.headerContent}>
-            <Title style={styles.headerTitle}>{t('reservation.title')}</Title>
+            <Text style={styles.headerTitle} theme={{ colors: { text: '#FFFFFF' } }}>{t('reservation.title')}</Text>
           </View>
         </View>
 
         {/* Rezervasyon Engeli Mesajı */}
         {(checkingBlockStatus || reservationBlocked) && (
-          <Card style={styles.blockCard} elevation={5}>
-            <Card.Content style={styles.blockCardContent}>
-              {checkingBlockStatus ? (
-                <View style={styles.blockContent}>
-                  <ActivityIndicator size="large" color="#FF9800" />
-                  <Text style={styles.blockText}>Kontrol ediliyor...</Text>
-                </View>
-              ) : reservationBlocked ? (
-                <View style={styles.blockContent}>
-                  <MaterialCommunityIcons name="alert-circle" size={48} color="#DC3545" />
-                  <Title style={styles.blockTitle}>Rezervasyon Oluşturulamaz</Title>
-                  <Text style={styles.blockText}>{blockReason}</Text>
-                  {/* Sadece bekleyen maç sonucu durumunda "Bildirimlere Git" butonu göster */}
-                  {blockReason.includes('maç sonucu') && (
-                    <Button
-                      mode="contained"
-                      buttonColor="#1976D2"
-                      icon="bell"
-                      onPress={() => navigation.navigate('Notifications')}
-                      style={styles.blockButton}
-                    >
-                      Bildirimlere Git
-                    </Button>
-                  )}
-                </View>
-              ) : null}
-            </Card.Content>
-          </Card>
+          <View style={styles.blockCardWrapper}>
+            <Card style={styles.blockCard}>
+              <Card.Content style={styles.blockCardContent}>
+                {checkingBlockStatus ? (
+                  <View style={styles.blockContent}>
+                    <View style={styles.blockIconContainer}>
+                      <ActivityIndicator size="large" color="#54CE8F" />
+                    </View>
+                    <Text style={styles.blockLoadingText}>{t('reservation.checking') || 'Kontrol ediliyor...'}</Text>
+                  </View>
+                ) : reservationBlocked ? (
+                  <View style={styles.blockContent}>
+                    <View style={styles.blockIconContainer}>
+                      <View style={styles.blockIconCircle}>
+                        <MaterialCommunityIcons name="alert-circle" size={32} color="#EF4444" />
+                      </View>
+                    </View>
+                    <Text style={styles.blockTitle}>Rezervasyon Oluşturulamaz</Text>
+                    <Text style={styles.blockText}>{blockReason}</Text>
+                    {/* Sadece bekleyen maç sonucu durumunda "Bildirimlere Git" butonu göster */}
+                    {blockReason.includes('maç sonucu') && (
+                      <TouchableOpacity
+                        onPress={() => navigation.navigate('Notifications')}
+                        style={styles.blockActionButton}
+                      >
+                        <MaterialCommunityIcons name="bell" size={18} color="#FFFFFF" />
+                        <Text style={styles.blockActionButtonText}>Bildirimlere Git</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ) : null}
+              </Card.Content>
+            </Card>
+          </View>
         )}
 
         {isInitializing ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#2E7D32" />
-            <Text style={styles.loadingText}>Yükleniyor...</Text>
+            <ActivityIndicator size="large" color="#54CE8F" />
+            <Text style={styles.loadingText}>{t('common.loading')}</Text>
           </View>
         ) : (
           <Animated.View 
@@ -1134,7 +1144,7 @@ const ReservationScreen = () => {
                       onChangeText={setCourtSearchQuery}
                       value={courtSearchQuery}
                       style={styles.courtSearchBar}
-                      iconColor="#2E7D32"
+                      iconColor="#9CA3AF"
                       inputStyle={styles.courtSearchInput}
                     />
                   </View>
@@ -1179,7 +1189,7 @@ const ReservationScreen = () => {
                       <MaterialCommunityIcons 
                         name="weather-sunny" 
                         size={16} 
-                        color={courtFilter === 'outdoor' ? "#FFFFFF" : "#666666"} 
+                        color={courtFilter === 'outdoor' ? "#FFFFFF" : "#374151"} 
                         style={{ marginRight: 4 }}
                       />
                       <Text style={[
@@ -1219,80 +1229,83 @@ const ReservationScreen = () => {
                             disabled={reservationBlocked || checkingBlockStatus}
                           >
                             <View style={styles.newCourtCard}>
-                              {/* Top Right Chips */}
-                              <View style={styles.newCourtChipsContainer}>
-                                <View style={styles.newCourtChip}>
-                                  <Text style={styles.newCourtChipText}>{displayCourt.surface}</Text>
-                                </View>
-                                <View style={styles.newCourtChip}>
-                                  <MaterialCommunityIcons 
-                                    name={displayCourt.icon as any} 
-                                    size={14} 
-                                    color="#666666" 
-                                  />
-                                  <Text style={styles.newCourtChipText}>{displayCourt.type}</Text>
-                                </View>
-                              </View>
-
-                              {/* Tennis Ball Icon */}
-                              <View style={styles.newCourtTennisBallContainer}>
-                                <MaterialCommunityIcons 
-                                  name="tennis-ball" 
-                                  size={64} 
-                                  color="#2E7D32" 
-                                />
-                              </View>
-
-                              {/* Court Name */}
-                              <Text style={styles.newCourtName}>{displayCourt.name}</Text>
-
-                              {/* Location and Type */}
-                              <View style={styles.newCourtLocationContainer}>
-                                <MaterialCommunityIcons 
-                                  name="map-marker-outline" 
-                                  size={16} 
-                                  color="#666666" 
-                                />
-                                <Text style={styles.newCourtLocationText}>
-                                  {`${displayCourt.surface} • ${displayCourt.type}`}
-                                </Text>
-                              </View>
-
-                              {/* Available Button and Next Available */}
-                              <View style={styles.newCourtBottomContainer}>
-                                <View style={styles.newCourtAvailableButton}>
-                                  <Text style={styles.newCourtAvailableText}>
-                                    {t('reservation.available')}
-                                  </Text>
-                                </View>
-                                {nextAvailable && (
-                                  <Text style={styles.newCourtNextAvailable}>
-                                    {t('reservation.nextAvailable')} {nextAvailable}
-                                  </Text>
-                                )}
-                              </View>
-
-                              {/* Book Now Button */}
-                              <TouchableOpacity
-                                style={[
-                                  styles.newCourtBookButton,
-                                  (reservationBlocked || checkingBlockStatus) && styles.newCourtBookButtonDisabled
-                                ]}
-                                onPress={() => handleCourtSelect(court.id.toString())}
-                                disabled={reservationBlocked || checkingBlockStatus}
+                              {/* Court Image Area */}
+                              <LinearGradient
+                                colors={['#D1FAE5', '#ECFDF5']} // from-green-100 to-green-50
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={styles.newCourtImageArea}
                               >
-                                <Text style={[
-                                  styles.newCourtBookText,
-                                  (reservationBlocked || checkingBlockStatus) && styles.newCourtBookTextDisabled
-                                ]}>
-                                  {t('reservation.bookNow')}
-                                </Text>
-                                <MaterialCommunityIcons 
-                                  name="arrow-right" 
-                                  size={20} 
-                                  color={(reservationBlocked || checkingBlockStatus) ? "#BDBDBD" : "#2E7D32"} 
-                                />
-                              </TouchableOpacity>
+                                {/* Top Right Chips */}
+                                <View style={styles.newCourtChipsContainer}>
+                                  <View style={styles.newCourtChip}>
+                                    <Text style={styles.newCourtChipText}>{displayCourt.surface}</Text>
+                                  </View>
+                                  <View style={styles.newCourtChip}>
+                                    <MaterialCommunityIcons 
+                                      name={displayCourt.icon as any} 
+                                      size={12} 
+                                      color="#374151" 
+                                    />
+                                    <Text style={styles.newCourtChipText}>{displayCourt.type}</Text>
+                                  </View>
+                                </View>
+
+                                {/* Tennis Ball Icon */}
+                                <View style={styles.newCourtTennisBallContainer}>
+                                  <Text style={{ fontSize: 64 }}>🎾</Text>
+                                </View>
+                              </LinearGradient>
+
+                              {/* Court Info Area */}
+                              <View style={styles.newCourtInfoArea}>
+                                {/* Court Name */}
+                                <Text style={styles.newCourtName}>{displayCourt.name}</Text>
+
+                                {/* Location and Type */}
+                                <View style={styles.newCourtLocationContainer}>
+                                  <MaterialCommunityIcons 
+                                    name="map-marker" 
+                                    size={14} 
+                                    color="#717182" 
+                                  />
+                                  <Text style={styles.newCourtLocationText}>
+                                    {`${displayCourt.surface} • ${displayCourt.type}`}
+                                  </Text>
+                                </View>
+
+                                {/* Available Button and Next Available */}
+                                <View style={styles.newCourtBottomContainer}>
+                                  {nextAvailable ? (
+                                    <Text style={styles.newCourtNextAvailable}>
+                                      {t('reservation.nextAvailable')} {nextAvailable}
+                                    </Text>
+                                  ) : (
+                                    <View style={styles.newCourtAvailableButton}>
+                                      <Text style={styles.newCourtAvailableText}>
+                                        {t('reservation.available')}
+                                      </Text>
+                                    </View>
+                                  )}
+                                  <TouchableOpacity
+                                    style={styles.newCourtBookButton}
+                                    onPress={() => handleCourtSelect(court.id.toString())}
+                                    disabled={reservationBlocked || checkingBlockStatus}
+                                  >
+                                    <Text style={[
+                                      styles.newCourtBookText,
+                                      (reservationBlocked || checkingBlockStatus) && styles.newCourtBookTextDisabled
+                                    ]}>
+                                      {t('reservation.bookNow')}
+                                    </Text>
+                                    <MaterialCommunityIcons 
+                                      name="arrow-right" 
+                                      size={16} 
+                                      color={(reservationBlocked || checkingBlockStatus) ? "#BDBDBD" : "#54CE8F"} 
+                                    />
+                                  </TouchableOpacity>
+                                </View>
+                              </View>
                             </View>
                           </TouchableOpacity>
                         );
@@ -1319,7 +1332,7 @@ const ReservationScreen = () => {
             <Card.Content>
               <View style={styles.calendarHeader}>
                 <View style={styles.calendarHeaderContent}>
-                  <Title style={styles.calendarTitle}>{t('reservation.selectDate')}</Title>
+                  <Text style={styles.calendarTitle}>{t('reservation.selectDate')}</Text>
                   <Text style={styles.calendarSubtitle}>
                     {t('reservation.maxDateRange') || 'Maksimum 1 hafta ileri tarih seçebilirsiniz'}
                   </Text>
@@ -1384,13 +1397,16 @@ const ReservationScreen = () => {
           <Card style={styles.userSelectorCard}>
             <Card.Content>
               <View style={styles.modalHeader}>
-                <Title style={styles.modalTitle}>
+                <Text style={styles.modalTitle}>
                   {selectorMode === 'partner' 
                     ? (playerType === 'single' ? t('reservation.selectOpponent') : t('reservation.selectPartner'))
                     : t('reservation.selectOpponents')}
-                </Title>
-                <TouchableOpacity onPress={handleOpponentSelectorClose}>
-                  <MaterialCommunityIcons name="close" size={24} color="#757575" />
+                </Text>
+                <TouchableOpacity 
+                  onPress={handleOpponentSelectorClose}
+                  style={styles.modalCloseButton}
+                >
+                  <MaterialCommunityIcons name="close" size={20} color="#9CA3AF" />
                 </TouchableOpacity>
               </View>
 
@@ -1552,9 +1568,9 @@ const ReservationScreen = () => {
                     color="#2196F3" 
                   />
                 </View>
-                <Title style={styles.weatherModalTitle}>
+                <Text style={styles.weatherModalTitle}>
                   {t('reservation.weatherWarningTitle')}
-                </Title>
+                </Text>
               </View>
               
               <Text style={styles.weatherModalMessage}>
@@ -1566,19 +1582,18 @@ const ReservationScreen = () => {
               </Text>
 
               <View style={styles.weatherModalButtons}>
-                <Button
-                  mode="outlined"
+                <TouchableOpacity
                   onPress={() => {
                     setShowWeatherWarningModal(false);
                     setPendingTimeSelection(null);
                   }}
                   style={[styles.weatherModalButton, styles.weatherModalCancelButton]}
-                  labelStyle={styles.weatherModalCancelButtonLabel}
                 >
-                  {t('reservation.weatherWarningCancel')}
-                </Button>
-                <Button
-                  mode="contained"
+                  <Text style={styles.weatherModalCancelButtonLabel}>
+                    {t('reservation.weatherWarningCancel')}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
                   onPress={() => {
                     if (pendingTimeSelection) {
                       confirmTimeSelection(pendingTimeSelection);
@@ -1587,11 +1602,11 @@ const ReservationScreen = () => {
                     setPendingTimeSelection(null);
                   }}
                   style={[styles.weatherModalButton, styles.weatherModalContinueButton]}
-                  labelStyle={styles.weatherModalContinueButtonLabel}
-                  buttonColor="#4CAF50"
                 >
-                  {t('reservation.weatherWarningContinue')}
-                </Button>
+                  <Text style={styles.weatherModalContinueButtonLabel}>
+                    {t('reservation.weatherWarningContinue')}
+                  </Text>
+                </TouchableOpacity>
               </View>
             </Card.Content>
           </Card>
@@ -1604,22 +1619,27 @@ const ReservationScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAFCFB', // New design background
   },
   header: {
-    backgroundColor: '#FFFFFF',
-    paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    backgroundColor: '#B4AEBD', // New design purple
+    paddingTop: 48, // pt-12 equivalent
+    paddingBottom: 24, // pb-6 equivalent
+    paddingHorizontal: 24, // px-6 equivalent
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
   },
   backButton: {
     position: 'absolute',
     top: 60,
-    left: 20,
+    left: 24, // px-6
     zIndex: 10,
-    padding: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 20, // rounded-full
+    backgroundColor: 'rgba(255, 255, 255, 0.2)', // white/20
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerContent: {
     alignItems: 'center',
@@ -1627,7 +1647,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1B1B1B',
+    color: '#FFFFFF',
     marginBottom: 20,
     textAlign: 'center',
   },
@@ -1654,8 +1674,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   contentContainer: {
-    padding: 20,
-    backgroundColor: '#F8F9FA',
+    padding: 24, // px-6 equivalent
+    backgroundColor: '#FAFCFB', // New design background
   },
   stepCard: {
     marginTop: 15,
@@ -2122,46 +2142,81 @@ const styles = StyleSheet.create({
     color: '#757575',
     fontStyle: 'italic',
   },
+  blockCardWrapper: {
+    paddingHorizontal: 24, // px-6
+    paddingTop: 20, // pt-5
+    paddingBottom: 16, // pb-4
+  },
   blockCard: {
-    margin: 20,
-    marginTop: 20,
-    marginBottom: 20,
-    backgroundColor: '#FFF3E0',
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF9800',
-    elevation: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16, // rounded-2xl
+    borderWidth: 1,
+    borderColor: '#FEE2E2', // red-100
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    borderRadius: 12,
+    shadowOffset: {
+      width: 0,
+      height: 0,
+    },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   blockCardContent: {
-    padding: 20,
+    padding: 24, // p-6
   },
   blockContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
+  },
+  blockIconContainer: {
+    marginBottom: 16, // mb-4
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  blockIconCircle: {
+    width: 64, // w-16
+    height: 64, // h-16
+    borderRadius: 32, // rounded-full
+    backgroundColor: '#FEF2F2', // red-50
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   blockTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#DC3545',
-    marginTop: 16,
-    marginBottom: 12,
+    fontSize: 20, // text-xl
+    fontWeight: '600',
+    color: '#030213',
+    marginBottom: 12, // mb-3
     textAlign: 'center',
   },
   blockText: {
-    fontSize: 16,
-    color: '#424242',
+    fontSize: 14, // text-sm
+    color: '#717182', // Medium gray
     textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 24,
+    marginBottom: 24, // mb-6
+    lineHeight: 20,
   },
-  blockButton: {
-    marginTop: 8,
-    borderRadius: 12,
+  blockLoadingText: {
+    fontSize: 14, // text-sm
+    color: '#717182', // Medium gray
+    marginTop: 12, // mt-3
+    textAlign: 'center',
+  },
+  blockActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#54CE8F', // Primary green
+    paddingVertical: 12, // py-3
+    paddingHorizontal: 24, // px-6
+    borderRadius: 16, // rounded-2xl
+    gap: 8, // gap-2
+    width: '100%',
+  },
+  blockActionButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
   disabledContainer: {
     opacity: 0.5,
@@ -2205,37 +2260,39 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   weatherModalCard: {
-    borderRadius: 20,
+    borderRadius: 16, // rounded-2xl
     backgroundColor: '#FFFFFF',
-    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // gray-200
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 0,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   weatherModalContent: {
-    padding: 24,
+    padding: 24, // p-6
   },
   weatherModalHeader: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 20, // mb-5
   },
   weatherModalIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#E3F2FD',
+    width: 64, // w-16
+    height: 64, // h-16
+    borderRadius: 32, // rounded-full
+    backgroundColor: '#DBEAFE', // blue-100
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 16, // mb-4
   },
   weatherModalTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
+    fontSize: 20, // text-xl
+    fontWeight: '600',
+    color: '#030213',
     textAlign: 'center',
   },
   weatherModalMessage: {
@@ -2289,15 +2346,17 @@ const styles = StyleSheet.create({
   },
   courtSearchBar: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    elevation: 2,
+    borderRadius: 16, // rounded-2xl
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // gray-200
+    elevation: 0,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 0,
     },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
+    shadowOpacity: 0,
+    shadowRadius: 0,
   },
   courtSearchInput: {
     fontSize: 16,
@@ -2311,21 +2370,20 @@ const styles = StyleSheet.create({
   courtFilterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
+    paddingVertical: 8, // py-2
+    paddingHorizontal: 16, // px-4
+    borderRadius: 9999, // rounded-full
+    backgroundColor: '#F3F4F6', // gray-100
+    borderWidth: 0,
   },
   courtFilterChipActive: {
-    backgroundColor: '#2E7D32',
-    borderColor: '#2E7D32',
+    backgroundColor: '#54CE8F', // Primary green from design
+    borderWidth: 0,
   },
   courtFilterChipText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666666',
+    fontSize: 12, // text-sm
+    fontWeight: '500',
+    color: '#374151', // gray-700
   },
   courtFilterChipTextActive: {
     color: '#FFFFFF',
@@ -2338,87 +2396,104 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   newCourtCard: {
-    backgroundColor: '#E8F5E8',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16, // rounded-2xl
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // gray-200
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  newCourtImageArea: {
+    height: 160, // h-40 equivalent
+    backgroundColor: '#D1FAE5', // green-100 from design
     position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   newCourtChipsContainer: {
+    position: 'absolute',
+    top: 12, // top-3
+    right: 12, // right-3
     flexDirection: 'row',
-    justifyContent: 'flex-end',
     gap: 8,
-    marginBottom: 16,
+    zIndex: 1,
   },
   newCourtChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)', // white/90
+    paddingHorizontal: 12, // px-3
+    paddingVertical: 4, // py-1
+    borderRadius: 9999, // rounded-full
     gap: 4,
   },
   newCourtChipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#666666',
+    fontSize: 11, // text-xs
+    fontWeight: '500',
+    color: '#374151', // gray-700
   },
   newCourtTennisBallContainer: {
     alignItems: 'center',
-    marginVertical: 16,
+    justifyContent: 'center',
+  },
+  newCourtInfoArea: {
+    padding: 20, // p-5 equivalent
   },
   newCourtName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
-    textAlign: 'center',
+    fontSize: 18, // text-lg
+    fontWeight: '600',
+    color: '#030213', // Dark text from design
     marginBottom: 8,
   },
   newCourtLocationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    gap: 6,
+    marginBottom: 12,
+    gap: 8, // gap-2
   },
   newCourtLocationText: {
-    fontSize: 14,
-    color: '#666666',
+    fontSize: 14, // text-sm
+    color: '#717182', // Medium gray
   },
   newCourtBottomContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    paddingTop: 12, // pt-3
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6', // gray-100
   },
   newCourtAvailableButton: {
-    backgroundColor: '#2E7D32',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    backgroundColor: '#54CE8F', // Primary green from design
+    paddingHorizontal: 12, // px-3
+    paddingVertical: 4, // py-1
+    borderRadius: 9999, // rounded-full
   },
   newCourtAvailableText: {
     color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11, // text-xs
+    fontWeight: '500',
   },
   newCourtNextAvailable: {
-    fontSize: 12,
-    color: '#666666',
-    flex: 1,
-    textAlign: 'right',
+    fontSize: 12, // text-sm
+    color: '#717182', // Medium gray
   },
   newCourtBookButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    alignSelf: 'flex-end',
     gap: 4,
   },
   newCourtBookText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#2E7D32',
+    fontSize: 14, // text-sm
+    fontWeight: '500',
+    color: '#54CE8F', // Primary green
   },
   newCourtBookButtonDisabled: {
     opacity: 0.5,

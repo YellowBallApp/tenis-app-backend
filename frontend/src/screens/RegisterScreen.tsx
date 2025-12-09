@@ -7,6 +7,7 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput as RNTextInput,
+  Image,
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -92,10 +93,12 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       >
         {/* Logo and Title Section */}
         <View style={styles.headerSection}>
-          <View style={styles.logoContainer}>
-            <MaterialCommunityIcons name="trophy" size={32} color="#FFFFFF" />
-          </View>
-          <Text style={styles.appTitle}>EGEV Tenis</Text>
+          <Image 
+            source={require('../../assets/egevlogo.png')} 
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+          <Text style={styles.appTitle}>Tenis App</Text>
         </View>
 
         {/* Main Title Section */}
@@ -110,7 +113,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>{t('auth.fullName')}</Text>
             <View style={styles.inputWrapper}>
-              <MaterialCommunityIcons name="account-outline" size={20} color="#9E9E9E" style={styles.inputIcon} />
+              <MaterialCommunityIcons name="account" size={20} color="#9CA3AF" style={styles.inputIcon} />
               <RNTextInput
                 style={styles.input}
                 placeholder={t('auth.enterFullName')}
@@ -127,7 +130,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>{t('auth.email')}</Text>
             <View style={styles.inputWrapper}>
-              <MaterialCommunityIcons name="email-outline" size={20} color="#9E9E9E" style={styles.inputIcon} />
+              <MaterialCommunityIcons name="email" size={20} color="#9CA3AF" style={styles.inputIcon} />
               <RNTextInput
                 style={styles.input}
                 placeholder={t('auth.enterEmail')}
@@ -145,7 +148,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>{t('auth.phoneNumber')}</Text>
             <View style={styles.inputWrapper}>
-              <MaterialCommunityIcons name="phone-outline" size={20} color="#9E9E9E" style={styles.inputIcon} />
+              <MaterialCommunityIcons name="phone" size={20} color="#9CA3AF" style={styles.inputIcon} />
               <RNTextInput
                 style={styles.input}
                 placeholder={t('auth.enterPhoneNumber')}
@@ -181,7 +184,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>{t('auth.password')}</Text>
             <View style={styles.inputWrapper}>
-              <MaterialCommunityIcons name="lock-outline" size={20} color="#9E9E9E" style={styles.inputIcon} />
+              <MaterialCommunityIcons name="lock" size={20} color="#9CA3AF" style={styles.inputIcon} />
               <RNTextInput
                 style={[styles.input, styles.passwordInput]}
                 placeholder={t('auth.createPassword')}
@@ -197,9 +200,9 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                 style={styles.eyeIcon}
               >
                 <MaterialCommunityIcons 
-                  name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                  name={showPassword ? "eye-off" : "eye"} 
                   size={20} 
-                  color="#9E9E9E" 
+                  color="#9CA3AF" 
                 />
               </TouchableOpacity>
             </View>
@@ -227,7 +230,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                 <MaterialCommunityIcons 
                   name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
                   size={20} 
-                  color="#9E9E9E" 
+                  color="#9CA3AF" 
                 />
               </TouchableOpacity>
             </View>
@@ -288,69 +291,73 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAFCFB', // New design background
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 40,
+    paddingHorizontal: 32, // px-8 equivalent
+    paddingTop: 64, // pt-16 equivalent
+    paddingBottom: 48, // pb-12 equivalent
   },
   headerSection: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 48,
+    marginBottom: 32, // mb-8 equivalent
   },
-  logoContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#BA68C8', // Darker purple
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
+  logoImage: {
+    width: 200,
+    height: 200,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   appTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#424242',
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#030213', // Dark text
+    textAlign: 'center',
   },
   titleSection: {
-    marginBottom: 32,
+    marginBottom: 32, // mb-8 equivalent
   },
   mainTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#424242',
+    fontSize: 30, // text-3xl equivalent
+    fontWeight: '600',
+    color: '#030213', // Dark text from design
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#424242',
+    color: '#717182', // Medium gray
     fontWeight: '400',
   },
   formSection: {
     marginBottom: 32,
   },
   inputContainer: {
-    marginBottom: 24,
+    marginBottom: 16, // mb-4 equivalent
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: '400',
-    color: '#424242',
-    marginBottom: 8,
+    fontWeight: '500',
+    color: '#374151', // gray-700
+    marginBottom: 8, // mb-2 equivalent
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 12,
+    borderColor: '#E5E7EB', // gray-200
+    borderRadius: 16, // rounded-2xl
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    height: 56,
+    paddingHorizontal: 16, // px-4 equivalent
+    height: 56, // py-4 equivalent
   },
   inputIcon: {
     marginRight: 12,
@@ -358,7 +365,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#424242',
+    color: '#030213', // Dark text
     paddingVertical: 0,
   },
   passwordInput: {
@@ -370,48 +377,50 @@ const styles = StyleSheet.create({
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 8,
     marginBottom: 24,
   },
   checkbox: {
     width: 20,
     height: 20,
     borderWidth: 2,
-    borderColor: '#424242',
+    borderColor: '#E5E7EB',
     borderRadius: 4,
     marginRight: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#66BB6A',
-    borderColor: '#66BB6A',
+    backgroundColor: '#54CE8F', // Primary green
+    borderColor: '#54CE8F',
   },
   checkboxText: {
     flex: 1,
     fontSize: 14,
-    color: '#424242',
+    color: '#717182', // Medium gray
     fontWeight: '400',
   },
   errorText: {
-    color: '#F44336',
+    color: '#DC3545', // Error color
     fontSize: 14,
     marginBottom: 16,
     textAlign: 'center',
   },
   signUpButton: {
-    backgroundColor: '#66BB6A', // Light green
-    borderRadius: 12,
-    height: 56,
+    backgroundColor: '#54CE8F', // Primary green from design
+    borderRadius: 16, // rounded-2xl
+    height: 56, // py-4 equivalent
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#66BB6A',
+    shadowColor: '#54CE8F',
     shadowOffset: {
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 4,
+    marginTop: 24, // mt-6 equivalent
   },
   signUpButtonDisabled: {
     opacity: 0.6,
@@ -424,15 +433,16 @@ const styles = StyleSheet.create({
   loginSection: {
     alignItems: 'center',
     marginTop: 'auto',
+    paddingBottom: 48, // pb-12 equivalent
   },
   loginText: {
     fontSize: 14,
-    color: '#424242',
+    color: '#717182', // Medium gray
     fontWeight: '400',
   },
   loginLink: {
-    color: '#66BB6A',
-    fontWeight: '600',
+    color: '#54CE8F', // Primary green
+    fontWeight: '500',
   },
 });
 

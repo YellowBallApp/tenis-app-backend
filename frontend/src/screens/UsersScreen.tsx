@@ -25,6 +25,7 @@ import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useLanguage } from '../context/LanguageContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { userService, coachService, coachReviewService, matchHistoryService, authService } from '../services/api';
 import { UsersStackParamList } from '../navigation/MainTabNavigator';
 
@@ -33,6 +34,7 @@ type UsersScreenNavigationProp = StackNavigationProp<UsersStackParamList, 'Users
 const UsersScreen = () => {
   const navigation = useNavigation<UsersScreenNavigationProp>();
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'members' | 'coaches'>('members');
   const [members, setMembers] = useState<any[]>([]);
@@ -401,15 +403,15 @@ const UsersScreen = () => {
   if (showLoading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#2E7D32" />
-        <Text style={{ marginTop: 10, color: '#9E9E9E' }}>{t('common.loading')}</Text>
+        <ActivityIndicator size="large" color="#54CE8F" />
+        <Text style={{ marginTop: 10, color: '#717182' }}>{t('common.loading')}</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       
       <ScrollView
         style={styles.scrollView}
@@ -418,13 +420,13 @@ const UsersScreen = () => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#2E7D32"
-            colors={["#2E7D32"]}
+            tintColor="#54CE8F"
+            colors={["#54CE8F"]}
           />
         }
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
           <Text style={styles.headerTitle}>{t('users.directory')}</Text>
         </View>
 
@@ -595,18 +597,20 @@ const UsersScreen = () => {
             <ScrollView showsVerticalScrollIndicator={false}>
               <Card.Content style={styles.reviewContent}>
                 <View style={styles.reviewModalHeader}>
-                  <MaterialCommunityIcons name="comment-text" size={32} color="#E1BEE7" />
                   <Text style={styles.reviewModalTitle}>
                     {selectedCoachForReviews?.name} - {t('coaches.reviews')}
                   </Text>
-                  <TouchableOpacity onPress={closeReviewsModal}>
-                    <MaterialCommunityIcons name="close" size={24} color="#666666" />
+                  <TouchableOpacity 
+                    onPress={closeReviewsModal}
+                    style={styles.modalCloseButton}
+                  >
+                    <MaterialCommunityIcons name="close" size={20} color="#9CA3AF" />
                   </TouchableOpacity>
                 </View>
                 
                 {loadingReviews ? (
                   <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="small" color="#2E7D32" />
+                    <ActivityIndicator size="small" color="#54CE8F" />
                     <Text style={styles.loadingText}>{t('common.loading')}</Text>
                   </View>
                 ) : reviews.length > 0 ? (
@@ -661,10 +665,12 @@ const UsersScreen = () => {
             <ScrollView showsVerticalScrollIndicator={false}>
               <Card.Content style={styles.reviewContent}>
                 <View style={styles.reviewModalHeader}>
-                  <MaterialIcons name="star" size={32} color="#FFD700" />
                   <Text style={styles.reviewModalTitle}>{t('coaches.rateCoach')}</Text>
-                  <TouchableOpacity onPress={() => setShowReviewModal(false)}>
-                    <MaterialCommunityIcons name="close" size={24} color="#666666" />
+                  <TouchableOpacity 
+                    onPress={() => setShowReviewModal(false)}
+                    style={styles.modalCloseButton}
+                  >
+                    <MaterialCommunityIcons name="close" size={20} color="#9CA3AF" />
                   </TouchableOpacity>
                 </View>
                 
@@ -725,39 +731,45 @@ const UsersScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FAFCFB', // New design background
   },
   scrollView: {
     flex: 1,
   },
   header: {
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 24, // px-6
+    paddingBottom: 24, // pb-6
+    backgroundColor: '#B4AEBD', // New design purple
+    marginBottom: 0,
   },
   headerTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
+    fontSize: 24, // text-2xl
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   searchContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingHorizontal: 24, // px-6
+    paddingTop: 24, // pt-6
+    paddingBottom: 16, // pb-4
+    backgroundColor: '#FAFCFB',
   },
   searchBar: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    elevation: 2,
+    borderRadius: 16, // rounded-2xl
+    elevation: 0,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 0,
     },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // gray-200
   },
   searchInput: {
     fontSize: 16,
+    color: '#030213',
   },
   toggleContainer: {
     flexDirection: 'row',
@@ -791,75 +803,76 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   listContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 24, // px-6
+    paddingBottom: 24, // pb-6
+    backgroundColor: '#FAFCFB',
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    marginBottom: 12,
+    borderRadius: 16, // rounded-2xl
+    marginBottom: 12, // gap-3
     borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderColor: '#F3F4F6', // gray-100
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 1,
     },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   cardContent: {
-    padding: 16,
+    padding: 20, // p-5
   },
   cardHeader: {
     flexDirection: 'row',
     marginBottom: 12,
   },
   avatar: {
-    backgroundColor: '#9E9E9E',
+    backgroundColor: '#B4AEBD', // New design purple
     color: '#FFFFFF',
   },
   avatarImage: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#9E9E9E',
+    backgroundColor: '#B4AEBD',
   },
   coachAvatar: {
-    backgroundColor: '#BA68C8',
+    backgroundColor: '#B4AEBD', // New design purple
     color: '#FFFFFF',
   },
   coachAvatarImage: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#BA68C8',
+    backgroundColor: '#B4AEBD',
   },
   cardInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 16, // gap-4
   },
   cardName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginBottom: 4,
+    fontSize: 16, // text-base
+    fontWeight: '600',
+    color: '#030213', // Dark text
+    marginBottom: 4, // mb-1
   },
   cardRole: {
-    fontSize: 14,
-    color: '#666666',
-    marginBottom: 8,
+    fontSize: 14, // text-sm
+    color: '#717182', // Medium gray
+    marginBottom: 8, // mb-2
   },
   coachCardName: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
+    fontSize: 18, // text-lg
+    fontWeight: '600',
+    color: '#030213',
     marginBottom: 4,
   },
   coachCardRole: {
-    fontSize: 15,
-    color: '#666666',
+    fontSize: 14, // text-sm
+    color: '#717182',
     marginBottom: 8,
   },
   badgesRow: {
@@ -869,105 +882,108 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   rankBadge: {
-    backgroundColor: '#2E7D32',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    backgroundColor: '#54CE8F', // Primary green
+    borderRadius: 9999, // rounded-full
+    paddingHorizontal: 12, // px-3
+    paddingVertical: 4, // py-1
   },
   rankBadgeText: {
     color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11, // text-xs
+    fontWeight: '500',
   },
   levelBadge: {
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    borderRadius: 9999, // rounded-full
+    paddingHorizontal: 12, // px-3
+    paddingVertical: 4, // py-1
   },
   levelBadgeText: {
     color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11, // text-xs
+    fontWeight: '500',
   },
   coachBadge: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    backgroundColor: '#54CE8F', // Primary green
+    borderRadius: 9999, // rounded-full
+    paddingHorizontal: 12, // px-3
+    paddingVertical: 4, // py-1
   },
   coachBadgeText: {
     color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11, // text-xs
+    fontWeight: '500',
   },
   experienceText: {
-    fontSize: 14,
-    color: '#1B1B1B',
+    fontSize: 12, // text-xs
+    color: '#717182', // Medium gray
     marginLeft: 8,
     fontWeight: '500',
   },
   statsRow: {
     flexDirection: 'row',
-    gap: 16,
-    marginTop: 8,
+    gap: 16, // gap-4
+    marginTop: 12, // mt-3
+    paddingTop: 12, // pt-3
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6', // gray-100
   },
   statText: {
-    fontSize: 14,
-    color: '#666666',
+    fontSize: 14, // text-sm
+    color: '#717182', // Medium gray
   },
   statValue: {
     fontWeight: '600',
-    color: '#1B1B1B',
+    color: '#030213', // Dark text
   },
   statValueGreen: {
     fontWeight: '600',
-    color: '#2E7D32',
+    color: '#54CE8F', // Primary green
   },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginTop: 8,
+    gap: 6, // gap-1.5
+    marginTop: 8, // mt-2
   },
   ratingText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
+    fontSize: 16, // text-base
+    fontWeight: '600',
+    color: '#030213',
   },
   reviewsText: {
-    fontSize: 14,
-    color: '#666666',
+    fontSize: 12, // text-xs
+    color: '#717182',
     fontWeight: '400',
   },
   actionButtonsRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
+    gap: 8, // gap-2
+    marginTop: 12, // mt-3
   },
   actionButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    backgroundColor: '#F8F9FA',
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-    gap: 6,
+    paddingVertical: 10, // py-2.5
+    paddingHorizontal: 12, // px-3
+    borderRadius: 12, // rounded-xl
+    backgroundColor: '#F3F4F6', // gray-100
+    borderWidth: 0,
+    gap: 6, // gap-1.5
   },
   actionButtonPrimary: {
-    backgroundColor: '#2E7D32',
-    borderColor: '#2E7D32',
+    backgroundColor: '#54CE8F', // Primary green
+    borderWidth: 0,
   },
   actionButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#666666',
+    fontSize: 12, // text-xs
+    fontWeight: '500',
+    color: '#717182',
   },
   actionButtonTextPrimary: {
     color: '#FFFFFF',
+    fontWeight: '600',
   },
   starsContainer: {
     flexDirection: 'row',
@@ -981,35 +997,43 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   reviewCard: {
-    borderRadius: 20,
+    borderRadius: 16, // rounded-2xl
     maxHeight: '80%',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderColor: '#E5E7EB', // gray-200
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 0,
+    },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   reviewContent: {
-    padding: 24,
+    padding: 24, // px-6 py-6
   },
   reviewModalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
-    paddingBottom: 16,
+    marginBottom: 16, // mb-4
+    paddingBottom: 16, // pb-4
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: '#E5E7EB', // gray-200
   },
   reviewModalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
+    fontSize: 20, // text-xl
+    fontWeight: '600',
+    color: '#030213', // Dark text
     flex: 1,
     marginLeft: 12,
   },
   reviewModalSubtitle: {
-    fontSize: 14,
-    color: '#666666',
-    marginBottom: 24,
+    fontSize: 14, // text-sm
+    color: '#717182', // Medium gray
+    marginBottom: 24, // mb-6
     lineHeight: 20,
   },
   ratingSection: {
@@ -1047,19 +1071,47 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: '#9E9E9E',
+    color: '#717182',
     marginTop: 10,
+  },
+  modalCloseButton: {
+    width: 32, // w-8
+    height: 32, // h-8
+    borderRadius: 16, // rounded-full
+    backgroundColor: '#F3F4F6', // gray-100
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#030213',
+    textAlign: 'center',
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
   reviewsListContainer: {
     marginTop: 20,
   },
   reviewListItem: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: 16, // rounded-2xl
+    padding: 20, // p-5
+    marginBottom: 16, // mb-4
     borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderColor: '#F3F4F6', // gray-100
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   reviewListItemHeader: {
     flexDirection: 'row',

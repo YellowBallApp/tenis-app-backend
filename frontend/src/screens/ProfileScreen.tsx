@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -36,6 +36,7 @@ import { authService, matchHistoryService, leagueStandingsService } from '../ser
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'react-native';
 import { calculateAge } from '../utils/age.utils';
+import { Calendar, LocaleConfig } from 'react-native-calendars';
 
 const { width } = Dimensions.get('window');
 
@@ -62,6 +63,11 @@ const ProfileScreen = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showPhotoOptionsModal, setShowPhotoOptionsModal] = useState(false);
   const [showRemovePhotoModal, setShowRemovePhotoModal] = useState(false);
+  const [showDatePickerModal, setShowDatePickerModal] = useState(false);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  const yearScrollViewRef = useRef<ScrollView>(null);
+  const monthScrollViewRef = useRef<ScrollView>(null);
   const [loggingOut, setLoggingOut] = useState(false);
   
   // Form states
@@ -186,8 +192,15 @@ const ProfileScreen = () => {
         const date = new Date(birthDate);
         const formattedDate = date.toISOString().split('T')[0];
         setEditBirthDate(formattedDate);
+        // Yıl ve ay seçimlerini güncelle
+        setSelectedYear(date.getFullYear());
+        setSelectedMonth(date.getMonth() + 1);
       } else {
         setEditBirthDate('');
+        // Varsayılan olarak bugünün yılı ve ayı
+        const today = new Date();
+        setSelectedYear(today.getFullYear());
+        setSelectedMonth(today.getMonth() + 1);
       }
       setShowEditProfileModal(true);
     }
@@ -389,7 +402,7 @@ const ProfileScreen = () => {
 
   return (
     <>
-    <View style={[styles.container, { backgroundColor: '#FFFFFF' }]}>
+    <View style={[styles.container, { backgroundColor: '#FAFCFB' }]}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Profile Header Card - Light Purple */}
         <View style={[styles.profileHeaderCard, { paddingTop: insets.top + 20 }]}>
@@ -417,7 +430,12 @@ const ProfileScreen = () => {
               <Text style={styles.profileName}>{user.name}</Text>
               <Text style={styles.profileEmail}>{user.email}</Text>
               <View style={styles.tagsContainer}>
-                <View style={[styles.tag, { backgroundColor: '#F5F5F5' }]}>
+                {user.currentRank && (
+                  <View style={[styles.tag, { backgroundColor: 'rgba(255, 255, 255, 0.2)' }]}>
+                    <Text style={styles.tagText}>Rank #{user.currentRank}</Text>
+                  </View>
+                )}
+                <View style={[styles.tag, { backgroundColor: 'rgba(255, 255, 255, 0.2)' }]}>
                   <Text style={styles.tagText}>{userLevel}</Text>
                 </View>
               </View>
@@ -431,19 +449,25 @@ const ProfileScreen = () => {
           <View style={styles.statsGrid}>
             {/* Matches Played */}
             <View style={styles.statCard}>
-              <MaterialCommunityIcons name="trophy" size={24} color="#9E9E9E" />
+              <View style={styles.statIconContainer}>
+                <MaterialCommunityIcons name="trophy" size={20} color="#B4AEBD" />
+              </View>
               <Text style={styles.statNumber}>{user.matchesPlayed}</Text>
               <Text style={styles.statLabel}>{t('profile.matchesPlayed')}</Text>
             </View>
             {/* Win Rate */}
             <View style={styles.statCard}>
-              <MaterialCommunityIcons name="trending-up" size={24} color="#9E9E9E" />
+              <View style={styles.statIconContainer}>
+                <MaterialCommunityIcons name="trending-up" size={20} color="#B4AEBD" />
+              </View>
               <Text style={styles.statNumber}>{user.winRate}%</Text>
               <Text style={styles.statLabel}>{t('profile.winRate')}</Text>
             </View>
             {/* Current Rank - Tüm Ligler */}
             <View style={[styles.statCard, styles.rankCard]}>
-              <MaterialCommunityIcons name="trophy" size={24} color="#9E9E9E" />
+              <View style={styles.statIconContainer}>
+                <MaterialCommunityIcons name="trophy" size={20} color="#B4AEBD" />
+              </View>
               <Text style={styles.statLabel}>{t('profile.currentRank')}</Text>
               {userStandings.length > 0 ? (
                 <View style={styles.rankingsList}>
@@ -467,7 +491,9 @@ const ProfileScreen = () => {
             </View>
             {/* Member Since */}
             <View style={styles.statCard}>
-              <MaterialCommunityIcons name="calendar" size={24} color="#9E9E9E" />
+              <View style={styles.statIconContainer}>
+                <MaterialCommunityIcons name="calendar" size={20} color="#B4AEBD" />
+              </View>
               <Text style={styles.statNumber}>{user.joinYear}</Text>
               <Text style={styles.statLabel}>{t('profile.memberSince')}</Text>
             </View>
@@ -482,21 +508,21 @@ const ProfileScreen = () => {
               style={styles.quickActionCard}
               onPress={() => navigation.navigate('ReservationsList' as any)}
             >
-              <MaterialCommunityIcons name="calendar" size={28} color="#4CAF50" />
+              <MaterialCommunityIcons name="calendar" size={24} color="#54CE8F" />
               <Text style={styles.quickActionText}>{t('profile.myBookings')}</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.quickActionCard}
               onPress={() => navigation.navigate('MatchHistory' as any)}
             >
-              <MaterialCommunityIcons name="trophy" size={28} color="#9E9E9E" />
+              <MaterialCommunityIcons name="trophy" size={24} color="#B4AEBD" />
               <Text style={styles.quickActionText}>{t('profile.myMatches')}</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.quickActionCard}
               onPress={() => {}}
             >
-              <MaterialCommunityIcons name="trending-up" size={28} color="#9E9E9E" />
+              <MaterialCommunityIcons name="trending-up" size={24} color="#54CE8F" />
               <Text style={styles.quickActionText}>{t('profile.statistics')}</Text>
             </TouchableOpacity>
           </View>
@@ -507,19 +533,25 @@ const ProfileScreen = () => {
           <Text style={styles.sectionHeader}>{t('profile.account')}</Text>
           <View style={styles.settingsList}>
             <TouchableOpacity style={styles.settingsItem} onPress={openEditProfile}>
-              <MaterialCommunityIcons name="account-outline" size={24} color="#1B1B1B" />
+              <View style={styles.settingsIconContainer}>
+                <MaterialCommunityIcons name="account" size={20} color="#B4AEBD" />
+              </View>
               <Text style={styles.settingsItemText}>{t('profile.editProfile')}</Text>
-              <MaterialCommunityIcons name="chevron-right" size={24} color="#9E9E9E" />
+              <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.settingsItem} onPress={() => setShowAccountSettingsModal(true)}>
-              <MaterialCommunityIcons name="shield-outline" size={24} color="#1B1B1B" />
+              <View style={styles.settingsIconContainer}>
+                <MaterialCommunityIcons name="shield" size={20} color="#B4AEBD" />
+              </View>
               <Text style={styles.settingsItemText}>{t('profile.privacySecurity')}</Text>
-              <MaterialCommunityIcons name="chevron-right" size={24} color="#9E9E9E" />
+              <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.settingsItem} onPress={() => {}}>
-              <MaterialCommunityIcons name="bell-outline" size={24} color="#1B1B1B" />
+              <View style={styles.settingsIconContainer}>
+                <MaterialCommunityIcons name="bell" size={20} color="#B4AEBD" />
+              </View>
               <Text style={styles.settingsItemText}>{t('profile.notifications')}</Text>
-              <MaterialCommunityIcons name="chevron-right" size={24} color="#9E9E9E" />
+              <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
             </TouchableOpacity>
           </View>
         </View>
@@ -529,17 +561,21 @@ const ProfileScreen = () => {
           <Text style={styles.sectionHeader}>{t('profile.preferences')}</Text>
           <View style={styles.settingsList}>
             <TouchableOpacity style={styles.settingsItem} onPress={handleLanguageToggle}>
-              <MaterialCommunityIcons name="earth" size={24} color="#1B1B1B" />
+              <View style={styles.settingsIconContainer}>
+                <MaterialCommunityIcons name="earth" size={20} color="#B4AEBD" />
+              </View>
               <Text style={styles.settingsItemText}>{t('profile.language')}</Text>
               <View style={styles.settingsItemRight}>
                 <Text style={styles.settingsItemSubtext}>{language === 'en' ? t('profile.english') : 'Türkçe'}</Text>
-                <MaterialCommunityIcons name="chevron-right" size={24} color="#9E9E9E" />
+                <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
               </View>
             </TouchableOpacity>
             <TouchableOpacity style={styles.settingsItem} onPress={() => setShowAccountSettingsModal(true)}>
-              <MaterialCommunityIcons name="cog-outline" size={24} color="#1B1B1B" />
+              <View style={styles.settingsIconContainer}>
+                <MaterialCommunityIcons name="cog" size={20} color="#B4AEBD" />
+              </View>
               <Text style={styles.settingsItemText}>{t('profile.accountSettings')}</Text>
-              <MaterialCommunityIcons name="chevron-right" size={24} color="#9E9E9E" />
+              <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
             </TouchableOpacity>
           </View>
         </View>
@@ -549,33 +585,33 @@ const ProfileScreen = () => {
           <Text style={styles.sectionHeader}>{t('profile.support')}</Text>
           <View style={styles.settingsList}>
             <TouchableOpacity style={styles.settingsItem} onPress={() => setShowHelpModal(true)}>
-              <MaterialCommunityIcons name="help-circle-outline" size={24} color="#1B1B1B" />
+              <View style={styles.settingsIconContainer}>
+                <MaterialCommunityIcons name="help-circle" size={20} color="#B4AEBD" />
+              </View>
               <Text style={styles.settingsItemText}>{t('profile.helpSupport')}</Text>
-              <MaterialCommunityIcons name="chevron-right" size={24} color="#9E9E9E" />
+              <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.settingsItem} onPress={() => {}}>
-              <MaterialCommunityIcons name="shield-outline" size={24} color="#1B1B1B" />
+              <View style={styles.settingsIconContainer}>
+                <MaterialCommunityIcons name="shield" size={20} color="#B4AEBD" />
+              </View>
               <Text style={styles.settingsItemText}>{t('profile.termsPolicies')}</Text>
-              <MaterialCommunityIcons name="chevron-right" size={24} color="#9E9E9E" />
+              <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Logout */}
         <View style={styles.logoutSection}>
-          <Button
-            mode="contained"
+          <TouchableOpacity
             onPress={handleLogout}
             style={styles.logoutButtonFull}
-            buttonColor="#F44336"
-            contentStyle={styles.logoutButtonContent}
-            labelStyle={styles.logoutButtonLabel}
-            icon={({ size, color }) => (
-              <MaterialCommunityIcons name="logout-variant" size={size} color={color} />
-            )}
           >
-            {t('profile.logout')}
-          </Button>
+            <View style={styles.logoutButtonContent}>
+              <MaterialCommunityIcons name="logout" size={20} color="#DC2626" />
+              <Text style={styles.logoutButtonLabel}>{t('profile.logout')}</Text>
+            </View>
+          </TouchableOpacity>
         </View>
         <View style={{ paddingBottom: 40 }} />
       </ScrollView>
@@ -593,10 +629,12 @@ const ProfileScreen = () => {
           <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScrollView}>
             <Card.Content style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <MaterialCommunityIcons name="account-edit" size={32} color="#E1BEE7" />
                 <Title style={[styles.modalTitle, themedStyles.title]}>{t('profile.editProfile')}</Title>
-                <TouchableOpacity onPress={() => setShowEditProfileModal(false)}>
-                  <MaterialCommunityIcons name="close" size={24} color="#666666" />
+                <TouchableOpacity 
+                  onPress={() => setShowEditProfileModal(false)}
+                  style={styles.modalCloseButton}
+                >
+                  <MaterialCommunityIcons name="close" size={20} color="#9CA3AF" />
                 </TouchableOpacity>
               </View>
               
@@ -627,31 +665,34 @@ const ProfileScreen = () => {
                 keyboardType="email-address"
               />
               
-              <TextInput
-                mode="outlined"
-                label={t('profile.birthDate') || 'Doğum Tarihi'}
-                value={editBirthDate}
-                onChangeText={setEditBirthDate}
-                style={[styles.textInput, themedStyles.input]}
-                left={<TextInput.Icon icon="calendar" />}
-                outlineColor="#E0E0E0"
-                activeOutlineColor="#E1BEE7"
-                textColor={theme.colors.text}
-                placeholder="YYYY-MM-DD"
-              />
+              <TouchableOpacity
+                onPress={() => setShowDatePickerModal(true)}
+                style={styles.dateInputContainer}
+              >
+                <TextInput
+                  mode="outlined"
+                  label={t('profile.birthDate') || 'Doğum Tarihi'}
+                  value={editBirthDate}
+                  editable={false}
+                  style={[styles.textInput, themedStyles.input]}
+                  left={<TextInput.Icon icon="calendar" />}
+                  right={<TextInput.Icon icon="chevron-down" />}
+                  outlineColor="#E0E0E0"
+                  activeOutlineColor="#54CE8F"
+                  textColor={theme.colors.text}
+                  placeholder="Takvimden seçin"
+                  pointerEvents="none"
+                />
+              </TouchableOpacity>
 
               <View style={styles.modalButtons}>
-                <Button
-                  mode="outlined"
+                <TouchableOpacity
                   onPress={() => setShowEditProfileModal(false)}
                   style={[styles.modalButton, styles.cancelButton]}
-                  textColor={theme.colors.text}
-                  contentStyle={{ paddingVertical: 12 }}
                 >
-                  {t('common.cancel')}
-                </Button>
-                <Button
-                  mode="contained"
+                  <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
                   onPress={async () => {
                     try {
                       const updateData: any = {
@@ -679,11 +720,9 @@ const ProfileScreen = () => {
                     }
                   }}
                   style={[styles.modalButton, styles.saveButton]}
-                  buttonColor="#E1BEE7"
-                  contentStyle={{ paddingVertical: 12 }}
                 >
-                  {t('common.save')}
-                </Button>
+                  <Text style={styles.saveButtonText}>{t('common.save')}</Text>
+                </TouchableOpacity>
               </View>
             </Card.Content>
           </ScrollView>
@@ -704,8 +743,11 @@ const ProfileScreen = () => {
             <View style={styles.photoModalHeader}>
               <MaterialCommunityIcons name="camera" size={32} color="#E1BEE7" />
               <Title style={[styles.photoModalTitle, themedStyles.title]}>{t('profile.profilePhoto')}</Title>
-              <TouchableOpacity onPress={() => setShowPhotoOptionsModal(false)}>
-                <MaterialCommunityIcons name="close" size={24} color="#666666" />
+              <TouchableOpacity 
+                onPress={() => setShowPhotoOptionsModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <MaterialCommunityIcons name="close" size={20} color="#9CA3AF" />
               </TouchableOpacity>
             </View>
             
@@ -720,8 +762,8 @@ const ProfileScreen = () => {
                 onPress={handleGalleryPress}
                 activeOpacity={0.7}
               >
-                <View style={[styles.photoOptionIcon, { backgroundColor: '#BA68C8' }]}>
-                  <MaterialCommunityIcons name="image" size={32} color="#FFFFFF" />
+                <View style={[styles.photoOptionIcon, { backgroundColor: '#B4AEBD' }]}>
+                  <MaterialCommunityIcons name="image" size={28} color="#FFFFFF" />
                 </View>
                 <Text style={[styles.photoOptionTitle, themedStyles.text]}>{t('profile.selectFromGallery')}</Text>
                 <Text style={[styles.photoOptionDescription, themedStyles.subtitle]}>
@@ -735,8 +777,8 @@ const ProfileScreen = () => {
                 onPress={handleCameraPress}
                 activeOpacity={0.7}
               >
-                <View style={[styles.photoOptionIcon, { backgroundColor: '#BA68C8' }]}>
-                  <MaterialCommunityIcons name="camera" size={32} color="#FFFFFF" />
+                <View style={[styles.photoOptionIcon, { backgroundColor: '#B4AEBD' }]}>
+                  <MaterialCommunityIcons name="camera" size={28} color="#FFFFFF" />
                 </View>
                 <Text style={[styles.photoOptionTitle, themedStyles.text]}>{t('profile.takePhoto')}</Text>
                 <Text style={[styles.photoOptionDescription, themedStyles.subtitle]}>
@@ -751,10 +793,10 @@ const ProfileScreen = () => {
                   onPress={removeProfilePhoto}
                   activeOpacity={0.7}
                 >
-                  <View style={[styles.photoOptionIcon, { backgroundColor: '#DC3545' }]}>
-                    <MaterialCommunityIcons name="delete" size={32} color="#FFFFFF" />
+                  <View style={[styles.photoOptionIcon, { backgroundColor: '#DC2626' }]}>
+                    <MaterialCommunityIcons name="delete" size={28} color="#FFFFFF" />
                   </View>
-                  <Text style={[styles.photoOptionTitle, { color: '#DC3545' }]}>{t('profile.removePhoto')}</Text>
+                  <Text style={[styles.photoOptionTitle, { color: '#DC2626' }]}>{t('profile.removePhoto')}</Text>
                   <Text style={[styles.photoOptionDescription, themedStyles.subtitle]}>
                     {t('profile.removePhotoDescription')}
                   </Text>
@@ -840,12 +882,14 @@ const ProfileScreen = () => {
           <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScrollView}>
             <Card.Content style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <MaterialCommunityIcons name="lock-reset" size={32} color="#E1BEE7" />
               <Title style={[styles.modalTitle, themedStyles.title]}>{t('profile.changePassword')}</Title>
-                <TouchableOpacity onPress={() => setShowChangePasswordModal(false)}>
-                  <MaterialCommunityIcons name="close" size={24} color="#666666" />
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity 
+                onPress={() => setShowChangePasswordModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <MaterialCommunityIcons name="close" size={20} color="#9CA3AF" />
+              </TouchableOpacity>
+            </View>
             
             <Text style={[styles.modalSubtitle, themedStyles.subtitle]}>{t('profile.updatePasswordForSecurity')}</Text>
             
@@ -903,35 +947,43 @@ const ProfileScreen = () => {
             )}
 
               <View style={styles.modalButtons}>
-              <Button
-                mode="outlined"
-                onPress={() => setShowChangePasswordModal(false)}
-                style={[styles.modalButton, styles.cancelButton]}
-                textColor={theme.colors.text}
-                contentStyle={{ paddingVertical: 12 }}
-              >
-                {t('common.cancel')}
-              </Button>
-              <Button
-                mode="contained"
-                onPress={() => {
-                  console.log('Şifre değiştirildi');
-                  setShowChangePasswordModal(false);
-                  setCurrentPassword('');
-                  setNewPassword('');
-                  setConfirmPassword('');
-                }}
-                style={[
-                  styles.modalButton, 
-                  styles.saveButton,
-                  (!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword) && styles.disabledButton
-                ]}
-                buttonColor={(!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword) ? "#CCCCCC" : "#E1BEE7"}
-                contentStyle={{ paddingVertical: 12 }}
-                disabled={!!(!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword)}
-              >
-                {t('profile.changePassword')}
-              </Button>
+                <TouchableOpacity
+                  onPress={() => setShowChangePasswordModal(false)}
+                  style={[styles.modalButton, styles.cancelButton]}
+                >
+                  <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={async () => {
+                    try {
+                      await authService.changePassword({
+                        currentPassword,
+                        newPassword,
+                      });
+                      setShowChangePasswordModal(false);
+                      setCurrentPassword('');
+                      setNewPassword('');
+                      setConfirmPassword('');
+                      Alert.alert(t('common.success'), t('profile.passwordChanged'));
+                    } catch (error: any) {
+                      console.error('Şifre değiştirme hatası:', error);
+                      Alert.alert(t('common.error'), error.response?.data?.message || t('profile.passwordChangeError'));
+                    }
+                  }}
+                  style={[
+                    styles.modalButton, 
+                    styles.saveButton,
+                    (!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword) && styles.disabledButton
+                  ]}
+                  disabled={!!(!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword)}
+                >
+                  <Text style={[
+                    styles.saveButtonText,
+                    (!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword) && { color: '#9CA3AF' }
+                  ]}>
+                    {t('common.save')}
+                  </Text>
+                </TouchableOpacity>
               </View>
             </Card.Content>
           </ScrollView>
@@ -953,8 +1005,11 @@ const ProfileScreen = () => {
             <View style={styles.modalHeader}>
               <MaterialCommunityIcons name="cog" size={32} color="#E1BEE7" />
               <Title style={[styles.modalTitle, themedStyles.title]}>{t('profile.accountSettings')}</Title>
-              <TouchableOpacity onPress={() => setShowAccountSettingsModal(false)}>
-                <MaterialCommunityIcons name="close" size={24} color="#666666" />
+              <TouchableOpacity 
+                onPress={() => setShowAccountSettingsModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <MaterialCommunityIcons name="close" size={20} color="#9CA3AF" />
               </TouchableOpacity>
             </View>
             
@@ -1008,15 +1063,12 @@ const ProfileScreen = () => {
               />
             </List.Section>
 
-            <Button
-              mode="contained"
+            <TouchableOpacity
               onPress={() => setShowAccountSettingsModal(false)}
-              style={[styles.modalButton, { marginTop: 32 }]}
-              buttonColor="#E1BEE7"
-              contentStyle={{ paddingVertical: 12 }}
+              style={[styles.modalButton, styles.saveButton, { marginTop: 32 }]}
             >
-              {t('common.ok')}
-            </Button>
+              <Text style={styles.saveButtonText}>{t('common.ok')}</Text>
+            </TouchableOpacity>
           </Card.Content>
           </ScrollView>
         </Card>
@@ -1037,8 +1089,11 @@ const ProfileScreen = () => {
             <View style={styles.modalHeader}>
               <MaterialCommunityIcons name="help-circle" size={32} color="#E1BEE7" />
               <Title style={[styles.modalTitle, themedStyles.title]}>{t('profile.help')}</Title>
-              <TouchableOpacity onPress={() => setShowHelpModal(false)}>
-                <MaterialCommunityIcons name="close" size={24} color="#666666" />
+              <TouchableOpacity 
+                onPress={() => setShowHelpModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <MaterialCommunityIcons name="close" size={20} color="#9CA3AF" />
               </TouchableOpacity>
             </View>
             
@@ -1092,17 +1147,190 @@ const ProfileScreen = () => {
               />
             </List.Section>
 
-            <Button
-              mode="contained"
+            <TouchableOpacity
               onPress={() => setShowHelpModal(false)}
-              style={[styles.modalButton, { marginTop: 32 }]}
-              buttonColor="#E1BEE7"
-              contentStyle={{ paddingVertical: 12 }}
+              style={[styles.modalButton, styles.saveButton, { marginTop: 32 }]}
             >
-              {t('common.ok')}
-            </Button>
+              <Text style={styles.saveButtonText}>{t('common.ok')}</Text>
+            </TouchableOpacity>
           </Card.Content>
           </ScrollView>
+        </Card>
+      </Modal>
+    </Portal>
+
+    {/* Date Picker Modal */}
+    <Portal>
+      <Modal
+        dismissable={true}
+        visible={showDatePickerModal}
+        onDismiss={() => setShowDatePickerModal(false)}
+        onShow={() => {
+          // Modal açıldığında seçili yıla scroll yap
+          if (yearScrollViewRef.current && selectedYear) {
+            const currentYear = new Date().getFullYear();
+            const yearIndex = currentYear - selectedYear;
+            setTimeout(() => {
+              yearScrollViewRef.current?.scrollTo({ y: yearIndex * 50, animated: true });
+            }, 100);
+          }
+          // Seçili aya scroll yap
+          if (monthScrollViewRef.current && selectedMonth) {
+            setTimeout(() => {
+              monthScrollViewRef.current?.scrollTo({ y: (selectedMonth - 1) * 50, animated: true });
+            }, 100);
+          }
+        }}
+        contentContainerStyle={styles.datePickerModalContainer}
+      >
+        <Card style={[styles.datePickerModalCard, themedStyles.card]}>
+          <Card.Content style={styles.datePickerModalContent}>
+            <View style={styles.datePickerModalHeader}>
+              <Title style={[styles.modalTitle, themedStyles.title]}>
+                {t('profile.birthDate') || 'Doğum Tarihi Seçin'}
+              </Title>
+              <TouchableOpacity 
+                onPress={() => setShowDatePickerModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <MaterialCommunityIcons name="close" size={20} color="#9CA3AF" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Yıl ve Ay Seçimi */}
+            <View style={styles.yearMonthSelector}>
+              <View style={styles.yearMonthItem}>
+                <Text style={styles.yearMonthLabel}>{t('profile.year') || 'Yıl'}</Text>
+                <View style={styles.pickerContainer}>
+                  <ScrollView 
+                    style={styles.yearPickerScroll}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.pickerScrollContent}
+                  >
+                    {Array.from({ length: 100 }, (_, i) => {
+                      const year = new Date().getFullYear() - i;
+                      return (
+                        <TouchableOpacity
+                          key={year}
+                          style={[
+                            styles.pickerOption,
+                            selectedYear === year && styles.pickerOptionSelected
+                          ]}
+                          onPress={() => setSelectedYear(year)}
+                        >
+                          <Text style={[
+                            styles.pickerOptionText,
+                            selectedYear === year && styles.pickerOptionTextSelected
+                          ]}>
+                            {year}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              </View>
+
+              <View style={styles.yearMonthItem}>
+                <Text style={styles.yearMonthLabel}>{t('profile.month') || 'Ay'}</Text>
+                <View style={styles.pickerContainer}>
+                  <ScrollView 
+                    ref={monthScrollViewRef}
+                    style={styles.monthPickerScroll}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.pickerScrollContent}
+                  >
+                    {Array.from({ length: 12 }, (_, i) => {
+                      const month = i + 1;
+                      const monthNames = language === 'tr' 
+                        ? ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık']
+                        : ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                      return (
+                        <TouchableOpacity
+                          key={month}
+                          style={[
+                            styles.pickerOption,
+                            selectedMonth === month && styles.pickerOptionSelected
+                          ]}
+                          onPress={() => {
+                            setSelectedMonth(month);
+                            // Scroll to selected month
+                            if (monthScrollViewRef.current) {
+                              monthScrollViewRef.current.scrollTo({ y: i * 50, animated: true });
+                            }
+                          }}
+                        >
+                          <Text style={[
+                            styles.pickerOptionText,
+                            selectedMonth === month && styles.pickerOptionTextSelected
+                          ]}>
+                            {monthNames[i]}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              </View>
+            </View>
+            
+            <Calendar
+              key={`${selectedYear}-${selectedMonth}`}
+              onDayPress={(day) => {
+                setEditBirthDate(day.dateString);
+                setShowDatePickerModal(false);
+              }}
+              current={`${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`}
+              markedDates={{
+                [editBirthDate]: {
+                  selected: true,
+                  selectedColor: '#54CE8F',
+                  selectedTextColor: '#FFFFFF',
+                },
+              }}
+              maxDate={new Date().toISOString().split('T')[0]}
+              enableSwipeMonths={false}
+              hideArrows={true}
+              hideExtraDays={true}
+              disableMonthChange={true}
+              theme={{
+                backgroundColor: '#FFFFFF',
+                calendarBackground: '#FFFFFF',
+                textSectionTitleColor: '#030213',
+                selectedDayBackgroundColor: '#54CE8F',
+                selectedDayTextColor: '#FFFFFF',
+                todayTextColor: '#54CE8F',
+                dayTextColor: '#030213',
+                textDisabledColor: '#D1D5DB',
+                dotColor: '#54CE8F',
+                selectedDotColor: '#FFFFFF',
+                arrowColor: '#54CE8F',
+                monthTextColor: '#030213',
+                indicatorColor: '#54CE8F',
+                textDayFontWeight: '500',
+                textMonthFontWeight: '600',
+                textDayHeaderFontWeight: '500',
+                textDayFontSize: 14,
+                textMonthFontSize: 16,
+                textDayHeaderFontSize: 12,
+              }}
+              style={styles.calendar}
+            />
+
+            {editBirthDate && (
+              <TouchableOpacity
+                onPress={() => {
+                  setEditBirthDate('');
+                  setShowDatePickerModal(false);
+                }}
+                style={styles.clearDateButton}
+              >
+                <Text style={styles.clearDateButtonText}>
+                  {t('common.clear')}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </Card.Content>
         </Card>
       </Modal>
     </Portal>
@@ -1139,26 +1367,24 @@ const ProfileScreen = () => {
               </View>
             ) : (
               <View style={styles.logoutModalButtons}>
-                <Button
-                  mode="outlined"
+                <TouchableOpacity
                   onPress={() => setShowLogoutModal(false)}
-                  style={styles.logoutCancelButton}
-                  textColor={theme.colors.text}
-                  contentStyle={{ paddingVertical: 4 }}
-                  labelStyle={{ fontSize: 14 }}
+                  style={[styles.modalButton, styles.logoutCancelButton]}
+                  disabled={!!loggingOut}
                 >
-                  {t('common.cancel')}
-                </Button>
-                <Button
-                  mode="contained"
+                  <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
                   onPress={confirmLogout}
-                  style={styles.logoutConfirmButton}
-                  buttonColor={theme.colors.error}
-                  contentStyle={{ paddingVertical: 4 }}
-                  labelStyle={{ fontSize: 14 }}
+                  style={[styles.modalButton, styles.logoutConfirmButton]}
+                  disabled={!!loggingOut}
                 >
-                  {t('auth.logout')}
-                </Button>
+                  {loggingOut ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={[styles.saveButtonText, { color: '#FFFFFF' }]}>{t('auth.logout')}</Text>
+                  )}
+                </TouchableOpacity>
               </View>
             )}
           </Card.Content>
@@ -1172,148 +1398,165 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAFCFB', // New design background
   },
   scrollView: {
     flex: 1,
   },
   // Profile Header Card - Light Purple
   profileHeaderCard: {
-    backgroundColor: '#BA68C8',
+    backgroundColor: '#B4AEBD', // New design purple
     marginHorizontal: 0,
     marginTop: 0,
-    marginBottom: 20,
+    marginBottom: 24, // mb-6
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    paddingHorizontal: 24, // px-6
+    paddingBottom: 24, // pb-6
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 0,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   profileHeaderContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)', // white/20 with backdrop blur effect
+    borderRadius: 16, // rounded-2xl
+    padding: 24, // p-6
   },
   avatarContainer: {
     position: 'relative',
-    marginRight: 16,
+    marginRight: 16, // gap-4
   },
   profileAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 80, // w-20
+    height: 80, // h-20
+    borderRadius: 40,
     backgroundColor: '#FFFFFF',
   },
   avatarPlaceholder: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#9575CD',
+    width: 80, // w-20
+    height: 80, // h-20
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)', // white/30
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarInitials: {
-    fontSize: 20,
+    fontSize: 32, // text-2xl
     fontWeight: '600',
-    color: '#7B1FA2',
+    color: '#FFFFFF',
   },
   editIconContainer: {
     position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#4CAF50',
+    bottom: 0,
+    right: 0,
+    width: 28, // w-7
+    height: 28, // h-7
+    borderRadius: 14,
+    backgroundColor: '#54CE8F', // Primary green
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderWidth: 0,
   },
   userInfoContainer: {
     flex: 1,
   },
   profileName: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    fontSize: 20, // text-xl
+    fontWeight: '600',
     color: '#FFFFFF',
-    marginBottom: 4,
+    marginBottom: 4, // mb-1
   },
   profileEmail: {
-    fontSize: 14,
-    color: '#F3E5F5',
-    marginBottom: 12,
+    fontSize: 14, // text-sm
+    color: 'rgba(255, 255, 255, 0.8)', // white/80
+    marginBottom: 8, // mb-2
   },
   tagsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8, // gap-2
   },
   tag: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: 12, // px-3
+    paddingVertical: 4, // py-1
+    borderRadius: 9999, // rounded-full
+    backgroundColor: 'rgba(255, 255, 255, 0.2)', // white/20
   },
   tagText: {
-    fontSize: 12,
-    color: '#666666',
+    fontSize: 11, // text-xs
+    color: '#FFFFFF',
     fontWeight: '500',
   },
   section: {
-    padding: 20,
+    padding: 24, // px-6 py-6
     paddingTop: 0,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginBottom: 16,
+    fontSize: 18, // text-lg
+    fontWeight: '600',
+    color: '#030213', // Dark text from design
+    marginBottom: 16, // mb-4
   },
   sectionHeader: {
-    fontSize: 14,
-    color: '#9E9E9E',
-    marginBottom: 12,
+    fontSize: 14, // text-sm
+    color: '#9CA3AF', // gray-400
+    marginBottom: 12, // mb-3
     fontWeight: '500',
+    paddingHorizontal: 8, // px-2
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'center',
+    marginHorizontal: -6, // Negative margin to offset card margins
   },
   statCard: {
-    width: (width - 80) / 2,
+    width: (width - 48 - 12) / 2, // (width - padding*2 - gap) / 2
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    alignItems: 'center',
+    borderRadius: 16, // rounded-2xl
+    padding: 20, // p-5
+    marginBottom: 12, // gap-3
+    marginRight: 12, // gap-3
+    alignItems: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#F3F4F6', // gray-100
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 1,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  statIconContainer: {
+    width: 40, // w-10
+    height: 40, // h-10
+    borderRadius: 12, // rounded-xl
+    backgroundColor: '#F3F4F6', // gray-100
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12, // mb-3
   },
   statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#4CAF50',
-    marginTop: 8,
-    marginBottom: 4,
+    fontSize: 24, // text-2xl
+    fontWeight: '600',
+    color: '#54CE8F', // Primary green
+    marginBottom: 4, // mb-1
   },
   statLabel: {
-    fontSize: 12,
-    color: '#9E9E9E',
-    textAlign: 'center',
+    fontSize: 14, // text-sm
+    color: '#717182', // Medium gray
+    textAlign: 'left',
   },
   rankCard: {
     alignItems: 'center',
@@ -1347,64 +1590,75 @@ const styles = StyleSheet.create({
   // Quick Actions
   quickActionsHorizontal: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 12, // gap-3
   },
   quickActionCard: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 16, // rounded-2xl
+    padding: 16, // p-4
     alignItems: 'center',
-    marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: '#F3F4F6', // gray-100
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 1,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   quickActionText: {
-    fontSize: 12,
-    color: '#1B1B1B',
-    marginTop: 8,
+    fontSize: 12, // text-xs
+    color: '#374151', // gray-700
+    marginTop: 8, // gap-2
     textAlign: 'center',
   },
   // Settings List
   settingsList: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 16, // rounded-2xl
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#F3F4F6', // gray-100
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 1,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   settingsItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: 20, // px-5 py-4
     borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
+    borderBottomColor: '#F3F4F6', // gray-100
   },
   settingsItemText: {
     flex: 1,
     fontSize: 16,
-    color: '#1B1B1B',
-    marginLeft: 12,
+    color: '#030213', // Dark text
+    marginLeft: 16, // gap-4
+  },
+  settingsIconContainer: {
+    width: 40, // w-10
+    height: 40, // h-10
+    borderRadius: 12, // rounded-xl
+    backgroundColor: '#F3F4F6', // gray-100
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   settingsItemRight: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   settingsItemSubtext: {
-    fontSize: 14,
-    color: '#9E9E9E',
+    fontSize: 14, // text-sm
+    color: '#9CA3AF', // gray-400
     marginRight: 8,
   },
   // Logout
@@ -1414,23 +1668,30 @@ const styles = StyleSheet.create({
   },
   logoutButtonFull: {
     width: '100%',
-    borderRadius: 12,
-    elevation: 2,
+    borderRadius: 16, // rounded-2xl
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F3F4F6', // gray-100
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 1,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   logoutButtonContent: {
-    paddingVertical: 14,
+    paddingVertical: 20, // py-5
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12, // gap-3
   },
   logoutButtonLabel: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontWeight: '500',
+    color: '#DC2626', // red-600
   },
   modalContainer: {
     margin: 20,
@@ -1438,69 +1699,91 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalCard: {
-    borderRadius: 20,
+    borderRadius: 16, // rounded-2xl
     maxHeight: '85%',
     minHeight: '60%',
     backgroundColor: '#FFFFFF',
-    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // gray-200
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 0,
     },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   modalScrollView: {
     flexGrow: 1,
   },
   modalContent: {
-    padding: 24,
+    padding: 24, // px-6 py-6
     paddingBottom: 32,
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
-    paddingBottom: 16,
+    marginBottom: 16, // mb-4
+    paddingBottom: 16, // pb-4
     borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
+    borderBottomColor: '#E5E7EB', // gray-200
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
+    fontSize: 20, // text-xl
+    fontWeight: '600',
+    color: '#030213', // Dark text
     flex: 1,
     marginLeft: 12,
   },
   modalSubtitle: {
-    fontSize: 14,
-    color: '#6C757D',
-    marginBottom: 20,
+    fontSize: 14, // text-sm
+    color: '#717182', // Medium gray
+    marginBottom: 20, // mb-5
     lineHeight: 20,
   },
   textInput: {
-    marginBottom: 20,
+    marginBottom: 20, // mb-5
     backgroundColor: '#FFFFFF',
     fontSize: 16,
+    borderRadius: 16, // rounded-2xl
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // gray-200
   },
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 32,
-    gap: 12,
+    marginTop: 32, // mt-8
+    gap: 12, // gap-3
   },
   modalButton: {
     flex: 1,
-    borderRadius: 12,
-    paddingVertical: 8,
+    borderRadius: 16, // rounded-2xl
+    paddingVertical: 16, // py-4
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   cancelButton: {
-    borderColor: '#757575',
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // gray-200
+    backgroundColor: '#FFFFFF',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#030213', // Dark text
+    textAlign: 'center',
   },
   saveButton: {
-    // Flex gap ile spacing sağlandı
+    backgroundColor: '#54CE8F', // Primary green
+    borderWidth: 0,
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
   listItem: {
     backgroundColor: '#F8F9FA',
@@ -1578,10 +1861,14 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 10,
     borderColor: '#757575',
+    borderWidth: 1,
+    backgroundColor: '#FFFFFF',
   },
   logoutConfirmButton: {
     flex: 1,
     borderRadius: 10,
+    backgroundColor: '#DC2626', // Red background for logout
+    borderWidth: 0,
   },
   // Photo Options Modal Styles
   photoModalContainer: {
@@ -1589,79 +1876,202 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   photoModalCard: {
-    borderRadius: 20,
-    elevation: 8,
+    borderRadius: 16, // rounded-2xl
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // gray-200
+    backgroundColor: '#FFFFFF',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 0,
     },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   photoModalContent: {
-    padding: 24,
+    padding: 24, // px-6 py-6
   },
   photoModalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
-    paddingBottom: 16,
+    marginBottom: 16, // mb-4
+    paddingBottom: 16, // pb-4
     borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
+    borderBottomColor: '#E5E7EB', // gray-200
   },
   photoModalTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    fontSize: 20, // text-xl
+    fontWeight: '600',
+    color: '#030213', // Dark text
     flex: 1,
+    marginLeft: 12,
   },
   photoModalSubtitle: {
-    fontSize: 14,
-    marginBottom: 24,
+    fontSize: 14, // text-sm
+    color: '#717182', // Medium gray
+    marginBottom: 24, // mb-6
     lineHeight: 20,
   },
   photoOptionsContainer: {
-    gap: 12,
-    marginBottom: 20,
+    gap: 12, // gap-3
+    marginBottom: 20, // mb-5
   },
   photoOption: {
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 16, // rounded-2xl
+    padding: 20, // p-5
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    elevation: 2,
+    borderColor: '#E5E7EB', // gray-200
+    backgroundColor: '#FFFFFF',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 1,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   photoOptionDanger: {
-    borderColor: '#FFCDD2',
+    borderColor: '#FEE2E2', // red-100
+    backgroundColor: '#FEF2F2', // red-50
   },
   photoOptionIcon: {
-    width: 64,
-    height: 64,
+    width: 64, // w-16
+    height: 64, // h-16
     borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 12, // mb-3
   },
   photoOptionTitle: {
-    fontSize: 18,
+    fontSize: 16, // text-base
     fontWeight: '600',
-    marginBottom: 6,
+    color: '#030213', // Dark text
+    marginBottom: 6, // mb-1.5
   },
   photoOptionDescription: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 14, // text-sm
+    color: '#717182', // Medium gray
+    lineHeight: 20,
   },
   photoCancelButton: {
+    borderRadius: 16, // rounded-2xl
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // gray-200
+    backgroundColor: '#FFFFFF',
+  },
+  modalCloseButton: {
+    width: 32, // w-8
+    height: 32, // h-8
+    borderRadius: 16, // rounded-full
+    backgroundColor: '#F3F4F6', // gray-100
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Date Picker Styles
+  dateInputContainer: {
+    marginBottom: 20,
+  },
+  datePickerModalContainer: {
+    margin: 20,
+    justifyContent: 'center',
+  },
+  datePickerModalCard: {
+    borderRadius: 16, // rounded-2xl
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // gray-200
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 0,
+    },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+  },
+  datePickerModalContent: {
+    padding: 24, // px-6 py-6
+  },
+  datePickerModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16, // mb-4
+    paddingBottom: 16, // pb-4
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB', // gray-200
+  },
+  calendar: {
+    borderRadius: 16, // rounded-2xl
+    marginBottom: 16,
+  },
+  clearDateButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 12,
-    borderWidth: 2,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clearDateButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#717182',
+    textAlign: 'center',
+  },
+  yearMonthSelector: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  yearMonthItem: {
+    flex: 1,
+  },
+  yearMonthLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#717182',
+    marginBottom: 8,
+  },
+  pickerContainer: {
+    height: 150,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
+    overflow: 'hidden',
+  },
+  yearPickerScroll: {
+    flex: 1,
+  },
+  monthPickerScroll: {
+    flex: 1,
+  },
+  pickerScrollContent: {
+    paddingVertical: 4,
+  },
+  pickerOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginHorizontal: 4,
+    marginVertical: 2,
+  },
+  pickerOptionSelected: {
+    backgroundColor: '#54CE8F',
+  },
+  pickerOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#030213',
+    textAlign: 'center',
+  },
+  pickerOptionTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
 });
 

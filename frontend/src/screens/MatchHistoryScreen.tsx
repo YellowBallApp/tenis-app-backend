@@ -362,8 +362,8 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#2E7D32" />
-        <Text style={{ marginTop: 10, color: '#6C757D' }}>{t('matchHistory.loading')}</Text>
+        <ActivityIndicator size="large" color="#54CE8F" />
+        <Text style={{ marginTop: 10, color: '#717182' }}>{t('matchHistory.loading')}</Text>
       </View>
     );
   }
@@ -373,15 +373,21 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
       <StatusBar style="light" />
       
       {/* Header */}
-      <View style={[styles.headerSection, { paddingTop: Platform.OS === 'android' ? insets.top + 20 : 50 }]}>
+      <View style={[styles.headerSection, { paddingTop: insets.top + 20 }]}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Home' as never);
+            }
+          }}
           style={styles.backButton}
         >
-          <MaterialCommunityIcons name="arrow-left" size={28} color="#FFFFFF" />
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
-          <Title style={styles.headerTitle}>{t('matchHistory.title')}</Title>
+          <Text style={styles.headerTitle}>{t('matchHistory.title')}</Text>
           {leagueName && (
             <Text style={styles.headerSubtitle}>{leagueName}</Text>
           )}
@@ -394,28 +400,34 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
         <View style={styles.statsSection}>
           <Card style={styles.statsCard}>
             <Card.Content>
-              <View style={styles.statsHeader}>
-                <MaterialCommunityIcons name="chart-line" size={28} color="#2E7D32" />
-                <Title style={styles.statsTitle}>{t('matchHistory.statistics')}</Title>
-              </View>
+              <Text style={styles.statsTitle}>{t('matchHistory.statistics')}</Text>
               <View style={styles.statsGrid}>
                 <View style={styles.statItem}>
+                  <View style={styles.statIconContainer}>
+                    <MaterialCommunityIcons name="chart-line" size={20} color="#B4AEBD" />
+                  </View>
                   <Text style={styles.statNumber}>{stats.total}</Text>
                   <Text style={styles.statLabel}>{t('matchHistory.totalMatches')}</Text>
                 </View>
-                <View style={styles.statDivider} />
                 <View style={styles.statItem}>
-                  <Text style={[styles.statNumber, { color: '#2E7D32' }]}>{stats.wins}</Text>
+                  <View style={styles.statIconContainer}>
+                    <MaterialCommunityIcons name="trophy" size={20} color="#B4AEBD" />
+                  </View>
+                  <Text style={[styles.statNumber, { color: '#54CE8F' }]}>{stats.wins}</Text>
                   <Text style={styles.statLabel}>{t('matchHistory.wins')}</Text>
                 </View>
-                <View style={styles.statDivider} />
                 <View style={styles.statItem}>
-                  <Text style={[styles.statNumber, { color: '#DC3545' }]}>{stats.losses}</Text>
+                  <View style={styles.statIconContainer}>
+                    <MaterialCommunityIcons name="close-circle" size={20} color="#B4AEBD" />
+                  </View>
+                  <Text style={[styles.statNumber, { color: '#B4AEBD' }]}>{stats.losses}</Text>
                   <Text style={styles.statLabel}>{t('matchHistory.losses')}</Text>
                 </View>
-                <View style={styles.statDivider} />
                 <View style={styles.statItem}>
-                  <Text style={[styles.statNumber, { color: '#FF9800' }]}>%{stats.winRate}</Text>
+                  <View style={styles.statIconContainer}>
+                    <MaterialCommunityIcons name="trending-up" size={20} color="#B4AEBD" />
+                  </View>
+                  <Text style={[styles.statNumber, { color: '#54CE8F' }]}>%{stats.winRate}</Text>
                   <Text style={styles.statLabel}>{t('matchHistory.winRate')}</Text>
                 </View>
               </View>
@@ -430,14 +442,15 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
             onChangeText={setSearchQuery}
             value={searchQuery}
             style={styles.searchbar}
-            iconColor="#2E7D32"
+            iconColor="#9CA3AF"
+            inputStyle={styles.searchInput}
           />
           <View style={styles.filterButtonRow}>
             <TouchableOpacity
               style={styles.filterButton}
               onPress={() => setShowFilterModal(true)}
             >
-              <MaterialCommunityIcons name="filter-variant" size={20} color="#2E7D32" />
+              <MaterialCommunityIcons name="filter-variant" size={20} color="#54CE8F" />
               <Text style={styles.filterButtonText}>{t('matchHistory.filter')}</Text>
               {getActiveFilterCount() > 0 && (
                 <View style={styles.filterBadge}>
@@ -486,16 +499,16 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                         <MaterialCommunityIcons name="calendar" size={16} color="#6C757D" />
                         <Text style={styles.matchDate}>{formatDate(match.matchDate)}</Text>
                       </View>
-                      <Chip
+                      <View
                         style={[
                           styles.resultChip,
                           isMatchWinner ? styles.winChip : styles.loseChip
                         ]}
-                        textStyle={styles.resultChipText}
-                        compact
                       >
-                        {isMatchWinner ? t('matchHistory.winner') : t('matchHistory.loser')}
-                      </Chip>
+                        <Text style={styles.resultChipText}>
+                          {isMatchWinner ? t('matchHistory.winner') : t('matchHistory.loser')}
+                        </Text>
+                      </View>
                     </View>
 
                     {/* Skor */}
@@ -528,7 +541,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                         <MaterialCommunityIcons 
                           name={match.indoorCourt ? "home-roof" : "weather-sunny"} 
                           size={16} 
-                          color="#2E7D32" 
+                          color="#9CA3AF" 
                         />
                         <Text style={styles.courtInfoText}>
                           {match.indoorCourt ? t('matchHistory.indoorCourt') : t('matchHistory.outdoorCourt')}
@@ -539,7 +552,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                         <MaterialCommunityIcons 
                           name="texture-box" 
                           size={16} 
-                          color="#2E7D32" 
+                          color="#9CA3AF" 
                         />
                         <Text style={styles.courtInfoText}>
                           {match.courtGround === 'grass' && t('matchHistory.grassCourt')}
@@ -554,7 +567,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                       style={styles.commentButton}
                       onPress={() => openCommentModal(match)}
                     >
-                      <MaterialCommunityIcons name="comment-text-outline" size={20} color="#2E7D32" />
+                      <MaterialCommunityIcons name="comment-text-outline" size={20} color="#54CE8F" />
                       <Text style={styles.commentButtonText}>{t('matchHistory.comments')}</Text>
                       {commentCounts[match.id] > 0 && (
                         <View style={styles.commentBadge}>
@@ -563,10 +576,10 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                       )}
                     </TouchableOpacity>
 
-                    {/* Lig Bilgisi - Sağ Alt Köşe */}
+                    {/* Lig Bilgisi */}
                     {match.leagueStanding?.league?.name && (
                       <View style={styles.leagueBadge}>
-                        <MaterialCommunityIcons name="trophy" size={14} color="#FF9800" />
+                        <MaterialCommunityIcons name="trophy" size={14} color="#54CE8F" />
                         <Text style={styles.leagueBadgeText}>
                           {match.leagueStanding.league.name}
                         </Text>
@@ -598,9 +611,12 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
           <Card style={styles.modalCard}>
             <Card.Content>
               <View style={styles.modalHeader}>
-                <Title style={styles.modalTitle}>{t('matchHistory.filters')}</Title>
-                <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-                  <MaterialCommunityIcons name="close" size={24} color="#757575" />
+                <Text style={styles.modalTitle}>{t('matchHistory.filters')}</Text>
+                <TouchableOpacity 
+                  onPress={() => setShowFilterModal(false)}
+                  style={styles.modalCloseButton}
+                >
+                  <MaterialCommunityIcons name="close" size={20} color="#9CA3AF" />
                 </TouchableOpacity>
               </View>
 
@@ -710,7 +726,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                       <MaterialCommunityIcons 
                         name="weather-sunny" 
                         size={18} 
-                        color={filterCourtType === 'outdoor' ? "#2E7D32" : "#757575"} 
+                        color={filterCourtType === 'outdoor' ? "#54CE8F" : "#9CA3AF"} 
                         style={{ marginRight: 4 }}
                       />
                       <Text style={[
@@ -728,7 +744,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                       <MaterialCommunityIcons 
                         name="home-roof" 
                         size={18} 
-                        color={filterCourtType === 'indoor' ? "#2E7D32" : "#757575"} 
+                        color={filterCourtType === 'indoor' ? "#54CE8F" : "#9CA3AF"} 
                         style={{ marginRight: 4 }}
                       />
                       <Text style={[
@@ -796,21 +812,18 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
               </ScrollView>
 
               <View style={styles.modalButtons}>
-                <Button
-                  mode="outlined"
+                <TouchableOpacity
                   onPress={clearFilters}
-                  style={styles.modalClearButton}
+                  style={[styles.modalClearButton, { paddingVertical: 16, justifyContent: 'center', alignItems: 'center' }]}
                 >
-                  {t('matchHistory.clear')}
-                </Button>
-                <Button
-                  mode="contained"
+                  <Text style={styles.cancelButtonText}>{t('matchHistory.clear')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
                   onPress={() => setShowFilterModal(false)}
-                  style={styles.modalApplyButton}
-                  buttonColor="#2E7D32"
+                  style={[styles.modalApplyButton, { paddingVertical: 16, justifyContent: 'center', alignItems: 'center' }]}
                 >
-                  {t('matchHistory.apply')}
-                </Button>
+                  <Text style={styles.saveButtonText}>{t('matchHistory.apply')}</Text>
+                </TouchableOpacity>
               </View>
             </Card.Content>
           </Card>
@@ -823,24 +836,26 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
           onDismiss={closeCommentModal}
           contentContainerStyle={styles.commentModalContainer}
         >
-          <Card style={[styles.commentModalCard, themedStyles.card]}>
+          <Card style={styles.commentModalCard}>
             <ScrollView 
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
             >
             <Card.Content style={styles.commentModalContent}>
-                <View style={[styles.modalHeader, { borderBottomColor: theme.colors.outline || '#E9ECEF' }]}>
-                  <MaterialCommunityIcons name="comment-text" size={32} color="#2E7D32" />
-                  <Title style={[styles.modalTitle, themedStyles.title]}>{t('matchHistory.matchComments')}</Title>
-                <TouchableOpacity onPress={closeCommentModal}>
-                    <MaterialCommunityIcons name="close" size={24} color={theme.colors.text || '#757575'} />
-                </TouchableOpacity>
-              </View>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>{t('matchHistory.matchComments')}</Text>
+                  <TouchableOpacity 
+                    onPress={closeCommentModal}
+                    style={styles.modalCloseButton}
+                  >
+                    <MaterialCommunityIcons name="close" size={20} color="#9CA3AF" />
+                  </TouchableOpacity>
+                </View>
 
               {/* Maç Bilgisi */}
               {selectedMatch && (
                 <View style={styles.matchInfoBar}>
-                    <Text style={[styles.matchInfoText, themedStyles.text]}>
+                    <Text style={styles.matchInfoText}>
                     {formatDate(selectedMatch.matchDate)} • {selectedMatch.score}
                   </Text>
                 </View>
@@ -849,8 +864,8 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                 {/* Yorumlar Listesi */}
                 {loadingComments ? (
                   <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="small" color="#2E7D32" />
-                    <Text style={[styles.loadingText, themedStyles.text]}>{t('matchHistory.loadingComments')}</Text>
+                    <ActivityIndicator size="small" color="#54CE8F" />
+                    <Text style={styles.loadingText}>{t('matchHistory.loadingComments')}</Text>
                   </View>
                 ) : comments.length > 0 ? (
                   <View style={styles.commentsListContainer}>
@@ -858,10 +873,12 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                     <View key={comment.id} style={styles.commentItem}>
                       <View style={styles.commentHeader}>
                         <View style={styles.commentUserInfo}>
-                          <MaterialCommunityIcons name="account-circle" size={32} color="#2E7D32" />
+                          <View style={styles.commentUserAvatar}>
+                            <MaterialCommunityIcons name="account-circle" size={24} color="#B4AEBD" />
+                          </View>
                           <View style={styles.commentUserDetails}>
-                              <Text style={[styles.commentUserName, themedStyles.title]}>{comment.user.name}</Text>
-                              <Text style={[styles.commentDate, themedStyles.subtitle]}>{formatCommentDate(comment.created)}</Text>
+                              <Text style={styles.commentUserName}>{comment.user.name}</Text>
+                              <Text style={styles.commentDate}>{formatCommentDate(comment.created)}</Text>
                           </View>
                         </View>
                         
@@ -875,13 +892,13 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                                 setEditingCommentText(comment.comment);
                               }}
                             >
-                              <MaterialCommunityIcons name="pencil" size={20} color="#2E7D32" />
+                              <MaterialCommunityIcons name="pencil" size={18} color="#54CE8F" />
                             </TouchableOpacity>
                             <TouchableOpacity
                               style={styles.commentActionButton}
                               onPress={() => handleDeleteComment(comment.id)}
                             >
-                              <MaterialCommunityIcons name="delete" size={20} color="#DC3545" />
+                              <MaterialCommunityIcons name="delete" size={18} color="#EF4444" />
                             </TouchableOpacity>
                           </View>
                         )}
@@ -916,15 +933,15 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                           </View>
                         </View>
                       ) : (
-                          <Text style={[styles.commentText, themedStyles.text]}>{comment.comment}</Text>
+                          <Text style={styles.commentText}>{comment.comment}</Text>
                       )}
                     </View>
                     ))}
                   </View>
                 ) : (
                   <View style={styles.emptyCommentsContainer}>
-                    <MaterialCommunityIcons name="comment-off-outline" size={48} color="#BDBDBD" />
-                    <Text style={[styles.emptyCommentsText, themedStyles.subtitle]}>{t('matchHistory.noComments')}</Text>
+                    <MaterialCommunityIcons name="comment-off-outline" size={48} color="#9CA3AF" />
+                    <Text style={styles.emptyCommentsText}>{t('matchHistory.noComments')}</Text>
                   </View>
                 )}
 
@@ -937,7 +954,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                   placeholder={t('matchHistory.writeComment')}
                   multiline
                   numberOfLines={3}
-                    placeholderTextColor={theme.colors.placeholder || '#9E9E9E'}
+                  placeholderTextColor="#9CA3AF"
                 />
                 <View style={styles.commentInputButtons}>
                   <Button
@@ -971,170 +988,199 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FAFCFB', // New design background
   },
   headerSection: {
-    backgroundColor: '#BA68C8',
-    paddingBottom: 25,
-    paddingHorizontal: 20,
+    backgroundColor: '#B4AEBD', // New design purple
+    paddingBottom: 24, // pb-6
+    paddingHorizontal: 24, // px-6
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
   },
   backButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 40,
+    height: 40,
+    borderRadius: 20, // rounded-full
+    backgroundColor: 'rgba(255, 255, 255, 0.2)', // white/20
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitleContainer: {
     flex: 1,
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 24, // text-2xl
+    fontWeight: '600',
     color: '#FFFFFF',
     textAlign: 'center',
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: '#E8F5E8',
+    fontSize: 12, // text-xs
+    color: '#F3E5F5', // Light purple
     textAlign: 'center',
-    marginTop: 2,
+    marginTop: 4, // mt-1
   },
   placeholder: {
-    width: 44,
+    width: 40,
   },
   statsSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 28,
-    backgroundColor: '#BA68C8',
-    flexDirection: 'row',
-    gap: 12,
+    paddingHorizontal: 24, // px-6
+    paddingVertical: 24, // py-6
+    backgroundColor: '#FAFCFB',
   },
   statsCard: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 20,
-    elevation: 0,
-    borderWidth: 0,
-  },
-  statsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16, // rounded-2xl
+    borderWidth: 1,
+    borderColor: '#F3F4F6', // gray-100
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   statsTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginLeft: 12,
+    fontSize: 18, // text-lg
+    fontWeight: '600',
+    color: '#030213',
+    marginBottom: 20, // mb-5
   },
   statsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12, // gap-3
   },
   statItem: {
-    alignItems: 'center',
+    width: '48%', // 2 columns
+    alignItems: 'flex-start',
   },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: '#E9ECEF',
+  statIconContainer: {
+    width: 40, // w-10
+    height: 40, // h-10
+    borderRadius: 12, // rounded-xl
+    backgroundColor: '#F3F4F6', // gray-100
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8, // mb-2
   },
   statNumber: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginTop: 8,
+    fontSize: 28, // text-3xl
+    fontWeight: '600',
+    color: '#030213',
+    marginBottom: 4, // mb-1
   },
   statLabel: {
-    fontSize: 13,
-    color: '#666666',
-    marginTop: 4,
-    textAlign: 'center',
+    fontSize: 14, // text-sm
+    color: '#717182', // Medium gray
+    textAlign: 'left',
   },
   filterSection: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 15,
-    backgroundColor: '#F8F9FA',
+    paddingHorizontal: 24, // px-6
+    paddingTop: 24, // pt-6
+    paddingBottom: 16, // pb-4
+    backgroundColor: '#FAFCFB',
   },
   searchbar: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 16, // rounded-2xl
     elevation: 0,
-    marginBottom: 10,
+    marginBottom: 12, // mb-3
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#E5E7EB', // gray-200
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 0,
+    },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+  },
+  searchInput: {
+    fontSize: 16,
+    color: '#030213',
   },
   filterButtonRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12, // gap-3
   },
   filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderRadius: 16,
+    paddingHorizontal: 16, // px-4
+    paddingVertical: 12, // py-3
+    borderRadius: 16, // rounded-2xl
     borderWidth: 1,
-    borderColor: '#2E7D32',
-    gap: 8,
+    borderColor: '#E5E7EB', // gray-200
+    gap: 8, // gap-2
   },
   filterButtonText: {
-    color: '#2E7D32',
-    fontWeight: '600',
-    fontSize: 15,
+    color: '#030213',
+    fontWeight: '500',
+    fontSize: 14, // text-sm
   },
   filterBadge: {
-    backgroundColor: '#DC3545',
-    borderRadius: 10,
-    width: 20,
+    backgroundColor: '#54CE8F', // Primary green
+    borderRadius: 9999, // rounded-full
+    minWidth: 20,
     height: 20,
+    paddingHorizontal: 6,
     justifyContent: 'center',
     alignItems: 'center',
   },
   filterBadgeText: {
     color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: 'bold',
+    fontSize: 11, // text-xs
+    fontWeight: '600',
   },
   clearFilterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 16, // px-4
+    paddingVertical: 12, // py-3
   },
   clearFilterText: {
-    color: '#DC3545',
-    fontWeight: '600',
-    fontSize: 14,
+    color: '#717182', // Medium gray
+    fontWeight: '500',
+    fontSize: 14, // text-sm
   },
   matchesSection: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 20,
-    backgroundColor: '#F8F9FA',
+    paddingHorizontal: 24, // px-6
+    paddingTop: 24, // pt-6
+    paddingBottom: 24, // pb-6
+    backgroundColor: '#FAFCFB',
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginBottom: 15,
+    fontSize: 18, // text-lg
+    fontWeight: '600',
+    color: '#030213',
+    marginBottom: 16, // mb-4
   },
   matchCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    marginBottom: 16,
+    borderRadius: 16, // rounded-2xl
+    marginBottom: 12, // mb-3
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    elevation: 0,
+    borderColor: '#F3F4F6', // gray-100
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   matchCardContent: {
     position: 'relative',
-    paddingBottom: 8,
+    padding: 20, // p-5
   },
   matchHeader: {
     flexDirection: 'row',
@@ -1148,95 +1194,93 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   matchDate: {
-    fontSize: 14,
-    color: '#6C757D',
+    fontSize: 14, // text-sm
+    color: '#717182', // Medium gray
   },
   resultChip: {
-    height: 32,
-    borderRadius: 20,
-    paddingHorizontal: 16,
+    borderRadius: 9999, // rounded-full
+    paddingHorizontal: 12, // px-3
+    paddingVertical: 4, // py-1
   },
   resultChipText: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 11, // text-xs
+    fontWeight: '500',
   },
   winChip: {
-    backgroundColor: '#C8E6C9',
+    backgroundColor: '#D1FAE5', // green-100
   },
   loseChip: {
-    backgroundColor: '#FFCDD2',
+    backgroundColor: '#FEE2E2', // red-100
   },
   leagueBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF3E0',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderTopLeftRadius: 10,
-    borderBottomRightRadius: 10,
-    gap: 4,
+    backgroundColor: '#F3F4F6', // gray-100
+    paddingHorizontal: 12, // px-3
+    paddingVertical: 6, // py-1.5
+    borderRadius: 9999, // rounded-full
+    gap: 6, // gap-1.5
+    alignSelf: 'flex-start',
+    marginTop: 12, // mt-3
   },
   leagueBadgeText: {
-    fontSize: 11,
-    color: '#F57C00',
-    fontWeight: '700',
+    fontSize: 11, // text-xs
+    color: '#030213',
+    fontWeight: '500',
   },
   scoreContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-    backgroundColor: '#F8F9FA',
-    padding: 12,
-    borderRadius: 10,
+    gap: 8, // gap-2
+    marginBottom: 16, // mb-4
+    backgroundColor: '#F0FDF4', // green-50
+    padding: 12, // p-3
+    borderRadius: 12, // rounded-xl
   },
   scoreText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2E7D32',
+    fontSize: 16, // text-base
+    fontWeight: '600',
+    color: '#54CE8F', // Primary green
   },
   playersContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
-    gap: 8,
+    marginTop: 12, // mt-3
+    gap: 8, // gap-2
   },
   playersLabel: {
-    fontSize: 14,
-    color: '#6C757D',
-    fontWeight: '600',
+    fontSize: 12, // text-xs
+    color: '#717182', // Medium gray
+    fontWeight: '500',
   },
   playersNames: {
-    fontSize: 14,
-    color: '#1B1B1B',
+    fontSize: 14, // text-sm
+    color: '#030213',
     flex: 1,
   },
   courtInfoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: 16, // mt-4
+    paddingTop: 16, // pt-4
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-    gap: 16,
+    borderTopColor: '#E5E7EB', // gray-200
+    gap: 16, // gap-4
   },
   courtInfoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 6, // gap-1.5
   },
   courtInfoText: {
-    fontSize: 13,
-    color: '#424242',
-    fontWeight: '500',
+    fontSize: 12, // text-xs
+    color: '#717182', // Medium gray
+    fontWeight: '400',
   },
   courtInfoDivider: {
     width: 1,
     height: 16,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: '#E5E7EB', // gray-200
   },
   emptyCard: {
     backgroundColor: '#FFFFFF',
@@ -1300,106 +1344,127 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
-    paddingBottom: 16,
+    marginBottom: 16, // mb-4
+    paddingBottom: 16, // pb-4
     borderBottomWidth: 1,
-    borderBottomColor: '#E9ECEF',
+    borderBottomColor: '#E5E7EB', // gray-200
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
+    fontSize: 20, // text-xl
+    fontWeight: '600',
+    color: '#030213',
     flex: 1,
-    marginLeft: 12,
+  },
+  modalCloseButton: {
+    width: 32, // w-8
+    height: 32, // h-8
+    borderRadius: 16, // rounded-full
+    backgroundColor: '#F3F4F6', // gray-100
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   filterGroup: {
-    marginBottom: 24,
+    marginBottom: 24, // mb-6
   },
   filterGroupLabel: {
-    fontSize: 16,
+    fontSize: 16, // text-base
     fontWeight: '600',
-    color: '#1B1B1B',
-    marginBottom: 12,
+    color: '#030213',
+    marginBottom: 12, // mb-3
   },
   filterOptions: {
-    gap: 8,
+    gap: 8, // gap-2
   },
   filterOption: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    paddingVertical: 12, // py-3
+    paddingHorizontal: 16, // px-4
+    borderRadius: 12, // rounded-xl
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: '#E5E7EB', // gray-200
     backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   filterOptionActive: {
-    borderColor: '#2E7D32',
-    backgroundColor: '#E8F5E8',
+    borderColor: '#54CE8F', // Primary green
+    backgroundColor: '#F0FDF4', // green-50
   },
   filterOptionText: {
-    fontSize: 14,
-    color: '#6C757D',
+    fontSize: 14, // text-sm
+    color: '#717182', // Medium gray
   },
   filterOptionTextActive: {
-    color: '#2E7D32',
+    color: '#030213',
     fontWeight: '600',
   },
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
-    gap: 10,
+    marginTop: 20, // mt-5
+    gap: 12, // gap-3
   },
   modalClearButton: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: 16, // rounded-2xl
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // gray-200
+    backgroundColor: '#FFFFFF',
   },
   modalApplyButton: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: 16, // rounded-2xl
+    backgroundColor: '#54CE8F', // Primary green
   },
   commentButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F5E8',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    marginTop: 12,
-    gap: 6,
+    backgroundColor: '#F0FDF4', // green-50
+    paddingVertical: 8, // py-2
+    paddingHorizontal: 12, // px-3
+    borderRadius: 12, // rounded-xl
+    marginTop: 12, // mt-3
+    gap: 6, // gap-1.5
     alignSelf: 'flex-start',
   },
   commentButtonText: {
-    fontSize: 13,
-    color: '#2E7D32',
-    fontWeight: '600',
+    fontSize: 12, // text-xs
+    color: '#54CE8F', // Primary green
+    fontWeight: '500',
   },
   commentBadge: {
-    backgroundColor: '#2E7D32',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+    backgroundColor: '#54CE8F', // Primary green
+    borderRadius: 9999, // rounded-full
+    minWidth: 18,
+    height: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: 5,
   },
   commentBadgeText: {
     color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: 'bold',
+    fontSize: 10,
+    fontWeight: '600',
   },
   matchInfoBar: {
-    backgroundColor: '#F8F9FA',
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 20,
-    marginTop: 8,
+    backgroundColor: '#F3F4F6', // gray-100
+    padding: 12, // p-3
+    borderRadius: 12, // rounded-xl
+    marginBottom: 20, // mb-5
+    marginTop: 8, // mt-2
   },
   matchInfoText: {
-    fontSize: 14,
-    color: '#1B1B1B',
-    fontWeight: '600',
+    fontSize: 14, // text-sm
+    color: '#030213',
+    fontWeight: '500',
     textAlign: 'center',
+  },
+  commentUserAvatar: {
+    width: 32, // w-8
+    height: 32, // h-8
+    borderRadius: 16, // rounded-full
+    backgroundColor: '#F3F4F6', // gray-100
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   commentsListContainer: {
     marginBottom: 20,
@@ -1410,53 +1475,63 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   loadingText: {
-    fontSize: 14,
-    color: '#6C757D',
-    marginTop: 10,
+    fontSize: 14, // text-sm
+    color: '#717182', // Medium gray
+    marginTop: 10, // mt-2.5
   },
   commentItem: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16, // rounded-2xl
+    padding: 20, // p-5
+    marginBottom: 12, // mb-3
+    borderWidth: 1,
+    borderColor: '#F3F4F6', // gray-100
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   commentHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: 8, // mb-2
   },
   commentUserInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12, // gap-3
     flex: 1,
   },
   commentUserDetails: {
     flex: 1,
   },
   commentUserName: {
-    fontSize: 14,
+    fontSize: 16, // text-base
     fontWeight: '600',
-    color: '#1B1B1B',
+    color: '#030213',
   },
   commentDate: {
-    fontSize: 11,
-    color: '#6C757D',
-    marginTop: 2,
+    fontSize: 11, // text-xs
+    color: '#9CA3AF', // gray-400
+    marginTop: 4, // mt-1
   },
   commentActions: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 8, // gap-2
   },
   commentActionButton: {
-    padding: 6,
-    borderRadius: 6,
-    backgroundColor: '#FFFFFF',
+    padding: 8, // p-2
+    borderRadius: 8, // rounded-lg
+    backgroundColor: '#F3F4F6', // gray-100
   },
   commentText: {
-    fontSize: 14,
-    color: '#1B1B1B',
+    fontSize: 14, // text-sm
+    color: '#717182', // Medium gray
     lineHeight: 20,
   },
   editCommentContainer: {
@@ -1464,81 +1539,103 @@ const styles = StyleSheet.create({
   },
   editCommentInput: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 14,
+    borderRadius: 12, // rounded-xl
+    padding: 12, // p-3
+    fontSize: 14, // text-sm
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#E5E7EB', // gray-200
     minHeight: 60,
     textAlignVertical: 'top',
+    color: '#030213',
   },
   editCommentButtons: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: 8,
-    marginTop: 8,
+    gap: 8, // gap-2
+    marginTop: 12, // mt-3
   },
   cancelEditButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 6,
+    paddingVertical: 10, // py-2.5
+    paddingHorizontal: 16, // px-4
+    borderRadius: 12, // rounded-xl
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // gray-200
   },
   cancelEditButtonText: {
-    fontSize: 13,
-    color: '#6C757D',
-    fontWeight: '600',
+    fontSize: 14, // text-sm
+    color: '#030213',
+    fontWeight: '500',
+    textAlign: 'center',
   },
   saveEditButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    backgroundColor: '#2E7D32',
+    paddingVertical: 10, // py-2.5
+    paddingHorizontal: 16, // px-4
+    borderRadius: 12, // rounded-xl
+    backgroundColor: '#54CE8F', // Primary green
   },
   saveEditButtonText: {
-    fontSize: 13,
+    fontSize: 14, // text-sm
     color: '#FFFFFF',
-    fontWeight: '600',
+    fontWeight: '500',
+    textAlign: 'center',
   },
   emptyCommentsContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 40,
+    paddingVertical: 40, // py-10
   },
   emptyCommentsText: {
-    fontSize: 14,
-    color: '#BDBDBD',
-    marginTop: 12,
+    fontSize: 14, // text-sm
+    color: '#717182', // Medium gray
+    marginTop: 12, // mt-3
   },
   addCommentContainer: {
     borderTopWidth: 1,
-    borderTopColor: '#E9ECEF',
-    paddingTop: 20,
-    marginTop: 24,
+    borderTopColor: '#E5E7EB', // gray-200
+    paddingTop: 20, // pt-5
+    marginTop: 24, // mt-6
   },
   commentInput: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12, // rounded-xl
+    padding: 12, // p-3
+    fontSize: 14, // text-sm
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#E5E7EB', // gray-200
     minHeight: 80,
     textAlignVertical: 'top',
-    marginBottom: 16,
-    color: '#1B1B1B',
+    marginBottom: 16, // mb-4
+    color: '#030213',
   },
   commentInputButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 12, // gap-3
   },
   cancelCommentButton: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: 16, // rounded-2xl
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // gray-200
+    backgroundColor: '#FFFFFF',
   },
   sendCommentButton: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: 16, // rounded-2xl
+    backgroundColor: '#54CE8F', // Primary green
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#030213',
+    textAlign: 'center',
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
 });
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,15 +7,12 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  Platform,
-  Animated,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   Card,
-  Title,
-  Button,
   Text,
   Avatar,
   Chip,
@@ -23,9 +20,7 @@ import {
   Modal,
   TextInput,
   Divider,
-  IconButton,
   Snackbar,
-  Menu,
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useLanguage } from '../context/LanguageContext';
@@ -38,25 +33,6 @@ const { width } = Dimensions.get('window');
 const LigSiralamaScreen = ({ route, navigation }: any) => {
   const { lig } = route.params;
   const insets = useSafeAreaInsets();
-  
-  // Scroll animation
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const headerHeight = scrollY.interpolate({
-    inputRange: [0, 150],
-    outputRange: [200, 110],
-    extrapolate: 'clamp',
-  });
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, 100],
-    outputRange: [1, 0],
-    extrapolate: 'clamp',
-  });
-  const compactOpacity = scrollY.interpolate({
-    inputRange: [0, 100],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
-  
   const { t } = useLanguage();
   const [showChallengeModal, setShowChallengeModal] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
@@ -76,7 +52,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
     { userScore: '', opponentScore: '' },
   ]);
   const [courts, setCourts] = useState<any[]>([]);
-  const [selectedCourt, setSelectedCourt] = useState<number | null>(null);
+  const [selectedCourt, setSelectedCourt] = useState<number | undefined>(undefined);
   const [courtMenuVisible, setCourtMenuVisible] = useState(false);
   const [scoreError, setScoreError] = useState(false);
   const [scoreMismatch, setScoreMismatch] = useState(false);
@@ -358,7 +334,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
       return;
     }
     setSelectedWinner(null);
-    setSelectedCourt(null);
+    setSelectedCourt(undefined);
     setMatchSets([
       { userScore: '', opponentScore: '' },
       { userScore: '', opponentScore: '' },
@@ -423,8 +399,9 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
       return;
     }
 
-    if (!selectedCourt) {
-      Alert.alert('Uyarı', 'Lütfen kort seçin');
+    // Kort seçimi rezervasyondan alınır, kontrol etmeye gerek yok
+    if (!acceptedChallenge?.reservation?.court?.id) {
+      Alert.alert(t('common.error') || 'Hata', 'Rezervasyon kort bilgisi bulunamadı');
       return;
     }
 
@@ -689,86 +666,63 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                 </Text>
                 <Text style={styles.playerLevel}>{player.user.name} - {player.position}. sırada</Text>
                 
-                {/* Pending challenge durumları */}
-                {hasPendingChallengeToThisPlayer && (
-                  <Chip 
-                    icon="clock-alert-outline" 
-                    style={styles.pendingChallengeSentChip}
-                    textStyle={styles.pendingChallengeSentChipText}
-                    compact
-                  >
+              {/* Pending challenge durumları */}
+              {hasPendingChallengeToThisPlayer && (
+                <View style={styles.pendingChallengeBadge}>
+                  <MaterialCommunityIcons name="clock-alert-outline" size={14} color="#F59E0B" />
+                  <Text style={styles.pendingChallengeBadgeText}>
                     Maç İsteği Bekleniyor
-                  </Chip>
-                )}
-                {hasPendingChallengeFromThisPlayer && (
-                  <Chip 
-                    icon="email-alert" 
-                    style={styles.pendingChallengeReceivedChip}
-                    textStyle={styles.pendingChallengeReceivedChipText}
-                    compact
-                  >
+                  </Text>
+                </View>
+              )}
+              {hasPendingChallengeFromThisPlayer && (
+                <View style={styles.receivedChallengeBadge}>
+                  <MaterialCommunityIcons name="email-alert" size={14} color="#54CE8F" />
+                  <Text style={styles.receivedChallengeBadgeText}>
                     Sana Maç İsteği Gönderdi
-                  </Chip>
-                )}
-              </View>
-              
-              <View style={styles.playerActions}>
+                  </Text>
+                </View>
+              )}
+            </View>
+            
+            <View style={styles.playerActions}>
               {isCurrentUser ? (
                 // Kullanıcının kendi kartı - buton gösterme
-                <Chip 
-                  icon="account-check" 
-                  style={styles.currentUserChip}
-                  textStyle={styles.currentUserChipText}
-                  compact
-                >
-                  Sizsiniz
-                </Chip>
+                <View style={styles.currentUserIndicator}>
+                  <MaterialCommunityIcons name="account-check" size={16} color="#54CE8F" />
+                  <Text style={styles.currentUserIndicatorText}>Sizsiniz</Text>
+                </View>
               ) : hasPendingChallengeFromThisPlayer ? (
                 // Bu oyuncu bana maç isteği göndermiş - Kabul/Reddet butonları
                 <View style={styles.challengeResponseButtons}>
-                  <Button
-                    mode="contained"
+                  <TouchableOpacity
                     onPress={() => handleAcceptChallengeInRanking(player)}
                     style={styles.acceptChallengeButton}
-                    buttonColor="#2E7D32"
-                    icon="check"
-                    compact
                   >
-                    Kabul Et
-                  </Button>
-                  <Button
-                    mode="outlined"
+                    <MaterialCommunityIcons name="check" size={18} color="#FFFFFF" />
+                    <Text style={styles.acceptChallengeButtonText}>Kabul Et</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
                     onPress={() => handleRejectChallengeInRanking(player)}
                     style={styles.rejectChallengeButton}
-                    textColor="#DC3545"
-                    icon="close"
-                    compact
                   >
-                    Reddet
-                  </Button>
+                    <MaterialCommunityIcons name="close" size={18} color="#EF4444" />
+                    <Text style={styles.rejectChallengeButtonText}>Reddet</Text>
+                  </TouchableOpacity>
                 </View>
               ) : canChallenge ? (
-                <Button
-                  mode="contained"
+                <TouchableOpacity
                   onPress={() => openChallengeModal(player)}
                   style={styles.challengeButton}
-                  buttonColor="#2E7D32"
-                  icon="sword-cross"
-                  compact
                 >
-                  Meydan Oku
-                </Button>
+                  <MaterialCommunityIcons name="sword-cross" size={18} color="#FFFFFF" />
+                  <Text style={styles.challengeButtonText}>Meydan Oku</Text>
+                </TouchableOpacity>
               ) : (
-                <Button
-                  mode="outlined"
-                  disabled={true}
-                  style={styles.disabledChallengeButton}
-                  textColor="#9E9E9E"
-                  icon="lock"
-                  compact
-                >
-                  Kilitli
-                </Button>
+                <View style={styles.disabledChallengeButton}>
+                  <MaterialCommunityIcons name="lock" size={18} color="#9CA3AF" />
+                  <Text style={styles.disabledChallengeButtonText}>Kilitli</Text>
+                </View>
               )}
             </View>
           </View>
@@ -788,121 +742,72 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
 
   return (
     <View style={styles.container}>
-      {/* Animated Header Section */}
-      <Animated.View style={[
-        styles.headerSection,
-        { height: headerHeight, paddingTop: Platform.OS === 'android' ? insets.top + 20 : 50 }
-      ]}>
-        {/* Kompakt Başlık */}
-        <Animated.View style={[
-          styles.compactHeader,
-          { opacity: compactOpacity, paddingTop: Platform.OS === 'android' ? insets.top + 20 : 50 }
-        ]}>
-          <TouchableOpacity 
-            onPress={() => navigation.goBack()}
-            style={styles.compactBackButton}
-          >
-            <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          <Title style={styles.compactTitle}>{lig.name}</Title>
-          <TouchableOpacity 
-            onPress={loadRankings}
-            style={styles.compactRefreshButton}
-          >
-            <MaterialCommunityIcons name="refresh" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-        </Animated.View>
-        
-        {/* Normal İçerik */}
-        <Animated.View style={{ opacity: headerOpacity }}>
-          <View style={styles.headerTop}>
-            <TouchableOpacity 
-              onPress={() => navigation.goBack()}
-              style={styles.backButton}
-            >
-              <MaterialCommunityIcons name="arrow-left" size={28} color="#FFFFFF" />
-            </TouchableOpacity>
-            <View style={styles.headerInfo}>
-              <Title style={styles.headerTitle}>{lig.name}</Title>
-              <Text style={styles.headerSubtitle}>
-                {players.length} oyuncu • 1v1 rekabet
-              </Text>
-            </View>
-            <TouchableOpacity 
-              onPress={loadRankings}
-              style={styles.refreshButton}
-            >
-              <MaterialCommunityIcons name="refresh" size={28} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-      </Animated.View>
-      
-      <Animated.ScrollView
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
-        )}
-        scrollEventThrottle={16}
+      <StatusBar style="light" />
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <TouchableOpacity 
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('DefiLig' as never);
+            }
+          }}
+          style={styles.backButton}
+        >
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        <View style={styles.headerContent}>
+          <MaterialCommunityIcons name="trophy" size={28} color="#FFFFFF" />
+          <Text style={styles.headerTitle}>{lig.name}</Text>
+        </View>
+        <TouchableOpacity 
+          onPress={loadRankings}
+          style={styles.refreshButton}
+        >
+          <MaterialCommunityIcons name="refresh" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
 
-        {/* Current User Status */}
-        <View style={styles.userStatusSection}>
-          <Card style={styles.userStatusCard}>
-            <Card.Content>
-              <View style={styles.userStatusHeader}>
-                <View style={styles.userPosition}>
-                  <MaterialCommunityIcons 
-                    name={getPositionIcon(currentUser.position) as any} 
-                    size={20} 
-                    color={getPositionColor(currentUser.position)} 
-                  />
-                  <Text style={[styles.userPositionText, { color: getPositionColor(currentUser.position) }]}>
-                    #{currentUser.position}
-                  </Text>
-                </View>
-                <Text style={styles.userStatusText}>
-                  {currentUser.email}
-                </Text>
-              </View>
-            </Card.Content>
-          </Card>
-        </View>
-
-        {/* Current User Card - Belirgin Gösterim */}
+        {/* Current User Card */}
         <View style={styles.currentUserSection}>
-          <Title style={styles.sectionTitle}>Senin Sıran</Title>
-          <Card style={styles.currentUserHighlightCard}>
-            <Card.Content>
-              <View style={styles.currentUserHighlightHeader}>
+          <View style={styles.sectionHeader}>
+            <MaterialCommunityIcons name="account-circle" size={20} color="#54CE8F" />
+            <Text style={styles.sectionTitle}>Senin Sıran</Text>
+          </View>
+          <Card style={styles.currentUserCard}>
+            <Card.Content style={styles.currentUserCardContent}>
+              <View style={styles.currentUserHeader}>
                 <Avatar.Text 
-                  size={55} 
+                  size={64} 
                   label={currentUser.name.charAt(0)} 
-                  style={styles.currentUserHighlightAvatar}
+                  style={styles.currentUserAvatar}
                 />
-                
-                <View style={styles.currentUserHighlightInfo}>
-                  <Text style={styles.currentUserHighlightName}>{currentUser.name}</Text>
-                  <Text style={styles.currentUserHighlightLevel}>{currentUser.email}</Text>
+                <View style={styles.currentUserInfo}>
+                  <Text style={styles.currentUserName}>{currentUser.name}</Text>
+                  <Text style={styles.currentUserEmail}>{currentUser.email}</Text>
                   {userPendingChallenges.length > 0 && (
-                    <Chip 
-                      icon="clock-alert-outline" 
-                      style={styles.pendingChip}
-                      textStyle={styles.pendingChipText}
-                      compact
-                    >
-                      Bekleyen Challenge ({userPendingChallenges.length})
-                    </Chip>
+                    <View style={styles.pendingBadge}>
+                      <MaterialCommunityIcons name="clock-alert-outline" size={14} color="#F59E0B" />
+                      <Text style={styles.pendingBadgeText}>
+                        Bekleyen Challenge ({userPendingChallenges.length})
+                      </Text>
+                    </View>
                   )}
                 </View>
-                
-                <View style={styles.currentUserPositionContainer}>
+                <View style={styles.currentUserPosition}>
                   <MaterialCommunityIcons 
                     name={getPositionIcon(currentUser.position) as any} 
                     size={24} 
-                    color={getPositionColor(currentUser.position)} 
+                    color="#54CE8F" 
                   />
-                  <Text style={[styles.currentUserPositionText, { color: getPositionColor(currentUser.position) }]}>
+                  <Text style={styles.currentUserPositionText}>
                     #{currentUser.position}
                   </Text>
                 </View>
@@ -914,9 +819,10 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
         {/* Players List */}
         <View style={styles.playersSection}>
           <View style={styles.sectionHeader}>
-            <Title style={styles.sectionTitle}>Rakip Oyuncular</Title>
+            <MaterialCommunityIcons name="account-group" size={20} color="#54CE8F" />
+            <Text style={styles.sectionTitle}>Rakip Oyuncular</Text>
             <Text style={styles.paginationInfo}>
-              Sayfa {currentPage} / {getTotalPages()}
+              {currentPage} / {getTotalPages()}
             </Text>
           </View>
           {getCurrentPagePlayers().map(renderPlayerCard)}
@@ -924,16 +830,20 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
           {/* Pagination Controls */}
           {getTotalPages() > 1 && (
             <View style={styles.paginationContainer}>
-              <Button
-                mode="outlined"
+              <TouchableOpacity
                 onPress={goToPreviousPage}
-                disabled={!!(currentPage === 1)}
-                style={styles.paginationButton}
-                icon="chevron-left"
-                compact
+                disabled={currentPage === 1}
+                style={[styles.paginationButton, currentPage === 1 && styles.paginationButtonDisabled]}
               >
-                Önceki
-              </Button>
+                <MaterialCommunityIcons 
+                  name="chevron-left" 
+                  size={20} 
+                  color={currentPage === 1 ? '#9CA3AF' : '#54CE8F'} 
+                />
+                <Text style={[styles.paginationButtonText, currentPage === 1 && styles.paginationButtonTextDisabled]}>
+                  Önceki
+                </Text>
+              </TouchableOpacity>
               
               <View style={styles.pageIndicator}>
                 <Text style={styles.pageText}>
@@ -941,40 +851,44 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                 </Text>
               </View>
               
-              <Button
-                mode="outlined"
+              <TouchableOpacity
                 onPress={goToNextPage}
-                disabled={!!(currentPage === getTotalPages())}
-                style={styles.paginationButton}
-                icon="chevron-right"
-                contentStyle={{ flexDirection: 'row-reverse' }}
-                compact
+                disabled={currentPage === getTotalPages()}
+                style={[styles.paginationButton, currentPage === getTotalPages() && styles.paginationButtonDisabled]}
               >
-                Sonraki
-              </Button>
+                <Text style={[styles.paginationButtonText, currentPage === getTotalPages() && styles.paginationButtonTextDisabled]}>
+                  Sonraki
+                </Text>
+                <MaterialCommunityIcons 
+                  name="chevron-right" 
+                  size={20} 
+                  color={currentPage === getTotalPages() ? '#9CA3AF' : '#54CE8F'} 
+                />
+              </TouchableOpacity>
             </View>
           )}
         </View>
 
         {/* Quick Actions */}
         <View style={styles.quickActionsSection}>
-          <Title style={styles.sectionTitle}>Hızlı İşlemler</Title>
+          <Text style={styles.sectionTitle}>Hızlı İşlemler</Text>
           
           {/* Randevu Oluştur Butonu */}
           <View style={styles.matchResultButtonContainer}>
-            <Button
-              mode="contained"
+            <TouchableOpacity
               style={[
                 styles.quickActionButton, 
-                !acceptedChallenge && styles.disabledQuickActionButton
+                !acceptedChallenge && styles.quickActionButtonDisabled
               ]}
-              buttonColor={acceptedChallenge ? "#2E7D32" : "#9E9E9E"}
-              icon="calendar-plus"
               onPress={openReservationScreen}
               disabled={!!(!acceptedChallenge)}
             >
-              Randevu Oluştur
-            </Button>
+              <MaterialCommunityIcons name="calendar-plus" size={20} color={acceptedChallenge ? "#FFFFFF" : "#9CA3AF"} />
+              <Text style={[
+                styles.quickActionButtonText,
+                !acceptedChallenge && styles.quickActionButtonTextDisabled
+              ]}>Randevu Oluştur</Text>
+            </TouchableOpacity>
             {acceptedChallenge ? (
               <View style={styles.matchInfoContainer}>
                 <MaterialCommunityIcons name="information" size={16} color="#2E7D32" />
@@ -1002,17 +916,15 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
           </View>
 
           {/* Maç Geçmişi Butonu */}
-          <Button
-            mode="outlined"
+          <TouchableOpacity
             style={styles.quickActionButton}
-            textColor="#2E7D32"
-            icon="calendar"
             onPress={() => navigation.navigate('MatchHistory', { leagueId: lig.id, leagueName: lig.name })}
           >
-            Maç Geçmişi
-          </Button>
+            <MaterialCommunityIcons name="calendar" size={20} color="#54CE8F" />
+            <Text style={styles.quickActionButtonText}>Maç Geçmişi</Text>
+          </TouchableOpacity>
         </View>
-      </Animated.ScrollView>
+      </ScrollView>
 
       {/* Challenge Modal */}
       <Portal>
@@ -1028,20 +940,22 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
               style={styles.modalScrollView}
             >
               <Card.Content style={styles.modalContent}>
-                <View style={styles.modalHeader}>
-                  <View style={styles.modalHeaderLeft}>
-                    <View style={styles.modalIconContainer}>
-                      <MaterialCommunityIcons name="sword-cross" size={28} color="#FFFFFF" />
+                  <View style={styles.modalHeader}>
+                    <View style={styles.modalHeaderLeft}>
+                      <View style={styles.modalIconContainer}>
+                        <MaterialCommunityIcons name="sword-cross" size={24} color="#FFFFFF" />
+                      </View>
+                      <Text style={styles.modalTitle}>Meydan Okuma Gönder</Text>
                     </View>
-                    <Title style={styles.modalTitle}>Meydan Okuma Gönder</Title>
+                    <TouchableOpacity 
+                      onPress={() => setShowChallengeModal(false)}
+                      style={styles.modalCloseButton}
+                    >
+                      <MaterialCommunityIcons name="close" size={20} color="#9CA3AF" />
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity 
-                    onPress={() => setShowChallengeModal(false)}
-                    style={styles.modalCloseButton}
-                  >
-                    <MaterialCommunityIcons name="close" size={24} color="#666666" />
-                  </TouchableOpacity>
-                </View>
+
+                  <Divider style={styles.modalDivider} />
               
               {selectedPlayer && (
                 <>
@@ -1079,8 +993,8 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                   </View>
                   
                   <View style={styles.messageSection}>
-                    <View style={styles.messageSectionLabel}>
-                      <MaterialCommunityIcons name="message-text-outline" size={18} color="#666666" />
+                    <View style={styles.sectionHeaderRow}>
+                      <MaterialCommunityIcons name="message-text-outline" size={18} color="#54CE8F" />
                       <Text style={styles.messageSectionLabelText}>
                         Meydan Okuma Mesajı
                         <Text style={styles.requiredStar}> *</Text>
@@ -1114,26 +1028,19 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                   </View>
 
                   <View style={styles.modalButtons}>
-                    <Button
-                      mode="outlined"
+                    <TouchableOpacity
                       onPress={() => setShowChallengeModal(false)}
                       style={styles.modalCancelButton}
-                      contentStyle={styles.modalButtonContent}
-                      labelStyle={styles.modalCancelButtonLabel}
                     >
-                      İptal
-                    </Button>
-                    <Button
-                      mode="contained"
+                      <Text style={styles.modalCancelButtonText}>İptal</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
                       onPress={sendChallenge}
                       style={styles.modalSendButton}
-                      buttonColor="#2E7D32"
-                      contentStyle={styles.modalButtonContent}
-                      labelStyle={styles.modalSendButtonLabel}
-                      icon="send"
                     >
-                      Gönder
-                    </Button>
+                      <MaterialCommunityIcons name="send" size={20} color="#FFFFFF" />
+                      <Text style={styles.modalSendButtonText}>Gönder</Text>
+                    </TouchableOpacity>
                   </View>
                 </>
               )}
@@ -1156,7 +1063,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
               <Card.Content>
                 <View style={styles.modalHeader}>
                   <MaterialCommunityIcons name="trophy" size={32} color="#FFD700" />
-                  <Title style={styles.modalTitle}>Maç Sonucu Gir</Title>
+                  <Text style={styles.modalTitle}>Maç Sonucu Gir</Text>
                   <TouchableOpacity onPress={() => setShowMatchResultModal(false)}>
                     <MaterialCommunityIcons name="close" size={24} color="#757575" />
                   </TouchableOpacity>
@@ -1237,59 +1144,41 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
 
                     {/* Kort Seçimi */}
                     <View style={styles.courtSelectionSection}>
-                      <Text style={styles.sectionLabel}>Kort Seçin *</Text>
-                      <Menu
-                        visible={!!courtMenuVisible}
-                        onDismiss={() => setCourtMenuVisible(false)}
-                        anchorPosition="bottom"
-                        contentStyle={styles.menuContent}
-                        anchor={
-                          <TouchableOpacity
-                            style={styles.courtDropdownButton}
-                            onPress={() => setCourtMenuVisible(true)}
-                          >
-                            <View style={styles.courtDropdownContent}>
-                              <MaterialCommunityIcons 
-                                name="tennis" 
-                                size={20} 
-                                color="#2E7D32" 
-                              />
-                              <Text style={styles.courtDropdownText}>
-                                {selectedCourt 
-                                  ? courts.find(c => c.id === selectedCourt)?.name 
-                                  : 'Kort seçin'}
-                              </Text>
-                            </View>
-                            <MaterialCommunityIcons 
-                              name="chevron-down" 
-                              size={24} 
-                              color="#757575" 
-                            />
-                          </TouchableOpacity>
-                        }
-                      >
-                        {courts.map((court) => (
-                          <Menu.Item
-                            key={court.id}
-                            onPress={() => {
-                              setSelectedCourt(court.id);
-                              setCourtMenuVisible(false);
-                            }}
-                            title={court.name}
-                            leadingIcon="tennis"
-                            style={selectedCourt === court.id && styles.selectedMenuItem}
+                      <View style={styles.courtSectionHeader}>
+                        <MaterialCommunityIcons name="tennis" size={20} color="#54CE8F" />
+                        <Text style={styles.sectionLabel}>Kort</Text>
+                      </View>
+                      <View style={[styles.courtDropdownButton, styles.courtDropdownButtonDisabled]}>
+                        <View style={styles.courtDropdownContent}>
+                          <MaterialCommunityIcons 
+                            name="tennis" 
+                            size={20} 
+                            color="#9CA3AF" 
                           />
-                        ))}
-                      </Menu>
+                          <Text style={[styles.courtDropdownText, styles.courtDropdownTextDisabled]}>
+                            {selectedCourt 
+                              ? courts.find(c => c.id === selectedCourt)?.name 
+                              : acceptedChallenge?.reservation?.court?.name || 'Kort'}
+                          </Text>
+                        </View>
+                        <MaterialCommunityIcons 
+                          name="lock" 
+                          size={20} 
+                          color="#9CA3AF" 
+                        />
+                      </View>
                     </View>
 
                     {/* Set Skorları */}
                     <View style={styles.scoresSection}>
                       <View style={styles.scoresSectionHeader}>
-                        <Text style={styles.sectionLabel}>Set Skorları (Minimum 2 Set Zorunlu)</Text>
+                        <View style={styles.sectionHeaderRow}>
+                          <MaterialCommunityIcons name="scoreboard" size={18} color="#54CE8F" />
+                          <Text style={styles.sectionLabel}>Set Skorları (Minimum 2 Set Zorunlu)</Text>
+                        </View>
                         {matchSets.length < 5 && (
                           <TouchableOpacity onPress={addSet} style={styles.addSetButton}>
-                            <MaterialCommunityIcons name="plus-circle" size={24} color="#2E7D32" />
+                            <MaterialCommunityIcons name="plus-circle" size={20} color="#54CE8F" />
                             <Text style={styles.addSetText}>Set Ekle</Text>
                           </TouchableOpacity>
                         )}
@@ -1298,7 +1187,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                       {/* Uyarı mesajı */}
                       {scoreError && (
                         <View style={styles.scoreErrorContainer}>
-                          <MaterialCommunityIcons name="alert-circle" size={20} color="#DC3545" />
+                          <MaterialCommunityIcons name="alert-circle" size={20} color="#EF4444" />
                           <Text style={styles.scoreErrorText}>
                             En az 2 set skoru girilmesi zorunludur
                           </Text>
@@ -1336,8 +1225,8 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                               keyboardType="numeric"
                               maxLength={2}
                               style={styles.scoreInput}
-                              outlineColor={shouldShowError ? "#DC3545" : "#E0E0E0"}
-                              activeOutlineColor={shouldShowError ? "#DC3545" : "#2E7D32"}
+                              outlineColor={shouldShowError ? "#EF4444" : "#E5E7EB"}
+                              activeOutlineColor={shouldShowError ? "#EF4444" : "#54CE8F"}
                               error={shouldShowError}
                               dense
                             />
@@ -1352,14 +1241,14 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                               keyboardType="numeric"
                               maxLength={2}
                               style={styles.scoreInput}
-                              outlineColor={shouldShowError ? "#DC3545" : "#E0E0E0"}
-                              activeOutlineColor={shouldShowError ? "#DC3545" : "#2E7D32"}
+                              outlineColor={shouldShowError ? "#EF4444" : "#E5E7EB"}
+                              activeOutlineColor={shouldShowError ? "#EF4444" : "#54CE8F"}
                               error={shouldShowError}
                               dense
                             />
                             {matchSets.length > 1 && (
                               <TouchableOpacity onPress={() => removeSet(index)} style={styles.removeSetButton}>
-                                <MaterialCommunityIcons name="close-circle" size={24} color="#DC3545" />
+                                <MaterialCommunityIcons name="close-circle" size={24} color="#EF4444" />
                               </TouchableOpacity>
                             )}
                           </View>
@@ -1369,7 +1258,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                       {/* Skor Uyuşmazlığı Uyarısı */}
                       {scoreMismatch && (
                         <View style={styles.scoreErrorContainer}>
-                          <MaterialCommunityIcons name="alert-circle" size={20} color="#DC3545" />
+                          <MaterialCommunityIcons name="alert-circle" size={20} color="#EF4444" />
                           <Text style={styles.scoreErrorText}>
                             Kazanan oyuncu ve yazılan skorlar uyuşmuyor
                           </Text>
@@ -1378,21 +1267,19 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                     </View>
 
                     <View style={styles.modalButtons}>
-                      <Button
-                        mode="outlined"
+                      <TouchableOpacity
                         onPress={() => setShowMatchResultModal(false)}
                         style={styles.modalCancelButton}
                       >
-                        İptal
-                      </Button>
-                      <Button
-                        mode="contained"
+                        <Text style={styles.modalCancelButtonText}>İptal</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
                         onPress={submitMatchResult}
-                        style={styles.modalSendButton}
-                        buttonColor="#2E7D32"
+                        style={styles.modalSaveButton}
                       >
-                        Kaydet
-                      </Button>
+                        <MaterialCommunityIcons name="check" size={20} color="#FFFFFF" />
+                        <Text style={styles.modalSaveButtonText}>Kaydet</Text>
+                      </TouchableOpacity>
                     </View>
                   </>
                 )}
@@ -1422,445 +1309,506 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAFCFB',
   },
-  headerSection: {
-    backgroundColor: '#2E7D32',
-    padding: 20,
-    overflow: 'hidden',
-  },
-  compactHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 20,
+  header: {
+    backgroundColor: '#B4AEBD',
+    paddingBottom: 24,
+    paddingHorizontal: 24,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  compactBackButton: {
-    width: 40,
-  },
-  compactTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    flex: 1,
-    textAlign: 'center',
-  },
-  compactRefreshButton: {
-    width: 40,
-    alignItems: 'flex-end',
-  },
-  headerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
   },
   backButton: {
-    padding: 8,
-    borderRadius: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    marginRight: 10,
-  },
-  refreshButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    marginLeft: 10,
-  },
-  headerInfo: {
-    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
+  },
+  headerContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: '#FFFFFF',
-    marginBottom: 5,
-    textAlign: 'center',
   },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#E8F5E8',
-    textAlign: 'center',
-  },
-  userStatusSection: {
-    padding: 20,
-  },
-  userStatusCard: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-  },
-  userStatusHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  userPosition: {
-    flexDirection: 'row',
+  refreshButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  userPositionText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 5,
+  scrollView: {
+    flex: 1,
   },
-  userStatusText: {
-    fontSize: 14,
-    color: '#6C757D',
+  scrollContent: {
+    paddingBottom: 40,
   },
   currentUserSection: {
-    padding: 20,
-    paddingBottom: 10,
+    padding: 24,
+    paddingBottom: 8,
   },
-  currentUserHighlightCard: {
-    backgroundColor: '#F8FFF8',
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#2E7D32',
-    shadowColor: '#2E7D32',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  currentUserHighlightHeader: {
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 16,
+    gap: 8,
   },
-  currentUserPositionContainer: {
-    flexDirection: 'column',
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#030213',
+    flex: 1,
+  },
+  currentUserCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 20,
+  },
+  currentUserCardContent: {
+    padding: 24,
+  },
+  currentUserHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  currentUserAvatar: {
+    backgroundColor: '#54CE8F',
+    marginRight: 16,
+  },
+  currentUserInfo: {
+    flex: 1,
+  },
+  currentUserName: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#030213',
+    marginBottom: 8,
+  },
+  currentUserEmail: {
+    fontSize: 14,
+    color: '#717182',
+    marginBottom: 8,
+  },
+  pendingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 6,
+    alignSelf: 'flex-start',
+  },
+  pendingBadgeText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#F59E0B',
+  },
+  currentUserPosition: {
     alignItems: 'center',
   },
   currentUserPositionText: {
     fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 2,
-  },
-  currentUserHighlightAvatar: {
-    backgroundColor: '#2E7D32',
-    marginRight: 12,
-  },
-  currentUserHighlightInfo: {
-    flex: 1,
-  },
-  currentUserHighlightName: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginBottom: 4,
-  },
-  currentUserHighlightLevel: {
-    fontSize: 13,
-    color: '#6C757D',
-  },
-  currentUserHighlightStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 15,
-    paddingTop: 15,
-    borderTopWidth: 1,
-    borderTopColor: '#E9ECEF',
-  },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#2E7D32',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6C757D',
+    fontWeight: '600',
+    color: '#54CE8F',
+    marginTop: 4,
   },
   playersSection: {
-    padding: 20,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
-    margin: 0,
+    padding: 24,
+    paddingTop: 0,
   },
   paginationInfo: {
     fontSize: 14,
-    color: '#6C757D',
+    color: '#717182',
     fontWeight: '500',
+    marginLeft: 'auto',
   },
   paginationContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 20,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#E9ECEF',
+    paddingHorizontal: 4,
   },
   paginationButton: {
-    flex: 1,
-    marginHorizontal: 5,
-    borderRadius: 8,
-    borderColor: '#2E7D32',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    gap: 6,
+  },
+  paginationButtonDisabled: {
+    opacity: 0.5,
+  },
+  paginationButtonText: {
+    fontSize: 14,
+    color: '#54CE8F',
+    fontWeight: '600',
+  },
+  paginationButtonTextDisabled: {
+    color: '#9CA3AF',
   },
   pageIndicator: {
-    paddingHorizontal: 15,
+    paddingHorizontal: 16,
   },
   pageText: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2E7D32',
+    fontWeight: '600',
+    color: '#030213',
   },
   playerCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 15,
-    marginBottom: 12,
+    borderRadius: 16,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
+    borderColor: '#E5E7EB',
   },
-  currentUserCard: {
-    borderColor: '#2E7D32',
+  playerCardContent: {
+    padding: 20,
+  },
+  currentUserCardHighlight: {
+    borderColor: '#54CE8F',
     borderWidth: 2,
-    backgroundColor: '#F8FFF8',
+    backgroundColor: '#F0FDF4',
   },
   playerHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
   },
   positionContainer: {
-    flexDirection: 'column',
     alignItems: 'center',
-    marginRight: 12,
-    minWidth: 35,
+    minWidth: 40,
   },
   positionText: {
     fontSize: 14,
-    fontWeight: 'bold',
-    marginTop: 2,
+    fontWeight: '600',
+    color: '#54CE8F',
+    marginTop: 4,
   },
   playerAvatar: {
-    backgroundColor: '#2E7D32',
-    marginRight: 12,
+    backgroundColor: '#B4AEBD',
   },
   playerInfo: {
     flex: 1,
   },
+  playerNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
   playerName: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginBottom: 3,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#030213',
+  },
+  currentUserBadge: {
+    backgroundColor: '#54CE8F',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  currentUserBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   playerLevel: {
-    fontSize: 12,
-    color: '#6C757D',
-    marginBottom: 3,
-  },
-  playerPoints: {
     fontSize: 13,
-    color: '#2E7D32',
+    color: '#717182',
+    marginBottom: 8,
+  },
+  pendingChallengeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    gap: 6,
+    alignSelf: 'flex-start',
+  },
+  pendingChallengeBadgeText: {
+    fontSize: 11,
     fontWeight: '500',
+    color: '#F59E0B',
   },
-  pendingChip: {
-    marginTop: 5,
-    backgroundColor: '#FFF3E0',
-    height: 24,
+  receivedChallengeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    gap: 6,
+    alignSelf: 'flex-start',
   },
-  pendingChipText: {
-    fontSize: 10,
-    color: '#F57C00',
-    marginVertical: 0,
-  },
-  currentUserChip: {
-    marginTop: 5,
-    backgroundColor: '#E8F5E9',
-    height: 24,
-  },
-  currentUserChipText: {
-    fontSize: 10,
-    color: '#2E7D32',
-    marginVertical: 0,
-    fontWeight: 'bold',
-  },
-  pendingChallengeSentChip: {
-    marginTop: 5,
-    backgroundColor: '#FFF3E0',
-    height: 24,
-  },
-  pendingChallengeSentChipText: {
-    fontSize: 10,
-    color: '#F57C00',
-    marginVertical: 0,
-    fontWeight: '600',
-  },
-  pendingChallengeReceivedChip: {
-    marginTop: 5,
-    backgroundColor: '#E3F2FD',
-    height: 24,
-  },
-  pendingChallengeReceivedChipText: {
-    fontSize: 10,
-    color: '#1976D2',
-    marginVertical: 0,
-    fontWeight: '600',
+  receivedChallengeBadgeText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#54CE8F',
   },
   playerActions: {
     alignItems: 'flex-end',
     justifyContent: 'center',
   },
+  currentUserIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    gap: 6,
+  },
+  currentUserIndicatorText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#54CE8F',
+  },
   challengeResponseButtons: {
     flexDirection: 'column',
     gap: 8,
+    minWidth: 110,
   },
   acceptChallengeButton: {
-    borderRadius: 8,
-    minWidth: 100,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#54CE8F',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 6,
+  },
+  acceptChallengeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   rejectChallengeButton: {
-    borderRadius: 8,
-    borderColor: '#DC3545',
-    minWidth: 100,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#EF4444',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 6,
+  },
+  rejectChallengeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#EF4444',
   },
   challengeButton: {
-    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#54CE8F',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 6,
+    minWidth: 110,
+  },
+  challengeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   disabledChallengeButton: {
-    borderRadius: 8,
-    borderColor: '#E0E0E0',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 6,
+    minWidth: 110,
+  },
+  disabledChallengeButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#9CA3AF',
   },
   quickActionsSection: {
-    padding: 20,
+    padding: 24,
+    paddingTop: 0,
     paddingBottom: 40,
   },
-  quickActionsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
   quickActionButton: {
-    marginBottom: 10,
-    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#54CE8F',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    gap: 12,
+    marginBottom: 16,
   },
-  disabledQuickActionButton: {
+  quickActionButtonDisabled: {
+    backgroundColor: '#F3F4F6',
     opacity: 0.6,
+  },
+  quickActionButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  quickActionButtonTextDisabled: {
+    color: '#9CA3AF',
   },
   matchResultButtonContainer: {
     marginBottom: 20,
   },
   matchInfoContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 5,
-    paddingHorizontal: 12,
+    alignItems: 'flex-start',
+    marginTop: 12,
+    marginBottom: 8,
+    padding: 16,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#D1FAE5',
+  },
+  matchInfoIconContainer: {
+    marginRight: 12,
+    marginTop: 2,
   },
   matchInfoText: {
     fontSize: 13,
-    color: '#2E7D32',
-    marginLeft: 6,
+    color: '#030213',
     flex: 1,
     fontWeight: '500',
+    lineHeight: 18,
   },
   noMatchInfoText: {
     fontSize: 13,
-    color: '#757575',
-    marginLeft: 6,
+    color: '#717182',
     flex: 1,
     lineHeight: 18,
   },
   modalContainer: {
-    margin: 20,
+    margin: 16,
     flex: 1,
     justifyContent: 'center',
   },
   modalCard: {
-    borderRadius: 20,
+    borderRadius: 16,
     backgroundColor: '#FFFFFF',
-    elevation: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    maxHeight: '80%',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    maxHeight: '85%',
   },
   modalScrollView: {
     maxHeight: '100%',
   },
   modalContent: {
     padding: 24,
-    paddingBottom: 32,
   },
   modalHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: 24,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    marginBottom: 20,
   },
   modalHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    gap: 12,
   },
   modalIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FF9800',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#B4AEBD',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
   },
   modalCloseButton: {
-    padding: 4,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
+    fontWeight: '600',
+    color: '#030213',
     flex: 1,
   },
   modalSubtitle: {
-    fontSize: 15,
-    color: '#666666',
-    marginBottom: 24,
-    lineHeight: 22,
+    fontSize: 14,
+    color: '#717182',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  modalDivider: {
+    backgroundColor: '#E5E7EB',
+    marginVertical: 20,
+    height: 1,
+  },
+  reservationInfoBox: {
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#D1FAE5',
+  },
+  reservationInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 8,
+  },
+  reservationInfoText: {
+    fontSize: 14,
+    color: '#030213',
+    fontWeight: '500',
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
   },
   opponentCard: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#F3F4F6',
     borderRadius: 16,
     marginBottom: 24,
-    overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#E5E7EB',
   },
   opponentCardContent: {
     flexDirection: 'row',
@@ -1872,12 +1820,12 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   opponentAvatar: {
-    backgroundColor: '#BA68C8',
+    backgroundColor: '#B4AEBD',
   },
   opponentAvatarLabel: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#7B1FA2',
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   opponentRankBadge: {
     position: 'absolute',
@@ -1885,7 +1833,7 @@ const styles = StyleSheet.create({
     right: -4,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FF9800',
+    backgroundColor: '#54CE8F',
     borderRadius: 12,
     paddingHorizontal: 6,
     paddingVertical: 3,
@@ -1896,15 +1844,15 @@ const styles = StyleSheet.create({
   opponentRankText: {
     color: '#FFFFFF',
     fontSize: 11,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   opponentDetails: {
     flex: 1,
   },
   opponentName: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
+    fontWeight: '600',
+    color: '#030213',
     marginBottom: 8,
   },
   opponentInfoRow: {
@@ -1915,30 +1863,24 @@ const styles = StyleSheet.create({
   },
   opponentLevel: {
     fontSize: 14,
-    color: '#666666',
+    color: '#717182',
     fontWeight: '500',
   },
   opponentPoints: {
     fontSize: 14,
-    color: '#2E7D32',
+    color: '#54CE8F',
     fontWeight: '600',
   },
   messageSection: {
     marginBottom: 24,
   },
-  messageSectionLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
-  },
   messageSectionLabelText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1B1B1B',
+    color: '#030213',
   },
   requiredStar: {
-    color: '#D32F2F',
+    color: '#EF4444',
   },
   messageInput: {
     marginBottom: 8,
@@ -1951,114 +1893,144 @@ const styles = StyleSheet.create({
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginTop: 4,
-    marginBottom: 12,
+    gap: 8,
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
   },
   errorText: {
-    color: '#D32F2F',
+    color: '#EF4444',
     fontSize: 13,
     fontWeight: '500',
+    flex: 1,
   },
   modalButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     gap: 12,
     marginTop: 8,
   },
   modalCancelButton: {
     flex: 1,
-    borderRadius: 12,
-    borderColor: '#E0E0E0',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  modalCancelButtonLabel: {
-    fontSize: 15,
+  modalCancelButtonText: {
+    fontSize: 16,
     fontWeight: '600',
-    color: '#666666',
+    color: '#030213',
   },
   modalSendButton: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: 16,
+    backgroundColor: '#54CE8F',
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
   },
-  modalSendButtonLabel: {
-    fontSize: 15,
+  modalSendButtonText: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
   },
-  modalButtonContent: {
-    paddingVertical: 8,
+  modalSaveButton: {
+    flex: 1,
+    borderRadius: 16,
+    backgroundColor: '#54CE8F',
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  modalSaveButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   snackbar: {
-    backgroundColor: '#2E7D32',
+    backgroundColor: '#54CE8F',
     marginBottom: 20,
   },
+  winnerSelectionSection: {
+    marginBottom: 24,
+  },
   winnerSelectionContainer: {
-    marginVertical: 20,
-    gap: 15,
-    padding: 10,
-    borderRadius: 12,
+    gap: 12,
+    marginTop: 12,
   },
   errorBorder: {
     borderWidth: 2,
-    borderColor: '#DC3545',
-    backgroundColor: '#FFF5F5',
+    borderColor: '#EF4444',
+    backgroundColor: '#FEF2F2',
   },
   courtSelectionSection: {
-    marginVertical: 20,
+    marginBottom: 24,
+  },
+  courtSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
   },
   courtDropdownButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    marginTop: 8,
+    borderColor: '#E5E7EB',
+  },
+  courtDropdownButtonDisabled: {
+    backgroundColor: '#F3F4F6',
+    opacity: 0.7,
   },
   courtDropdownContent: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flex: 1,
   },
   courtDropdownText: {
     fontSize: 16,
-    color: '#424242',
+    color: '#030213',
     fontWeight: '500',
   },
-  selectedMenuItem: {
-    backgroundColor: '#E8F5E9',
-  },
-  menuContent: {
-    marginTop: 8,
-    backgroundColor: '#FFFFFF',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+  courtDropdownTextDisabled: {
+    color: '#9CA3AF',
   },
   winnerOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
-    borderRadius: 12,
+    padding: 20,
+    borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#E0E0E0',
-    backgroundColor: '#FAFAFA',
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    marginBottom: 12,
   },
   winnerOptionSelected: {
-    borderColor: '#2E7D32',
-    backgroundColor: '#E8F5E9',
+    borderColor: '#54CE8F',
+    backgroundColor: '#F0FDF4',
   },
   radioButton: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#757575',
-    marginRight: 15,
+    borderColor: '#9CA3AF',
+    marginRight: 16,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -2066,121 +2038,127 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#2E7D32',
+    backgroundColor: '#54CE8F',
   },
   winnerAvatar: {
-    backgroundColor: '#2E7D32',
-    marginRight: 15,
+    backgroundColor: '#54CE8F',
+    marginRight: 16,
   },
   winnerInfo: {
     flex: 1,
   },
   winnerName: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
+    fontWeight: '600',
+    color: '#030213',
+    marginBottom: 4,
   },
   winnerLabel: {
-    fontSize: 12,
-    color: '#757575',
-    marginTop: 2,
+    fontSize: 13,
+    color: '#717182',
   },
   sectionLabel: {
     fontSize: 15,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginBottom: 12,
-    marginTop: 8,
+    fontWeight: '600',
+    color: '#030213',
   },
   scoresSection: {
-    marginTop: 10,
-    marginBottom: 20,
+    marginBottom: 24,
   },
   scoresSectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   addSetButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#D1FAE5',
   },
   addSetText: {
     fontSize: 13,
-    color: '#2E7D32',
-    fontWeight: '500',
-    marginLeft: 4,
+    color: '#54CE8F',
+    fontWeight: '600',
   },
   scoresHeader: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    marginBottom: 12,
-    paddingVertical: 8,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
+    marginBottom: 16,
+    paddingVertical: 12,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    marginTop: 8,
   },
   scorePlayerLabel: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#2E7D32',
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#030213',
     flex: 1,
     textAlign: 'center',
   },
   scoreDivider: {
-    fontSize: 12,
-    color: '#6C757D',
-    paddingHorizontal: 8,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#717182',
+    paddingHorizontal: 12,
   },
   setRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    justifyContent: 'space-between',
+    marginBottom: 16,
+    gap: 12,
   },
   setLabel: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#1B1B1B',
-    width: 50,
+    fontWeight: '600',
+    color: '#030213',
+    minWidth: 60,
   },
   setLabelError: {
-    color: '#DC3545',
+    color: '#EF4444',
   },
   scoreInput: {
     flex: 1,
-    height: 40,
+    height: 52,
     backgroundColor: '#FFFFFF',
     textAlign: 'center',
   },
   scoreSeparator: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#6C757D',
+    fontWeight: '600',
+    color: '#717182',
     paddingHorizontal: 8,
   },
   removeSetButton: {
-    marginLeft: 8,
+    marginLeft: 4,
     padding: 4,
   },
   scoreErrorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFEBEE',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#DC3545',
+    backgroundColor: '#FEF2F2',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+    gap: 12,
   },
   scoreErrorText: {
     fontSize: 13,
-    color: '#DC3545',
-    marginLeft: 8,
+    color: '#EF4444',
     flex: 1,
     fontWeight: '500',
+    lineHeight: 18,
   },
 });
 
