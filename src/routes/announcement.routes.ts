@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { AnnouncementController } from '../controllers/announcement.controller';
 import { authMiddleware } from '../middleware/authMiddleware';
+import { adminMiddleware } from '../middleware/adminMiddleware';
 
 const router = Router();
 const announcementController = new AnnouncementController();
@@ -19,6 +20,7 @@ router.get('/', announcementController.getAllAnnouncements);
 
 // Admin işlemleri
 router.use(authMiddleware);
+router.use(adminMiddleware);
 
 /**
  * @swagger
