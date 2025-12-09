@@ -669,7 +669,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
               {/* Pending challenge durumları */}
               {hasPendingChallengeToThisPlayer && (
                 <View style={styles.pendingChallengeBadge}>
-                  <MaterialCommunityIcons name="clock-alert-outline" size={14} color="#F59E0B" />
+                  <MaterialCommunityIcons name="clock-alert-outline" size={12} color="#F59E0B" />
                   <Text style={styles.pendingChallengeBadgeText}>
                     Maç İsteği Bekleniyor
                   </Text>
@@ -677,7 +677,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
               )}
               {hasPendingChallengeFromThisPlayer && (
                 <View style={styles.receivedChallengeBadge}>
-                  <MaterialCommunityIcons name="email-alert" size={14} color="#54CE8F" />
+                  <MaterialCommunityIcons name="email-alert" size={12} color="#54CE8F" />
                   <Text style={styles.receivedChallengeBadgeText}>
                     Sana Maç İsteği Gönderdi
                   </Text>
@@ -1541,31 +1541,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FEF3C7',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    gap: 4,
     alignSelf: 'flex-start',
+    maxWidth: '90%',
   },
   pendingChallengeBadgeText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '500',
     color: '#F59E0B',
+    flexShrink: 1,
   },
   receivedChallengeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#D1FAE5',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    gap: 4,
     alignSelf: 'flex-start',
+    maxWidth: '90%',
   },
   receivedChallengeBadgeText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '500',
     color: '#54CE8F',
+    flexShrink: 1,
   },
   playerActions: {
     alignItems: 'flex-end',

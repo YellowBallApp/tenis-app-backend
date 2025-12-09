@@ -492,6 +492,17 @@ export default {
     noMatches: 'Henüz maç geçmişi yok',
     winRate: 'Kazanma Oranı',
     memberSince: 'Üyelik Tarihi',
+    rateMember: 'Üye Değerlendir',
+    rateMemberSubtitle: 'için puan ve yorumunuzu paylaşın',
+    writeReview: 'Yorum Yaz',
+    yourRating: 'Puanınız:',
+    yourComment: 'Yorumunuz',
+    commentPlaceholder: 'Deneyiminizi paylaşın...',
+    send: 'Gönder',
+    ratingRequired: 'Lütfen bir yıldız puanı verin.',
+    commentRequired: 'Lütfen bir yorum yazın.',
+    reviewSuccess: 'Yorumunuz başarıyla gönderildi!',
+    basedOn: 'Toplam',
   },
   
   coaches: {

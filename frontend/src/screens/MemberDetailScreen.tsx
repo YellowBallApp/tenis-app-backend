@@ -24,7 +24,7 @@ import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useLanguage } from '../context/LanguageContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { userService, matchHistoryService, leagueStandingsService } from '../services/api';
+import { userService, matchHistoryService, leagueStandingsService, memberReviewService } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -52,11 +52,12 @@ const MemberDetailScreen = () => {
   const loadMemberData = async () => {
     try {
       setLoading(true);
-      const [memberData, matchesData, statsData, standingsData] = await Promise.all([
+      const [memberData, matchesData, statsData, standingsData, reviewsData] = await Promise.all([
         userService.getUserById(memberId),
         matchHistoryService.getUserMatchHistory(memberId),
         matchHistoryService.getUserMatchStats(memberId).catch(() => null),
-        leagueStandingsService.getStandingsByUserId(memberId).catch(() => [])
+        leagueStandingsService.getStandingsByUserId(memberId).catch(() => []),
+        memberReviewService.getMemberReviews(memberId).catch(() => [])
       ]);
       
       const formattedMember = {
@@ -77,6 +78,10 @@ const MemberDetailScreen = () => {
       } else {
         setUserStandings([]);
       }
+
+      // Yorumları kaydet
+      console.log('📝 Yorumlar yüklendi:', reviewsData);
+      setReviews(Array.isArray(reviewsData) ? reviewsData : []);
     } catch (error) {
       console.error('Üye detayları yüklenirken hata:', error);
       Alert.alert(t('common.error'), 'Üye bilgileri yüklenirken bir hata oluştu');
@@ -378,7 +383,7 @@ const MemberDetailScreen = () => {
             <View style={styles.reviewsHeader}>
               <Text style={styles.cardTitle}>{t('coaches.reviews')}</Text>
               <TouchableOpacity onPress={() => setShowReviewModal(true)}>
-                <Text style={styles.writeReviewText}>{t('coaches.writeReview')}</Text>
+                <Text style={styles.writeReviewText}>{t('members.writeReview')}</Text>
               </TouchableOpacity>
             </View>
             
@@ -387,7 +392,7 @@ const MemberDetailScreen = () => {
                 <Text style={styles.averageRating}>{averageRating.toFixed(1)}</Text>
                 {renderStars(Math.round(averageRating), 24)}
                 <Text style={styles.reviewsCountText}>
-                  {t('coaches.basedOn')} {reviews.length} {t('coaches.reviews')}
+                  {t('members.basedOn')} {reviews.length} {t('coaches.reviews')}
                 </Text>
               </View>
               
@@ -493,7 +498,7 @@ const MemberDetailScreen = () => {
             <Card.Content style={styles.reviewContent}>
               <View style={styles.reviewModalHeader}>
                 <MaterialIcons name="star" size={32} color="#FFD700" />
-                <Text style={styles.reviewModalTitle}>{t('coaches.rateCoach')}</Text>
+                <Text style={styles.reviewModalTitle}>{t('members.rateMember')}</Text>
                 <TouchableOpacity 
                   onPress={() => setShowReviewModal(false)}
                   style={styles.modalCloseButton}
@@ -503,11 +508,11 @@ const MemberDetailScreen = () => {
               </View>
               
               <Text style={styles.reviewModalSubtitle}>
-                {t('coaches.rateCoachSubtitle')} {member?.name}
+                {t('members.rateMemberSubtitle')} {member?.name}
               </Text>
               
               <View style={styles.ratingSection}>
-                <Text style={styles.ratingLabel}>{t('coaches.yourRating')}</Text>
+                <Text style={styles.ratingLabel}>{t('members.yourRating')}</Text>
                 <View style={styles.starsContainer}>
                   {[1, 2, 3, 4, 5].map((star) => (
                     <TouchableOpacity
@@ -527,8 +532,8 @@ const MemberDetailScreen = () => {
               
               <TextInput
                 mode="outlined"
-                label={t('coaches.yourComment')}
-                placeholder={t('coaches.commentPlaceholder')}
+                label={t('members.yourComment')}
+                placeholder={t('members.commentPlaceholder')}
                 value={reviewComment}
                 onChangeText={setReviewComment}
                 multiline
@@ -548,36 +553,31 @@ const MemberDetailScreen = () => {
                 <TouchableOpacity
                   onPress={async () => {
                     if (reviewRating === 0) {
-                      Alert.alert(t('common.error'), t('coaches.ratingRequired'));
+                      Alert.alert(t('common.error'), t('members.ratingRequired'));
                       return;
                     }
                     if (reviewComment.trim() === '') {
-                      Alert.alert(t('common.error'), t('coaches.commentRequired'));
+                      Alert.alert(t('common.error'), t('members.commentRequired'));
                       return;
                     }
                     try {
-                      // TODO: API'ye review gönderme işlemi burada yapılacak
-                      // Şimdilik local state'e ekliyoruz
-                      const newReview = {
-                        id: Date.now().toString(),
-                        rating: reviewRating,
-                        comment: reviewComment.trim(),
-                        user: { name: 'Sen' }, // Gerçek kullanıcı bilgisi buraya gelecek
-                        createdAt: new Date().toISOString(),
-                      };
-                      
-                      setReviews([newReview, ...reviews]);
+                      console.log('📤 Yorum gönderiliyor:', { memberId, rating: reviewRating, comment: reviewComment.trim() });
+                      const newReview = await memberReviewService.createReview(memberId, reviewRating, reviewComment.trim());
+                      console.log('✅ Yorum gönderildi:', newReview);
+                      Alert.alert(t('common.success'), t('members.reviewSuccess'));
                       setShowReviewModal(false);
                       setReviewRating(0);
                       setReviewComment('');
-                      Alert.alert(t('common.success'), t('coaches.reviewSuccess'));
+                      // Yorumları yeniden yükle
+                      await loadMemberData();
                     } catch (error: any) {
-                      Alert.alert(t('common.error'), error.response?.data?.message || 'Yorum kaydedilirken bir hata oluştu');
+                      console.error('❌ Yorum gönderme hatası:', error);
+                      Alert.alert(t('common.error'), error.response?.data?.message || error.message || 'Yorum kaydedilirken bir hata oluştu');
                     }
                   }}
                   style={[styles.modalSubmitButton, { paddingVertical: 16 }]}
                 >
-                  <Text style={styles.saveButtonText}>{t('coaches.send')}</Text>
+                  <Text style={styles.saveButtonText}>{t('members.send')}</Text>
                 </TouchableOpacity>
               </View>
             </Card.Content>
