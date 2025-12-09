@@ -11,6 +11,7 @@ import Reviews from './pages/Reviews';
 import Leagues from './pages/Leagues';
 import LeagueApplications from './pages/LeagueApplications';
 import LeagueStandings from './pages/LeagueStandings';
+import Announcements from './pages/Announcements';
 
 function App() {
   return (
@@ -95,6 +96,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <LeagueStandings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/announcements"
+            element={
+              <ProtectedRoute>
+                <Announcements />
               </ProtectedRoute>
             }
           />
