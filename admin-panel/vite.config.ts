@@ -10,9 +10,6 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  optimizeDeps: {
-    include: ['@mdi/js'],
-  },
   server: {
     port: 5173,
     host: true,

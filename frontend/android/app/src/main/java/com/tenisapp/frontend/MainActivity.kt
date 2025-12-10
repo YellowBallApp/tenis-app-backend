@@ -1,4 +1,4 @@
-package com.tenisapp.frontend
+package com.egevtenis.tenisapp
 
 import android.os.Build
 import android.os.Bundle
