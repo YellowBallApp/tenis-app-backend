@@ -17,6 +17,8 @@ router.get('/', authMiddleware, adminMiddleware, controller.getAllApplications);
 router.get('/league/:leagueId', authMiddleware, adminMiddleware, controller.getApplicationsByLeague);
 router.post('/:id/approve', authMiddleware, adminMiddleware, controller.approveApplication);
 router.post('/:id/reject', authMiddleware, adminMiddleware, controller.rejectApplication);
+router.put('/:id', authMiddleware, adminMiddleware, controller.updateApplication);
+router.delete('/:id', authMiddleware, adminMiddleware, controller.deleteApplication);
 router.get('/pending/count', authMiddleware, adminMiddleware, controller.getPendingCount);
 
 export default router;

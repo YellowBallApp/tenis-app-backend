@@ -320,6 +320,8 @@ export default {
     },
     modal: {
       playerCount: 'Oyuncu Sayısı:',
+      leagueStartDate: 'Lig Başlangıç Tarihi',
+      leagueEndDate: 'Lig Bitiş Tarihi',
       ageRange: 'Yaş Aralığı:',
       fee: 'Kayıt Ücreti:',
       view: 'Ligi Görüntüle',

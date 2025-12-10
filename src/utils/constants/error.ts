@@ -201,6 +201,11 @@ const rawErrors = {
         code: 1040,
         key: "LEAGUE_CODE_ALREADY_EXISTS",
         message: "A league with this code already exists"
+    },
+    LEAGUE_NOT_ACTIVE: {
+        code: 1041,
+        key: "LEAGUE_NOT_ACTIVE",
+        message: "Lig aktif değil. Lig tarihleri arasında değilsiniz."
     }
 } as const;
 

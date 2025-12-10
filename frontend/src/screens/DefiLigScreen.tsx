@@ -592,6 +592,36 @@ const DefiLigScreen = ({ navigation }: any) => {
                         <Text style={styles.detailLabel}>{t('defiLeague.modal.playerCount') || 'Oyuncu Sayısı'}</Text>
                         <Text style={styles.detailValue}>{selectedLig.playerCount}</Text>
                       </View>
+                      {selectedLig.settings && selectedLig.settings.leagueStartDate && (
+                        <View style={styles.detailRow}>
+                          <View style={styles.detailIconContainer}>
+                            <MaterialCommunityIcons name="calendar-start" size={20} color="#54CE8F" />
+                          </View>
+                          <Text style={styles.detailLabel}>{t('defiLeague.modal.leagueStartDate') || 'Lig Başlangıç Tarihi'}</Text>
+                          <Text style={styles.detailValue}>
+                            {new Date(selectedLig.settings.leagueStartDate).toLocaleDateString('tr-TR', { 
+                              day: '2-digit', 
+                              month: '2-digit', 
+                              year: 'numeric' 
+                            })}
+                          </Text>
+                        </View>
+                      )}
+                      {selectedLig.settings && selectedLig.settings.leagueEndDate && (
+                        <View style={styles.detailRow}>
+                          <View style={styles.detailIconContainer}>
+                            <MaterialCommunityIcons name="calendar-end" size={20} color="#54CE8F" />
+                          </View>
+                          <Text style={styles.detailLabel}>{t('defiLeague.modal.leagueEndDate') || 'Lig Bitiş Tarihi'}</Text>
+                          <Text style={styles.detailValue}>
+                            {new Date(selectedLig.settings.leagueEndDate).toLocaleDateString('tr-TR', { 
+                              day: '2-digit', 
+                              month: '2-digit', 
+                              year: 'numeric' 
+                            })}
+                          </Text>
+                        </View>
+                      )}
                       {selectedLig.settings && (selectedLig.settings.minAge !== null || selectedLig.settings.maxAge !== null) && (
                         <View style={styles.detailRow}>
                           <View style={styles.detailIconContainer}>

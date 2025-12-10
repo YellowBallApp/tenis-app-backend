@@ -250,6 +250,15 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
       return;
     }
     
+    // Lig aktif mi kontrol et
+    if (!isLeagueActive()) {
+      Alert.alert(
+        'Lig Aktif Değil', 
+        'Bu lig şu anda aktif değil. Lig tarihleri arasında değilsiniz.'
+      );
+      return;
+    }
+    
     // Kullanıcının bu ligde aktif bir challenge'ı var mı kontrol et (pending veya accepted)
     const userHasActiveChallengeInLeague = userPendingChallenges.some(
       (c: any) => c.league.id === lig.id
@@ -591,11 +600,30 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
     }
   };
 
+  // Lig aktif mi kontrolü (lig tarihleri arasında mı?)
+  const isLeagueActive = () => {
+    if (!lig?.settings?.leagueStartDate || !lig?.settings?.leagueEndDate) {
+      return true; // Tarih bilgisi yoksa varsayılan olarak aktif kabul et
+    }
+    
+    const now = new Date();
+    const startDate = new Date(lig.settings.leagueStartDate);
+    const endDate = new Date(lig.settings.leagueEndDate);
+    
+    // Tarih karşılaştırması için sadece tarih kısmını al (saat bilgisini sıfırla)
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const leagueStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+    const leagueEnd = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+    
+    return today >= leagueStart && today <= leagueEnd;
+  };
+
   const renderPlayerCard = (player: any) => {
     if (!currentUser) return null;
     
     const isCurrentUser = player.user.id === currentUser.id;
     const positionDifference = currentUser.position - player.position;
+    const leagueActive = isLeagueActive();
     
     // Kullanıcının bu ligde aktif bir challenge'ı var mı? (hem gönderdiği hem aldığı, pending veya accepted)
     const userHasActiveChallengeInLeague = userPendingChallenges.some(
@@ -613,6 +641,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
     );
     
     const canChallenge = !isCurrentUser 
+      && leagueActive // Lig aktif olmalı (tarihler arasında)
       && positionDifference <= maxOfferRange 
       && positionDifference > 0 
       && !userHasActiveChallengeInLeague // Kullanıcının bu ligde aktif challenge'ı olmamalı (pending veya accepted)
