@@ -269,13 +269,15 @@ const getApiBaseUrl = async (): Promise<string> => {
     return `http://${serverIP}:${DEFAULT_PORT}/api`;
   }
   
-  // Fallback: localhost (sadece development için)
-  console.warn('⚠️ Server IP bulunamadı, localhost kullanılıyor (çalışmayabilir)');
-  return `http://localhost:${DEFAULT_PORT}/api`;
+  // Fallback: localhost veya env'den gelen URL (sadece development için)
+  const fallbackHost = process.env.EXPO_PUBLIC_FALLBACK_HOST || 'localhost';
+  console.warn(`⚠️ Server IP bulunamadı, ${fallbackHost} kullanılıyor (çalışmayabilir)`);
+  return `http://${fallbackHost}:${DEFAULT_PORT}/api`;
 };
 
 // İlk başta base URL'i al (async)
-let API_BASE_URL: string = `http://localhost:${DEFAULT_PORT}/api`;
+const fallbackHost = process.env.EXPO_PUBLIC_FALLBACK_HOST || 'localhost';
+let API_BASE_URL: string = `http://${fallbackHost}:${DEFAULT_PORT}/api`;
 
 // Önceki ağ durumunu takip et
 let previousNetworkType: string | null = null;

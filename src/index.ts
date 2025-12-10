@@ -76,12 +76,15 @@ const corsOptions = {
     }
     
     // Production için sadece belirli origin'lere izin ver
-    const allowedOrigins = [
-      'http://localhost:8081',
-      'http://localhost:3000',
-      'http://localhost:5173', // Admin panel
-      'http://127.0.0.1:5173', // Admin panel
-    ];
+    const allowedOriginsEnv = process.env.ALLOWED_ORIGINS;
+    const allowedOrigins = allowedOriginsEnv 
+      ? allowedOriginsEnv.split(',').map(origin => origin.trim())
+      : [
+          'http://localhost:8081',
+          'http://localhost:3000',
+          'http://localhost:5173', // Admin panel
+          'http://127.0.0.1:5173', // Admin panel
+        ];
     
     if (origin && allowedOrigins.includes(origin)) {
       callback(null, true);

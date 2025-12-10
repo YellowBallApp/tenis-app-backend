@@ -105,6 +105,7 @@ Kontrol Edilecekler:
 ✅ Backend çalışıyor mu? (Terminal'de "npm run dev")
 ✅ Telefon ve bilgisayar aynı WiFi'de mi?
 ✅ Backend 0.0.0.0:${apiPort} üzerinden dinliyor mu?
+✅ Backend 0.0.0.0:${apiPort} üzerinden dinliyor mu?
 ✅ Firewall backend portunu engelliyor mu?
 
 IP Değişirse:

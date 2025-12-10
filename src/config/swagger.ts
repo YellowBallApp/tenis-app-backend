@@ -14,13 +14,21 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: 'http://localhost:3000',
+        url: process.env.SWAGGER_SERVER_URL || `http://localhost:${process.env.PORT || 3000}`,
         description: 'Development server',
       },
-      {
-        url: 'http://localhost:8081',
-        description: 'Mobile development server',
-      },
+      ...(process.env.SWAGGER_ADDITIONAL_SERVERS 
+        ? process.env.SWAGGER_ADDITIONAL_SERVERS.split(',').map((url: string) => ({
+            url: url.trim(),
+            description: 'Additional server',
+          }))
+        : [
+            {
+              url: 'http://localhost:8081',
+              description: 'Mobile development server',
+            },
+          ]
+      ),
     ],
     components: {
       securitySchemes: {
