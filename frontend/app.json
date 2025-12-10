@@ -16,7 +16,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.egevtenis.tenisapp",
+      "bundleIdentifier": "com.tenisapp.frontend",
       "buildNumber": "2"
     },
     "android": {
