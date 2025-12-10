@@ -33,9 +33,9 @@ export const triggerLogout = () => {
 // API Base URL yapılandırması
 // Production build için: PRODUCTION_API_URL environment variable kullanın
 // Ngrok kullanıyorsanız: NGROK_URL değişkenini ayarlayın
-const NGROK_URL = ''; // Örnek: 'https://abc123.ngrok-free.app'
-const EMULATOR_IP = '10.0.2.2'; // Android emülatör için özel IP
-const DEFAULT_PORT = 3000;
+const NGROK_URL = process.env.EXPO_PUBLIC_NGROK_URL || ''; // Örnek: 'https://abc123.ngrok-free.app'
+const EMULATOR_IP = process.env.EXPO_PUBLIC_EMULATOR_IP || '10.0.2.2'; // Android emülatör için özel IP
+const DEFAULT_PORT = parseInt(process.env.EXPO_PUBLIC_API_PORT || '3000', 10);
 
 // Production API URL - Gerçek telefonda kullanılacak URL
 // Bu URL'yi backend'inizin deploy edildiği yere göre ayarlayın
@@ -398,10 +398,48 @@ const api = axios.create({
 const isEmulator = Platform.OS === 'android' ? isAndroidEmulator() : false;
 console.log('Platform:', Platform.OS, isEmulator ? '(Emülatör)' : '(Gerçek Cihaz)');
 
-// Request interceptor - baseURL ve token ekleme
+// Client IP ve device bilgilerini al
+async function getClientInfo(): Promise<{
+  clientIP: string | null;
+  deviceType: string;
+  isEmulator: boolean;
+  platform: string;
+  networkType: string | null;
+}> {
+  let clientIP: string | null = null;
+  let networkType: string | null = null;
+  
+  try {
+    if (NetInfo && Platform.OS !== 'web') {
+      const netInfoState = await NetInfo.fetch();
+      networkType = netInfoState.type;
+      
+      // Client IP'yi al (WiFi veya cellular)
+      if (netInfoState.type === 'wifi' && netInfoState.details) {
+        clientIP = (netInfoState.details as any).ipAddress || null;
+      } else if (netInfoState.type === 'cellular' && netInfoState.details) {
+        clientIP = (netInfoState.details as any).ipAddress || null;
+      }
+    }
+  } catch (error) {
+    console.warn('Client IP alınırken hata:', error);
+  }
+  
+  return {
+    clientIP: clientIP || 'unknown',
+    deviceType: Platform.OS,
+    isEmulator: Platform.OS === 'android' ? isAndroidEmulator() : false,
+    platform: `${Platform.OS} ${Platform.Version || ''}`.trim(),
+    networkType: networkType || 'unknown',
+  };
+}
+
+// Request interceptor - baseURL, token ve detaylı log ekleme
 api.interceptors.request.use(
   async (config) => {
     try {
+      const timestamp = new Date().toISOString();
+      
       // API henüz başlatılmadıysa, önce başlat
       if (!isAPIInitialized) {
         console.log('⏳ API henüz başlatılmadı, başlatılıyor...');
@@ -412,8 +450,10 @@ api.interceptors.request.use(
       if (!config.baseURL) {
         const baseUrl = await getApiBaseUrl();
         config.baseURL = baseUrl;
-        console.log('🌐 Request Base URL:', baseUrl);
       }
+      
+      // Client bilgilerini al
+      const clientInfo = await getClientInfo();
       
       // Token ekle
       const token = await AsyncStorage.getItem('accessToken');
@@ -421,24 +461,62 @@ api.interceptors.request.use(
         // Token'ı temizle (boşluk, satır sonu vs. varsa)
         const cleanToken = token.trim();
         config.headers.Authorization = `Bearer ${cleanToken}`;
-        console.log('🔑 Request interceptor: Token eklendi', { 
-          hasToken: !!cleanToken,
-          tokenLength: cleanToken.length,
-          url: config.url,
-          baseURL: config.baseURL
-        });
-      } else {
-        console.log('⚠️ Request interceptor: Token bulunamadı', { url: config.url, baseURL: config.baseURL });
       }
       
-      // Full URL'yi logla (debug için)
+      // Backend'e gönderilecek client bilgilerini header olarak ekle
+      config.headers['X-Client-IP'] = clientInfo.clientIP || 'unknown';
+      config.headers['X-Client-Platform'] = clientInfo.platform;
+      config.headers['X-Client-Device-Type'] = clientInfo.deviceType;
+      config.headers['X-Client-Is-Emulator'] = String(clientInfo.isEmulator);
+      config.headers['X-Client-Network-Type'] = clientInfo.networkType || 'unknown';
+      config.headers['X-Request-Timestamp'] = timestamp;
+      
+      // Full URL'yi oluştur
       const fullUrl = `${config.baseURL}${config.url}`;
-      console.log('📤 API Request:', {
-        method: config.method?.toUpperCase(),
-        url: config.url,
+      
+      // Detaylı log - Frontend console'da
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('📤 API REQUEST GÖNDERİLİYOR');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('🕐 Timestamp:', timestamp);
+      console.log('🌐 Target Server URL:', config.baseURL);
+      console.log('📍 Endpoint:', config.url);
+      console.log('🔗 Full URL:', fullUrl);
+      console.log('📋 Method:', config.method?.toUpperCase() || 'GET');
+      console.log('📱 Client IP:', clientInfo.clientIP || 'unknown');
+      console.log('💻 Platform:', clientInfo.platform);
+      console.log('📲 Device Type:', clientInfo.deviceType);
+      console.log('🎮 Is Emulator:', clientInfo.isEmulator ? 'Yes' : 'No');
+      console.log('📡 Network Type:', clientInfo.networkType || 'unknown');
+      console.log('🔑 Has Token:', token ? 'Yes' : 'No');
+      if (config.params) {
+        console.log('📦 Query Params:', JSON.stringify(config.params, null, 2));
+      }
+      if (config.data) {
+        const dataStr = typeof config.data === 'string' ? config.data : JSON.stringify(config.data, null, 2);
+        console.log('📨 Request Body:', dataStr.substring(0, 500) + (dataStr.length > 500 ? '...' : ''));
+      }
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      
+      // Backend'de görülebilmesi için structured log (JSON formatında)
+      const logData = {
+        type: 'API_REQUEST',
+        timestamp,
+        method: config.method?.toUpperCase() || 'GET',
+        endpoint: config.url,
         baseURL: config.baseURL,
         fullURL: fullUrl,
-      });
+        clientIP: clientInfo.clientIP,
+        platform: clientInfo.platform,
+        deviceType: clientInfo.deviceType,
+        isEmulator: clientInfo.isEmulator,
+        networkType: clientInfo.networkType,
+        hasToken: !!token,
+        params: config.params || null,
+        bodySize: config.data ? (typeof config.data === 'string' ? config.data.length : JSON.stringify(config.data).length) : 0,
+      };
+      console.log('📊 Structured Log:', JSON.stringify(logData, null, 2));
+      
     } catch (error) {
       console.error('❌ Request interceptor error:', error);
     }
@@ -501,31 +579,94 @@ const normalizeBooleanInResponse = (data: any): any => {
 // Response interceptor - token refresh, error handling ve boolean normalization
 api.interceptors.response.use(
   (response) => {
+    const timestamp = new Date().toISOString();
+    const requestUrl = response.config.url || 'unknown';
+    const baseURL = response.config.baseURL || 'unknown';
+    const fullUrl = `${baseURL}${requestUrl}`;
+    const method = response.config.method?.toUpperCase() || 'GET';
+    const status = response.status;
+    const statusText = response.statusText;
+    
     // API response'daki boolean değerleri normalize et
     if (response.data && response.data.data) {
       response.data.data = normalizeBooleanInResponse(response.data.data);
     } else if (response.data) {
       response.data = normalizeBooleanInResponse(response.data);
     }
+    
+    // Detaylı log - Başarılı yanıt
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('✅ API RESPONSE ALINDI (BAŞARILI)');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('🕐 Timestamp:', timestamp);
+    console.log('🌐 Target Server URL:', baseURL);
+    console.log('📍 Endpoint:', requestUrl);
+    console.log('🔗 Full URL:', fullUrl);
+    console.log('📋 Method:', method);
+    console.log('✅ Status:', status, statusText);
+    console.log('⏱️  Response Time:', response.headers['x-response-time'] || 'N/A');
+    if (response.data) {
+      const dataStr = JSON.stringify(response.data, null, 2);
+      console.log('📥 Response Data:', dataStr.substring(0, 500) + (dataStr.length > 500 ? '...' : ''));
+    }
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    
+    // Structured log
+    const logData = {
+      type: 'API_RESPONSE_SUCCESS',
+      timestamp,
+      method,
+      endpoint: requestUrl,
+      baseURL,
+      fullURL: fullUrl,
+      status,
+      statusText,
+      responseTime: response.headers['x-response-time'] || null,
+      dataSize: response.data ? JSON.stringify(response.data).length : 0,
+    };
+    console.log('📊 Structured Log:', JSON.stringify(logData, null, 2));
+    
     return response;
   },
   async (error) => {
     const originalRequest = error.config;
+    const timestamp = new Date().toISOString();
     
     // Network hatası kontrolü
     if (!error.response) {
       const baseUrl = originalRequest?.baseURL || API_BASE_URL;
       const fullUrl = originalRequest?.url ? `${baseUrl}${originalRequest.url}` : 'Unknown URL';
+      const method = originalRequest?.method?.toUpperCase() || 'GET';
       
-      console.error('🚨 Network Error Detayları:', {
-        message: error.message,
-        code: error.code,
-        url: originalRequest?.url,
+      // Detaylı log - Network hatası
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('❌ API RESPONSE HATASI (NETWORK)');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('🕐 Timestamp:', timestamp);
+      console.log('🌐 Target Server URL:', baseUrl);
+      console.log('📍 Endpoint:', originalRequest?.url || 'unknown');
+      console.log('🔗 Full URL:', fullUrl);
+      console.log('📋 Method:', method);
+      console.log('❌ Error Code:', error.code || 'UNKNOWN');
+      console.log('❌ Error Message:', error.message);
+      console.log('⏱️  Timeout:', error.code === 'ECONNABORTED' ? 'Yes' : 'No');
+      console.log('📡 Network Error:', error.code === 'ERR_NETWORK' ? 'Yes' : 'No');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      
+      // Structured log
+      const logData = {
+        type: 'API_RESPONSE_ERROR_NETWORK',
+        timestamp,
+        method,
+        endpoint: originalRequest?.url || 'unknown',
         baseURL: baseUrl,
         fullURL: fullUrl,
-        timeout: error.code === 'ECONNABORTED',
-        networkError: error.code === 'ERR_NETWORK',
-      });
+        errorCode: error.code || 'UNKNOWN',
+        errorMessage: error.message,
+        isTimeout: error.code === 'ECONNABORTED',
+        isNetworkError: error.code === 'ERR_NETWORK',
+      };
+      console.log('📊 Structured Log:', JSON.stringify(logData, null, 2));
       
       // Token varsa ama network hatası alınıyorsa, logout yapma
       // Çünkü bu backend bağlantı sorunu olabilir, token sorunu değil
@@ -561,10 +702,24 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       
+      const baseUrl = originalRequest?.baseURL || API_BASE_URL;
+      const fullUrl = originalRequest?.url ? `${baseUrl}${originalRequest.url}` : 'Unknown URL';
+      const method = originalRequest?.method?.toUpperCase() || 'GET';
+      
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('🔐 API RESPONSE: 401 UNAUTHORIZED - Token yenileniyor');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('🕐 Timestamp:', timestamp);
+      console.log('🌐 Target Server URL:', baseUrl);
+      console.log('📍 Endpoint:', originalRequest?.url || 'unknown');
+      console.log('🔗 Full URL:', fullUrl);
+      console.log('📋 Method:', method);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      
       try {
         const refreshToken = await AsyncStorage.getItem('refreshToken');
         if (refreshToken) {
-          console.log('Access token expired, refreshing...');
+          console.log('🔄 Access token expired, refreshing...');
           
           // Refresh token isteği için axios kullan (interceptor olmadan)
           const response = await axios.post(
@@ -609,9 +764,23 @@ api.interceptors.response.use(
     
     // 403 Forbidden - token geçersiz veya yetkisiz
     if (error.response?.status === 403) {
+      const baseUrl = originalRequest?.baseURL || API_BASE_URL;
+      const fullUrl = originalRequest?.url ? `${baseUrl}${originalRequest.url}` : 'Unknown URL';
+      const method = originalRequest?.method?.toUpperCase() || 'GET';
+      
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('🚫 API RESPONSE: 403 FORBIDDEN - Token geçersiz');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('🕐 Timestamp:', timestamp);
+      console.log('🌐 Target Server URL:', baseUrl);
+      console.log('📍 Endpoint:', originalRequest?.url || 'unknown');
+      console.log('🔗 Full URL:', fullUrl);
+      console.log('📋 Method:', method);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      
       const hasToken = await AsyncStorage.getItem('accessToken');
       if (hasToken) {
-        console.log('403 Forbidden - token geçersiz, logout yapılıyor');
+        console.log('🚪 403 Forbidden - token geçersiz, logout yapılıyor');
         await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
         triggerLogout();
       }
@@ -639,13 +808,50 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
     
-    // Diğer HTTP hataları için detaylı log
-    console.error('API Error:', {
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      url: originalRequest?.url,
-    });
+    // HTTP hata yanıtları için detaylı log
+    if (error.response) {
+      const baseUrl = originalRequest?.baseURL || API_BASE_URL;
+      const fullUrl = originalRequest?.url ? `${baseUrl}${originalRequest.url}` : 'Unknown URL';
+      const method = originalRequest?.method?.toUpperCase() || 'GET';
+      const status = error.response.status;
+      const statusText = error.response.statusText;
+      const errorData = error.response.data;
+      
+      // Detaylı log - HTTP hata yanıtı
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('❌ API RESPONSE HATASI (HTTP)');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('🕐 Timestamp:', timestamp);
+      console.log('🌐 Target Server URL:', baseUrl);
+      console.log('📍 Endpoint:', originalRequest?.url || 'unknown');
+      console.log('🔗 Full URL:', fullUrl);
+      console.log('📋 Method:', method);
+      console.log('❌ Status:', status, statusText);
+      console.log('📨 Error Data:', errorData ? JSON.stringify(errorData, null, 2).substring(0, 500) : 'No error data');
+      if (errorData?.data?.errorKey) {
+        console.log('🔑 Error Key:', errorData.data.errorKey);
+      }
+      if (errorData?.data?.message) {
+        console.log('💬 Error Message:', errorData.data.message);
+      }
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      
+      // Structured log
+      const logData = {
+        type: 'API_RESPONSE_ERROR_HTTP',
+        timestamp,
+        method,
+        endpoint: originalRequest?.url || 'unknown',
+        baseURL: baseUrl,
+        fullURL: fullUrl,
+        status,
+        statusText,
+        errorKey: errorData?.data?.errorKey || null,
+        errorMessage: errorData?.data?.message || errorData?.message || null,
+        errorData: errorData || null,
+      };
+      console.log('📊 Structured Log:', JSON.stringify(logData, null, 2));
+    }
     
     return Promise.reject(error);
   }

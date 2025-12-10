@@ -70,7 +70,8 @@ export const weatherService = {
       }
 
       // Open-Meteo API'den hava durumu bilgisi çek
-      const response = await axios.get('https://api.open-meteo.com/v1/forecast', {
+      const weatherApiUrl = process.env.EXPO_PUBLIC_WEATHER_API_URL || 'https://api.open-meteo.com/v1/forecast';
+      const response = await axios.get(weatherApiUrl, {
         params: {
           latitude: lat,
           longitude: lon,
