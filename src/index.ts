@@ -47,54 +47,10 @@ app.use(compression());
 
 // Development için esnek CORS ayarları - tüm local network IP'lerine izin ver
 const corsOptions = {
-  origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
-    // Development modunda tüm local network IP'lerine izin ver
-    if (process.env.NODE_ENV !== 'production') {
-      // Origin yoksa (Postman, mobile app gibi) izin ver
-      if (!origin) {
-        return callback(null, true);
-      }
-      
-      // Localhost'a izin ver (tüm portlar dahil - admin panel için)
-      if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
-        return callback(null, true);
-      }
-      
-      // Local network IP'lerine izin ver (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
-      const localNetworkRegex = /^https?:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2[0-9]|3[01])\.\d+\.\d+)(:\d+)?$/;
-      if (localNetworkRegex.test(origin)) {
-        return callback(null, true);
-      }
-      
-      // Ngrok URL'lerine izin ver
-      if (origin && (origin.includes('ngrok') || origin.includes('ngrok-free') || origin.includes('ngrok.io'))) {
-        return callback(null, true);
-      }
-      
-      // Expo Go ve development için tüm isteklere izin ver
-      return callback(null, true);
-    }
-    
-    // Production için sadece belirli origin'lere izin ver
-    const allowedOriginsEnv = process.env.ALLOWED_ORIGINS;
-    const allowedOrigins = allowedOriginsEnv 
-      ? allowedOriginsEnv.split(',').map(origin => origin.trim())
-      : [
-          'http://localhost:8081',
-          'http://localhost:3000',
-          'http://localhost:5173', // Admin panel
-          'http://127.0.0.1:5173', // Admin panel
-        ];
-    
-    if (origin && allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('CORS policy violation'));
-    }
-  },
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  //allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 };
 
 app.use(cors(corsOptions));
@@ -120,7 +76,7 @@ app.get('/', (req, res) => {
 
 // Server bilgisi endpoint'i - Frontend'in IP'yi dinamik olarak alması için
 app.get('/api/server-info', (req, res) => {
-  const localIP = getLocalNetworkIP();
+  const localIP = process.env.API_URL;
   const PORT = parseInt(process.env.PORT || '3000', 10);
   
   res.json({
