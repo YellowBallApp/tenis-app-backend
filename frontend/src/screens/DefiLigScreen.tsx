@@ -668,6 +668,45 @@ const DefiLigScreen = ({ navigation }: any) => {
                       </View>
                     )}
 
+                    {/* Maç Formatı */}
+                    {selectedLig.settings && (
+                      <View style={styles.modalMatchFormat}>
+                        <Text style={styles.modalMatchFormatTitle}>{t('defiLeague.matchFormatTitle') || 'Maç Formatı:'}</Text>
+                        {selectedLig.settings.gamesPerSet != null && (
+                          <View style={styles.modalMatchFormatItem}>
+                            <Text style={styles.modalMatchFormatLabel}>
+                              {t('defiLeague.matchFormat.gamesPerSet') || 'Set Başına Oyun Sayısı'}
+                            </Text>
+                            <Text style={styles.modalMatchFormatValue}>{selectedLig.settings.gamesPerSet}</Text>
+                          </View>
+                        )}
+                        {selectedLig.settings.setsCount != null && (
+                          <View style={styles.modalMatchFormatItem}>
+                            <Text style={styles.modalMatchFormatLabel}>
+                              {t('defiLeague.matchFormat.setsCount') || 'Set Sayısı'}
+                            </Text>
+                            <Text style={styles.modalMatchFormatValue}>{selectedLig.settings.setsCount}</Text>
+                          </View>
+                        )}
+                        {selectedLig.settings.gameTiebreakPoints != null && (
+                          <View style={styles.modalMatchFormatItem}>
+                            <Text style={styles.modalMatchFormatLabel}>
+                              {t('defiLeague.matchFormat.gameTiebreakPoints') || 'Oyun Tiebreak Puanı'}
+                            </Text>
+                            <Text style={styles.modalMatchFormatValue}>{selectedLig.settings.gameTiebreakPoints}</Text>
+                          </View>
+                        )}
+                        {selectedLig.settings.matchTiebreakPoints != null && (
+                          <View style={styles.modalMatchFormatItem}>
+                            <Text style={styles.modalMatchFormatLabel}>
+                              {t('defiLeague.matchFormat.matchTiebreakPoints') || 'Maç Tiebreak Puanı'}
+                            </Text>
+                            <Text style={styles.modalMatchFormatValue}>{selectedLig.settings.matchTiebreakPoints}</Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
+
                     {!selectedLig.isUserInLeague && selectedLig.settings && (selectedLig.settings.minAge !== null || selectedLig.settings.maxAge !== null) && (() => {
                       const userAge = currentUser.age;
                       const settings = selectedLig.settings;
@@ -1093,6 +1132,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#717182',
     flex: 1,
+  },
+  modalMatchFormat: {
+    marginBottom: 20,
+  },
+  modalMatchFormatTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#030213',
+    marginBottom: 12,
+  },
+  modalMatchFormatItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalMatchFormatLabel: {
+    fontSize: 14,
+    color: '#717182',
+    flex: 1,
+  },
+  modalMatchFormatValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#030213',
   },
   ageWarning: {
     flexDirection: 'row',

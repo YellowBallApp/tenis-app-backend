@@ -307,6 +307,13 @@ export default {
       points: 'Point bonuses',
       special: 'Special rewards',
     },
+    matchFormatTitle: 'Match Format:',
+    matchFormat: {
+      gamesPerSet: 'Games Per Set',
+      setsCount: 'Number of Sets',
+      gameTiebreakPoints: 'Game Tiebreak Points',
+      matchTiebreakPoints: 'Match Tiebreak Points',
+    },
     rules: {
       format: '1v1 match format',
       challenge: 'Challenge up to 3 ranks above',
