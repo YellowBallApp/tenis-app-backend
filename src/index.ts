@@ -168,6 +168,9 @@ const authMiddleware = express.Router();
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
+// HTTP server instance'ını sakla (graceful shutdown için)
+let server: any = null;
+
 AppDataSource.initialize()
   .then(async () => {
     console.log("Database connection successful");
@@ -209,7 +212,7 @@ AppDataSource.initialize()
     
     // 0.0.0.0 ile tüm network interface'lerden erişilebilir yap (mobil test için)
     const localIP = getLocalNetworkIP();
-    app.listen(PORT, '0.0.0.0', () => {
+    server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📱 Mobile access: http://${localIP}:${PORT}`);
       console.log(`💻 Local access: http://localhost:${PORT}`);
@@ -218,15 +221,52 @@ AppDataSource.initialize()
   })
   .catch((error) => console.error(" Database connection error:", error));
 
-// Graceful shutdown
-process.on("SIGINT", () => {
-  console.log("\n⚠️  Sunucu kapatılıyor...");
+// Graceful shutdown fonksiyonu
+const gracefulShutdown = async (signal: string) => {
+  console.log(`\n⚠️  ${signal} sinyali alındı, sunucu kapatılıyor...`);
+  
+  // Yeni istekleri kabul etmeyi durdur
+  if (server) {
+    server.close(() => {
+      console.log("✅ HTTP server kapatıldı");
+    });
+  }
+  
+  // Cron job'ları durdur
   stopAllCronJobs();
+  
+  // Database connection'ı kapat (memory leak'i önlemek için kritik!)
+  if (AppDataSource.isInitialized) {
+    try {
+      await AppDataSource.destroy();
+      console.log("✅ Database connection kapatıldı");
+    } catch (error) {
+      console.error("❌ Database connection kapatılırken hata:", error);
+    }
+  }
+  
+  // Timeout ile zorla kapat (30 saniye sonra)
+  setTimeout(() => {
+    console.error("⚠️  Zorla kapatılıyor (timeout)...");
+    process.exit(1);
+  }, 30000);
+  
+  // Normal çıkış
   process.exit(0);
+};
+
+// Graceful shutdown handler'ları
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+
+// Unhandled rejection ve exception handler'ları (memory leak önleme)
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("❌ Unhandled Rejection:", reason);
+  // Production'da logla ama çıkma, development'ta daha detaylı bilgi ver
 });
 
-process.on("SIGTERM", () => {
-  console.log("\n⚠️  Sunucu kapatılıyor...");
-  stopAllCronJobs();
-  process.exit(0);
+process.on("uncaughtException", (error) => {
+  console.error("❌ Uncaught Exception:", error);
+  // Kritik hatalarda graceful shutdown yap
+  gracefulShutdown("UNCAUGHT_EXCEPTION");
 });

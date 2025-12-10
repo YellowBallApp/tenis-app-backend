@@ -543,8 +543,10 @@ const Leagues = () => {
       }
       setShowModal(false);
       fetchLeagues();
+      alert(editingLeague ? 'Lig başarıyla güncellendi!' : 'Lig başarıyla oluşturuldu!');
     } catch (error: any) {
-      alert(error.response?.data?.message || 'İşlem başarısız');
+      const errorMessage = error.response?.data?.message || error.message || 'İşlem başarısız oldu';
+      alert(editingLeague ? `Lig güncellenirken hata oluştu: ${errorMessage}` : `Lig oluşturulurken hata oluştu: ${errorMessage}`);
     }
   };
 

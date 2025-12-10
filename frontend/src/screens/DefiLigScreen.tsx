@@ -592,6 +592,36 @@ const DefiLigScreen = ({ navigation }: any) => {
                         <Text style={styles.detailLabel}>{t('defiLeague.modal.playerCount') || 'Oyuncu Sayısı'}</Text>
                         <Text style={styles.detailValue}>{selectedLig.playerCount}</Text>
                       </View>
+                      {selectedLig.settings && selectedLig.settings.leagueStartDate && (
+                        <View style={styles.detailRow}>
+                          <View style={styles.detailIconContainer}>
+                            <MaterialCommunityIcons name="calendar-start" size={20} color="#54CE8F" />
+                          </View>
+                          <Text style={styles.detailLabel}>{t('defiLeague.modal.leagueStartDate') || 'Lig Başlangıç Tarihi'}</Text>
+                          <Text style={styles.detailValue}>
+                            {new Date(selectedLig.settings.leagueStartDate).toLocaleDateString('tr-TR', { 
+                              day: '2-digit', 
+                              month: '2-digit', 
+                              year: 'numeric' 
+                            })}
+                          </Text>
+                        </View>
+                      )}
+                      {selectedLig.settings && selectedLig.settings.leagueEndDate && (
+                        <View style={styles.detailRow}>
+                          <View style={styles.detailIconContainer}>
+                            <MaterialCommunityIcons name="calendar-end" size={20} color="#54CE8F" />
+                          </View>
+                          <Text style={styles.detailLabel}>{t('defiLeague.modal.leagueEndDate') || 'Lig Bitiş Tarihi'}</Text>
+                          <Text style={styles.detailValue}>
+                            {new Date(selectedLig.settings.leagueEndDate).toLocaleDateString('tr-TR', { 
+                              day: '2-digit', 
+                              month: '2-digit', 
+                              year: 'numeric' 
+                            })}
+                          </Text>
+                        </View>
+                      )}
                       {selectedLig.settings && (selectedLig.settings.minAge !== null || selectedLig.settings.maxAge !== null) && (
                         <View style={styles.detailRow}>
                           <View style={styles.detailIconContainer}>
@@ -635,6 +665,45 @@ const DefiLigScreen = ({ navigation }: any) => {
                             <Text style={styles.modalRewardText}>{reward.trim()}</Text>
                           </View>
                         ))}
+                      </View>
+                    )}
+
+                    {/* Maç Formatı */}
+                    {selectedLig.settings && (
+                      <View style={styles.modalMatchFormat}>
+                        <Text style={styles.modalMatchFormatTitle}>{t('defiLeague.matchFormatTitle') || 'Maç Formatı:'}</Text>
+                        {selectedLig.settings.gamesPerSet != null && (
+                          <View style={styles.modalMatchFormatItem}>
+                            <Text style={styles.modalMatchFormatLabel}>
+                              {t('defiLeague.matchFormat.gamesPerSet') || 'Set Başına Oyun Sayısı'}
+                            </Text>
+                            <Text style={styles.modalMatchFormatValue}>{selectedLig.settings.gamesPerSet}</Text>
+                          </View>
+                        )}
+                        {selectedLig.settings.setsCount != null && (
+                          <View style={styles.modalMatchFormatItem}>
+                            <Text style={styles.modalMatchFormatLabel}>
+                              {t('defiLeague.matchFormat.setsCount') || 'Set Sayısı'}
+                            </Text>
+                            <Text style={styles.modalMatchFormatValue}>{selectedLig.settings.setsCount}</Text>
+                          </View>
+                        )}
+                        {selectedLig.settings.gameTiebreakPoints != null && (
+                          <View style={styles.modalMatchFormatItem}>
+                            <Text style={styles.modalMatchFormatLabel}>
+                              {t('defiLeague.matchFormat.gameTiebreakPoints') || 'Oyun Tiebreak Puanı'}
+                            </Text>
+                            <Text style={styles.modalMatchFormatValue}>{selectedLig.settings.gameTiebreakPoints}</Text>
+                          </View>
+                        )}
+                        {selectedLig.settings.matchTiebreakPoints != null && (
+                          <View style={styles.modalMatchFormatItem}>
+                            <Text style={styles.modalMatchFormatLabel}>
+                              {t('defiLeague.matchFormat.matchTiebreakPoints') || 'Maç Tiebreak Puanı'}
+                            </Text>
+                            <Text style={styles.modalMatchFormatValue}>{selectedLig.settings.matchTiebreakPoints}</Text>
+                          </View>
+                        )}
                       </View>
                     )}
 
@@ -1063,6 +1132,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#717182',
     flex: 1,
+  },
+  modalMatchFormat: {
+    marginBottom: 20,
+  },
+  modalMatchFormatTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#030213',
+    marginBottom: 12,
+  },
+  modalMatchFormatItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalMatchFormatLabel: {
+    fontSize: 14,
+    color: '#717182',
+    flex: 1,
+  },
+  modalMatchFormatValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#030213',
   },
   ageWarning: {
     flexDirection: 'row',

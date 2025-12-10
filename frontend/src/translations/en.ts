@@ -238,7 +238,6 @@ export default {
     reservationConfirmed: 'Reservation Confirmed',
     newMessage: 'New Message',
     enterMatchResult: 'Enter Match Result',
-    loading: 'Loading...',
     enterMatchResultDescription: 'Enter match result and set scores',
     court: 'Court:',
     unknown: 'Unknown',
@@ -308,6 +307,13 @@ export default {
       points: 'Point bonuses',
       special: 'Special rewards',
     },
+    matchFormatTitle: 'Match Format:',
+    matchFormat: {
+      gamesPerSet: 'Games Per Set',
+      setsCount: 'Number of Sets',
+      gameTiebreakPoints: 'Game Tiebreak Points',
+      matchTiebreakPoints: 'Match Tiebreak Points',
+    },
     rules: {
       format: '1v1 match format',
       challenge: 'Challenge up to 3 ranks above',
@@ -320,6 +326,8 @@ export default {
     },
     modal: {
       playerCount: 'Players:',
+      leagueStartDate: 'League Start Date',
+      leagueEndDate: 'League End Date',
       ageRange: 'Age Range:',
       fee: 'Entry Fee:',
       view: 'View League',
@@ -442,7 +450,6 @@ export default {
     matchesPlayed: 'Matches Played',
     currentRank: 'Current Rank',
     memberSince: 'Member Since',
-    quickActions: 'Quick Actions',
     myBookings: 'My Bookings',
     myMatches: 'My Matches',
     account: 'Account',

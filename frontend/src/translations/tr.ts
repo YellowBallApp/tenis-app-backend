@@ -308,6 +308,13 @@ export default {
       points: 'Puan bonusları',
       special: 'Özel ödüller',
     },
+    matchFormatTitle: 'Maç Formatı:',
+    matchFormat: {
+      gamesPerSet: 'Set Başına Oyun Sayısı',
+      setsCount: 'Set Sayısı',
+      gameTiebreakPoints: 'Oyun Tiebreak Puanı',
+      matchTiebreakPoints: 'Maç Tiebreak Puanı',
+    },
     rules: {
       format: '1v1 maç formatı',
       challenge: 'Sadece 3 sıra üstüne meydan okuma',
@@ -320,6 +327,8 @@ export default {
     },
     modal: {
       playerCount: 'Oyuncu Sayısı:',
+      leagueStartDate: 'Lig Başlangıç Tarihi',
+      leagueEndDate: 'Lig Bitiş Tarihi',
       ageRange: 'Yaş Aralığı:',
       fee: 'Kayıt Ücreti:',
       view: 'Ligi Görüntüle',

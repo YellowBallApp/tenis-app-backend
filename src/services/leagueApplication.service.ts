@@ -90,7 +90,7 @@ export class LeagueApplicationService {
     });
   }
 
-  async approveApplication(applicationId: number): Promise<LeagueApplication> {
+  async approveApplication(applicationId: number, notes?: string): Promise<LeagueApplication> {
     const application = await leagueApplicationRepository.findById(applicationId);
     
     if (application.status !== LeagueApplicationStatus.PENDING) {
@@ -119,13 +119,20 @@ export class LeagueApplicationService {
 
     // Başvuruyu onayla
     application.status = LeagueApplicationStatus.APPROVED;
-    const updatedApplication = await leagueApplicationRepository.update(applicationId, { status: LeagueApplicationStatus.APPROVED });
+    const updatedApplication = await leagueApplicationRepository.update(applicationId, { 
+      status: LeagueApplicationStatus.APPROVED,
+      notes: notes || application.notes
+    });
 
     // Kullanıcıya bildirim gönder
+    const approvalMessage = notes 
+      ? `${application.league.name} için başvurunuz onaylanmıştır. Not: ${notes}`
+      : `${application.league.name} için başvurunuz onaylanmıştır.`;
+    
     await notificationService.createNotification({
       recipientId: application.user.id,
       type: NotificationType.SYSTEM_NOTIFICATION,
-      message: `${application.league.name} için başvurunuz onaylanmıştır.`,
+      message: approvalMessage,
       relatedEntityId: application.league.id,
       relatedEntityType: 'league'
     });
@@ -180,6 +187,59 @@ export class LeagueApplicationService {
   async getPendingCount(): Promise<number> {
     const pending = await leagueApplicationRepository.findByStatus(LeagueApplicationStatus.PENDING);
     return pending.length;
+  }
+
+  async updateApplication(applicationId: number, data: { status?: LeagueApplicationStatus; notes?: string }): Promise<LeagueApplication> {
+    const application = await leagueApplicationRepository.findById(applicationId);
+    
+    // Eğer status değiştiriliyorsa ve approved'a çevriliyorsa, kullanıcıyı lige ekle
+    if (data.status === LeagueApplicationStatus.APPROVED && application.status !== LeagueApplicationStatus.APPROVED) {
+      // Kullanıcı zaten ligde mi kontrol et
+      const standings = await leagueStandingsService.findByUserId(application.user.id);
+      const alreadyInLeague = standings.some(standing => standing.league.id === application.league.id);
+      
+      if (!alreadyInLeague) {
+        // Lige ekle - en son sıraya ekle
+        const leagueStandings = await leagueStandingsService.findByLeagueId(application.league.id);
+        const lastRanking = leagueStandings.length > 0 
+          ? Math.max(...leagueStandings.map(s => s.leagueRanking)) 
+          : 0;
+        
+        await leagueStandingsService.create({
+          user: application.user,
+          league: application.league,
+          leagueRanking: lastRanking + 1
+        });
+
+        // Kullanıcıya bildirim gönder
+        await notificationService.createNotification({
+          recipientId: application.user.id,
+          type: NotificationType.SYSTEM_NOTIFICATION,
+          message: `${application.league.name} için başvurunuz onaylanmıştır.`,
+          relatedEntityId: application.league.id,
+          relatedEntityType: 'league'
+        });
+      }
+    }
+
+    const updatedApplication = await leagueApplicationRepository.update(applicationId, data);
+    return updatedApplication;
+  }
+
+  async deleteApplication(applicationId: number): Promise<void> {
+    const application = await leagueApplicationRepository.findById(applicationId);
+    
+    // Eğer başvuru onaylanmışsa ve kullanıcı ligdeyse, kullanıcıyı ligden çıkar
+    if (application.status === LeagueApplicationStatus.APPROVED) {
+      const standings = await leagueStandingsService.findByUserId(application.user.id);
+      const leagueStanding = standings.find(standing => standing.league.id === application.league.id);
+      
+      if (leagueStanding) {
+        await leagueStandingsService.delete(leagueStanding.id);
+      }
+    }
+
+    await leagueApplicationRepository.delete(applicationId);
   }
 }
 

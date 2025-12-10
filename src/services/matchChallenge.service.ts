@@ -45,6 +45,23 @@ export class MatchChallengeService {
         throw new AppError('CANNOT_CHALLENGE_YOURSELF');
       }
 
+      // Lig tarihleri kontrolü - lig aktif mi?
+      const league = await leagueRepository.findById(data.leagueId);
+      if (league?.settings) {
+        const now = new Date();
+        const startDate = new Date(league.settings.leagueStartDate);
+        const endDate = new Date(league.settings.leagueEndDate);
+        
+        // Tarih karşılaştırması için sadece tarih kısmını al (saat bilgisini sıfırla)
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const leagueStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+        const leagueEnd = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+        
+        if (today < leagueStart || today > leagueEnd) {
+          throw new AppError('LEAGUE_NOT_ACTIVE');
+        }
+      }
+
       // Challenger'ın bu ligde aktif bir challenge'ı var mı kontrol et
       const challengerHasActiveChallenge = await matchChallengeRepository.hasActiveChallengeInLeague(
         data.challengerId,

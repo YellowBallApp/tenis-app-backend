@@ -128,7 +128,8 @@ export class LeagueApplicationController {
   approveApplication = async (req: Request, res: Response) => {
     try {
       const applicationId = parseInt(req.params.id);
-      const application = await leagueApplicationService.approveApplication(applicationId);
+      const { notes } = req.body;
+      const application = await leagueApplicationService.approveApplication(applicationId, notes);
       return res.status(200).json({
         success: true,
         message: 'Başvuru onaylandı ve kullanıcı lige eklendi',
@@ -180,6 +181,54 @@ export class LeagueApplicationController {
       return res.status(200).json({
         success: true,
         data: { count },
+      });
+    } catch (error: any) {
+      const appError = error instanceof AppError
+        ? error
+        : new AppError("UNKNOWN_ERROR");
+      
+      return res.status(appError.status).json({
+        success: false,
+        errorKey: appError.errorKey,
+        errorCode: appError.errorCode,
+        message: appError.message,
+      });
+    }
+  };
+
+  // Başvuruyu güncelle (admin)
+  updateApplication = async (req: Request, res: Response) => {
+    try {
+      const applicationId = parseInt(req.params.id);
+      const { status, notes } = req.body;
+      const application = await leagueApplicationService.updateApplication(applicationId, { status, notes });
+      return res.status(200).json({
+        success: true,
+        message: 'Başvuru güncellendi',
+        data: application,
+      });
+    } catch (error: any) {
+      const appError = error instanceof AppError
+        ? error
+        : new AppError("UNKNOWN_ERROR");
+      
+      return res.status(appError.status).json({
+        success: false,
+        errorKey: appError.errorKey,
+        errorCode: appError.errorCode,
+        message: appError.message,
+      });
+    }
+  };
+
+  // Başvuruyu sil (admin)
+  deleteApplication = async (req: Request, res: Response) => {
+    try {
+      const applicationId = parseInt(req.params.id);
+      await leagueApplicationService.deleteApplication(applicationId);
+      return res.status(200).json({
+        success: true,
+        message: 'Başvuru silindi',
       });
     } catch (error: any) {
       const appError = error instanceof AppError
