@@ -1,0 +1,8 @@
+{
+  "android": {
+    "package": "com.anonymous.tenisappbackend"
+  },
+  "ios": {
+    "bundleIdentifier": "com.anonymous.tenisappbackend"
+  }
+}
