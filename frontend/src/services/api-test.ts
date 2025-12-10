@@ -83,8 +83,8 @@ export const testAndSetServerIP = async (ip: string, port: number = 3000) => {
     
     return {
       success: false,
-      ip,
-      port,
+      ip:'213.238.172.217',
+      port:3000,
       error: error.message,
       errorCode: error.code,
     };
