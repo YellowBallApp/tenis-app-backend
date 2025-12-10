@@ -101,7 +101,7 @@ const DefiLigScreen = ({ navigation }: any) => {
       
       // Her lig için ikon ve renk tanımla
       const leagueColors = ['#2E7D32', '#1976D2', '#D32F2F'];
-      const defaultTrohpyIcon = 'trophy';
+      const leagueIcons = ['trophy', 'weather-sunny', 'account-multiple'];
       
       // Her lig için standings'leri çek ve format düzenle
       const defaultDescription = t('defiLeague.defaultDescription');
@@ -138,7 +138,7 @@ const DefiLigScreen = ({ navigation }: any) => {
             applicationStatus: applicationStatus, // 'pending', 'approved', 'rejected' veya null
             settings: league.settings,
             color: leagueColors[index % leagueColors.length],
-            icon: league.icon || defaultTrohpyIcon, // API'den gelen icon'u kullan, yoksa varsayılan
+            icon: leagueIcons[index % leagueIcons.length],
             rewards: [], // Artık settings'ten alınacak
             rules: defaultRules,
           };
@@ -424,7 +424,7 @@ const DefiLigScreen = ({ navigation }: any) => {
                   <View style={styles.leagueHeader}>
                     <View style={[styles.leagueIcon, { backgroundColor: '#B4AEBD' }]}>
                       <MaterialCommunityIcons 
-                        name={(lig.icon || 'trophy') as any} 
+                        name={lig.icon as any} 
                         size={32} 
                         color="#FFFFFF" 
                       />

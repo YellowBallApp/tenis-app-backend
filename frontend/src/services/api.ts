@@ -1384,6 +1384,7 @@ export const matchHistoryService = {
     leagueStandingId?: number;
     indoorCourt?: boolean;
     courtGround?: 'grass' | 'clay' | 'hard';
+    courtId?: number;
   }) => {
     const response = await api.post('/match-history', data);
     return response.data.data;

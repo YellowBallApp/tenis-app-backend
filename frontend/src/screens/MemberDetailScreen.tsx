@@ -696,7 +696,7 @@ const styles = StyleSheet.create({
     textAlign: 'left',
   },
   rankCard: {
-    alignItems: 'flex-start',
+    alignItems: 'center',
     minHeight: 100,
   },
   rankingsList: {
@@ -745,6 +745,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8, // mb-2
+  },
+  rankCard: {
+    alignItems: 'flex-start',
+    minHeight: 100,
   },
   actionButtonsContainer: {
     flexDirection: 'row',

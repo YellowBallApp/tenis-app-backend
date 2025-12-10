@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet, Image, Platform } from 'react-native';
+import { View, StyleSheet, Image } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface SplashScreenProps {
@@ -10,20 +11,16 @@ const CustomSplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    // Web platformunda expo-splash-screen kullanma
-    if (Platform.OS !== 'web') {
-      // Hide native splash screen and show our custom one
-      const hideNativeSplash = async () => {
-        try {
-          const SplashScreen = require('expo-splash-screen');
-          await SplashScreen.hideAsync();
-        } catch (e) {
-          console.warn('SplashScreen.hideAsync error:', e);
-        }
-      };
+    // Hide native splash screen and show our custom one
+    const hideNativeSplash = async () => {
+      try {
+        await SplashScreen.hideAsync();
+      } catch (e) {
+        console.warn('SplashScreen.hideAsync error:', e);
+      }
+    };
 
-      hideNativeSplash();
-    }
+    hideNativeSplash();
   }, []);
 
   return (
