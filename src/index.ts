@@ -139,13 +139,48 @@ AppDataSource.initialize()
     const queryRunner = AppDataSource.createQueryRunner();
     try {
       await queryRunner.connect();
-      const hasTables = await queryRunner.hasTable("user");
+      
+      // Synchronize aktifse, tabloların oluşmasını beklemek için retry mekanizması
+      let hasTables = false;
+      let retries = 0;
+      const maxRetries = 15; // 15 saniye maksimum bekleme
+      
+      while (!hasTables && retries < maxRetries) {
+        try {
+          hasTables = await queryRunner.hasTable("user");
+          if (!hasTables) {
+            retries++;
+            console.log(`⏳ Tablolar oluşturuluyor... (deneme ${retries}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, 1000)); // 1 saniye bekle
+          }
+        } catch (error) {
+          // Tablo henüz oluşmamış, tekrar dene
+          retries++;
+          if (retries < maxRetries) {
+            console.log(`⏳ Tablolar oluşturuluyor... (deneme ${retries}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+      }
+      
+      if (!hasTables) {
+        console.error("❌ Tablolar oluşturulamadı. Synchronize işlemi başarısız olabilir.");
+        throw new Error("Tablolar oluşturulamadı");
+      }
+      
+      console.log("✅ Tablolar başarıyla oluşturuldu/kontrol edildi");
+      
       let hasData = false;
       
       if (hasTables) {
         // Tablo varsa içinde veri olup olmadığını kontrol et
-        const result = await queryRunner.query('SELECT COUNT(*) as count FROM "user"');
-        hasData = parseInt(result[0].count) > 0;
+        try {
+          const result = await queryRunner.query('SELECT COUNT(*) as count FROM "user"');
+          hasData = parseInt(result[0].count) > 0;
+        } catch (error) {
+          // Tablo yeni oluşturulmuş, veri yok
+          hasData = false;
+        }
       }
       
       if (!hasTables || !hasData) {
