@@ -4,10 +4,10 @@
     "slug": "tenis-app",
     "version": "1.0.1",
     "orientation": "portrait",
-    "icon": "./assets/egevlogo.png",
+    "icon": "./assets/newegevlogo.jpeg",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/egevlogo.png",
+      "image": "./assets/newegevlogo.jpeg",
       "resizeMode": "contain",
       "backgroundColor": "#FAFCFB"
     },
@@ -21,9 +21,10 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/egevlogo.png",
+        "foregroundImage": "./assets/newegevlogo.jpeg",
         "backgroundColor": "#ffffff"
       },
+      "usesCleartextTraffic": true,
       "package": "com.egevtenis.tenisapp",
       "versionCode": 1,
       "permissions": [
@@ -37,10 +38,10 @@
         "expo-build-properties",
         {
           "android": {
-            "minSdkVersion": 23,
+            "minSdkVersion": 24,
             "targetSdkVersion": 34,
-            "compileSdkVersion": 34,
-            "buildToolsVersion": "34.0.0"
+            "compileSdkVersion": 35,
+            "buildToolsVersion": "35.0.0"
           }
         }
       ]

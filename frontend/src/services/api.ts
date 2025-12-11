@@ -41,6 +41,9 @@ const DEFAULT_PORT = parseInt(process.env.EXPO_PUBLIC_API_PORT || '3000', 10);
 // Bu URL'yi backend'inizin deploy edildiği yere göre ayarlayın
 const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || '';
 
+// Default production server IP - Build alındığında kullanılacak IP
+const DEFAULT_PRODUCTION_IP = '213.238.172.217';
+
 // Yaygın local network IP aralıkları (fallback için)
 const COMMON_IP_RANGES = [
   '192.168.1', // En yaygın ev ağı
@@ -51,24 +54,18 @@ const COMMON_IP_RANGES = [
 
 /**
  * Backend'den server IP'sini alır (cache'lenmiş veya yeni)
- * Dev ortamında localhost, prod'da environment variable'dan alınan IP kullanılır
+ * Environment variable varsa onu kullan, yoksa default production IP kullanılır
  */
 async function getServerIP(): Promise<string | null> {
   try {
-    // Production ortamında environment variable'dan IP al
-    if (!__DEV__) {
-      const serverIP = process.env.EXPO_PUBLIC_SERVER_IP;
-      if (serverIP) {
-        console.log('📱 Production - Server IP (env):', serverIP);
-        return serverIP;
-      }
-      console.warn('⚠️ Production ortamında EXPO_PUBLIC_SERVER_IP tanımlı değil');
-      return null;
+    // Environment variable'dan IP al, yoksa default production IP kullan
+    const serverIP = process.env.EXPO_PUBLIC_SERVER_IP || DEFAULT_PRODUCTION_IP;
+    if (__DEV__) {
+      console.log('🔧 Development - Server IP:', serverIP);
+    } else {
+      console.log('📱 Production - Server IP:', serverIP);
     }
-    
-    // Development ortamında localhost kullan
-    console.log('🔧 Development - Localhost kullanılıyor');
-    return 'localhost';
+    return serverIP;
   } catch (error) {
     console.error('❌ Server IP alınırken hata:', error);
     return null;
@@ -164,8 +161,8 @@ const getApiBaseUrl = async (): Promise<string> => {
     return `${NGROK_URL}/api`;
   }
   
-  // 2. Production build için PRODUCTION_API_URL kullan
-  // Gerçek telefonda production build çalıştığında bu URL kullanılacak
+  // 2. Production build için (APK'da) direkt default production IP kullan
+  // Gerçek telefonda production build çalıştığında bu IP kullanılacak
   if (!__DEV__) {
     if (PRODUCTION_API_URL) {
       const prodUrl = PRODUCTION_API_URL.endsWith('/api') 
@@ -174,38 +171,28 @@ const getApiBaseUrl = async (): Promise<string> => {
       console.log('📱 Production build - API URL:', prodUrl);
       return prodUrl;
     }
-    // Production'da URL yoksa, server-info'dan al
-    const serverIP = await getCachedOrDiscoverServerIP();
-    if (serverIP) {
-      return `http://${serverIP}:${DEFAULT_PORT}/api`;
-    }
-    throw new Error('Production API URL not configured and server discovery failed');
+    // Production'da direkt default production IP'yi kullan (APK için)
+    const serverIP = process.env.EXPO_PUBLIC_SERVER_IP || DEFAULT_PRODUCTION_IP;
+    const apiUrl = `http://${serverIP}:${DEFAULT_PORT}/api`;
+    console.log('📱 Production build (APK) - API URL:', apiUrl);
+    return apiUrl;
   }
   
   // 3. Development build için
-  if (Platform.OS === 'android') {
-    // Android emülatör kontrolü
-    if (isAndroidEmulator()) {
-      console.log('📱 Development - Android emülatör algılandı - 10.0.2.2 kullanılıyor');
-      return `http://${EMULATOR_IP}:${DEFAULT_PORT}/api`;
-    }
-  }
-  
-  // Gerçek cihaz veya iOS simulator için server IP'yi dinamik olarak al
+  // Development modunda da production IP'sini kullan
   const serverIP = await getCachedOrDiscoverServerIP();
   if (serverIP) {
-    console.log(`📱 Development - Server IP kullanılıyor: ${serverIP}`);
+    console.log(`🔧 Development - Server IP kullanılıyor: ${serverIP}`);
     return `http://${serverIP}:${DEFAULT_PORT}/api`;
   }
   
-  // Fallback: localhost veya env'den gelen URL (sadece development için)
-  const fallbackHost = process.env.EXPO_PUBLIC_FALLBACK_HOST || 'localhost';
-  console.warn(`⚠️ Server IP bulunamadı, ${fallbackHost} kullanılıyor (çalışmayabilir)`);
-  return `http://${fallbackHost}:${DEFAULT_PORT}/api`;
+  // Fallback: default production IP
+  console.warn(`⚠️ Server IP bulunamadı, default production IP kullanılıyor: ${DEFAULT_PRODUCTION_IP}`);
+  return `http://${DEFAULT_PRODUCTION_IP}:${DEFAULT_PORT}/api`;
 };
 
-// İlk başta base URL'i al (async)
-const fallbackHost = process.env.EXPO_PUBLIC_FALLBACK_HOST || 'localhost';
+// İlk başta base URL'i al (async) - Default production IP kullan
+const fallbackHost = process.env.EXPO_PUBLIC_FALLBACK_HOST || DEFAULT_PRODUCTION_IP;
 let API_BASE_URL: string = `http://${fallbackHost}:${DEFAULT_PORT}/api`;
 
 // Önceki ağ durumunu takip et

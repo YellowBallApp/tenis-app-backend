@@ -87,7 +87,7 @@ const LoginScreen = ({ navigation }: any) => {
         {/* Logo and Title Section */}
         <View style={styles.headerSection}>
           <Image 
-            source={require('../../assets/egevlogo.png')} 
+            source={require('../../assets/newegevlogo.jpeg')} 
             style={styles.logoImage}
             resizeMode="contain"
           />

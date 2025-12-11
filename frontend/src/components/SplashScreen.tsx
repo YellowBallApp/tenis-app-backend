@@ -27,7 +27,7 @@ const CustomSplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={styles.content}>
         <Image 
-          source={require('../../assets/egevlogo.png')} 
+          source={require('../../assets/newegevlogo.jpeg')} 
           style={styles.logo}
           resizeMode="contain"
         />

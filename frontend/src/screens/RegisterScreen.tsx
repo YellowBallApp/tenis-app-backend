@@ -94,7 +94,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
         {/* Logo and Title Section */}
         <View style={styles.headerSection}>
           <Image 
-            source={require('../../assets/egevlogo.png')} 
+            source={require('../../assets/newegevlogo.jpeg')} 
             style={styles.logoImage}
             resizeMode="contain"
           />

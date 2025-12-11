@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
+    <!-- Production backend server için HTTP trafiğine izin ver -->
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- Production backend IP -->
+        <domain includeSubdomains="true">213.238.172.217</domain>
+    </domain-config>
+    
     <!-- Development ve local network için HTTP trafiğine izin ver -->
     <domain-config cleartextTrafficPermitted="true">
         <!-- Local IP adresleri -->
@@ -16,11 +22,10 @@
         <domain includeSubdomains="true">10.0.0.0</domain>
     </domain-config>
     
-    <!-- Production için HTTPS zorunlu -->
+    <!-- Diğer tüm domainler için HTTPS zorunlu -->
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
     </base-config>
 </network-security-config>
-
