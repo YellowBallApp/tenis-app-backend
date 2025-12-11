@@ -80,6 +80,16 @@ const CourtDetailScreen = () => {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [containerWidth, setContainerWidth] = useState<number>(width);
 
+  // Scroll refs for auto-scroll
+  const mainScrollViewRef = useRef<ScrollView>(null);
+  const dateSectionRef = useRef<View>(null);
+  const gameTypeSectionRef = useRef<View>(null);
+  const playersSectionRef = useRef<View>(null);
+  const timeSlotsSectionRef = useRef<View>(null);
+  const [gameTypeSectionY, setGameTypeSectionY] = useState(0);
+  const [playersSectionY, setPlayersSectionY] = useState(0);
+  const [timeSlotsSectionY, setTimeSlotsSectionY] = useState(0);
+
   // Rezervasyon engeli kontrolü
   const checkReservationBlock = React.useCallback(async () => {
     try {
@@ -512,19 +522,60 @@ const CourtDetailScreen = () => {
       setSelectedPartner(user);
       setShowUserSelector(false);
       setSearchQuery('');
+      // Çift modda partner seçildikten sonra scroll yapmayalım, tüm boş alanlar dolana kadar bekleyelim
+      // Sadece tek modda veya tüm seçimler tamamlandığında scroll yapalım
+      const isDoubleMode = playerType === 'double';
+      const allPlayersSelected = isDoubleMode 
+        ? (user && selectedOpponents.length === 2)
+        : true; // Tek modda zaten tek seçim yeterli
+      
+      if (!isDoubleMode || allPlayersSelected) {
+        // Auto scroll to time slots section after all selections are complete
+        setTimeout(() => {
+          if (timeSlotsSectionY > 0 && mainScrollViewRef.current) {
+            mainScrollViewRef.current.scrollTo({
+              y: timeSlotsSectionY - 20,
+              animated: true,
+            });
+          }
+        }, 300);
+      }
     } else if (selectorMode === 'opponent') {
+      // Tek modda opponent seçildiğinde hemen scroll yap
       setSelectedPartner(user);
       setShowUserSelector(false);
       setSearchQuery('');
+      setTimeout(() => {
+        if (timeSlotsSectionY > 0 && mainScrollViewRef.current) {
+          mainScrollViewRef.current.scrollTo({
+            y: timeSlotsSectionY - 20,
+            animated: true,
+          });
+        }
+      }, 300);
     } else if (selectorMode === 'opponents') {
       if (selectedOpponentIndex !== null) {
         // Belirli bir pozisyondaki rakibi değiştir
         const newOpponents = [...selectedOpponents];
         newOpponents[selectedOpponentIndex] = user;
-        setSelectedOpponents(newOpponents.filter(opp => opp !== undefined && opp !== null));
+        const updatedOpponents = newOpponents.filter(opp => opp !== undefined && opp !== null);
+        setSelectedOpponents(updatedOpponents);
         setShowUserSelector(false);
         setSearchQuery('');
         setSelectedOpponentIndex(null);
+        
+        // Çift modda: Partner ve 2 opponent seçildiyse scroll yap
+        const allPlayersSelected = selectedPartner && updatedOpponents.length === 2;
+        if (allPlayersSelected) {
+          setTimeout(() => {
+            if (timeSlotsSectionY > 0 && mainScrollViewRef.current) {
+              mainScrollViewRef.current.scrollTo({
+                y: timeSlotsSectionY - 20,
+                animated: true,
+              });
+            }
+          }, 300);
+        }
       } else {
         // Genel rakip seçimi (eski mantık)
         const isAlreadySelected = selectedOpponents.some(opp => opp.id === user.id);
@@ -534,10 +585,25 @@ const CourtDetailScreen = () => {
           if (selectedOpponents.length < 2) {
             const newOpponents = [...selectedOpponents, user];
             setSelectedOpponents(newOpponents);
+            
             // 2 rakip seçildiyse modal'ı kapat
             if (newOpponents.length === 2) {
               setShowUserSelector(false);
               setSearchQuery('');
+              
+              // Çift modda: Partner ve 2 opponent seçildiyse scroll yap
+              const allPlayersSelected = selectedPartner && newOpponents.length === 2;
+              if (allPlayersSelected) {
+                // Auto scroll to time slots section after all players selected
+                setTimeout(() => {
+                  if (timeSlotsSectionY > 0 && mainScrollViewRef.current) {
+                    mainScrollViewRef.current.scrollTo({
+                      y: timeSlotsSectionY - 20,
+                      animated: true,
+                    });
+                  }
+                }, 300);
+              }
             }
           }
         }
@@ -695,6 +761,7 @@ const CourtDetailScreen = () => {
     <>
       <StatusBar style="dark" />
       <ScrollView 
+        ref={mainScrollViewRef}
         style={styles.container} 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={selectedTime ? styles.scrollContentWithButton : styles.scrollContent}
@@ -805,7 +872,10 @@ const CourtDetailScreen = () => {
         </View>
 
         {/* Date Selection */}
-        <View style={styles.dateSection}>
+        <View 
+          ref={dateSectionRef}
+          style={styles.dateSection}
+        >
           <Text style={styles.sectionTitle}>{t('reservation.selectDate')}</Text>
           <ScrollView 
             horizontal 
@@ -824,6 +894,15 @@ const CourtDetailScreen = () => {
                 onPress={() => {
                   if (!reservationBlocked && !checkingBlockStatus) {
                     setSelectedDate(dateItem.date);
+                    // Auto scroll to game type section after date selection
+                    setTimeout(() => {
+                      if (gameTypeSectionY > 0 && mainScrollViewRef.current) {
+                        mainScrollViewRef.current.scrollTo({
+                          y: gameTypeSectionY - 20, // 20px offset for better visibility
+                          animated: true,
+                        });
+                      }
+                    }, 300);
                   }
                 }}
                 disabled={reservationBlocked || checkingBlockStatus}
@@ -846,7 +925,14 @@ const CourtDetailScreen = () => {
         </View>
 
         {/* Game Type Selection */}
-        <View style={styles.gameTypeSection}>
+        <View 
+          ref={gameTypeSectionRef}
+          onLayout={(event) => {
+            const { y } = event.nativeEvent.layout;
+            setGameTypeSectionY(y);
+          }}
+          style={styles.gameTypeSection}
+        >
           <Text style={styles.sectionTitle}>{t('reservation.gameType')}</Text>
           <View style={styles.gameTypeCards}>
             <TouchableOpacity
@@ -860,6 +946,15 @@ const CourtDetailScreen = () => {
                   setPlayerType('single');
                   setSelectedPartner(null);
                   setSelectedOpponents([]);
+                  // Auto scroll to players section after game type selection
+                  setTimeout(() => {
+                    if (playersSectionY > 0 && mainScrollViewRef.current) {
+                      mainScrollViewRef.current.scrollTo({
+                        y: playersSectionY - 20,
+                        animated: true,
+                      });
+                    }
+                  }, 300);
                 }
               }}
               disabled={reservationBlocked || checkingBlockStatus}
@@ -899,6 +994,15 @@ const CourtDetailScreen = () => {
                   setPlayerType('double');
                   setSelectedPartner(null);
                   setSelectedOpponents([]);
+                  // Auto scroll to players section after game type selection
+                  setTimeout(() => {
+                    if (playersSectionY > 0 && mainScrollViewRef.current) {
+                      mainScrollViewRef.current.scrollTo({
+                        y: playersSectionY - 20,
+                        animated: true,
+                      });
+                    }
+                  }, 300);
                 }
               }}
               disabled={reservationBlocked || checkingBlockStatus}
@@ -930,7 +1034,14 @@ const CourtDetailScreen = () => {
         </View>
 
         {/* Player Selection Section */}
-        <View style={styles.playersSection}>
+        <View 
+          ref={playersSectionRef}
+          onLayout={(event) => {
+            const { y } = event.nativeEvent.layout;
+            setPlayersSectionY(y);
+          }}
+          style={styles.playersSection}
+        >
           <Text style={styles.sectionTitle}>{t('reservation.players')}</Text>
           
           {/* Single Mode - Opponent Selection */}
@@ -1106,7 +1217,14 @@ const CourtDetailScreen = () => {
         </View>
 
         {/* Available Time Slots */}
-        <View style={styles.timeSlotsSection}>
+        <View 
+          ref={timeSlotsSectionRef}
+          onLayout={(event) => {
+            const { y } = event.nativeEvent.layout;
+            setTimeSlotsSectionY(y);
+          }}
+          style={styles.timeSlotsSection}
+        >
           <Text style={styles.sectionTitle}>{t('reservation.availableTimeSlots')}</Text>
           <View 
             style={styles.timeGrid}

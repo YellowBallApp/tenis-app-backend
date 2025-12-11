@@ -27,7 +27,7 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>com.tenisapp.frontend</string>
+          <string>com.egevtenis.tenisapp</string>
         </array>
       </dict>
       <dict>
