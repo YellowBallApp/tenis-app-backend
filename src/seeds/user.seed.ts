@@ -51,7 +51,7 @@ export const seedUsers = async () => {
         password: hashedPassword,
         gender: "MALE",
         birthDate: getBirthDateFromAge(28),
-        title: "Üye",
+        title: "Gündüz Üyesi",
         userType: UserType.RESTRICTED,
         // ELO: İleri seviye
         eloRating: 2100,
@@ -69,7 +69,7 @@ export const seedUsers = async () => {
         password: hashedPassword,
         gender: "MALE",
         birthDate: getBirthDateFromAge(32),
-        title: "Üye",
+        title: "Gündüz Üyesi",
         userType: UserType.RESTRICTED,
         // ELO: Çok iyi
         eloRating: 1980,
@@ -123,7 +123,7 @@ export const seedUsers = async () => {
         password: hashedPassword,
         gender: "MALE",
         birthDate: getBirthDateFromAge(29),
-        title: "Üye",
+        title: "Gündüz Üyesi",
         userType: UserType.RESTRICTED,
         // ELO: Orta
         eloRating: 1520,
