@@ -194,18 +194,37 @@ export class LeagueStandingsService {
         ? await leagueStandingsRepository.findByLeagueId(leagueId)
         : await leagueStandingsRepository.findAll();
 
-      return standings.map((standing) => ({
-        position: standing.leagueRanking,
-        user: {
-          id: standing.user.id,
-          name: standing.user.name,
-          email: standing.user.email,
-        },
-        league: standing.league ? {
-          id: standing.league.id,
-          description: standing.league.description,
-        } : null,
-      }));
+      // Her oyuncu için koruma durumunu kontrol et
+      const now = new Date();
+      return standings.map((standing) => {
+        // Kullanıcının bu lig için koruma durumunu kontrol et
+        let shieldActive = false;
+        if (standing.user.leagueShields && standing.league && standing.user.leagueShields[standing.league.id]) {
+          const leagueShield = standing.user.leagueShields[standing.league.id];
+          if (leagueShield.shieldActive && leagueShield.shieldExpiresAt) {
+            const shieldExpires = typeof leagueShield.shieldExpiresAt === 'string'
+              ? new Date(leagueShield.shieldExpiresAt)
+              : new Date(leagueShield.shieldExpiresAt);
+            if (now < shieldExpires) {
+              shieldActive = true;
+            }
+          }
+        }
+
+        return {
+          position: standing.leagueRanking,
+          user: {
+            id: standing.user.id,
+            name: standing.user.name,
+            email: standing.user.email,
+          },
+          league: standing.league ? {
+            id: standing.league.id,
+            description: standing.league.description,
+          } : null,
+          shieldActive, // Koruma aktif mi?
+        };
+      });
     } catch (error) {
       throw new Error('Lig sıralaması alınırken bir hata oluştu');
     }

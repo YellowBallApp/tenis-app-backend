@@ -180,10 +180,13 @@ export class LeagueService {
       
       // Teklif kuralları
       offerResponseDays: 3,
-      matchCompletionDays: 7,
       postMatchCooldownHoursLoser: 24,
       postMatchCooldownHoursWinner: 12,
       consecutiveWOLimit: 3,
+      
+      // Shield sistemi
+      shieldEnabled: false,
+      shieldDaysTotal: null,
       
       // Sıra bazlı teklif limitleri
       offerLimitsByRank: [

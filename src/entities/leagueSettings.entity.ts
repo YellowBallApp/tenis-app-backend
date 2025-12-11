@@ -89,9 +89,6 @@ export class LeagueSettings {
   offerResponseDays: number;
 
   @Column('int')
-  matchCompletionDays: number;
-
-  @Column('int')
   postMatchCooldownHoursLoser: number; // Maç Sonrası Bekleme Süresi Saati (Kaybeden)
 
   @Column('int')
@@ -99,6 +96,14 @@ export class LeagueSettings {
 
   @Column('int')
   consecutiveWOLimit: number;
+
+  // === SHIELD SİSTEMİ ===
+
+  @Column({ type: 'boolean', default: false })
+  shieldEnabled: boolean; // Shield sistemi aktif mi?
+
+  @Column({ type: 'int', nullable: true })
+  shieldDaysTotal: number | null; // Kullanıcıya verilen toplam shield günü (örn: 15)
 
   // === SIRA BAZLI TEKLİF LİMİTLERİ ===
 

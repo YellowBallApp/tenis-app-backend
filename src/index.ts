@@ -28,6 +28,7 @@ import memberReviewRoutes from "./routes/memberReview.routes";
 import weatherRoutes from "./routes/weather.routes";
 import adminRoutes from "./routes/admin.routes";
 import leagueApplicationRoutes from "./routes/leagueApplication.routes";
+import shieldRoutes from "./routes/shield.routes";
 import { getLocalNetworkIP } from "./utils/network";
 import { errorHandler } from "./utils/error/app.error";
 import { runSeeds } from "./seeds/index";
@@ -110,6 +111,7 @@ app.use("/api/coach-reviews", coachReviewRoutes);
 app.use("/api/member-reviews", memberReviewRoutes);
 app.use("/api/weather", weatherRoutes);
 app.use("/api/league-applications", leagueApplicationRoutes);
+app.use("/api/shield", shieldRoutes);
 app.use("/api/admin", adminRoutes);
 
 // Error handler middleware (tüm route'lardan sonra)

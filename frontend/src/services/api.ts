@@ -1495,6 +1495,21 @@ export const reservationTimeSlotService = {
   },
 };
 
+// Shield Service (Kullanıcı Koruma Hakkı)
+export const shieldService = {
+  // Koruma hakkını aktif et
+  activateShield: async (leagueId: number, days: number) => {
+    const response = await api.post('/shield/activate', { leagueId, days });
+    return response.data;
+  },
+
+  // Koruma durumunu getir
+  getShieldStatus: async (leagueId: number) => {
+    const response = await api.get(`/shield/status/${leagueId}`);
+    return response.data.data;
+  },
+};
+
 // Reservation Template Service
 export const leagueApplicationService = {
   // Lige başvur

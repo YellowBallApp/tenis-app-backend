@@ -206,6 +206,31 @@ const rawErrors = {
         code: 1041,
         key: "LEAGUE_NOT_ACTIVE",
         message: "Lig aktif değil. Lig tarihleri arasında değilsiniz."
+    },
+    COOLDOWN_ACTIVE: {
+        code: 1042,
+        key: "COOLDOWN_ACTIVE",
+        message: "Maç sonrası bekleme süresi henüz dolmadı."
+    },
+    SHIELD_ACTIVE: {
+        code: 1043,
+        key: "SHIELD_ACTIVE",
+        message: "Bu kullanıcının shield'i aktif, teklif edilemez."
+    },
+    SHIELD_NOT_ENABLED: {
+        code: 1044,
+        key: "SHIELD_NOT_ENABLED",
+        message: "Bu ligde shield sistemi aktif değil."
+    },
+    SHIELD_DAYS_INSUFFICIENT: {
+        code: 1045,
+        key: "SHIELD_DAYS_INSUFFICIENT",
+        message: "Yeterli shield gününüz yok."
+    },
+    SHIELD_ALREADY_ACTIVE: {
+        code: 1046,
+        key: "SHIELD_ALREADY_ACTIVE",
+        message: "Zaten aktif bir shield'iniz var."
     }
 } as const;
 

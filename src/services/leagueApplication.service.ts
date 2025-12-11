@@ -8,6 +8,7 @@ import notificationService from './notification.service';
 import { NotificationType } from '../enum/notificationType.enum';
 import { League } from '../entities/league.entity';
 import { User } from '../entities/user.entity';
+import shieldService from './shield.service';
 
 export class LeagueApplicationService {
   async createApplication(userId: string, leagueId: number, notes?: string): Promise<LeagueApplication> {
@@ -210,6 +211,14 @@ export class LeagueApplicationService {
           league: application.league,
           leagueRanking: lastRanking + 1
         });
+
+        // Shield günlerini başlat (eğer sistem aktifse)
+        try {
+          await shieldService.initializeShieldDays(application.user.id, application.league.id);
+        } catch (shieldError) {
+          // Shield hatası başvuruyu engellememeli
+          console.error('Shield günleri başlatılırken hata:', shieldError);
+        }
 
         // Kullanıcıya bildirim gönder
         await notificationService.createNotification({

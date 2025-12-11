@@ -72,6 +72,17 @@ import {
 
   @Column({ type: 'decimal', precision: 3, scale: 1, default: 2.5 })
   starRating: number; // 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0
+
+  // === SHIELD SİSTEMİ (Lig Bazlı) ===
+
+  @Column({ type: 'json', nullable: true })
+  leagueShields: {
+    [leagueId: number]: {
+      shieldActive: boolean;
+      shieldExpiresAt: string | null; // ISO string olarak saklanır
+      shieldDaysRemaining: number;
+    };
+  } | null; // Her lig için ayrı shield bilgileri
   
 }
   

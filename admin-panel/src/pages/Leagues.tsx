@@ -347,10 +347,11 @@ const Leagues = () => {
     matchTiebreakPoints: '',
     // Teklif Kuralları
     offerResponseDays: '',
-    matchCompletionDays: '',
     postMatchCooldownHoursLoser: '',
     postMatchCooldownHoursWinner: '',
     consecutiveWOLimit: '',
+    // Kullanıcı Koruma Hakkı
+    shieldDaysTotal: '',
   });
 
   useEffect(() => {
@@ -391,10 +392,10 @@ const Leagues = () => {
         gameTiebreakPoints: '',
         matchTiebreakPoints: '',
         offerResponseDays: '',
-        matchCompletionDays: '',
         postMatchCooldownHoursLoser: '',
         postMatchCooldownHoursWinner: '',
         consecutiveWOLimit: '',
+        shieldDaysTotal: '',
       });
     setShowModal(true);
   };
@@ -439,7 +440,7 @@ const Leagues = () => {
         gameTiebreakPoints: settings?.gameTiebreakPoints != null ? String(settings.gameTiebreakPoints) : '',
         matchTiebreakPoints: settings?.matchTiebreakPoints != null ? String(settings.matchTiebreakPoints) : '',
         offerResponseDays: settings?.offerResponseDays != null ? String(settings.offerResponseDays) : '',
-        matchCompletionDays: settings?.matchCompletionDays != null ? String(settings.matchCompletionDays) : '',
+        shieldDaysTotal: settings?.shieldDaysTotal != null ? String(settings.shieldDaysTotal) : '',
         postMatchCooldownHoursLoser: settings?.postMatchCooldownHoursLoser != null ? String(settings.postMatchCooldownHoursLoser) : '',
         postMatchCooldownHoursWinner: settings?.postMatchCooldownHoursWinner != null ? String(settings.postMatchCooldownHoursWinner) : '',
         consecutiveWOLimit: settings?.consecutiveWOLimit != null ? String(settings.consecutiveWOLimit) : '',
@@ -468,10 +469,10 @@ const Leagues = () => {
         gameTiebreakPoints: '',
         matchTiebreakPoints: '',
         offerResponseDays: '',
-        matchCompletionDays: '',
         postMatchCooldownHoursLoser: '',
         postMatchCooldownHoursWinner: '',
         consecutiveWOLimit: '',
+        shieldDaysTotal: '',
       });
       alert('Lig ayarları yüklenirken bir hata oluştu. Ayarlar boş görünebilir.');
     }
@@ -505,7 +506,8 @@ const Leagues = () => {
           gameTiebreakPoints: formData.gameTiebreakPoints ? parseInt(formData.gameTiebreakPoints) : undefined,
           matchTiebreakPoints: formData.matchTiebreakPoints ? parseInt(formData.matchTiebreakPoints) : undefined,
           offerResponseDays: formData.offerResponseDays ? parseInt(formData.offerResponseDays) : undefined,
-          matchCompletionDays: formData.matchCompletionDays ? parseInt(formData.matchCompletionDays) : undefined,
+          shieldEnabled: formData.shieldDaysTotal ? (parseInt(formData.shieldDaysTotal) > 0) : false,
+          shieldDaysTotal: formData.shieldDaysTotal ? parseInt(formData.shieldDaysTotal) : null,
           postMatchCooldownHoursLoser: formData.postMatchCooldownHoursLoser ? parseInt(formData.postMatchCooldownHoursLoser) : undefined,
           postMatchCooldownHoursWinner: formData.postMatchCooldownHoursWinner ? parseInt(formData.postMatchCooldownHoursWinner) : undefined,
           consecutiveWOLimit: formData.consecutiveWOLimit ? parseInt(formData.consecutiveWOLimit) : undefined,
@@ -535,7 +537,8 @@ const Leagues = () => {
           gameTiebreakPoints: formData.gameTiebreakPoints ? parseInt(formData.gameTiebreakPoints) : undefined,
           matchTiebreakPoints: formData.matchTiebreakPoints ? parseInt(formData.matchTiebreakPoints) : undefined,
           offerResponseDays: formData.offerResponseDays ? parseInt(formData.offerResponseDays) : undefined,
-          matchCompletionDays: formData.matchCompletionDays ? parseInt(formData.matchCompletionDays) : undefined,
+          shieldEnabled: formData.shieldDaysTotal ? (parseInt(formData.shieldDaysTotal) > 0) : false,
+          shieldDaysTotal: formData.shieldDaysTotal ? parseInt(formData.shieldDaysTotal) : null,
           postMatchCooldownHoursLoser: formData.postMatchCooldownHoursLoser ? parseInt(formData.postMatchCooldownHoursLoser) : undefined,
           postMatchCooldownHoursWinner: formData.postMatchCooldownHoursWinner ? parseInt(formData.postMatchCooldownHoursWinner) : undefined,
           consecutiveWOLimit: formData.consecutiveWOLimit ? parseInt(formData.consecutiveWOLimit) : undefined,
@@ -992,17 +995,6 @@ const Leagues = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-soft-white mb-2">Maç Tamamlama Süresi (Gün)</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={formData.matchCompletionDays}
-                      onChange={(e) => setFormData({ ...formData, matchCompletionDays: e.target.value })}
-                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
-                      placeholder="Örn: 7"
-                    />
-                  </div>
-                  <div>
                     <label className="block text-soft-white mb-2">Maç Sonrası Bekleme Süresi Saati (Kaybeden)</label>
                     <input
                       type="number"
@@ -1034,6 +1026,27 @@ const Leagues = () => {
                       className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
                       placeholder="Örn: 3"
                     />
+                  </div>
+                </div>
+              </div>
+
+              {/* Kullanıcı Koruma Hakkı */}
+              <div className="border-t border-white/10 pt-4">
+                <h3 className="text-lg font-semibold text-soft-white mb-3">Kullanıcı Koruma Hakkı</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-soft-white mb-2">Koruma Gün Hakkı (Opsiyonel)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.shieldDaysTotal}
+                      onChange={(e) => setFormData({ ...formData, shieldDaysTotal: e.target.value })}
+                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
+                      placeholder="Örn: 15"
+                    />
+                    <p className="text-xs text-soft-white/60 mt-1">
+                      Kullanıcılara verilecek toplam koruma gün hakkı. Boş bırakılırsa koruma olmaz.
+                    </p>
                   </div>
                 </div>
               </div>

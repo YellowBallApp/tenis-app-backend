@@ -4,6 +4,9 @@ import leagueRepository from '../repositories/league.repository';
 import notificationService from './notification.service';
 import { AppError } from '../utils/error/app.error';
 import { NotificationType } from '../enum/notificationType.enum';
+import { AppDataSource } from '../config/data-source';
+import { User } from '../entities/user.entity';
+import matchHistoryRepository from '../repositories/matchHistory.repository';
 
 export class MatchChallengeService {
   
@@ -92,6 +95,14 @@ export class MatchChallengeService {
       if (existingChallenge) {
         throw new AppError('CHALLENGE_ALREADY_EXISTS');
       }
+
+      // Cooldown ve Shield kontrolleri
+      await this.checkCooldownAndShield(
+        data.challengerId,
+        data.challengedId,
+        data.leagueId,
+        league
+      );
 
       // Geçerlilik süresi belirleme (varsayılan 7 gün)
       const expiresAt = new Date();
@@ -326,6 +337,99 @@ export class MatchChallengeService {
       if (error instanceof AppError) throw error;
       throw new AppError('UNKNOWN_ERROR');
     }
+  }
+
+  /**
+   * Cooldown ve Shield kontrollerini yapar
+   */
+  private async checkCooldownAndShield(
+    challengerId: string,
+    challengedId: string,
+    leagueId: number,
+    league: any
+  ): Promise<void> {
+    if (!league?.settings) {
+      return; // Ayarlar yoksa kontrol yapma
+    }
+
+    const settings = league.settings;
+    const userRepository = AppDataSource.getRepository(User);
+    const now = new Date();
+
+    // Challenger (teklif eden) kontrolleri
+    const challenger = await userRepository.findOne({ where: { id: challengerId } });
+    if (!challenger) {
+      throw new AppError('USER_NOT_FOUND');
+    }
+
+    // Challenger'ın bu ligdeki son maçını bul
+    const challengerMatches = await matchHistoryRepository.findByUserId(challengerId);
+    const challengerLeagueMatches = challengerMatches.filter(match => 
+      match.leagueStanding?.league?.id === leagueId
+    );
+    const challengerLastMatch = challengerLeagueMatches.length > 0 
+      ? challengerLeagueMatches[0] 
+      : null;
+
+    // Challenger kaybeden ise cooldown kontrolü
+    if (challengerLastMatch) {
+      const isLoser = challengerLastMatch.losers.some(loser => loser.id === challengerId);
+      if (isLoser) {
+        const matchDate = new Date(challengerLastMatch.matchDate);
+        const hoursSinceMatch = (now.getTime() - matchDate.getTime()) / (1000 * 60 * 60);
+        
+        if (hoursSinceMatch < settings.postMatchCooldownHoursLoser) {
+          throw new AppError('COOLDOWN_ACTIVE');
+        }
+      }
+    }
+
+    // Challenged (teklif edilen) kontrolleri
+    const challenged = await userRepository.findOne({ where: { id: challengedId } });
+    if (!challenged) {
+      throw new AppError('USER_NOT_FOUND');
+    }
+
+    // Shield kontrolü (eğer aktifse kimse teklif edemez) - Lig bazlı
+    if (challenged.leagueShields && challenged.leagueShields[leagueId]) {
+      const leagueShield = challenged.leagueShields[leagueId];
+      if (leagueShield.shieldActive && leagueShield.shieldExpiresAt) {
+        const shieldExpires = typeof leagueShield.shieldExpiresAt === 'string'
+          ? new Date(leagueShield.shieldExpiresAt)
+          : new Date(leagueShield.shieldExpiresAt);
+        if (now < shieldExpires) {
+          throw new AppError('SHIELD_ACTIVE');
+        } else {
+          // Shield süresi dolmuş, pasif yap
+          leagueShield.shieldActive = false;
+          challenged.leagueShields[leagueId] = leagueShield;
+          await userRepository.save(challenged);
+        }
+      }
+    }
+
+    // Challenged'ın bu ligdeki son maçını bul
+    const challengedMatches = await matchHistoryRepository.findByUserId(challengedId);
+    const challengedLeagueMatches = challengedMatches.filter(match => 
+      match.leagueStanding?.league?.id === leagueId
+    );
+    const challengedLastMatch = challengedLeagueMatches.length > 0 
+      ? challengedLeagueMatches[0] 
+      : null;
+
+    // Challenged kazanan ise cooldown kontrolü (kimse ona teklif edemez)
+    if (challengedLastMatch) {
+      const isWinner = challengedLastMatch.winners.some(winner => winner.id === challengedId);
+      if (isWinner) {
+        const matchDate = new Date(challengedLastMatch.matchDate);
+        const hoursSinceMatch = (now.getTime() - matchDate.getTime()) / (1000 * 60 * 60);
+        
+        if (hoursSinceMatch < settings.postMatchCooldownHoursWinner) {
+          throw new AppError('COOLDOWN_ACTIVE');
+        }
+      }
+    }
+
   }
 }
 

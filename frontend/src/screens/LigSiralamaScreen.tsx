@@ -24,9 +24,10 @@ import {
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useLanguage } from '../context/LanguageContext';
-import { leagueStandingsService, authService, courtService, matchChallengeService } from '../services/api';
+import { leagueStandingsService, authService, courtService, matchChallengeService, shieldService } from '../services/api';
 import { ChallengeStatus } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Calendar } from 'react-native-calendars';
 
 const { width } = Dimensions.get('window');
 
@@ -60,6 +61,13 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
   const [userPendingChallenges, setUserPendingChallenges] = useState<any[]>([]);
+  
+  // Koruma Hakkı (Shield) State'leri
+  const [shieldStatus, setShieldStatus] = useState<any>(null);
+  const [showShieldModal, setShowShieldModal] = useState(false);
+  const [shieldStartDate, setShieldStartDate] = useState<string>('');
+  const [shieldEndDate, setShieldEndDate] = useState<string>('');
+  const [shieldLoading, setShieldLoading] = useState(false);
 
   // Sayfa her odaklandığında verileri yeniden yükle
   useFocusEffect(
@@ -67,6 +75,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
       loadRankings();
       loadCourts();
       loadUserChallenges();
+      loadShieldStatus();
     }, [])
   );
 
@@ -117,6 +126,70 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
       console.error('Challenge\'lar yüklenirken hata:', error);
     }
   };
+
+  // Koruma durumunu yükle
+  const loadShieldStatus = async () => {
+    try {
+      const status = await shieldService.getShieldStatus(lig.id);
+      setShieldStatus(status);
+    } catch (error: any) {
+      // Koruma sistemi aktif değilse veya hata varsa null olarak bırak
+      if (error.response?.status !== 404) {
+        console.error('Koruma durumu yüklenirken hata:', error);
+      }
+      setShieldStatus(null);
+    }
+  };
+
+  // Koruma aktif et
+  const handleActivateShield = async () => {
+    if (!shieldStartDate || !shieldEndDate) {
+      Alert.alert('Hata', 'Lütfen başlangıç ve bitiş tarihlerini seçin.');
+      return;
+    }
+
+    const start = new Date(shieldStartDate);
+    const end = new Date(shieldEndDate);
+    
+    if (end <= start) {
+      Alert.alert('Hata', 'Bitiş tarihi başlangıç tarihinden sonra olmalıdır.');
+      return;
+    }
+
+    // Tarih farkını hesapla (gün cinsinden)
+    const diffTime = end.getTime() - start.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays <= 0) {
+      Alert.alert('Hata', 'En az 1 gün seçmelisiniz.');
+      return;
+    }
+
+    // Kalan koruma günü kontrolü
+    if (!shieldStatus || shieldStatus.shieldDaysRemaining < diffDays) {
+      Alert.alert(
+        'Yetersiz Koruma Hakkı',
+        `Seçtiğiniz tarih aralığı ${diffDays} gün, ancak kalan koruma hakkınız ${shieldStatus?.shieldDaysRemaining || 0} gün.`
+      );
+      return;
+    }
+
+    try {
+      setShieldLoading(true);
+      await shieldService.activateShield(lig.id, diffDays);
+      Alert.alert('Başarılı', `Koruma ${diffDays} gün için aktif edildi. Kalan koruma hakkı: ${shieldStatus.shieldDaysRemaining - diffDays} gün`);
+      setShowShieldModal(false);
+      setShieldStartDate('');
+      setShieldEndDate('');
+      await loadShieldStatus();
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Koruma aktif edilirken bir hata oluştu';
+      Alert.alert('Hata', errorMessage);
+    } finally {
+      setShieldLoading(false);
+    }
+  };
+
 
   const loadRankings = async () => {
     try {
@@ -640,12 +713,16 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
       (c: any) => c.challenger.id === player.user.id && c.challenged.id === currentUser.id && c.league.id === lig.id
     );
     
+    // Oyuncunun koruma durumunu kontrol et
+    const playerShieldActive = player.shieldActive === true;
+    
     const canChallenge = !isCurrentUser 
       && leagueActive // Lig aktif olmalı (tarihler arasında)
       && positionDifference <= maxOfferRange 
       && positionDifference > 0 
       && !userHasActiveChallengeInLeague // Kullanıcının bu ligde aktif challenge'ı olmamalı (pending veya accepted)
-      && !hasPendingChallengeToThisPlayer; // Bu oyuncuya zaten pending challenge gönderilmemiş olmalı
+      && !hasPendingChallengeToThisPlayer // Bu oyuncuya zaten pending challenge gönderilmemiş olmalı
+      && !playerShieldActive; // Oyuncunun koruması aktif olmamalı
     
     const handleAvatarPress = () => {
       // Sadece profil resmine tıklandığında profil sayfasına git
@@ -952,6 +1029,39 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
             <MaterialCommunityIcons name="calendar" size={20} color="#54CE8F" />
             <Text style={styles.quickActionButtonText}>Maç Geçmişi</Text>
           </TouchableOpacity>
+
+          {/* Koruma Hakkı Bilgisi */}
+          {shieldStatus && shieldStatus.shieldDaysTotal > 0 && (
+            <View style={styles.shieldInfoContainer}>
+              <View style={styles.shieldInfoRow}>
+                <MaterialCommunityIcons 
+                  name={shieldStatus.shieldActive ? "shield-check" : "shield-outline"} 
+                  size={16} 
+                  color={shieldStatus.shieldActive ? "#4CAF50" : "#9CA3AF"} 
+                />
+                <Text style={styles.shieldStatusText}>
+                  Koruma Durumu: {shieldStatus.shieldActive ? 'Aktif' : 'Pasif'}
+                </Text>
+              </View>
+              {shieldStatus.shieldActive && shieldStatus.shieldExpiresAt && (
+                <Text style={styles.shieldExpiresText}>
+                  Bitiş: {new Date(shieldStatus.shieldExpiresAt).toLocaleDateString('tr-TR')}
+                </Text>
+              )}
+              <Text style={styles.shieldDaysText}>
+                Kalan Koruma Günü: {shieldStatus.shieldDaysRemaining} / {shieldStatus.shieldDaysTotal}
+              </Text>
+              {shieldStatus.shieldDaysRemaining > 0 && !shieldStatus.shieldActive && (
+                <TouchableOpacity
+                  style={styles.activateShieldButton}
+                  onPress={() => setShowShieldModal(true)}
+                >
+                  <MaterialCommunityIcons name="shield-plus" size={16} color="#FFFFFF" />
+                  <Text style={styles.activateShieldButtonText}>Koruma Aktif Et</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -1308,6 +1418,205 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                       >
                         <MaterialCommunityIcons name="check" size={20} color="#FFFFFF" />
                         <Text style={styles.modalSaveButtonText}>Kaydet</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
+              </Card.Content>
+            </ScrollView>
+          </Card>
+        </Modal>
+      </Portal>
+
+      {/* Koruma Aktif Etme Modal */}
+      <Portal>
+        <Modal
+          dismissable={true}
+          visible={showShieldModal}
+          onDismiss={() => {
+            setShowShieldModal(false);
+            setShieldStartDate('');
+            setShieldEndDate('');
+          }}
+          contentContainerStyle={styles.modalContainer}
+        >
+          <Card style={styles.modalCard}>
+            <ScrollView 
+              showsVerticalScrollIndicator={true}
+              style={styles.modalScrollView}
+            >
+              <Card.Content style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <View style={styles.modalHeaderLeft}>
+                    <View style={styles.modalIconContainer}>
+                      <MaterialCommunityIcons name="shield-plus" size={24} color="#FFFFFF" />
+                    </View>
+                    <Text style={styles.modalTitle}>Koruma Aktif Et</Text>
+                  </View>
+                  <TouchableOpacity 
+                    onPress={() => {
+                      setShowShieldModal(false);
+                      setShieldStartDate('');
+                      setShieldEndDate('');
+                    }}
+                    style={styles.modalCloseButton}
+                  >
+                    <MaterialCommunityIcons name="close" size={20} color="#9CA3AF" />
+                  </TouchableOpacity>
+                </View>
+
+                <Divider style={styles.modalDivider} />
+
+                {shieldStatus && (
+                  <>
+                    <View style={styles.shieldModalInfo}>
+                      <View style={styles.shieldModalInfoRow}>
+                        <MaterialCommunityIcons name="shield-outline" size={20} color="#54CE8F" />
+                        <Text style={styles.shieldModalInfoText}>
+                          Kalan Koruma Hakkı: {shieldStatus.shieldDaysRemaining} gün
+                        </Text>
+                      </View>
+                      <Text style={styles.shieldModalInfoSubtext}>
+                        Koruma aktif etmek için başlangıç ve bitiş tarihlerini seçin. Seçtiğiniz tarih aralığı kalan koruma hakkınızdan düşecektir.
+                      </Text>
+                    </View>
+
+                    <View style={styles.dateRangeSection}>
+                      <Text style={styles.sectionLabel}>Tarih Aralığı Seçin</Text>
+                      {shieldStartDate && shieldEndDate && (
+                        <View style={styles.dateRangeInfo}>
+                          <MaterialCommunityIcons name="information" size={16} color="#2E7D32" />
+                          <Text style={styles.dateRangeInfoText}>
+                            Seçilen aralık: {
+                              Math.ceil((new Date(shieldEndDate).getTime() - new Date(shieldStartDate).getTime()) / (1000 * 60 * 60 * 24))
+                            } gün (Kalan: {shieldStatus.shieldDaysRemaining - Math.ceil((new Date(shieldEndDate).getTime() - new Date(shieldStartDate).getTime()) / (1000 * 60 * 60 * 24))} gün)
+                          </Text>
+                        </View>
+                      )}
+                      {shieldStartDate && !shieldEndDate && (
+                        <View style={styles.dateRangeInfo}>
+                          <MaterialCommunityIcons name="information" size={16} color="#FF9800" />
+                          <Text style={styles.dateRangeInfoText}>
+                            Başlangıç tarihi seçildi. Şimdi bitiş tarihini seçin.
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    <Calendar
+                      onDayPress={(day) => {
+                        if (!shieldStartDate || (shieldStartDate && shieldEndDate)) {
+                          // İlk tarih seçimi veya yeni seçim
+                          setShieldStartDate(day.dateString);
+                          setShieldEndDate('');
+                        } else if (shieldStartDate && !shieldEndDate) {
+                          // İkinci tarih seçimi
+                          const start = new Date(shieldStartDate);
+                          const end = new Date(day.dateString);
+                          
+                          if (end <= start) {
+                            Alert.alert('Hata', 'Bitiş tarihi başlangıç tarihinden sonra olmalıdır.');
+                            return;
+                          }
+
+                          const diffDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+                          
+                          if (shieldStatus.shieldDaysRemaining < diffDays) {
+                            Alert.alert(
+                              'Yetersiz Koruma Hakkı',
+                              `Seçtiğiniz tarih aralığı ${diffDays} gün, ancak kalan koruma hakkınız ${shieldStatus.shieldDaysRemaining} gün.`
+                            );
+                            return;
+                          }
+
+                          setShieldEndDate(day.dateString);
+                        }
+                      }}
+                      markedDates={{
+                        ...(shieldStartDate ? {
+                          [shieldStartDate]: {
+                            startingDay: true,
+                            color: '#54CE8F',
+                            textColor: '#FFFFFF',
+                          }
+                        } : {}),
+                        ...(shieldEndDate ? {
+                          [shieldEndDate]: {
+                            endingDay: true,
+                            color: '#54CE8F',
+                            textColor: '#FFFFFF',
+                          }
+                        } : {}),
+                        ...(shieldStartDate && shieldEndDate ? (() => {
+                          const start = new Date(shieldStartDate);
+                          const end = new Date(shieldEndDate);
+                          const dates: any = {};
+                          for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                            const dateStr = d.toISOString().split('T')[0];
+                            if (dateStr !== shieldStartDate && dateStr !== shieldEndDate) {
+                              dates[dateStr] = {
+                                color: '#54CE8F',
+                                textColor: '#FFFFFF',
+                              };
+                            }
+                          }
+                          return dates;
+                        })() : {}),
+                      }}
+                      markingType="period"
+                      minDate={new Date().toISOString().split('T')[0]}
+                      theme={{
+                        backgroundColor: '#FFFFFF',
+                        calendarBackground: '#FFFFFF',
+                        textSectionTitleColor: '#54CE8F',
+                        selectedDayBackgroundColor: '#54CE8F',
+                        selectedDayTextColor: '#FFFFFF',
+                        todayTextColor: '#54CE8F',
+                        dayTextColor: '#030213',
+                        textDisabledColor: '#9CA3AF',
+                        dotColor: '#54CE8F',
+                        selectedDotColor: '#FFFFFF',
+                        arrowColor: '#54CE8F',
+                        monthTextColor: '#030213',
+                        indicatorColor: '#54CE8F',
+                        textDayFontFamily: 'System',
+                        textMonthFontFamily: 'System',
+                        textDayHeaderFontFamily: 'System',
+                        textDayFontSize: 16,
+                        textMonthFontSize: 18,
+                        textDayHeaderFontSize: 14
+                      }}
+                      firstDay={1}
+                    />
+
+                    <View style={styles.modalActions}>
+                      <TouchableOpacity
+                        style={[styles.modalButton, styles.modalButtonCancel]}
+                        onPress={() => {
+                          setShowShieldModal(false);
+                          setShieldStartDate('');
+                          setShieldEndDate('');
+                        }}
+                      >
+                        <Text style={styles.modalButtonCancelText}>İptal</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.modalButton,
+                          styles.modalButtonConfirm,
+                          (!shieldStartDate || !shieldEndDate || shieldLoading) && styles.modalButtonDisabled
+                        ]}
+                        onPress={handleActivateShield}
+                        disabled={!shieldStartDate || !shieldEndDate || shieldLoading}
+                      >
+                        {shieldLoading ? (
+                          <ActivityIndicator size="small" color="#FFFFFF" />
+                        ) : (
+                          <>
+                            <MaterialCommunityIcons name="shield-check" size={20} color="#FFFFFF" />
+                            <Text style={styles.modalButtonConfirmText}>Koruma Aktif Et</Text>
+                          </>
+                        )}
                       </TouchableOpacity>
                     </View>
                   </>
@@ -2192,6 +2501,130 @@ const styles = StyleSheet.create({
     flex: 1,
     fontWeight: '500',
     lineHeight: 18,
+  },
+  // Koruma Hakkı Stilleri
+  shieldInfoContainer: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#D1FAE5',
+  },
+  shieldInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  shieldStatusText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#030213',
+  },
+  shieldExpiresText: {
+    fontSize: 12,
+    color: '#717182',
+    marginBottom: 4,
+  },
+  shieldDaysText: {
+    fontSize: 13,
+    color: '#2E7D32',
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  activateShieldButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#54CE8F',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    gap: 6,
+  },
+  activateShieldButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  shieldModalInfo: {
+    marginBottom: 24,
+    padding: 16,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#D1FAE5',
+  },
+  shieldModalInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  shieldModalInfoText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#030213',
+  },
+  shieldModalInfoSubtext: {
+    fontSize: 13,
+    color: '#717182',
+    lineHeight: 18,
+  },
+  dateRangeSection: {
+    marginBottom: 24,
+  },
+  dateRangeInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    marginBottom: 12,
+    padding: 12,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 8,
+    gap: 8,
+  },
+  dateRangeInfoText: {
+    fontSize: 13,
+    color: '#2E7D32',
+    fontWeight: '500',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 24,
+  },
+  modalButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+  },
+  modalButtonCancel: {
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  modalButtonCancelText: {
+    color: '#717182',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  modalButtonConfirm: {
+    backgroundColor: '#54CE8F',
+  },
+  modalButtonDisabled: {
+    backgroundColor: '#D1D5DB',
+    opacity: 0.6,
+  },
+  modalButtonConfirmText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });
 
