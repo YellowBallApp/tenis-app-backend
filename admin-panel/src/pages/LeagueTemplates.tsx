@@ -5,12 +5,30 @@ import api from '../utils/api';
 // @ts-ignore - @mdi/js types may not be available in some environments  
 import * as mdiIcons from '@mdi/js';
 
-interface League {
+interface LeagueTemplate {
   id: number;
   name: string;
-  code: string;
-  description?: string;
-  icon?: string;
+  description: string | null;
+  leagueDescription: string | null;
+  rewards: string | null;
+  icon: string | null;
+  minAge: number | null;
+  maxAge: number | null;
+  registrationFee: number | null;
+  minMatchCountForElimination: number | null;
+  minStarRating: number | null;
+  maxStarRating: number | null;
+  gamesPerSet: number | null;
+  setsCount: number | null;
+  gameTiebreakPoints: number | null;
+  matchTiebreakPoints: number | null;
+  offerResponseDays: number | null;
+  postMatchCooldownHoursLoser: number | null;
+  postMatchCooldownHoursWinner: number | null;
+  consecutiveWOLimit: number | null;
+  shieldEnabled: boolean;
+  shieldDaysTotal: number | null;
+  offerLimitsByRank: { range: string; limit: number }[] | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -269,23 +287,16 @@ const ALL_MATERIAL_ICONS = [
 ];
 
 // MaterialCommunityIcons isimlerini MDI path formatına çeviren helper fonksiyon
-// MaterialCommunityIcons isim formatı: 'trophy', 'trophy-outline' gibi
-// MDI formatı: 'mdiTrophy', 'mdiTrophyOutline' gibi
 const getIconPath = (iconName: string): string | null => {
   try {
-    // Icon ismini MDI formatına çevir
-    // 'trophy' -> 'mdiTrophy', 'trophy-outline' -> 'mdiTrophyOutline'
     const parts = iconName.split('-');
     const mdiName = 'mdi' + parts
       .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
       .join('');
     
-    // @mdi/js'den icon path'ini al
     const iconPath = (mdiIcons as any)[mdiName];
     
-    // Eğer bulunamazsa, alternatif isimleri dene
     if (!iconPath) {
-      // Bazı iconlar farklı isimlerle olabilir
       const alternativeNames = [
         mdiName.replace(/Outline$/, ''),
         mdiName.replace(/Variant$/, ''),
@@ -298,13 +309,6 @@ const getIconPath = (iconName: string): string | null => {
           return altPath;
         }
       }
-      
-      // Debug: İlk 10 icon için log
-      if (iconName === 'trophy' || iconName === 'crown' || iconName === 'tennis') {
-        console.warn(`Icon not found: ${iconName} -> ${mdiName}`, {
-          available: Object.keys(mdiIcons).filter(k => k.toLowerCase().includes(iconName.toLowerCase())).slice(0, 5)
-        });
-      }
     }
     
     return iconPath || null;
@@ -314,44 +318,15 @@ const getIconPath = (iconName: string): string | null => {
   }
 };
 
-interface LeagueTemplate {
-  id: number;
-  name: string;
-  description: string | null;
-  leagueDescription: string | null;
-  rewards: string | null;
-  icon: string | null;
-  minAge: number | null;
-  maxAge: number | null;
-  registrationFee: number | null;
-  minMatchCountForElimination: number | null;
-  minStarRating: number | null;
-  maxStarRating: number | null;
-  gamesPerSet: number | null;
-  setsCount: number | null;
-  gameTiebreakPoints: number | null;
-  matchTiebreakPoints: number | null;
-  offerResponseDays: number | null;
-  postMatchCooldownHoursLoser: number | null;
-  postMatchCooldownHoursWinner: number | null;
-  consecutiveWOLimit: number | null;
-  shieldEnabled: boolean;
-  shieldDaysTotal: number | null;
-  offerLimitsByRank: { range: string; limit: number }[] | null;
-}
-
-const Leagues = () => {
-  const [leagues, setLeagues] = useState<League[]>([]);
+const LeagueTemplates = () => {
   const [templates, setTemplates] = useState<LeagueTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [editingLeague, setEditingLeague] = useState<League | null>(null);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [editingTemplate, setEditingTemplate] = useState<LeagueTemplate | null>(null);
   const [iconSearch, setIconSearch] = useState('');
   const [selectedIconCategory, setSelectedIconCategory] = useState<string>('all');
   const [formData, setFormData] = useState({
     name: '',
-    code: '',
     description: '',
     icon: 'trophy',
     leagueDescription: '',
@@ -365,9 +340,6 @@ const Leagues = () => {
     // Yıldız Rating Aralıkları
     minStarRating: '',
     maxStarRating: '',
-    // Lig Dönemleri
-    leagueStartDate: '',
-    leagueEndDate: '',
     // Maç Formatı
     gamesPerSet: '',
     setsCount: '',
@@ -380,26 +352,13 @@ const Leagues = () => {
     consecutiveWOLimit: '',
     // Kullanıcı Koruma Hakkı
     shieldDaysTotal: '',
-    // Sıra Bazlı Teklif Limitleri (Zorunlu - en az bir limit eklenmeli)
+    // Sıra Bazlı Teklif Limitleri
     offerLimitsByRank: [] as { range: string; limit: number }[],
   });
 
   useEffect(() => {
-    fetchLeagues();
     fetchTemplates();
   }, []);
-
-  const fetchLeagues = async () => {
-    try {
-      const response = await api.get('/league/all');
-      setLeagues(response.data.data || []);
-    } catch (error) {
-      console.error('Leagues fetch error:', error);
-      alert('Ligler yüklenirken bir hata oluştu');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchTemplates = async () => {
     try {
@@ -407,13 +366,44 @@ const Leagues = () => {
       setTemplates(response.data.data || []);
     } catch (error) {
       console.error('Templates fetch error:', error);
+      alert('Şablonlar yüklenirken bir hata oluştu');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const applyTemplateToForm = (template: LeagueTemplate) => {
+  const handleCreate = () => {
+    setEditingTemplate(null);
     setFormData({
       name: '',
-      code: '',
+      description: '',
+      icon: 'trophy',
+      leagueDescription: '',
+      rewards: '',
+      minAge: '',
+      maxAge: '',
+      registrationFee: '',
+      minMatchCountForElimination: '',
+      minStarRating: '',
+      maxStarRating: '',
+      gamesPerSet: '',
+      setsCount: '',
+      gameTiebreakPoints: '',
+      matchTiebreakPoints: '',
+      offerResponseDays: '',
+      shieldDaysTotal: '',
+      postMatchCooldownHoursLoser: '',
+      postMatchCooldownHoursWinner: '',
+      consecutiveWOLimit: '',
+      offerLimitsByRank: [],
+    });
+    setShowModal(true);
+  };
+
+  const handleEdit = (template: LeagueTemplate) => {
+    setEditingTemplate(template);
+    setFormData({
+      name: template.name,
       description: template.description || '',
       icon: template.icon || 'trophy',
       leagueDescription: template.leagueDescription || '',
@@ -424,8 +414,6 @@ const Leagues = () => {
       minMatchCountForElimination: template.minMatchCountForElimination != null ? String(template.minMatchCountForElimination) : '',
       minStarRating: template.minStarRating != null ? String(template.minStarRating) : '',
       maxStarRating: template.maxStarRating != null ? String(template.maxStarRating) : '',
-      leagueStartDate: '',
-      leagueEndDate: '',
       gamesPerSet: template.gamesPerSet != null ? String(template.gamesPerSet) : '',
       setsCount: template.setsCount != null ? String(template.setsCount) : '',
       gameTiebreakPoints: template.gameTiebreakPoints != null ? String(template.gameTiebreakPoints) : '',
@@ -439,292 +427,63 @@ const Leagues = () => {
         ? template.offerLimitsByRank
         : [],
     });
-  };
-
-  const handleCreate = () => {
-    setEditingLeague(null);
-    setSelectedTemplateId('');
-      setFormData({
-        name: '',
-        code: '',
-        description: '',
-        icon: 'trophy',
-        leagueDescription: '',
-        rewards: '',
-        minAge: '',
-        maxAge: '',
-        registrationFee: '',
-        minMatchCountForElimination: '',
-        minStarRating: '',
-        maxStarRating: '',
-        leagueStartDate: '',
-        leagueEndDate: '',
-        gamesPerSet: '',
-        setsCount: '',
-        gameTiebreakPoints: '',
-        matchTiebreakPoints: '',
-        offerResponseDays: '',
-        postMatchCooldownHoursLoser: '',
-        postMatchCooldownHoursWinner: '',
-        consecutiveWOLimit: '',
-        shieldDaysTotal: '',
-        offerLimitsByRank: [],
-      });
-    setShowModal(true);
-  };
-
-  const handleEdit = async (league: League) => {
-    setEditingLeague(league);
-    try {
-      // Lig ayarlarını getir - query parameter ile
-      const settingsResponse = await api.get(`/league/settings?leagueId=${league.id}`);
-      const settings = settingsResponse.data.data;
-      
-      console.log('Settings response:', settings); // Debug için
-      
-      const formatDate = (date: string | Date | null | undefined) => {
-        if (!date) return '';
-        try {
-          const d = new Date(date);
-          if (isNaN(d.getTime())) return '';
-          return d.toISOString().split('T')[0];
-        } catch {
-          return '';
-        }
-      };
-      
-      setFormData({
-        name: league.name,
-        code: league.code,
-        description: league.description || '',
-        icon: league.icon || 'trophy',
-        leagueDescription: settings?.leagueDescription || '',
-        rewards: settings?.rewards || '',
-        minAge: settings?.minAge != null ? String(settings.minAge) : '',
-        maxAge: settings?.maxAge != null ? String(settings.maxAge) : '',
-        registrationFee: settings?.registrationFee != null ? String(settings.registrationFee) : '',
-        minMatchCountForElimination: settings?.minMatchCountForElimination != null ? String(settings.minMatchCountForElimination) : '',
-        minStarRating: settings?.minStarRating != null ? String(settings.minStarRating) : '',
-        maxStarRating: settings?.maxStarRating != null ? String(settings.maxStarRating) : '',
-        leagueStartDate: formatDate(settings?.leagueStartDate),
-        leagueEndDate: formatDate(settings?.leagueEndDate),
-        gamesPerSet: settings?.gamesPerSet != null ? String(settings.gamesPerSet) : '',
-        setsCount: settings?.setsCount != null ? String(settings.setsCount) : '',
-        gameTiebreakPoints: settings?.gameTiebreakPoints != null ? String(settings.gameTiebreakPoints) : '',
-        matchTiebreakPoints: settings?.matchTiebreakPoints != null ? String(settings.matchTiebreakPoints) : '',
-        offerResponseDays: settings?.offerResponseDays != null ? String(settings.offerResponseDays) : '',
-        shieldDaysTotal: settings?.shieldDaysTotal != null ? String(settings.shieldDaysTotal) : '',
-        postMatchCooldownHoursLoser: settings?.postMatchCooldownHoursLoser != null ? String(settings.postMatchCooldownHoursLoser) : '',
-        postMatchCooldownHoursWinner: settings?.postMatchCooldownHoursWinner != null ? String(settings.postMatchCooldownHoursWinner) : '',
-        consecutiveWOLimit: settings?.consecutiveWOLimit != null ? String(settings.consecutiveWOLimit) : '',
-        offerLimitsByRank: settings?.offerLimitsByRank && Array.isArray(settings.offerLimitsByRank) && settings.offerLimitsByRank.length > 0
-          ? settings.offerLimitsByRank
-          : [],
-      });
-    } catch (error: any) {
-      console.error('Settings fetch error:', error);
-      console.error('Error response:', error.response?.data);
-      // Hata durumunda sadece lig bilgilerini yükle, settings boş kalsın
-      setFormData({
-        name: league.name,
-        code: league.code,
-        description: league.description || '',
-        icon: league.icon || 'trophy',
-        leagueDescription: '',
-        rewards: '',
-        minAge: '',
-        maxAge: '',
-        registrationFee: '',
-        minMatchCountForElimination: '',
-        minStarRating: '',
-        maxStarRating: '',
-        leagueStartDate: '',
-        leagueEndDate: '',
-        gamesPerSet: '',
-        setsCount: '',
-        gameTiebreakPoints: '',
-        matchTiebreakPoints: '',
-        offerResponseDays: '',
-        postMatchCooldownHoursLoser: '',
-        postMatchCooldownHoursWinner: '',
-        consecutiveWOLimit: '',
-        shieldDaysTotal: '',
-        offerLimitsByRank: [],
-      });
-      alert('Lig ayarları yüklenirken bir hata oluştu. Ayarlar boş görünebilir.');
-    }
     setShowModal(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Sıra Bazlı Teklif Limitleri zorunluluk kontrolü
-    if (!formData.offerLimitsByRank || formData.offerLimitsByRank.length === 0) {
-      alert('Lütfen en az bir sıra bazlı teklif limiti ekleyin!');
-      return;
-    }
-    
-    // Her limit için range ve limit kontrolü
-    for (let i = 0; i < formData.offerLimitsByRank.length; i++) {
-      const limit = formData.offerLimitsByRank[i];
-      if (!limit.range || limit.range.trim() === '') {
-        alert(`Lütfen ${i + 1}. limit için sıra aralığını girin!`);
-        return;
-      }
-      if (!limit.limit || limit.limit < 1) {
-        alert(`Lütfen ${i + 1}. limit için geçerli bir maksimum teklif sayısı girin!`);
-        return;
-      }
-    }
-    
     try {
-      if (editingLeague) {
-        await api.put(`/league/entity/${editingLeague.id}`, {
-          name: formData.name,
-          code: formData.code,
-          description: formData.description,
-          icon: formData.icon,
-        });
-        // Settings'i güncelle
-        await api.put(`/league/settings/${editingLeague.id}`, {
-          leagueDescription: formData.leagueDescription || null,
-          rewards: formData.rewards || null,
-          minAge: formData.minAge ? parseInt(formData.minAge) : null,
-          maxAge: formData.maxAge ? parseInt(formData.maxAge) : null,
-          registrationFee: formData.registrationFee ? parseFloat(formData.registrationFee) : null,
-          minMatchCountForElimination: formData.minMatchCountForElimination ? parseInt(formData.minMatchCountForElimination) : undefined,
-          minStarRating: formData.minStarRating ? parseFloat(formData.minStarRating) : null,
-          maxStarRating: formData.maxStarRating ? parseFloat(formData.maxStarRating) : null,
-          leagueStartDate: formData.leagueStartDate || undefined,
-          leagueEndDate: formData.leagueEndDate || undefined,
-          gamesPerSet: formData.gamesPerSet ? parseInt(formData.gamesPerSet) : undefined,
-          setsCount: formData.setsCount ? parseInt(formData.setsCount) : undefined,
-          gameTiebreakPoints: formData.gameTiebreakPoints ? parseInt(formData.gameTiebreakPoints) : undefined,
-          matchTiebreakPoints: formData.matchTiebreakPoints ? parseInt(formData.matchTiebreakPoints) : undefined,
-          offerResponseDays: formData.offerResponseDays ? parseInt(formData.offerResponseDays) : undefined,
-          shieldEnabled: formData.shieldDaysTotal ? (parseInt(formData.shieldDaysTotal) > 0) : false,
-          shieldDaysTotal: formData.shieldDaysTotal ? parseInt(formData.shieldDaysTotal) : null,
-          postMatchCooldownHoursLoser: formData.postMatchCooldownHoursLoser ? parseInt(formData.postMatchCooldownHoursLoser) : undefined,
-          postMatchCooldownHoursWinner: formData.postMatchCooldownHoursWinner ? parseInt(formData.postMatchCooldownHoursWinner) : undefined,
-          consecutiveWOLimit: formData.consecutiveWOLimit ? parseInt(formData.consecutiveWOLimit) : undefined,
-          offerLimitsByRank: formData.offerLimitsByRank,
-        });
+      const templateData = {
+        name: formData.name || 'Şablon Adı',
+        description: formData.description || null,
+        leagueDescription: formData.leagueDescription || null,
+        rewards: formData.rewards || null,
+        icon: formData.icon || 'trophy',
+        minAge: formData.minAge ? parseInt(formData.minAge) : null,
+        maxAge: formData.maxAge ? parseInt(formData.maxAge) : null,
+        registrationFee: formData.registrationFee ? parseFloat(formData.registrationFee) : null,
+        minMatchCountForElimination: formData.minMatchCountForElimination ? parseInt(formData.minMatchCountForElimination) : null,
+        minStarRating: formData.minStarRating ? parseFloat(formData.minStarRating) : null,
+        maxStarRating: formData.maxStarRating ? parseFloat(formData.maxStarRating) : null,
+        gamesPerSet: formData.gamesPerSet ? parseInt(formData.gamesPerSet) : null,
+        setsCount: formData.setsCount ? parseInt(formData.setsCount) : null,
+        gameTiebreakPoints: formData.gameTiebreakPoints ? parseInt(formData.gameTiebreakPoints) : null,
+        matchTiebreakPoints: formData.matchTiebreakPoints ? parseInt(formData.matchTiebreakPoints) : null,
+        offerResponseDays: formData.offerResponseDays ? parseInt(formData.offerResponseDays) : null,
+        shieldEnabled: formData.shieldDaysTotal ? (parseInt(formData.shieldDaysTotal) > 0) : false,
+        shieldDaysTotal: formData.shieldDaysTotal ? parseInt(formData.shieldDaysTotal) : null,
+        postMatchCooldownHoursLoser: formData.postMatchCooldownHoursLoser ? parseInt(formData.postMatchCooldownHoursLoser) : null,
+        postMatchCooldownHoursWinner: formData.postMatchCooldownHoursWinner ? parseInt(formData.postMatchCooldownHoursWinner) : null,
+        consecutiveWOLimit: formData.consecutiveWOLimit ? parseInt(formData.consecutiveWOLimit) : null,
+        offerLimitsByRank: formData.offerLimitsByRank && formData.offerLimitsByRank.length > 0 ? formData.offerLimitsByRank : null,
+      };
+
+      if (editingTemplate) {
+        await api.put(`/league-template/${editingTemplate.id}`, templateData);
       } else {
-        const leagueResponse = await api.post('/league/create', {
-          name: formData.name,
-          code: formData.code,
-          description: formData.description,
-          icon: formData.icon,
-        });
-        const leagueId = leagueResponse.data.data.id;
-        // Settings'i güncelle
-        await api.put(`/league/settings/${leagueId}`, {
-          leagueDescription: formData.leagueDescription || null,
-          rewards: formData.rewards || null,
-          minAge: formData.minAge ? parseInt(formData.minAge) : null,
-          maxAge: formData.maxAge ? parseInt(formData.maxAge) : null,
-          registrationFee: formData.registrationFee ? parseFloat(formData.registrationFee) : null,
-          minMatchCountForElimination: formData.minMatchCountForElimination ? parseInt(formData.minMatchCountForElimination) : undefined,
-          minStarRating: formData.minStarRating ? parseFloat(formData.minStarRating) : null,
-          maxStarRating: formData.maxStarRating ? parseFloat(formData.maxStarRating) : null,
-          leagueStartDate: formData.leagueStartDate || undefined,
-          leagueEndDate: formData.leagueEndDate || undefined,
-          gamesPerSet: formData.gamesPerSet ? parseInt(formData.gamesPerSet) : undefined,
-          setsCount: formData.setsCount ? parseInt(formData.setsCount) : undefined,
-          gameTiebreakPoints: formData.gameTiebreakPoints ? parseInt(formData.gameTiebreakPoints) : undefined,
-          matchTiebreakPoints: formData.matchTiebreakPoints ? parseInt(formData.matchTiebreakPoints) : undefined,
-          offerResponseDays: formData.offerResponseDays ? parseInt(formData.offerResponseDays) : undefined,
-          shieldEnabled: formData.shieldDaysTotal ? (parseInt(formData.shieldDaysTotal) > 0) : false,
-          shieldDaysTotal: formData.shieldDaysTotal ? parseInt(formData.shieldDaysTotal) : null,
-          postMatchCooldownHoursLoser: formData.postMatchCooldownHoursLoser ? parseInt(formData.postMatchCooldownHoursLoser) : undefined,
-          postMatchCooldownHoursWinner: formData.postMatchCooldownHoursWinner ? parseInt(formData.postMatchCooldownHoursWinner) : undefined,
-          consecutiveWOLimit: formData.consecutiveWOLimit ? parseInt(formData.consecutiveWOLimit) : undefined,
-          offerLimitsByRank: formData.offerLimitsByRank,
-        });
+        await api.post('/league-template/create', templateData);
       }
+      
       setShowModal(false);
-      fetchLeagues();
-      alert(editingLeague ? 'Lig başarıyla güncellendi!' : 'Lig başarıyla oluşturuldu!');
+      fetchTemplates();
+      alert(editingTemplate ? 'Şablon başarıyla güncellendi!' : 'Şablon başarıyla oluşturuldu!');
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || error.message || 'İşlem başarısız oldu';
-      alert(editingLeague ? `Lig güncellenirken hata oluştu: ${errorMessage}` : `Lig oluşturulurken hata oluştu: ${errorMessage}`);
+      alert(`Şablon kaydedilirken hata oluştu: ${errorMessage}`);
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Bu ligi silmek istediğinize emin misiniz?')) return;
+    if (!confirm('Bu şablonu silmek istediğinize emin misiniz?')) return;
     
     try {
-      await api.delete(`/league/entity/${id}`);
-      fetchLeagues();
+      await api.delete(`/league-template/${id}`);
+      fetchTemplates();
+      alert('Şablon başarıyla silindi!');
     } catch (error: any) {
       alert(error.response?.data?.message || 'Silme işlemi başarısız');
     }
-  };
-
-  // Zorunlu alanları kontrol et
-  const isRequiredField = (fieldName: string): boolean => {
-    const requiredFields = [
-      'leagueStartDate',
-      'leagueEndDate',
-      'minMatchCountForElimination',
-      'gamesPerSet',
-      'setsCount',
-      'gameTiebreakPoints',
-      'matchTiebreakPoints',
-      'offerResponseDays',
-      'postMatchCooldownHoursLoser',
-      'postMatchCooldownHoursWinner',
-      'consecutiveWOLimit',
-    ];
-    return requiredFields.includes(fieldName);
-  };
-
-  // Alanın boş olup olmadığını kontrol et
-  const isEmpty = (value: any): boolean => {
-    if (Array.isArray(value)) {
-      return value.length === 0;
-    }
-    if (typeof value === 'string') {
-      return !value || value.trim() === '';
-    }
-    return !value;
-  };
-
-  // Zorunlu alan için CSS sınıfı oluştur
-  const getRequiredFieldClass = (fieldName: string): string => {
-    const baseClass = 'w-full px-4 py-2 bg-white/10 border rounded-xl text-soft-white focus:outline-none';
-    const fieldValue = formData[fieldName as keyof typeof formData];
-    const isEmptyField = isEmpty(fieldValue);
-    
-    if (isRequiredField(fieldName)) {
-      if (isEmptyField) {
-        return `${baseClass} border-red-500 focus:border-red-400 focus:ring-2 focus:ring-red-500/50`;
-      }
-      return `${baseClass} border-yellow-500/50 focus:border-yellow-400`;
-    }
-    return `${baseClass} border-white/20 focus:border-soft-green`;
-  };
-
-  // Zorunlu alan için label oluştur
-  const getRequiredLabel = (label: string, fieldName: string): JSX.Element => {
-    const isEmptyField = isEmpty(formData[fieldName as keyof typeof formData]);
-    const isRequired = isRequiredField(fieldName);
-    
-    return (
-      <label className={`block mb-2 ${isRequired ? 'text-soft-white font-semibold' : 'text-soft-white'}`}>
-        {label}
-        {isRequired && (
-          <span className="text-red-400 ml-1" title="Bu alan zorunludur">
-            *
-          </span>
-        )}
-        {isRequired && isEmptyField && (
-          <span className="text-red-400 text-xs ml-2">(Boş bırakılamaz)</span>
-        )}
-      </label>
-    );
   };
 
   if (loading) {
@@ -741,13 +500,13 @@ const Leagues = () => {
     <Layout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-soft-white">Lig Yönetimi</h1>
+          <h1 className="text-3xl font-bold text-soft-white">Lig Şablonları</h1>
           <button
             onClick={handleCreate}
             className="flex items-center gap-2 px-4 py-2 bg-soft-green text-soft-navy rounded-xl font-semibold hover:bg-soft-green/90 transition-all"
           >
             <HiPlus className="text-xl" />
-            Yeni Lig
+            Yeni Şablon
           </button>
         </div>
 
@@ -757,39 +516,39 @@ const Leagues = () => {
               <thead>
                 <tr className="border-b border-white/10">
                   <th className="text-left py-3 px-4 text-soft-white font-semibold">ID</th>
-                  <th className="text-left py-3 px-4 text-soft-white font-semibold">Lig Adı</th>
-                  <th className="text-left py-3 px-4 text-soft-white font-semibold">Kod</th>
+                  <th className="text-left py-3 px-4 text-soft-white font-semibold">Şablon Adı</th>
                   <th className="text-left py-3 px-4 text-soft-white font-semibold">Açıklama</th>
+                  <th className="text-left py-3 px-4 text-soft-white font-semibold">İkon</th>
                   <th className="text-left py-3 px-4 text-soft-white font-semibold">İşlemler</th>
                 </tr>
               </thead>
               <tbody>
-                {leagues.length === 0 ? (
+                {templates.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="text-center py-8 text-soft-white/60">
-                      Henüz lig bulunmamaktadır
+                      Henüz şablon bulunmamaktadır
                     </td>
                   </tr>
                 ) : (
-                  leagues.map((league) => (
-                    <tr key={league.id} className="border-b border-white/5 hover:bg-white/5">
-                      <td className="py-3 px-4 text-soft-white/80">{league.id}</td>
-                      <td className="py-3 px-4 text-soft-white font-medium">{league.name}</td>
-                      <td className="py-3 px-4 text-soft-white/80">{league.code}</td>
+                  templates.map((template) => (
+                    <tr key={template.id} className="border-b border-white/5 hover:bg-white/5">
+                      <td className="py-3 px-4 text-soft-white/80">{template.id}</td>
+                      <td className="py-3 px-4 text-soft-white font-medium">{template.name}</td>
                       <td className="py-3 px-4 text-soft-white/60 text-sm">
-                        {league.description || '-'}
+                        {template.description || '-'}
                       </td>
+                      <td className="py-3 px-4 text-soft-white/80">{template.icon || 'trophy'}</td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => handleEdit(league)}
+                            onClick={() => handleEdit(template)}
                             className="p-2 text-soft-green hover:bg-soft-green/20 rounded-lg transition-all"
                             title="Düzenle"
                           >
                             <HiPencil />
                           </button>
                           <button
-                            onClick={() => handleDelete(league.id)}
+                            onClick={() => handleDelete(template.id)}
                             className="p-2 text-red-400 hover:bg-red-400/20 rounded-lg transition-all"
                             title="Sil"
                           >
@@ -811,60 +570,21 @@ const Leagues = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="glass-strong rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold text-soft-white mb-4">
-              {editingLeague ? 'Lig Düzenle' : 'Yeni Lig Oluştur'}
+              {editingTemplate ? 'Şablon Düzenle' : 'Yeni Şablon Oluştur'}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Lig Şablonu Seçimi */}
               <div>
-                <label className="block text-soft-white mb-2">Lig Şablonu Seç (Opsiyonel)</label>
-                <select
-                  value={selectedTemplateId}
-                  onChange={(e) => {
-                    const templateId = e.target.value;
-                    setSelectedTemplateId(templateId);
-                    if (templateId) {
-                      const template = templates.find(t => t.id === parseInt(templateId));
-                      if (template) {
-                        applyTemplateToForm(template);
-                      }
-                    }
-                  }}
-                  className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
-                  disabled={!!editingLeague}
-                >
-                  <option value="">Şablon seçin...</option>
-                  {templates.map((template) => (
-                    <option key={template.id} value={template.id}>
-                      {template.name}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-soft-white/60 mt-1">
-                  {editingLeague 
-                    ? 'Lig düzenlenirken şablon seçilemez.' 
-                    : 'Bir şablon seçerek formu otomatik doldurabilirsiniz.'}
-                </p>
-              </div>
-              <div>
-                <label className="block text-soft-white mb-2">Lig Adı</label>
+                <label className="block text-soft-white mb-2">Şablon Adı *</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
                   required
+                  placeholder="Örn: Standart Lig Şablonu"
                 />
               </div>
-              <div>
-                <label className="block text-soft-white mb-2">Kod</label>
-                <input
-                  type="text"
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
-                  required
-                />
-              </div>
+              
               <div>
                 <label className="block text-soft-white mb-2">Açıklama</label>
                 <textarea
@@ -916,15 +636,12 @@ const Leagues = () => {
                 {/* Icon Listesi */}
                 <div className="grid grid-cols-6 gap-2 p-4 bg-white/5 rounded-xl border border-white/10 max-h-96 overflow-y-auto">
                   {(() => {
-                    // Filtreleme
                     let filteredIcons = ALL_MATERIAL_ICONS;
                     
-                    // Kategori filtresi
                     if (selectedIconCategory !== 'all') {
                       filteredIcons = filteredIcons.filter(icon => icon.category === selectedIconCategory);
                     }
                     
-                    // Arama filtresi
                     if (iconSearch.trim()) {
                       const searchLower = iconSearch.toLowerCase();
                       filteredIcons = filteredIcons.filter(icon => 
@@ -971,14 +688,10 @@ const Leagues = () => {
                 </div>
                 <p className="text-xs text-soft-white/60 mt-2">
                   Seçilen icon: <span className="font-semibold text-soft-green">{formData.icon}</span>
-                  <span className="ml-2">({(() => {
-                    const filtered = ALL_MATERIAL_ICONS.filter(i => i.name === formData.icon);
-                    return filtered.length > 0 ? filtered[0].category : 'genel';
-                  })()} kategorisi - Mobil uygulamada MaterialCommunityIcons ile gösterilecek)</span>
                 </p>
               </div>
               
-              {/* Lig Açıklaması (Frontend'de gösterilecek) */}
+              {/* Lig Açıklaması */}
               <div>
                 <label className="block text-soft-white mb-2">Lig Açıklaması (Opsiyonel)</label>
                 <textarea
@@ -998,9 +711,8 @@ const Leagues = () => {
                   onChange={(e) => setFormData({ ...formData, rewards: e.target.value })}
                   className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
                   rows={4}
-                  placeholder="Her satıra bir ödül yazın. Örn:&#10;Lig rozetleri&#10;Puan bonusları&#10;Özel ödüller"
+                  placeholder="Her satıra bir ödül yazın."
                 />
-                <p className="text-xs text-soft-white/60 mt-1">Her satıra bir ödül yazın. Boş bırakılırsa ödüller alanı gösterilmez.</p>
               </div>
 
               {/* Yaş Aralıkları */}
@@ -1017,7 +729,6 @@ const Leagues = () => {
                       className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
                       placeholder="Örn: 18"
                     />
-                    <p className="text-xs text-soft-white/60 mt-1">Sadece min yaş girilirse: 18+ (18 yaş üstü)</p>
                   </div>
                   <div>
                     <label className="block text-soft-white mb-2">Maksimum Yaş (Opsiyonel)</label>
@@ -1029,7 +740,6 @@ const Leagues = () => {
                       className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
                       placeholder="Örn: 24"
                     />
-                    <p className="text-xs text-soft-white/60 mt-1">Her ikisi girilirse: 18-24 (sadece bu aralık)</p>
                   </div>
                 </div>
               </div>
@@ -1039,26 +749,25 @@ const Leagues = () => {
                 <h3 className="text-lg font-semibold text-soft-white mb-3">Katılım Bilgileri</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    {getRequiredLabel('Kayıt Ücreti (₺) (Opsiyonel)', 'registrationFee')}
+                    <label className="block text-soft-white mb-2">Kayıt Ücreti (₺) (Opsiyonel)</label>
                     <input
                       type="number"
                       min="0"
                       step="0.01"
                       value={formData.registrationFee}
                       onChange={(e) => setFormData({ ...formData, registrationFee: e.target.value })}
-                      className={getRequiredFieldClass('registrationFee')}
+                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
                       placeholder="Örn: 150"
                     />
-                    <p className="text-xs text-soft-white/60 mt-1">Boş bırakılırsa ücretsiz lig olur</p>
                   </div>
                   <div>
-                    {getRequiredLabel('Minimum Maç Sayısı (Eliminasyon için)', 'minMatchCountForElimination')}
+                    <label className="block text-soft-white mb-2">Minimum Maç Sayısı (Opsiyonel)</label>
                     <input
                       type="number"
                       min="0"
                       value={formData.minMatchCountForElimination}
                       onChange={(e) => setFormData({ ...formData, minMatchCountForElimination: e.target.value })}
-                      className={getRequiredFieldClass('minMatchCountForElimination')}
+                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
                       placeholder="Örn: 15"
                     />
                   </div>
@@ -1098,76 +807,51 @@ const Leagues = () => {
                 </div>
               </div>
 
-              {/* Lig Dönemleri */}
-              <div className="border-t border-white/10 pt-4">
-                <h3 className="text-lg font-semibold text-soft-white mb-3">Lig Dönemleri</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    {getRequiredLabel('Lig Başlangıç Tarihi', 'leagueStartDate')}
-                    <input
-                      type="date"
-                      value={formData.leagueStartDate}
-                      onChange={(e) => setFormData({ ...formData, leagueStartDate: e.target.value })}
-                      className={getRequiredFieldClass('leagueStartDate')}
-                    />
-                  </div>
-                  <div>
-                    {getRequiredLabel('Lig Bitiş Tarihi', 'leagueEndDate')}
-                    <input
-                      type="date"
-                      value={formData.leagueEndDate}
-                      onChange={(e) => setFormData({ ...formData, leagueEndDate: e.target.value })}
-                      className={getRequiredFieldClass('leagueEndDate')}
-                    />
-                  </div>
-                </div>
-              </div>
-
               {/* Maç Formatı */}
               <div className="border-t border-white/10 pt-4">
                 <h3 className="text-lg font-semibold text-soft-white mb-3">Maç Formatı</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    {getRequiredLabel('Set Başına Oyun Sayısı', 'gamesPerSet')}
+                    <label className="block text-soft-white mb-2">Set Başına Oyun Sayısı (Opsiyonel)</label>
                     <input
                       type="number"
                       min="1"
                       value={formData.gamesPerSet}
                       onChange={(e) => setFormData({ ...formData, gamesPerSet: e.target.value })}
-                      className={getRequiredFieldClass('gamesPerSet')}
+                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
                       placeholder="Örn: 4"
                     />
                   </div>
                   <div>
-                    {getRequiredLabel('Set Sayısı', 'setsCount')}
+                    <label className="block text-soft-white mb-2">Set Sayısı (Opsiyonel)</label>
                     <input
                       type="number"
                       min="1"
                       value={formData.setsCount}
                       onChange={(e) => setFormData({ ...formData, setsCount: e.target.value })}
-                      className={getRequiredFieldClass('setsCount')}
+                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
                       placeholder="Örn: 2"
                     />
                   </div>
                   <div>
-                    {getRequiredLabel('Oyun Tiebreak Puanı', 'gameTiebreakPoints')}
+                    <label className="block text-soft-white mb-2">Oyun Tiebreak Puanı (Opsiyonel)</label>
                     <input
                       type="number"
                       min="1"
                       value={formData.gameTiebreakPoints}
                       onChange={(e) => setFormData({ ...formData, gameTiebreakPoints: e.target.value })}
-                      className={getRequiredFieldClass('gameTiebreakPoints')}
+                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
                       placeholder="Örn: 7"
                     />
                   </div>
                   <div>
-                    {getRequiredLabel('Maç Tiebreak Puanı', 'matchTiebreakPoints')}
+                    <label className="block text-soft-white mb-2">Maç Tiebreak Puanı (Opsiyonel)</label>
                     <input
                       type="number"
                       min="1"
                       value={formData.matchTiebreakPoints}
                       onChange={(e) => setFormData({ ...formData, matchTiebreakPoints: e.target.value })}
-                      className={getRequiredFieldClass('matchTiebreakPoints')}
+                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
                       placeholder="Örn: 10"
                     />
                   </div>
@@ -1179,46 +863,46 @@ const Leagues = () => {
                 <h3 className="text-lg font-semibold text-soft-white mb-3">Teklif Kuralları</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    {getRequiredLabel('Teklif Yanıt Süresi (Gün)', 'offerResponseDays')}
+                    <label className="block text-soft-white mb-2">Teklif Yanıt Süresi (Gün) (Opsiyonel)</label>
                     <input
                       type="number"
                       min="1"
                       value={formData.offerResponseDays}
                       onChange={(e) => setFormData({ ...formData, offerResponseDays: e.target.value })}
-                      className={getRequiredFieldClass('offerResponseDays')}
+                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
                       placeholder="Örn: 3"
                     />
                   </div>
                   <div>
-                    {getRequiredLabel('Maç Sonrası Bekleme Süresi Saati (Kaybeden)', 'postMatchCooldownHoursLoser')}
+                    <label className="block text-soft-white mb-2">Maç Sonrası Bekleme Süresi Saati (Kaybeden) (Opsiyonel)</label>
                     <input
                       type="number"
                       min="0"
                       value={formData.postMatchCooldownHoursLoser}
                       onChange={(e) => setFormData({ ...formData, postMatchCooldownHoursLoser: e.target.value })}
-                      className={getRequiredFieldClass('postMatchCooldownHoursLoser')}
+                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
                       placeholder="Örn: 24"
                     />
                   </div>
                   <div>
-                    {getRequiredLabel('Maç Sonrası Bekleme Süresi Saati (Kazanan)', 'postMatchCooldownHoursWinner')}
+                    <label className="block text-soft-white mb-2">Maç Sonrası Bekleme Süresi Saati (Kazanan) (Opsiyonel)</label>
                     <input
                       type="number"
                       min="0"
                       value={formData.postMatchCooldownHoursWinner}
                       onChange={(e) => setFormData({ ...formData, postMatchCooldownHoursWinner: e.target.value })}
-                      className={getRequiredFieldClass('postMatchCooldownHoursWinner')}
+                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
                       placeholder="Örn: 12"
                     />
                   </div>
                   <div>
-                    {getRequiredLabel('Arka Arkaya Red Limiti', 'consecutiveWOLimit')}
+                    <label className="block text-soft-white mb-2">Arka Arkaya Red Limiti (Opsiyonel)</label>
                     <input
                       type="number"
                       min="0"
                       value={formData.consecutiveWOLimit}
                       onChange={(e) => setFormData({ ...formData, consecutiveWOLimit: e.target.value })}
-                      className={getRequiredFieldClass('consecutiveWOLimit')}
+                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
                       placeholder="Örn: 3"
                     />
                   </div>
@@ -1228,14 +912,10 @@ const Leagues = () => {
               {/* Sıra Bazlı Teklif Limitleri */}
               <div className="border-t border-white/10 pt-4">
                 <h3 className="text-lg font-semibold text-soft-white mb-3">
-                  Sıra Bazlı Teklif Limitleri
-                  <span className="text-red-400 ml-1" title="Bu alan zorunludur">*</span>
+                  Sıra Bazlı Teklif Limitleri (Opsiyonel)
                 </h3>
                 <p className="text-sm text-soft-white/60 mb-4">
                   Her sıra aralığı için maksimum teklif sayısını belirleyin. Örn: 1-11 sıraları için 3 teklif hakkı.
-                  {formData.offerLimitsByRank.length === 0 && (
-                    <span className="text-red-400 ml-2">(En az bir limit eklenmelidir)</span>
-                  )}
                 </p>
                 <div className="space-y-3">
                   {formData.offerLimitsByRank.map((limit, index) => (
@@ -1301,9 +981,6 @@ const Leagues = () => {
                     Yeni Limit Ekle
                   </button>
                 </div>
-                <p className="text-xs text-soft-white/60 mt-2">
-                  Not: Sıra aralıkları "1-11", "12-19" gibi formatlarda veya "40+" gibi üst limit formatında olabilir.
-                </p>
               </div>
 
               {/* Kullanıcı Koruma Hakkı */}
@@ -1320,12 +997,10 @@ const Leagues = () => {
                       className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
                       placeholder="Örn: 15"
                     />
-                    <p className="text-xs text-soft-white/60 mt-1">
-                      Kullanıcılara verilecek toplam koruma gün hakkı. Boş bırakılırsa koruma olmaz.
-                    </p>
                   </div>
                 </div>
               </div>
+              
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
@@ -1338,17 +1013,16 @@ const Leagues = () => {
                   type="submit"
                   className="flex-1 px-4 py-2 bg-soft-green text-soft-navy rounded-xl font-semibold hover:bg-soft-green/90 transition-all"
                 >
-                  {editingLeague ? 'Güncelle' : 'Oluştur'}
+                  {editingTemplate ? 'Güncelle' : 'Oluştur'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
-
     </Layout>
   );
 };
 
-export default Leagues;
+export default LeagueTemplates;
 

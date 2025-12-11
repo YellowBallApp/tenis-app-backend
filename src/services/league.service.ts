@@ -129,6 +129,13 @@ export class LeagueService {
       if (!league) {
         throw new AppError('LEAGUE_NOT_FOUND');
       }
+      
+      // offerLimitsByRank zorunluluk kontrolü (eğer gönderilmişse)
+      if (settingsData.offerLimitsByRank !== undefined) {
+        if (!Array.isArray(settingsData.offerLimitsByRank) || settingsData.offerLimitsByRank.length === 0) {
+          throw new AppError('OFFER_LIMITS_BY_RANK_REQUIRED');
+        }
+      }
 
       // Mevcut settings'i bul
       let existingSettings = await this.leagueSettingsRepository.findOne({
@@ -157,6 +164,11 @@ export class LeagueService {
 
   // Yeni lig settings oluştur
   async createLeagueSettings(league: League, settingsData?: Partial<LeagueSettings>): Promise<LeagueSettings> {
+    // offerLimitsByRank zorunluluk kontrolü
+    if (!settingsData?.offerLimitsByRank || !Array.isArray(settingsData.offerLimitsByRank) || settingsData.offerLimitsByRank.length === 0) {
+      throw new AppError('OFFER_LIMITS_BY_RANK_REQUIRED');
+    }
+    
     const defaultData: Partial<LeagueSettings> = {
       description: `${league.name} Sezon Ayarları`,
       league: league,
@@ -195,14 +207,8 @@ export class LeagueService {
       shieldEnabled: false,
       shieldDaysTotal: null,
       
-      // Sıra bazlı teklif limitleri
-      offerLimitsByRank: [
-        { range: '1-11', limit: 3 },
-        { range: '12-19', limit: 4 },
-        { range: '20-27', limit: 5 },
-        { range: '28-40', limit: 6 },
-        { range: '40+', limit: 10 },
-      ],
+      // Sıra bazlı teklif limitleri (zorunlu - settingsData'dan gelmeli)
+      // offerLimitsByRank zorunlu bir alan olduğu için settingsData'dan gelmelidir
       ...settingsData,
     };
 

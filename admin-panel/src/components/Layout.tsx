@@ -84,6 +84,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       badge: pendingApplicationsCount,
       children: [
         { path: '/leagues', label: 'Ligler' },
+        { path: '/leagues/templates', label: 'Lig Şablonları' },
         { path: '/leagues/applications', label: 'Lig Başvuruları', badge: pendingApplicationsCount },
         { path: '/leagues/standings', label: 'Lig Sıralamaları' }
       ]

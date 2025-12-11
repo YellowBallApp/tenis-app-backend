@@ -10,6 +10,7 @@ import { initializeCronJobs, stopAllCronJobs } from "./cron/cronManager";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import leagueRoutes from "./routes/league.routes";
+import leagueTemplateRoutes from "./routes/leagueTemplate.routes";
 import reservationRoutes from "./routes/reservation.routes";
 import reservationTimeSlotRoutes from "./routes/reservationTimeSlot.routes";
 import reservationTemplateRoutes from "./routes/reservationTemplate.routes";
@@ -94,6 +95,7 @@ app.get('/api/server-info', (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/league", leagueRoutes);
+app.use("/api/league-template", leagueTemplateRoutes);
 app.use("/api/reservations", reservationRoutes);
 app.use("/api/reservation-time-slots", reservationTimeSlotRoutes);
 app.use("/api/reservation-templates", reservationTemplateRoutes);

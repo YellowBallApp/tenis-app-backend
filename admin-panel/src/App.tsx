@@ -9,6 +9,7 @@ import Reservations from './pages/Reservations';
 import ReservationTemplates from './pages/ReservationTemplates';
 import Reviews from './pages/Reviews';
 import Leagues from './pages/Leagues';
+import LeagueTemplates from './pages/LeagueTemplates';
 import LeagueApplications from './pages/LeagueApplications';
 import LeagueStandings from './pages/LeagueStandings';
 import Announcements from './pages/Announcements';
@@ -80,6 +81,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Leagues />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/leagues/templates"
+            element={
+              <ProtectedRoute>
+                <LeagueTemplates />
               </ProtectedRoute>
             }
           />

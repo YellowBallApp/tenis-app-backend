@@ -207,6 +207,16 @@ const rawErrors = {
         key: "LEAGUE_NOT_ACTIVE",
         message: "Lig aktif değil. Lig tarihleri arasında değilsiniz."
     },
+    OFFER_LIMITS_BY_RANK_REQUIRED: {
+        code: 1047,
+        key: "OFFER_LIMITS_BY_RANK_REQUIRED",
+        message: "En az bir sıra bazlı teklif limiti eklenmelidir."
+    },
+    LEAGUE_TEMPLATE_NOT_FOUND: {
+        code: 1048,
+        key: "LEAGUE_TEMPLATE_NOT_FOUND",
+        message: "Lig şablonu bulunamadı."
+    },
     COOLDOWN_ACTIVE: {
         code: 1042,
         key: "COOLDOWN_ACTIVE",
