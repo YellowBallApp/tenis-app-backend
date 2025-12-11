@@ -83,8 +83,8 @@ export const testAndSetServerIP = async (ip: string, port: number = 3000) => {
     
     return {
       success: false,
-      ip:'213.238.172.217',
-      port:3000,
+      ip: process.env.EXPO_PUBLIC_SERVER_IP || 'localhost',
+      port: 3000,
       error: error.message,
       errorCode: error.code,
     };
@@ -114,8 +114,9 @@ Sonra .env dosyasında EXPO_PUBLIC_API_URL'yi güncelle
   `;
 };
 
-// Hızlı test: 213.238.172.217 IP'sine bağlantı testi
+// Hızlı test: Production server IP'sine bağlantı testi
 export const testProductionServer = async () => {
-  return await testAndSetServerIP('213.238.172.217', 3000);
+  const serverIP = process.env.EXPO_PUBLIC_SERVER_IP || '213.238.172.217';
+  return await testAndSetServerIP(serverIP, 3000);
 };
 

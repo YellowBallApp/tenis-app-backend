@@ -51,9 +51,25 @@ const COMMON_IP_RANGES = [
 
 /**
  * Backend'den server IP'sini alır (cache'lenmiş veya yeni)
+ * Dev ortamında localhost, prod'da environment variable'dan alınan IP kullanılır
  */
 async function getServerIP(): Promise<string | null> {
-  try {  return '213.238.172.217';} catch (error) {
+  try {
+    // Production ortamında environment variable'dan IP al
+    if (!__DEV__) {
+      const serverIP = process.env.EXPO_PUBLIC_SERVER_IP;
+      if (serverIP) {
+        console.log('📱 Production - Server IP (env):', serverIP);
+        return serverIP;
+      }
+      console.warn('⚠️ Production ortamında EXPO_PUBLIC_SERVER_IP tanımlı değil');
+      return null;
+    }
+    
+    // Development ortamında localhost kullan
+    console.log('🔧 Development - Localhost kullanılıyor');
+    return 'localhost';
+  } catch (error) {
     console.error('❌ Server IP alınırken hata:', error);
     return null;
   }
