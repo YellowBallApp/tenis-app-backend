@@ -157,20 +157,27 @@ export class LeagueService {
 
   // Yeni lig settings oluştur
   async createLeagueSettings(league: League, settingsData?: Partial<LeagueSettings>): Promise<LeagueSettings> {
-    const defaultData = {
+    const defaultData: Partial<LeagueSettings> = {
       description: `${league.name} Sezon Ayarları`,
-      creator: 'system',
       league: league,
+      
+      // Zorunlu olmayan alanlar (nullable) - null olarak sıfırlanıyor
+      leagueDescription: null as any,
+      rewards: null as any,
+      creator: null as any,
+      updater: null as any,
+      minAge: null,
+      maxAge: null,
+      minStarRating: null,
+      maxStarRating: null,
       
       // Lig dönemleri
       leagueStartDate: new Date('2025-02-01'),
       leagueEndDate: new Date('2025-06-05'),
       
       // Katılım bilgileri
-      registrationFee: 150,
+      registrationFee: null,
       minMatchCountForElimination: 15,
-      minAge: 18,
-      maxAge: 65,
       
       // Maç formatı
       gamesPerSet: 4,

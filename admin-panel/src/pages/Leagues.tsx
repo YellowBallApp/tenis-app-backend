@@ -495,7 +495,7 @@ const Leagues = () => {
           rewards: formData.rewards || null,
           minAge: formData.minAge ? parseInt(formData.minAge) : null,
           maxAge: formData.maxAge ? parseInt(formData.maxAge) : null,
-          registrationFee: formData.registrationFee ? parseFloat(formData.registrationFee) : undefined,
+          registrationFee: formData.registrationFee ? parseFloat(formData.registrationFee) : null,
           minMatchCountForElimination: formData.minMatchCountForElimination ? parseInt(formData.minMatchCountForElimination) : undefined,
           minStarRating: formData.minStarRating ? parseFloat(formData.minStarRating) : null,
           maxStarRating: formData.maxStarRating ? parseFloat(formData.maxStarRating) : null,
@@ -526,7 +526,7 @@ const Leagues = () => {
           rewards: formData.rewards || null,
           minAge: formData.minAge ? parseInt(formData.minAge) : null,
           maxAge: formData.maxAge ? parseInt(formData.maxAge) : null,
-          registrationFee: formData.registrationFee ? parseFloat(formData.registrationFee) : undefined,
+          registrationFee: formData.registrationFee ? parseFloat(formData.registrationFee) : null,
           minMatchCountForElimination: formData.minMatchCountForElimination ? parseInt(formData.minMatchCountForElimination) : undefined,
           minStarRating: formData.minStarRating ? parseFloat(formData.minStarRating) : null,
           maxStarRating: formData.maxStarRating ? parseFloat(formData.maxStarRating) : null,
@@ -562,6 +562,63 @@ const Leagues = () => {
     } catch (error: any) {
       alert(error.response?.data?.message || 'Silme işlemi başarısız');
     }
+  };
+
+  // Zorunlu alanları kontrol et
+  const isRequiredField = (fieldName: string): boolean => {
+    const requiredFields = [
+      'leagueStartDate',
+      'leagueEndDate',
+      'minMatchCountForElimination',
+      'gamesPerSet',
+      'setsCount',
+      'gameTiebreakPoints',
+      'matchTiebreakPoints',
+      'offerResponseDays',
+      'postMatchCooldownHoursLoser',
+      'postMatchCooldownHoursWinner',
+      'consecutiveWOLimit',
+    ];
+    return requiredFields.includes(fieldName);
+  };
+
+  // Alanın boş olup olmadığını kontrol et
+  const isEmpty = (value: string): boolean => {
+    return !value || value.trim() === '';
+  };
+
+  // Zorunlu alan için CSS sınıfı oluştur
+  const getRequiredFieldClass = (fieldName: string): string => {
+    const baseClass = 'w-full px-4 py-2 bg-white/10 border rounded-xl text-soft-white focus:outline-none';
+    const isEmptyField = isEmpty(formData[fieldName as keyof typeof formData]);
+    
+    if (isRequiredField(fieldName)) {
+      if (isEmptyField) {
+        return `${baseClass} border-red-500 focus:border-red-400 focus:ring-2 focus:ring-red-500/50`;
+      }
+      return `${baseClass} border-yellow-500/50 focus:border-yellow-400`;
+    }
+    return `${baseClass} border-white/20 focus:border-soft-green`;
+  };
+
+  // Zorunlu alan için label oluştur
+  const getRequiredLabel = (label: string, fieldName: string): JSX.Element => {
+    const isEmptyField = isEmpty(formData[fieldName as keyof typeof formData]);
+    const isRequired = isRequiredField(fieldName);
+    
+    return (
+      <label className={`block mb-2 ${isRequired ? 'text-soft-white font-semibold' : 'text-soft-white'}`}>
+        {label}
+        {isRequired && (
+          <span className="text-red-400 ml-1" title="Bu alan zorunludur">
+            *
+          </span>
+        )}
+        {isRequired && isEmptyField && (
+          <span className="text-red-400 text-xs ml-2">(Boş bırakılamaz)</span>
+        )}
+      </label>
+    );
   };
 
   if (loading) {
@@ -845,25 +902,26 @@ const Leagues = () => {
                 <h3 className="text-lg font-semibold text-soft-white mb-3">Katılım Bilgileri</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-soft-white mb-2">Kayıt Ücreti (₺)</label>
+                    {getRequiredLabel('Kayıt Ücreti (₺) (Opsiyonel)', 'registrationFee')}
                     <input
                       type="number"
                       min="0"
                       step="0.01"
                       value={formData.registrationFee}
                       onChange={(e) => setFormData({ ...formData, registrationFee: e.target.value })}
-                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
+                      className={getRequiredFieldClass('registrationFee')}
                       placeholder="Örn: 150"
                     />
+                    <p className="text-xs text-soft-white/60 mt-1">Boş bırakılırsa ücretsiz lig olur</p>
                   </div>
                   <div>
-                    <label className="block text-soft-white mb-2">Minimum Maç Sayısı (Eliminasyon için)</label>
+                    {getRequiredLabel('Minimum Maç Sayısı (Eliminasyon için)', 'minMatchCountForElimination')}
                     <input
                       type="number"
                       min="0"
                       value={formData.minMatchCountForElimination}
                       onChange={(e) => setFormData({ ...formData, minMatchCountForElimination: e.target.value })}
-                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
+                      className={getRequiredFieldClass('minMatchCountForElimination')}
                       placeholder="Örn: 15"
                     />
                   </div>
@@ -908,21 +966,21 @@ const Leagues = () => {
                 <h3 className="text-lg font-semibold text-soft-white mb-3">Lig Dönemleri</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-soft-white mb-2">Lig Başlangıç Tarihi</label>
+                    {getRequiredLabel('Lig Başlangıç Tarihi', 'leagueStartDate')}
                     <input
                       type="date"
                       value={formData.leagueStartDate}
                       onChange={(e) => setFormData({ ...formData, leagueStartDate: e.target.value })}
-                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
+                      className={getRequiredFieldClass('leagueStartDate')}
                     />
                   </div>
                   <div>
-                    <label className="block text-soft-white mb-2">Lig Bitiş Tarihi</label>
+                    {getRequiredLabel('Lig Bitiş Tarihi', 'leagueEndDate')}
                     <input
                       type="date"
                       value={formData.leagueEndDate}
                       onChange={(e) => setFormData({ ...formData, leagueEndDate: e.target.value })}
-                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
+                      className={getRequiredFieldClass('leagueEndDate')}
                     />
                   </div>
                 </div>
@@ -933,46 +991,46 @@ const Leagues = () => {
                 <h3 className="text-lg font-semibold text-soft-white mb-3">Maç Formatı</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-soft-white mb-2">Set Başına Oyun Sayısı</label>
+                    {getRequiredLabel('Set Başına Oyun Sayısı', 'gamesPerSet')}
                     <input
                       type="number"
                       min="1"
                       value={formData.gamesPerSet}
                       onChange={(e) => setFormData({ ...formData, gamesPerSet: e.target.value })}
-                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
+                      className={getRequiredFieldClass('gamesPerSet')}
                       placeholder="Örn: 4"
                     />
                   </div>
                   <div>
-                    <label className="block text-soft-white mb-2">Set Sayısı</label>
+                    {getRequiredLabel('Set Sayısı', 'setsCount')}
                     <input
                       type="number"
                       min="1"
                       value={formData.setsCount}
                       onChange={(e) => setFormData({ ...formData, setsCount: e.target.value })}
-                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
+                      className={getRequiredFieldClass('setsCount')}
                       placeholder="Örn: 2"
                     />
                   </div>
                   <div>
-                    <label className="block text-soft-white mb-2">Oyun Tiebreak Puanı</label>
+                    {getRequiredLabel('Oyun Tiebreak Puanı', 'gameTiebreakPoints')}
                     <input
                       type="number"
                       min="1"
                       value={formData.gameTiebreakPoints}
                       onChange={(e) => setFormData({ ...formData, gameTiebreakPoints: e.target.value })}
-                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
+                      className={getRequiredFieldClass('gameTiebreakPoints')}
                       placeholder="Örn: 7"
                     />
                   </div>
                   <div>
-                    <label className="block text-soft-white mb-2">Maç Tiebreak Puanı</label>
+                    {getRequiredLabel('Maç Tiebreak Puanı', 'matchTiebreakPoints')}
                     <input
                       type="number"
                       min="1"
                       value={formData.matchTiebreakPoints}
                       onChange={(e) => setFormData({ ...formData, matchTiebreakPoints: e.target.value })}
-                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
+                      className={getRequiredFieldClass('matchTiebreakPoints')}
                       placeholder="Örn: 10"
                     />
                   </div>
@@ -984,46 +1042,46 @@ const Leagues = () => {
                 <h3 className="text-lg font-semibold text-soft-white mb-3">Teklif Kuralları</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-soft-white mb-2">Teklif Yanıt Süresi (Gün)</label>
+                    {getRequiredLabel('Teklif Yanıt Süresi (Gün)', 'offerResponseDays')}
                     <input
                       type="number"
                       min="1"
                       value={formData.offerResponseDays}
                       onChange={(e) => setFormData({ ...formData, offerResponseDays: e.target.value })}
-                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
+                      className={getRequiredFieldClass('offerResponseDays')}
                       placeholder="Örn: 3"
                     />
                   </div>
                   <div>
-                    <label className="block text-soft-white mb-2">Maç Sonrası Bekleme Süresi Saati (Kaybeden)</label>
+                    {getRequiredLabel('Maç Sonrası Bekleme Süresi Saati (Kaybeden)', 'postMatchCooldownHoursLoser')}
                     <input
                       type="number"
                       min="0"
                       value={formData.postMatchCooldownHoursLoser}
                       onChange={(e) => setFormData({ ...formData, postMatchCooldownHoursLoser: e.target.value })}
-                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
+                      className={getRequiredFieldClass('postMatchCooldownHoursLoser')}
                       placeholder="Örn: 24"
                     />
                   </div>
                   <div>
-                    <label className="block text-soft-white mb-2">Maç Sonrası Bekleme Süresi Saati (Kazanan)</label>
+                    {getRequiredLabel('Maç Sonrası Bekleme Süresi Saati (Kazanan)', 'postMatchCooldownHoursWinner')}
                     <input
                       type="number"
                       min="0"
                       value={formData.postMatchCooldownHoursWinner}
                       onChange={(e) => setFormData({ ...formData, postMatchCooldownHoursWinner: e.target.value })}
-                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
+                      className={getRequiredFieldClass('postMatchCooldownHoursWinner')}
                       placeholder="Örn: 12"
                     />
                   </div>
                   <div>
-                    <label className="block text-soft-white mb-2">Arka Arkaya Red Limiti</label>
+                    {getRequiredLabel('Arka Arkaya Red Limiti', 'consecutiveWOLimit')}
                     <input
                       type="number"
                       min="0"
                       value={formData.consecutiveWOLimit}
                       onChange={(e) => setFormData({ ...formData, consecutiveWOLimit: e.target.value })}
-                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-soft-white focus:outline-none focus:border-soft-green"
+                      className={getRequiredFieldClass('consecutiveWOLimit')}
                       placeholder="Örn: 3"
                     />
                   </div>

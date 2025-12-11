@@ -49,8 +49,8 @@ export class LeagueSettings {
 
   // === KATILIM BİLGİLERİ ===
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  registrationFee: number;
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  registrationFee: number | null;
 
   @Column('int')
   minMatchCountForElimination: number;
