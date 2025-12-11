@@ -746,10 +746,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8, // mb-2
   },
-  rankCard: {
-    alignItems: 'flex-start',
-    minHeight: 100,
-  },
   actionButtonsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',

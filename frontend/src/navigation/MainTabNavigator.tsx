@@ -12,6 +12,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 import ReservationScreen from '../screens/ReservationScreen';
 import CourtDetailScreen from '../screens/CourtDetailScreen';
 import ReservationsListScreen from '../screens/ReservationsListScreen';
+import MyReservationsScreen from '../screens/MyReservationsScreen';
 import MatchHistoryScreen from '../screens/MatchHistoryScreen';
 import DefiLigScreen from '../screens/DefiLigScreen';
 import LigSiralamaScreen from '../screens/LigSiralamaScreen';
@@ -25,6 +26,7 @@ export type MainTabParamList = {
   Profile: undefined;
   Reservation: { opponentId?: string; opponentName?: string; matchChallengeId?: number } | undefined;
   ReservationsList: undefined;
+  MyReservations: undefined;
   MatchHistory: { leagueId?: number; leagueName?: string } | undefined;
   Notifications: undefined;
 };
@@ -252,6 +254,14 @@ const TabNavigator = () => {
         component={ReservationsListScreen}
         options={{
           title: 'Rezervasyonlar',
+          tabBarButton: () => null, // Hide from tab bar but keep in navigator
+        }}
+      />
+      <Tab.Screen
+        name="MyReservations"
+        component={MyReservationsScreen}
+        options={{
+          title: 'Rezervasyonlarım',
           tabBarButton: () => null, // Hide from tab bar but keep in navigator
         }}
       />

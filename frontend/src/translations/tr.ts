@@ -186,6 +186,10 @@ export default {
     minutes: 'dakika',
     you: 'Sen',
     court: 'Kort',
+    cancelReservation: 'Rezervasyonu İptal Et',
+    cancelConfirm: 'Bu rezervasyonu iptal etmek istediğinizden emin misiniz?',
+    cancelled: 'Rezervasyon iptal edildi',
+    cancelError: 'Rezervasyon iptal edilemedi',
   },
 
   reservationsList: {
@@ -419,6 +423,8 @@ export default {
     notifications: 'Bildirimler',
     darkMode: 'Karanlık Mod',
     language: 'Dil',
+    selectLanguage: 'Dil Seçin',
+    english: 'İngilizce',
     locationSharing: 'Konum Paylaşımı',
     updateProfileSuccess: 'Profil bilgileriniz güncellendi',
     updateProfileError: 'Profil güncellenirken bir hata oluştu',
@@ -461,7 +467,6 @@ export default {
     logout: 'Çıkış Yap',
     updateProfileInfo: 'Profil bilgilerinizi güncelleyin',
     rank: 'Sıralama',
-    english: 'İngilizce',
     updatePasswordForSecurity: 'Güvenliğiniz için şifrenizi güncelleyin',
     manageAccountPreferences: 'Hesap tercihlerinizi yönetin',
     howCanWeHelp: 'Size nasıl yardımcı olabiliriz?',

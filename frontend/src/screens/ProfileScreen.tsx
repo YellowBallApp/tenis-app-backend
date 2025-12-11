@@ -30,7 +30,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { useLanguage } from '../context/LanguageContext';
+import { useLanguage, Language } from '../context/LanguageContext';
 import { useThemedStyles } from '../hooks/useThemedStyles';
 import { authService, matchHistoryService, leagueStandingsService } from '../services/api';
 import * as ImagePicker from 'expo-image-picker';
@@ -64,6 +64,8 @@ const ProfileScreen = () => {
   const [showPhotoOptionsModal, setShowPhotoOptionsModal] = useState(false);
   const [showRemovePhotoModal, setShowRemovePhotoModal] = useState(false);
   const [showDatePickerModal, setShowDatePickerModal] = useState(false);
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<Language>('tr');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const yearScrollViewRef = useRef<ScrollView>(null);
@@ -190,15 +192,27 @@ const ProfileScreen = () => {
     { id: 3, title: 'Century Club', description: '100 maç oynadınız', icon: 'star', color: '#4CAF50' },
   ];
 
-  const handleLanguageToggle = async () => {
-    const newLanguage = language === 'tr' ? 'en' : 'tr';
-    await setLanguage(newLanguage);
+  const openLanguageModal = () => {
+    const currentLang = language || 'tr';
+    setSelectedLanguage(currentLang);
+    setShowLanguageModal(true);
+  };
+
+  const handleLanguageSelect = (lang: Language) => {
+    setSelectedLanguage(lang);
+  };
+
+  const confirmLanguageChange = async () => {
+    if (selectedLanguage && selectedLanguage !== language) {
+      await setLanguage(selectedLanguage);
+    }
+    setShowLanguageModal(false);
   };
 
   const preferences = [
     { id: 1, title: t('profile.notifications'), icon: 'bell', enabled: notificationsEnabled, onToggle: setNotificationsEnabled },
     { id: 2, title: t('profile.darkMode'), icon: 'theme-light-dark', enabled: isDarkMode, onToggle: toggleTheme },
-    { id: 3, title: language === 'en' ? '🇬🇧 English' : '🇹🇷 Türkçe', icon: 'translate', enabled: language === 'en', onToggle: handleLanguageToggle },
+    { id: 3, title: language === 'en' ? '🇬🇧 English' : '🇹🇷 Türkçe', icon: 'translate', enabled: language === 'en', onToggle: openLanguageModal },
     { id: 4, title: t('profile.locationSharing'), icon: 'map-marker', enabled: true, onToggle: () => {} },
   ];
 
@@ -450,13 +464,8 @@ const ProfileScreen = () => {
               <Text style={styles.profileName}>{user.name}</Text>
               <Text style={styles.profileEmail}>{user.email}</Text>
               <View style={styles.tagsContainer}>
-                {user.currentRank && (
-                  <View style={[styles.tag, { backgroundColor: 'rgba(255, 255, 255, 0.2)' }]}>
-                    <Text style={styles.tagText}>Rank #{user.currentRank}</Text>
-                  </View>
-                )}
                 <View style={[styles.tag, { backgroundColor: 'rgba(255, 255, 255, 0.2)' }]}>
-                  <Text style={styles.tagText}>{userLevel}</Text>
+                  <Text style={styles.tagText}>{user.title || t('profile.member')}</Text>
                 </View>
               </View>
             </View>
@@ -526,7 +535,7 @@ const ProfileScreen = () => {
           <View style={styles.quickActionsHorizontal}>
             <TouchableOpacity 
               style={styles.quickActionCard}
-              onPress={() => navigation.navigate('ReservationsList' as any)}
+              onPress={() => navigation.navigate('MyReservations' as any)}
             >
               <MaterialCommunityIcons name="calendar" size={24} color="#54CE8F" />
               <Text style={styles.quickActionText}>{t('profile.myBookings')}</Text>
@@ -537,13 +546,6 @@ const ProfileScreen = () => {
             >
               <MaterialCommunityIcons name="trophy" size={24} color="#B4AEBD" />
               <Text style={styles.quickActionText}>{t('profile.myMatches')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.quickActionCard}
-              onPress={() => {}}
-            >
-              <MaterialCommunityIcons name="trending-up" size={24} color="#54CE8F" />
-              <Text style={styles.quickActionText}>{t('profile.statistics')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -559,20 +561,6 @@ const ProfileScreen = () => {
               <Text style={styles.settingsItemText}>{t('profile.editProfile')}</Text>
               <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.settingsItem} onPress={() => setShowAccountSettingsModal(true)}>
-              <View style={styles.settingsIconContainer}>
-                <MaterialCommunityIcons name="shield" size={20} color="#B4AEBD" />
-              </View>
-              <Text style={styles.settingsItemText}>{t('profile.privacySecurity')}</Text>
-              <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.settingsItem} onPress={() => {}}>
-              <View style={styles.settingsIconContainer}>
-                <MaterialCommunityIcons name="bell" size={20} color="#B4AEBD" />
-              </View>
-              <Text style={styles.settingsItemText}>{t('profile.notifications')}</Text>
-              <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -580,7 +568,7 @@ const ProfileScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionHeader}>{t('profile.preferences')}</Text>
           <View style={styles.settingsList}>
-            <TouchableOpacity style={styles.settingsItem} onPress={handleLanguageToggle}>
+            <TouchableOpacity style={styles.settingsItem} onPress={openLanguageModal}>
               <View style={styles.settingsIconContainer}>
                 <MaterialCommunityIcons name="earth" size={20} color="#B4AEBD" />
               </View>
@@ -600,26 +588,6 @@ const ProfileScreen = () => {
           </View>
         </View>
 
-        {/* Support Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionHeader}>{t('profile.support')}</Text>
-          <View style={styles.settingsList}>
-            <TouchableOpacity style={styles.settingsItem} onPress={() => setShowHelpModal(true)}>
-              <View style={styles.settingsIconContainer}>
-                <MaterialCommunityIcons name="help-circle" size={20} color="#B4AEBD" />
-              </View>
-              <Text style={styles.settingsItemText}>{t('profile.helpSupport')}</Text>
-              <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.settingsItem} onPress={() => {}}>
-              <View style={styles.settingsIconContainer}>
-                <MaterialCommunityIcons name="shield" size={20} color="#B4AEBD" />
-              </View>
-              <Text style={styles.settingsItemText}>{t('profile.termsPolicies')}</Text>
-              <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
-            </TouchableOpacity>
-          </View>
-        </View>
 
         {/* Logout */}
         <View style={styles.logoutSection}>
@@ -1035,53 +1003,19 @@ const ProfileScreen = () => {
             
             <Text style={[styles.modalSubtitle, themedStyles.subtitle]}>{t('profile.manageAccountPreferences')}</Text>
             
-            <List.Section>
-              <List.Item
-                title="Gizlilik Ayarları"
-                description="Profil görünürlüğü ve gizlilik"
-                left={props => <List.Icon {...props} icon="shield-account" color="#4CAF50" />}
-                right={props => <List.Icon {...props} icon="chevron-right" />}
-                style={[styles.listItem, { backgroundColor: theme.colors.surfaceVariant }]}
-                titleStyle={{ color: theme.colors.text }}
-                descriptionStyle={{ color: theme.colors.placeholder }}
-              />
-              <List.Item
-                title="Bildirim Tercihleri"
-                description="E-posta ve push bildirimleri"
-                left={props => <List.Icon {...props} icon="bell-cog" color="#4CAF50" />}
-                right={props => <List.Icon {...props} icon="chevron-right" />}
-                style={[styles.listItem, { backgroundColor: theme.colors.surfaceVariant }]}
-                titleStyle={{ color: theme.colors.text }}
-                descriptionStyle={{ color: theme.colors.placeholder }}
-              />
-              <List.Item
-                title="Dil ve Bölge"
-                description="Uygulama dili ve saat dilimi"
-                left={props => <List.Icon {...props} icon="earth" color="#4CAF50" />}
-                right={props => <List.Icon {...props} icon="chevron-right" />}
-                style={[styles.listItem, { backgroundColor: theme.colors.surfaceVariant }]}
-                titleStyle={{ color: theme.colors.text }}
-                descriptionStyle={{ color: theme.colors.placeholder }}
-              />
-              <List.Item
-                title="Veri İndirme"
-                description="Hesap verilerinizi indirin"
-                left={props => <List.Icon {...props} icon="download" color="#2196F3" />}
-                right={props => <List.Icon {...props} icon="chevron-right" />}
-                style={[styles.listItem, { backgroundColor: theme.colors.surfaceVariant }]}
-                titleStyle={{ color: theme.colors.text }}
-                descriptionStyle={{ color: theme.colors.placeholder }}
-              />
-              <List.Item
-                title="Hesap Silme"
-                description="Hesabınızı kalıcı olarak silin"
-                left={props => <List.Icon {...props} icon="delete-forever" color="#F44336" />}
-                right={props => <List.Icon {...props} icon="chevron-right" />}
-                style={[styles.listItem, { backgroundColor: theme.colors.surfaceVariant }]}
-                titleStyle={{ color: theme.colors.text }}
-                descriptionStyle={{ color: theme.colors.placeholder }}
-              />
-            </List.Section>
+            <TouchableOpacity
+              style={[styles.settingsItem, { backgroundColor: theme.colors.surfaceVariant, borderRadius: 12, marginBottom: 12 }]}
+              onPress={() => {
+                setShowAccountSettingsModal(false);
+                setShowChangePasswordModal(true);
+              }}
+            >
+              <View style={styles.settingsIconContainer}>
+                <MaterialCommunityIcons name="lock-reset" size={20} color="#B4AEBD" />
+              </View>
+              <Text style={styles.settingsItemText}>{t('profile.changePassword')}</Text>
+              <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
+            </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => setShowAccountSettingsModal(false)}
@@ -1335,6 +1269,114 @@ const ProfileScreen = () => {
               </TouchableOpacity>
             )}
           </Card.Content>
+        </Card>
+      </Modal>
+    </Portal>
+
+    {/* Language Selection Modal */}
+    <Portal>
+      <Modal
+        dismissable={false}
+        visible={!!showLanguageModal}
+        onDismiss={() => setShowLanguageModal(false)}
+        contentContainerStyle={styles.modalContainer}
+      >
+        <Card style={[styles.modalCard, themedStyles.card]}>
+          <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScrollView}>
+            <Card.Content style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <MaterialCommunityIcons name="earth" size={32} color="#E1BEE7" />
+                <Title style={[styles.modalTitle, themedStyles.title]}>{t('profile.language')}</Title>
+                <TouchableOpacity 
+                  onPress={() => setShowLanguageModal(false)}
+                  style={styles.modalCloseButton}
+                >
+                  <MaterialCommunityIcons name="close" size={20} color="#9CA3AF" />
+                </TouchableOpacity>
+              </View>
+              
+              <Text style={[styles.modalSubtitle, themedStyles.subtitle]}>
+                {t('profile.selectLanguage') || 'Dil seçin'}
+              </Text>
+
+              <View style={styles.languageOptionsContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.languageOption,
+                  selectedLanguage === 'tr' && styles.languageOptionSelected
+                ]}
+                onPress={() => handleLanguageSelect('tr')}
+                activeOpacity={0.7}
+              >
+                <View style={styles.languageOptionContent}>
+                  <Text style={styles.languageFlag}>🇹🇷</Text>
+                  <View style={styles.languageOptionText}>
+                    <Text style={[
+                      styles.languageOptionTitle,
+                      selectedLanguage === 'tr' && styles.languageOptionTitleSelected
+                    ]}>
+                      Türkçe
+                    </Text>
+                    <Text style={[
+                      styles.languageOptionSubtitle,
+                      selectedLanguage === 'tr' && styles.languageOptionSubtitleSelected
+                    ]}>
+                      Turkish
+                    </Text>
+                  </View>
+                </View>
+                {selectedLanguage === 'tr' && (
+                  <MaterialCommunityIcons name="check-circle" size={24} color="#54CE8F" />
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.languageOption,
+                  selectedLanguage === 'en' && styles.languageOptionSelected
+                ]}
+                onPress={() => handleLanguageSelect('en')}
+                activeOpacity={0.7}
+              >
+                <View style={styles.languageOptionContent}>
+                  <Text style={styles.languageFlag}>🇬🇧</Text>
+                  <View style={styles.languageOptionText}>
+                    <Text style={[
+                      styles.languageOptionTitle,
+                      selectedLanguage === 'en' && styles.languageOptionTitleSelected
+                    ]}>
+                      English
+                    </Text>
+                    <Text style={[
+                      styles.languageOptionSubtitle,
+                      selectedLanguage === 'en' && styles.languageOptionSubtitleSelected
+                    ]}>
+                      İngilizce
+                    </Text>
+                  </View>
+                </View>
+                {selectedLanguage === 'en' && (
+                  <MaterialCommunityIcons name="check-circle" size={24} color="#54CE8F" />
+                )}
+              </TouchableOpacity>
+            </View>
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  onPress={() => setShowLanguageModal(false)}
+                  style={[styles.modalButton, styles.cancelButton]}
+                >
+                  <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={confirmLanguageChange}
+                  style={[styles.modalButton, styles.saveButton]}
+                >
+                  <Text style={styles.saveButtonText}>{t('common.confirm') || 'Onayla'}</Text>
+                </TouchableOpacity>
+              </View>
+            </Card.Content>
+          </ScrollView>
         </Card>
       </Modal>
     </Portal>
@@ -2073,6 +2115,57 @@ const styles = StyleSheet.create({
   pickerOptionTextSelected: {
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  // Language Selection Modal Styles
+  languageOptionsContainer: {
+    gap: 12,
+    marginBottom: 20,
+    marginTop: 8,
+    width: '100%',
+  },
+  languageOption: {
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 70,
+    width: '100%',
+  },
+  languageOptionSelected: {
+    borderColor: '#54CE8F',
+    backgroundColor: '#F0FDF4',
+  },
+  languageOptionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  languageFlag: {
+    fontSize: 32,
+    marginRight: 12,
+  },
+  languageOptionText: {
+    flex: 1,
+  },
+  languageOptionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#030213',
+    marginBottom: 4,
+  },
+  languageOptionTitleSelected: {
+    color: '#54CE8F',
+  },
+  languageOptionSubtitle: {
+    fontSize: 14,
+    color: '#717182',
+  },
+  languageOptionSubtitleSelected: {
+    color: '#54CE8F',
   },
 });
 

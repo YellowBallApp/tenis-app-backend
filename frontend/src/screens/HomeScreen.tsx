@@ -305,23 +305,6 @@ const HomeScreen = () => {
             </TouchableOpacity>
           </View>
         </View>
-        <View style={[styles.heroStats, { marginTop: 16 }]}>
-          <View style={styles.statCard}>
-            <MaterialCommunityIcons name="trophy" size={24} color="#FFFFFF" />
-            <Text style={styles.statNumber}>{userStats.wins}</Text>
-            <Text style={styles.statLabel}>{t('home.wins')}</Text>
-          </View>
-          <View style={styles.statCard}>
-            <MaterialCommunityIcons name="trending-up" size={24} color="#FFFFFF" />
-            <Text style={styles.statNumber}>{userStats.ranking ? `#${userStats.ranking}` : '-'}</Text>
-            <Text style={styles.statLabel}>{t('home.ranking')}</Text>
-          </View>
-          <View style={styles.statCard}>
-            <MaterialCommunityIcons name="calendar" size={24} color="#FFFFFF" />
-            <Text style={styles.statNumber}>{userStats.upcomingCount}</Text>
-            <Text style={styles.statLabel}>{t('home.upcoming')}</Text>
-          </View>
-        </View>
       </View>
 
       <ScrollView

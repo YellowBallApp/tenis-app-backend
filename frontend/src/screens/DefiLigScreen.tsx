@@ -5,6 +5,7 @@ import {
   ScrollView,
   Dimensions,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   ActivityIndicator,
   Alert,
   StatusBar,
@@ -31,22 +32,27 @@ const DefiLigScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
   const [showLigModal, setShowLigModal] = useState(false);
   const [selectedLig, setSelectedLig] = useState<any>(null);
+  const [selectedLeagueId, setSelectedLeagueId] = useState<number | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [leagues, setLeagues] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const leaguesPerPage = 2;
-  const [matchStats, setMatchStats] = useState({
-    leagueWins: 0,
-    totalMatches: 0,
-    winRate: 0,
-    badges: 0,
-  });
+  const [selectedLeagueStats, setSelectedLeagueStats] = useState<any>(null);
 
 
   useEffect(() => {
     loadData();
   }, [language]);
+
+  useEffect(() => {
+    // Seçili lig değiştiğinde sadece sıralamayı yükle
+    if (selectedLeagueId && currentUser) {
+      loadSelectedLeagueRanking(currentUser.id, selectedLeagueId);
+    } else {
+      setSelectedLeagueStats(null);
+    }
+  }, [selectedLeagueId, currentUser]);
 
   const loadData = async () => {
     try {
@@ -58,26 +64,20 @@ const DefiLigScreen = ({ navigation }: any) => {
       // Kullanıcının maç geçmişini çek
       const matchHistory = await matchHistoryService.getUserMatchHistory(profileData.id);
       
-      // Maç istatistiklerini hesapla
+      // Tüm liglerin toplam istatistiklerini hesapla (lig maçları için)
+      const leagueMatches = matchHistory.filter((match: any) => match.leagueStanding);
+      const totalLeagueMatches = leagueMatches.length;
+      const leagueWins = leagueMatches.filter((match: any) => 
+        match.winners.some((winner: any) => winner.id === profileData.id)
+      ).length;
+      const leagueWinRate = totalLeagueMatches > 0 ? Math.round((leagueWins / totalLeagueMatches) * 100) : 0;
+      
+      // Genel maç istatistiklerini hesapla
       const totalMatches = matchHistory.length;
       const wins = matchHistory.filter((match: any) => 
         match.winners.some((winner: any) => winner.id === profileData.id)
       ).length;
       const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
-      
-      // Lig maçlarını say (leagueStanding'i olan maçlar)
-      const leagueMatches = matchHistory.filter((match: any) => match.leagueStanding);
-      const leagueWins = leagueMatches.filter((match: any) => 
-        match.winners.some((winner: any) => winner.id === profileData.id)
-      ).length;
-      
-      // İstatistikleri güncelle
-      setMatchStats({
-        leagueWins: leagueWins,
-        totalMatches: totalMatches,
-        winRate: winRate,
-        badges: 0, // TODO: Rozet sistemi eklenecek
-      });
       
       // Backend'den gelen profil verisini UI formatına dönüştür
       const formattedUser = {
@@ -92,6 +92,10 @@ const DefiLigScreen = ({ navigation }: any) => {
         position: 0, // TODO: League ranking'den alınacak
         winRate: winRate,
         matchesPlayed: totalMatches,
+        // Tüm liglerin toplam istatistikleri
+        leagueWins: leagueWins,
+        totalLeagueMatches: totalLeagueMatches,
+        leagueWinRate: leagueWinRate,
       };
       
       setCurrentUser(formattedUser);
@@ -154,6 +158,33 @@ const DefiLigScreen = ({ navigation }: any) => {
     }
   };
 
+  const loadSelectedLeagueRanking = async (userId: string, leagueId: number) => {
+    try {
+      // Kullanıcının bu ligdeki sıralamasını al
+      const userStandings = await leagueStandingsService.getStandingsByUserId(userId);
+      const leagueStanding = userStandings.find((standing: any) => standing.league?.id === leagueId);
+      
+      setSelectedLeagueStats({
+        ranking: leagueStanding?.leagueRanking || null,
+      });
+    } catch (error) {
+      console.error('Lig sıralaması yüklenirken hata:', error);
+      setSelectedLeagueStats(null);
+    }
+  };
+
+  const handleLeaguePress = (lig: any) => {
+    // Eğer bu lig zaten seçiliyse, modal aç
+    if (selectedLeagueId === lig.id) {
+      setSelectedLig(lig);
+      setShowLigModal(true);
+    } else {
+      // Değilse, ligi seç (useEffect istatistikleri yükleyecek)
+      setSelectedLeagueId(lig.id);
+      setSelectedLig(lig);
+    }
+  };
+  
   const openLigModal = (lig: any) => {
     setSelectedLig(lig);
     setShowLigModal(true);
@@ -345,6 +376,19 @@ const DefiLigScreen = ({ navigation }: any) => {
         showsVerticalScrollIndicator={false}
       >
 
+        {/* Boş alan - dışarı tıklandığında seçimi kaldır */}
+        <TouchableWithoutFeedback
+          onPress={() => {
+            if (selectedLeagueId) {
+              setSelectedLeagueId(null);
+              setSelectedLig(null);
+              setSelectedLeagueStats(null);
+            }
+          }}
+        >
+          <View style={styles.touchableArea} />
+        </TouchableWithoutFeedback>
+
         {/* Current User Card */}
         <View style={styles.currentUserSection}>
           <View style={styles.sectionHeader}>
@@ -376,31 +420,33 @@ const DefiLigScreen = ({ navigation }: any) => {
                     size={24} 
                     color="#54CE8F" 
                   />
-                  <Text style={styles.currentUserPositionText}>#{currentUser.position || '-'}</Text>
+                  <Text style={styles.currentUserPositionText}>
+                    {selectedLeagueStats?.ranking ? `#${selectedLeagueStats.ranking}` : '-'}
+                  </Text>
                 </View>
               </View>
               
               <View style={styles.currentUserStats}>
                 <View style={styles.statItem}>
                   <View style={styles.statIconContainer}>
-                    <MaterialCommunityIcons name="percent" size={20} color="#54CE8F" />
+                    <MaterialCommunityIcons name="trophy" size={20} color="#54CE8F" />
                   </View>
-                  <Text style={styles.statNumber}>{currentUser.winRate || 0}%</Text>
-                  <Text style={styles.statLabel}>{t('defiLeague.currentUserStats.win') || 'Kazanma'}</Text>
+                  <Text style={styles.statNumber}>{currentUser.leagueWins || 0}</Text>
+                  <Text style={styles.statLabel}>{t('defiLeague.stats.leagueWins') || 'Lig Galibiyeti'}</Text>
                 </View>
                 <View style={styles.statItem}>
                   <View style={styles.statIconContainer}>
                     <MaterialCommunityIcons name="tennis" size={20} color="#54CE8F" />
                   </View>
-                  <Text style={styles.statNumber}>{currentUser.matchesPlayed || 0}</Text>
-                  <Text style={styles.statLabel}>{t('defiLeague.currentUserStats.matches') || 'Maç'}</Text>
+                  <Text style={styles.statNumber}>{currentUser.totalLeagueMatches || 0}</Text>
+                  <Text style={styles.statLabel}>{t('defiLeague.stats.totalMatches') || 'Toplam Maç'}</Text>
                 </View>
                 <View style={styles.statItem}>
                   <View style={styles.statIconContainer}>
-                    <MaterialCommunityIcons name="star" size={20} color="#54CE8F" />
+                    <MaterialCommunityIcons name="percent" size={20} color="#54CE8F" />
                   </View>
-                  <Text style={styles.statNumber}>{currentUser.points || 0}</Text>
-                  <Text style={styles.statLabel}>{t('defiLeague.currentUserStats.points') || 'Puan'}</Text>
+                  <Text style={styles.statNumber}>{currentUser.leagueWinRate || 0}%</Text>
+                  <Text style={styles.statLabel}>{t('defiLeague.stats.winRate') || 'Galibiyet Oranı'}</Text>
                 </View>
               </View>
             </Card.Content>
@@ -418,11 +464,20 @@ const DefiLigScreen = ({ navigation }: any) => {
           </View>
           
           {currentLeagues.map((lig, index) => (
-            <Card key={lig.id} style={styles.leagueCard}>
-              <TouchableOpacity onPress={() => openLigModal(lig)} activeOpacity={0.7}>
+            <Card 
+              key={lig.id} 
+              style={[
+                styles.leagueCard,
+                selectedLeagueId === lig.id && styles.leagueCardSelected
+              ]}
+            >
+              <TouchableOpacity onPress={() => handleLeaguePress(lig)} activeOpacity={0.7}>
                 <Card.Content style={styles.leagueCardContent}>
                   <View style={styles.leagueHeader}>
-                    <View style={[styles.leagueIcon, { backgroundColor: '#B4AEBD' }]}>
+                    <View style={[
+                      styles.leagueIcon, 
+                      { backgroundColor: selectedLeagueId === lig.id ? '#54CE8F' : '#B4AEBD' }
+                    ]}>
                       <MaterialCommunityIcons 
                         name={lig.icon as any} 
                         size={32} 
@@ -430,7 +485,10 @@ const DefiLigScreen = ({ navigation }: any) => {
                       />
                     </View>
                     <View style={styles.leagueInfo}>
-                      <Text style={styles.leagueName}>{lig.name}</Text>
+                      <Text style={[
+                        styles.leagueName,
+                        selectedLeagueId === lig.id && styles.leagueNameSelected
+                      ]}>{lig.name}</Text>
                       <View style={styles.leagueMeta}>
                         <MaterialCommunityIcons name="account-group" size={16} color="#717182" />
                         <Text style={styles.leaguePlayerCount}>
@@ -441,7 +499,7 @@ const DefiLigScreen = ({ navigation }: any) => {
                     <MaterialCommunityIcons 
                       name="chevron-right" 
                       size={24} 
-                      color="#9CA3AF" 
+                      color={selectedLeagueId === lig.id ? '#54CE8F' : '#9CA3AF'} 
                     />
                   </View>
                 </Card.Content>
@@ -497,51 +555,6 @@ const DefiLigScreen = ({ navigation }: any) => {
           )}
         </View>
 
-        {/* Quick Stats */}
-        <View style={styles.statsSection}>
-          <View style={styles.sectionHeader}>
-            <MaterialCommunityIcons name="chart-bar" size={20} color="#54CE8F" />
-            <Text style={styles.sectionTitle}>{t('defiLeague.statsTitle') || 'İstatistikler'}</Text>
-          </View>
-          <View style={styles.statsGrid}>
-            <Card style={styles.statCard}>
-              <Card.Content style={styles.statCardContent}>
-                <View style={styles.statIconBox}>
-                  <MaterialCommunityIcons name="trophy" size={24} color="#54CE8F" />
-                </View>
-                <Text style={styles.statNumber}>{matchStats.leagueWins}</Text>
-                <Text style={styles.statLabel}>{t('defiLeague.stats.leagueWins') || 'Lig Galibiyeti'}</Text>
-              </Card.Content>
-            </Card>
-            <Card style={styles.statCard}>
-              <Card.Content style={styles.statCardContent}>
-                <View style={styles.statIconBox}>
-                  <MaterialCommunityIcons name="tennis" size={24} color="#54CE8F" />
-                </View>
-                <Text style={styles.statNumber}>{matchStats.totalMatches}</Text>
-                <Text style={styles.statLabel}>{t('defiLeague.stats.totalMatches') || 'Toplam Maç'}</Text>
-              </Card.Content>
-            </Card>
-            <Card style={styles.statCard}>
-              <Card.Content style={styles.statCardContent}>
-                <View style={styles.statIconBox}>
-                  <MaterialCommunityIcons name="percent" size={24} color="#54CE8F" />
-                </View>
-                <Text style={styles.statNumber}>{matchStats.winRate}%</Text>
-                <Text style={styles.statLabel}>{t('defiLeague.stats.winRate') || 'Kazanma Oranı'}</Text>
-              </Card.Content>
-            </Card>
-            <Card style={styles.statCard}>
-              <Card.Content style={styles.statCardContent}>
-                <View style={styles.statIconBox}>
-                  <MaterialCommunityIcons name="medal" size={24} color="#54CE8F" />
-                </View>
-                <Text style={styles.statNumber}>{matchStats.badges}</Text>
-                <Text style={styles.statLabel}>{t('defiLeague.stats.badges') || 'Rozetler'}</Text>
-              </Card.Content>
-            </Card>
-          </View>
-        </View>
       </ScrollView>
 
       {/* Lig Detay Modal */}
@@ -831,6 +844,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 40,
   },
+  touchableArea: {
+    minHeight: 1,
+  },
   currentUserSection: {
     padding: 24,
     paddingBottom: 8,
@@ -941,6 +957,11 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
     marginBottom: 16,
   },
+  leagueCardSelected: {
+    borderColor: '#54CE8F',
+    borderWidth: 1,
+    backgroundColor: '#FFFFFF',
+  },
   leagueCardContent: {
     padding: 20,
   },
@@ -964,6 +985,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#030213',
     marginBottom: 8,
+  },
+  leagueNameSelected: {
+    color: '#54CE8F',
   },
   leagueMeta: {
     flexDirection: 'row',

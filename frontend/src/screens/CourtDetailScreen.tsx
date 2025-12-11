@@ -964,7 +964,7 @@ const CourtDetailScreen = () => {
                   <View style={styles.selectedPlayerInfo}>
                     <Text style={styles.selectedPlayerName}>{selectedPartner.name}</Text>
                     <Text style={styles.selectedPlayerDetails}>
-                      {t('reservation.rank')} #{selectedPartner.currentRank || 0}
+                      {selectedPartner.title || t('reservation.intermediate')}
                     </Text>
                   </View>
                   <TouchableOpacity
@@ -1018,7 +1018,7 @@ const CourtDetailScreen = () => {
                     <View style={styles.selectedPlayerInfo}>
                       <Text style={styles.selectedPlayerName}>{selectedPartner.name}</Text>
                       <Text style={styles.selectedPlayerDetails}>
-                        {t('reservation.rank')} #{selectedPartner.currentRank || 0} • {selectedPartner.title || t('reservation.intermediate')}
+                        {selectedPartner.title || t('reservation.intermediate')}
                       </Text>
                     </View>
                     <TouchableOpacity
@@ -1076,7 +1076,7 @@ const CourtDetailScreen = () => {
                               {currentOpponent.name}
                             </Text>
                             <Text style={styles.selectedPlayerDetails}>
-                              {t('reservation.rank')} #{currentOpponent.currentRank || 0} • {currentOpponent.title || t('reservation.intermediate')}
+                              {currentOpponent.title || t('reservation.intermediate')}
                             </Text>
                           </View>
                           <TouchableOpacity
@@ -1449,7 +1449,7 @@ const CourtDetailScreen = () => {
                             styles.userItemDetails,
                             isDisabled && styles.disabledText
                           ]}>
-                            {t('reservation.rank')} #{item.currentRank || 0} • {item.title || t('reservation.intermediate')}
+                            {item.title || t('reservation.intermediate')}
                           </Text>
                         </View>
                         {isSelected && (

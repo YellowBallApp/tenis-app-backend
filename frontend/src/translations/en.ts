@@ -185,6 +185,10 @@ export default {
     minutes: 'minutes',
     you: 'You',
     court: 'Court',
+    cancelReservation: 'Cancel Reservation',
+    cancelConfirm: 'Are you sure you want to cancel this reservation?',
+    cancelled: 'Reservation cancelled',
+    cancelError: 'Failed to cancel reservation',
   },
 
   reservationsList: {
@@ -418,6 +422,8 @@ export default {
     notifications: 'Notifications',
     darkMode: 'Dark Mode',
     language: 'Language',
+    selectLanguage: 'Select Language',
+    english: 'English',
     locationSharing: 'Location Sharing',
     updateProfileSuccess: 'Your profile has been updated',
     updateProfileError: 'An error occurred while updating profile',
@@ -460,7 +466,6 @@ export default {
     logout: 'Logout',
     updateProfileInfo: 'Update your profile information',
     rank: 'Rank',
-    english: 'English',
     updatePasswordForSecurity: 'Update your password for security',
     manageAccountPreferences: 'Manage your account preferences',
     howCanWeHelp: 'How can we help you?',
