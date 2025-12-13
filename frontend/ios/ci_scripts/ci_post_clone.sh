@@ -30,20 +30,27 @@ echo "📂 iOS dizinine geçildi: $(pwd)"
 
 # Node.js kontrol et ve yükle
 echo "🔧 Node.js kontrol ediliyor..."
+
+# Xcode Cloud'da Node.js genellikle /usr/local/bin veya /opt/homebrew/bin'de olabilir
+export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
+
 if ! command -v node &> /dev/null; then
     echo "⚠️ Node.js bulunamadı, yükleniyor..."
-    # Homebrew ile Node.js yükle (Xcode Cloud'da genellikle mevcuttur)
+    
+    # Xcode Cloud'da genellikle Homebrew mevcuttur
     if command -v brew &> /dev/null; then
+        echo "📦 Homebrew ile Node.js yükleniyor..."
         brew install node
     else
         # Alternatif: nvm kullan
+        echo "📦 nvm ile Node.js yükleniyor..."
         export NVM_DIR="$HOME/.nvm"
         if [ -s "$NVM_DIR/nvm.sh" ]; then
             source "$NVM_DIR/nvm.sh"
             nvm install --lts
             nvm use --lts
         else
-            # Son çare: curl ile nvm yükle
+            # nvm yükle
             curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
