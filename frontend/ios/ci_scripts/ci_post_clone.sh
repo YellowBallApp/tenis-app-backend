@@ -28,6 +28,51 @@ fi
 cd "$IOS_DIR"
 echo "📂 iOS dizinine geçildi: $(pwd)"
 
+# Node.js kontrol et ve yükle
+echo "🔧 Node.js kontrol ediliyor..."
+if ! command -v node &> /dev/null; then
+    echo "⚠️ Node.js bulunamadı, yükleniyor..."
+    # Homebrew ile Node.js yükle (Xcode Cloud'da genellikle mevcuttur)
+    if command -v brew &> /dev/null; then
+        brew install node
+    else
+        # Alternatif: nvm kullan
+        export NVM_DIR="$HOME/.nvm"
+        if [ -s "$NVM_DIR/nvm.sh" ]; then
+            source "$NVM_DIR/nvm.sh"
+            nvm install --lts
+            nvm use --lts
+        else
+            # Son çare: curl ile nvm yükle
+            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
+            nvm install --lts
+            nvm use --lts
+        fi
+    fi
+fi
+
+# Node.js versiyonunu kontrol et
+echo "✅ Node.js versiyonu: $(node --version)"
+echo "✅ npm versiyonu: $(npm --version)"
+
+# Frontend dizinine git ve npm install çalıştır
+FRONTEND_DIR="$WORKSPACE_PATH/frontend"
+if [ -d "$FRONTEND_DIR" ]; then
+    cd "$FRONTEND_DIR"
+    echo "📦 Frontend dependencies yükleniyor..."
+    if [ -f "package.json" ]; then
+        npm install
+        echo "✅ Frontend dependencies yüklendi"
+    else
+        echo "⚠️ package.json bulunamadı, atlanıyor..."
+    fi
+fi
+
+# iOS dizinine geri dön
+cd "$IOS_DIR"
+
 # CocoaPods'u kontrol et
 echo "🔧 CocoaPods kontrol ediliyor..."
 if ! command -v pod &> /dev/null; then
