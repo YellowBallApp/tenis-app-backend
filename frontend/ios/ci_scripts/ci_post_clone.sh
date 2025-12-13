@@ -70,7 +70,9 @@ if [ -d "$FRONTEND_DIR" ]; then
     cd "$FRONTEND_DIR"
     echo "📦 Frontend dependencies yükleniyor..."
     if [ -f "package.json" ]; then
-        npm install
+        # npm install'ı optimize et (cache kullan, verbose output)
+        echo "⏳ npm install başlatılıyor (bu biraz zaman alabilir)..."
+        npm install --prefer-offline --no-audit --progress=false 2>&1 | head -100
         echo "✅ Frontend dependencies yüklendi"
     else
         echo "⚠️ package.json bulunamadı, atlanıyor..."
@@ -87,9 +89,12 @@ if ! command -v pod &> /dev/null; then
     sudo gem install cocoapods
 fi
 
-# Pod install çalıştır
-echo "📦 Pod install çalıştırılıyor..."
-pod install --repo-update
+# Pod install çalıştır (optimize edilmiş)
+echo "📦 Pod install çalıştırılıyor (bu biraz zaman alabilir)..."
+# --repo-update sadece ilk seferde gerekli, sonraki build'lerde gereksiz
+# Xcode Cloud'da her build temiz bir ortam olduğu için --repo-update gerekli
+# Ancak verbose output'u azaltıyoruz
+pod install --repo-update --verbose 2>&1 | grep -E "(Installing|Downloading|Generating|Pod installation)" | head -50
 
 # Pods klasörünün oluşturulduğunu kontrol et
 if [ ! -d "Pods" ]; then
