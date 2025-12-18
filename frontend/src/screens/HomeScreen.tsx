@@ -62,8 +62,12 @@ const HomeScreen = () => {
       icon: 'calendar-plus', 
       color: '#54CE8F', // Primary green
       action: () => {
-        // Reservation sayfasına git (stack'in ilk ekranı ReservationList olacak)
-        navigation.navigate('Reservation');
+        // Reservation sayfasına git - direkt ReservationList screen'ine navigate et
+        // Bu, önceki navigation'lardan kalan CourtDetail gibi screen'leri atlar
+        (navigation as any).navigate('Reservation', {
+          screen: 'ReservationList',
+          params: undefined,
+        });
       }
     },
     { 
@@ -73,9 +77,15 @@ const HomeScreen = () => {
       action: () => navigation.navigate('ReservationsList') 
     },
     { 
+      title: t('profile.myBookings'), 
+      icon: 'calendar-check', 
+      color: '#54CE8F', // Primary green
+      action: () => navigation.navigate('MyReservations') 
+    },
+    { 
       title: t('home.matchHistory'), 
       icon: 'history', 
-      color: '#54CE8F', // Primary green
+      color: '#B4AEBD', // Primary purple
       action: () => navigation.navigate('MatchHistory') 
     },
   ];
@@ -250,7 +260,6 @@ const HomeScreen = () => {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="#2E7D32" />
-        <Text style={{ marginTop: 10, color: '#9E9E9E' }}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -316,7 +325,7 @@ const HomeScreen = () => {
       {/* Quick Actions */}
       <View style={styles.section}>
         <Title style={[styles.sectionTitle, themedStyles.sectionTitle]}>{t('home.quickActions')}</Title>
-        <View style={styles.quickActionsRow}>
+        <View style={styles.quickActionsGrid}>
           {quickActions.map((action, index) => (
             <TouchableOpacity 
               key={index} 
@@ -430,14 +439,10 @@ const HomeScreen = () => {
         onDismiss={() => setShowReservationSuccess(false)}
         duration={3000}
         style={styles.successSnackbar}
-        action={{
-          label: t('common.ok'),
-          onPress: () => setShowReservationSuccess(false),
-        }}
       >
         <View style={styles.snackbarContent}>
           <MaterialCommunityIcons name="check-circle" size={24} color="#FFFFFF" />
-          <Text style={styles.snackbarText}>{t('reservation.success')}</Text>
+          <Text style={styles.snackbarText}>{t('reservation.reservationCreated')}</Text>
         </View>
       </Snackbar>
     </View>
@@ -615,8 +620,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   actionCardWrapper: {
-    flex: 1,
-    minWidth: 0,
+    flexBasis: '48%',
+    marginBottom: 12,
   },
   quickActionsGrid: {
     flexDirection: 'row',

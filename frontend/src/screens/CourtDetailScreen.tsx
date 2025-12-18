@@ -31,7 +31,7 @@ import { courtService, reservationService, weatherService, userService, authServ
 import { NotificationType } from '../types';
 import { LinearGradient } from 'expo-linear-gradient';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 type CourtDetailScreenNavigationProp = CompositeNavigationProp<
   StackNavigationProp<ReservationStackParamList, 'CourtDetail'>,
@@ -42,7 +42,18 @@ const CourtDetailScreen = () => {
   const route = useRoute();
   const navigation = useNavigation<CourtDetailScreenNavigationProp>();
   const { t, language } = useLanguage();
-  const { courtId } = route.params as { courtId: number };
+  const routeParams = route.params as { 
+    courtId: number;
+    selectedDate?: string;
+    selectedTime?: string;
+  } | undefined;
+  
+  const courtId = routeParams?.courtId;
+  const routeSelectedDate = routeParams?.selectedDate;
+  const routeSelectedTime = routeParams?.selectedTime;
+  
+  // Debug: Route params'ı logla
+  console.log('CourtDetailScreen - Route params:', routeParams);
   
   const [court, setCourt] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -89,6 +100,9 @@ const CourtDetailScreen = () => {
   const [gameTypeSectionY, setGameTypeSectionY] = useState(0);
   const [playersSectionY, setPlayersSectionY] = useState(0);
   const [timeSlotsSectionY, setTimeSlotsSectionY] = useState(0);
+  const routeParamsProcessedRef = useRef(false);
+  const savedRouteDateRef = useRef<string | null>(null);
+  const savedRouteTimeRef = useRef<string | null>(null);
 
   // Rezervasyon engeli kontrolü
   const checkReservationBlock = React.useCallback(async () => {
@@ -127,31 +141,182 @@ const CourtDetailScreen = () => {
     }
   }, []);
 
+  // Component mount olduğunda data yükle
   useEffect(() => {
     loadCourtData();
     loadCurrentUser();
   }, [courtId]);
 
-  // Sayfa her açıldığında state'leri sıfırla
+  // Route params varsa tarih ve saati set et ve ref'e kaydet
+  // SADECE route params değiştiğinde çalışır, kullanıcı etkileşimlerinde çalışmaz
+  React.useLayoutEffect(() => {
+    console.log('useLayoutEffect - Route params kontrolü:', { 
+      routeSelectedDate, 
+      routeSelectedTime, 
+      currentSelectedDate: selectedDate, 
+      currentSelectedTime: selectedTime,
+      savedDate: savedRouteDateRef.current,
+      savedTime: savedRouteTimeRef.current
+    });
+    
+    // Eğer kullanıcı zaten tarih/saat seçmişse ve route params yoksa, hiçbir şey yapma
+    const hasUserDateOrTime = selectedDate || selectedTime;
+    if (!routeSelectedDate && !routeSelectedTime && hasUserDateOrTime) {
+      // Kullanıcı seçimi var, route params yok - hiçbir şey yapma
+      return;
+    }
+    
+    if (routeSelectedDate && routeSelectedTime) {
+      // Route params'ı ref'e kaydet (navigation params temizlense bile değer kaybolmasın)
+      if (savedRouteDateRef.current !== routeSelectedDate || savedRouteTimeRef.current !== routeSelectedTime) {
+        savedRouteDateRef.current = routeSelectedDate;
+        savedRouteTimeRef.current = routeSelectedTime;
+        console.log('Route params ref\'e kaydedildi:', { routeSelectedDate, routeSelectedTime });
+      }
+      
+      // Route params varsa mutlaka set et (farklıysa veya henüz set edilmemişse)
+      if (selectedDate !== routeSelectedDate || selectedTime !== routeSelectedTime) {
+        console.log('useLayoutEffect - Route params set ediliyor:', { routeSelectedDate, routeSelectedTime });
+        setSelectedDate(routeSelectedDate);
+        setSelectedTime(routeSelectedTime);
+        routeParamsProcessedRef.current = true;
+      }
+    } else if (savedRouteDateRef.current && savedRouteTimeRef.current) {
+      // Route params temizlenmiş ama ref'te kayıtlı değerler varsa onları kullan
+      // ANCAK sadece eğer kullanıcı seçimi yoksa
+      if (!hasUserDateOrTime && (selectedDate !== savedRouteDateRef.current || selectedTime !== savedRouteTimeRef.current)) {
+        console.log('useLayoutEffect - Saved route params kullanılıyor:', { 
+          date: savedRouteDateRef.current, 
+          time: savedRouteTimeRef.current 
+        });
+        setSelectedDate(savedRouteDateRef.current);
+        setSelectedTime(savedRouteTimeRef.current);
+      }
+    } else if (!routeSelectedDate && !routeSelectedTime) {
+      // Route params yoksa ve henüz set edilmemişse default değerleri kullan
+      // Eğer önceki bir navigation'dan değerler kalmışsa, onları da temizle
+      // ANCAK sadece eğer kullanıcı seçimi yoksa
+      if (!hasUserDateOrTime && !routeParamsProcessedRef.current) {
+        // Yerel saat diliminde bugünün tarihini al
+        const today = new Date();
+        const defaultDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        console.log('useLayoutEffect - Route params yok, default değerler set ediliyor:', { defaultDate });
+        setSelectedDate(defaultDate);
+        setSelectedTime('');
+        savedRouteDateRef.current = null;
+        savedRouteTimeRef.current = null;
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeSelectedDate, routeSelectedTime]);
+  
+  // Ayrıca useEffect ile de kontrol et (fallback)
+  // SADECE route params değiştiğinde çalışır
+  useEffect(() => {
+    // Eğer kullanıcı zaten tarih/saat seçmişse ve route params yoksa, hiçbir şey yapma
+    const hasUserDateOrTime = selectedDate || selectedTime;
+    if (!routeSelectedDate && !routeSelectedTime && hasUserDateOrTime) {
+      // Kullanıcı seçimi var, route params yok - hiçbir şey yapma
+      return;
+    }
+    
+    if (routeSelectedDate && routeSelectedTime) {
+      if (selectedDate !== routeSelectedDate || selectedTime !== routeSelectedTime) {
+        console.log('useEffect - Route params set ediliyor (fallback):', { routeSelectedDate, routeSelectedTime });
+        savedRouteDateRef.current = routeSelectedDate;
+        savedRouteTimeRef.current = routeSelectedTime;
+        setSelectedDate(routeSelectedDate);
+        setSelectedTime(routeSelectedTime);
+        routeParamsProcessedRef.current = true;
+      }
+    } else if (savedRouteDateRef.current && savedRouteTimeRef.current && routeParamsProcessedRef.current) {
+      // Route params temizlenmiş ama ref'te kayıtlı değerler varsa ve daha önce işlenmişse onları kullan
+      // ANCAK sadece eğer kullanıcı seçimi yoksa
+      if (!hasUserDateOrTime && (selectedDate !== savedRouteDateRef.current || selectedTime !== savedRouteTimeRef.current)) {
+        console.log('useEffect - Saved route params kullanılıyor (fallback):', { 
+          date: savedRouteDateRef.current, 
+          time: savedRouteTimeRef.current 
+        });
+        setSelectedDate(savedRouteDateRef.current);
+        setSelectedTime(savedRouteTimeRef.current);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeSelectedDate, routeSelectedTime]);
+
+  // Sayfa her açıldığında state'leri sıfırla (tarih ve saat hariç - onlar route params veya kullanıcı seçimi)
   useFocusEffect(
     React.useCallback(() => {
-      // Bugünün tarihini varsayılan olarak ayarla
-      const today = new Date().toISOString().split('T')[0];
-      setSelectedDate(today);
-      setSelectedTime('');
-      setSelectedPartner(null);
-      setSelectedOpponents([]);
-      setPlayerType('single');
+      // Kullanıcı seçimlerini kontrol et (closure ile mevcut değerleri kullan)
+      const currentPartner = selectedPartner;
+      const currentOpponents = selectedOpponents;
+      const currentPlayerType = playerType;
+      const currentDate = selectedDate;
+      const currentTime = selectedTime;
+      const hasUserSelections = currentPartner || currentOpponents.length > 0 || currentPlayerType !== 'single';
+      const hasDateOrTime = currentDate || currentTime;
+      
+      // Route params varsa onları kullan (sadece route params gerçekten değiştiyse)
+      if (routeSelectedDate && routeSelectedTime) {
+        // Sadece route params farklıysa ve daha önce set edilmemişse set et
+        if ((currentDate !== routeSelectedDate || currentTime !== routeSelectedTime) && 
+            (savedRouteDateRef.current !== routeSelectedDate || savedRouteTimeRef.current !== routeSelectedTime)) {
+          console.log('useFocusEffect - Route params set ediliyor:', { routeSelectedDate, routeSelectedTime });
+          setSelectedDate(routeSelectedDate);
+          setSelectedTime(routeSelectedTime);
+          savedRouteDateRef.current = routeSelectedDate;
+          savedRouteTimeRef.current = routeSelectedTime;
+          routeParamsProcessedRef.current = true;
+        }
+      } else {
+        // Route params yoksa (sadece courtId ile sayfaya gidildiğinde - yeni rezervasyon)
+        // Önceki rezervasyon işleminden kalan tüm seçimleri temizle
+        console.log('useFocusEffect - Route params yok, önceki seçimler temizleniyor');
+        
+        // Tarih ve saati resetle (default bugünün tarihi ile)
+        const today = new Date();
+        const defaultDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        if (currentDate !== defaultDate || currentTime !== '') {
+          setSelectedDate(defaultDate);
+          setSelectedTime('');
+        }
+        
+        // Route params ref'lerini temizle
+        savedRouteDateRef.current = null;
+        savedRouteTimeRef.current = null;
+        routeParamsProcessedRef.current = false;
+      }
+      
+      // Diğer state'leri sıfırla (her focus'ta)
+      // Route params yoksa (yeni rezervasyon başlatılıyorsa) tüm seçimleri temizle
+      if (!routeSelectedDate && !routeSelectedTime) {
+        // Route params yoksa, partner ve opponents'ı da temizle
+        if (currentPartner || currentOpponents.length > 0 || currentPlayerType !== 'single') {
+          console.log('useFocusEffect - Route params yok, partner ve opponents temizleniyor');
+          setSelectedPartner(null);
+          setSelectedOpponents([]);
+          setPlayerType('single');
+        }
+      } else if (!hasUserSelections) {
+        // Route params varsa ama kullanıcı seçimi yoksa, sadece o zaman resetle
+        // ANCAK sadece eğer zaten resetlenmemişse (sonsuz döngüyü önlemek için)
+        if (currentPartner || currentOpponents.length > 0 || currentPlayerType !== 'single') {
+          setSelectedPartner(null);
+          setSelectedOpponents([]);
+          setPlayerType('single');
+        }
+      }
+      // Modal state'lerini her zaman temizle
       setShowUserSelector(false);
       setShowWeatherWarningModal(false);
       setPendingTimeSelection(null);
       setWeatherCache({});
       setSearchQuery('');
       setSelectedOpponentIndex(null);
-      
+
       // Rezervasyon engeli kontrolü
       checkReservationBlock();
-    }, [checkReservationBlock])
+    }, [checkReservationBlock, routeSelectedDate, routeSelectedTime])
   );
 
   // Zaman dilimlerini yükle
@@ -228,10 +393,7 @@ const CourtDetailScreen = () => {
       setLoading(true);
       const courtData = await courtService.getCourtById(courtId);
       setCourt(courtData);
-      
-      // Bugünün tarihini varsayılan olarak ayarla
-      const today = new Date().toISOString().split('T')[0];
-      setSelectedDate(today);
+      // Tarih seçimi useFocusEffect'te yapılıyor
     } catch (error) {
       console.error('Kort detayları yüklenirken hata:', error);
     } finally {
@@ -422,6 +584,14 @@ const CourtDetailScreen = () => {
     const dates = [];
     const today = new Date();
     
+    // Yerel saat diliminde tarih formatlamak için yardımcı fonksiyon
+    const formatLocalDate = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    
     for (let i = 0; i < 7; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
@@ -431,7 +601,7 @@ const CourtDetailScreen = () => {
         : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       
       dates.push({
-        date: date.toISOString().split('T')[0],
+        date: formatLocalDate(date),
         dayName: dayNames[date.getDay()],
         dayNumber: date.getDate(),
       });
@@ -556,6 +726,21 @@ const CourtDetailScreen = () => {
     } else if (selectorMode === 'opponents') {
       if (selectedOpponentIndex !== null) {
         // Belirli bir pozisyondaki rakibi değiştir
+        // ANCAK aynı kullanıcı başka bir pozisyonda seçiliyse, seçime izin verme
+        const isAlreadySelectedInOtherPosition = selectedOpponents.some((opp, index) => 
+          opp && opp.id === user.id && index !== selectedOpponentIndex
+        );
+        
+        if (isAlreadySelectedInOtherPosition) {
+          // Aynı kullanıcı başka bir pozisyonda seçili, seçime izin verme
+          Alert.alert(
+            t('common.error'),
+            t('reservation.opponentAlreadySelected') || 'Bu rakip zaten seçilmiş',
+            [{ text: t('common.ok') }]
+          );
+          return;
+        }
+        
         const newOpponents = [...selectedOpponents];
         newOpponents[selectedOpponentIndex] = user;
         const updatedOpponents = newOpponents.filter(opp => opp !== undefined && opp !== null);
@@ -1482,7 +1667,7 @@ const CourtDetailScreen = () => {
           contentContainerStyle={styles.userSelectorModal}
         >
           <Card style={styles.userSelectorCard}>
-            <Card.Content>
+            <Card.Content style={[styles.userSelectorCardContent, { paddingHorizontal: 16, paddingVertical: 16 }]}>
               <View style={styles.userModalHeader}>
                 <View style={styles.userModalHeaderContent}>
                   <Title style={styles.userModalTitle}>
@@ -1518,7 +1703,8 @@ const CourtDetailScreen = () => {
                 iconColor={selectorMode === 'opponents' ? "#FF9800" : "#2E7D32"}
               />
 
-              <FlatList
+              <View style={styles.userListContainer}>
+                <FlatList
                 data={filteredUsers}
                 keyExtractor={(item) => item.id.toString()}
                 style={styles.userList}
@@ -1533,12 +1719,19 @@ const CourtDetailScreen = () => {
                   const isDisabledInOpponentsMode = selectorMode === 'opponents' &&
                     selectedPartner?.id === item.id;
                   
+                  // Belirli bir pozisyon için seçim yapılıyorsa, aynı kullanıcının başka bir pozisyonda seçilip seçilmediğini kontrol et
+                  const isDisabledInSamePosition = selectorMode === 'opponents' &&
+                    selectedOpponentIndex !== null &&
+                    selectedOpponents.some((opp, index) => 
+                      opp && opp.id === item.id && index !== selectedOpponentIndex
+                    );
+                  
                   // Belirli bir pozisyon için seçim yapılıyorsa, limit kontrolü yapma
                   const isDisabledDueToLimit = selectorMode === 'opponents' &&
                     selectedOpponentIndex === null &&
                     selectedOpponents.length >= 2 && !isSelected;
                   
-                  const isDisabled = isDisabledInPartnerMode || isDisabledInOpponentsMode || isDisabledDueToLimit;
+                  const isDisabled = isDisabledInPartnerMode || isDisabledInOpponentsMode || isDisabledInSamePosition || isDisabledDueToLimit;
 
                   return (
                     <TouchableOpacity
@@ -1557,16 +1750,24 @@ const CourtDetailScreen = () => {
                           labelStyle={styles.userItemAvatarLabel}
                         />
                         <View style={styles.userItemInfo}>
-                          <Text style={[
-                            styles.userItemName,
-                            isDisabled && styles.disabledText
-                          ]}>
+                          <Text 
+                            style={[
+                              styles.userItemName,
+                              isDisabled && styles.disabledText
+                            ]}
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                          >
                             {item.name}
                           </Text>
-                          <Text style={[
-                            styles.userItemDetails,
-                            isDisabled && styles.disabledText
-                          ]}>
+                          <Text 
+                            style={[
+                              styles.userItemDetails,
+                              isDisabled && styles.disabledText
+                            ]}
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                          >
                             {item.title || t('reservation.intermediate')}
                           </Text>
                         </View>
@@ -1574,7 +1775,8 @@ const CourtDetailScreen = () => {
                           <MaterialCommunityIcons 
                             name={selectorMode === 'opponents' ? "checkbox-marked-circle" : "check-circle"} 
                             size={24} 
-                            color={selectorMode === 'opponents' ? "#FF9800" : "#4CAF50"} 
+                            color={selectorMode === 'opponents' ? "#FF9800" : "#4CAF50"}
+                            style={{ flexShrink: 0 }}
                           />
                         )}
                       </View>
@@ -1587,7 +1789,8 @@ const CourtDetailScreen = () => {
                     <Text style={styles.emptyUserListText}>{t('reservation.noUsersFound')}</Text>
                   </View>
                 )}
-              />
+                />
+              </View>
             </Card.Content>
           </Card>
         </Modal>
@@ -2143,7 +2346,15 @@ const styles = StyleSheet.create({
   userSelectorCard: {
     borderRadius: 20,
     backgroundColor: '#FFFFFF',
-    maxHeight: '80%',
+    maxHeight: height * 0.8,
+    overflow: 'hidden',
+  },
+  userSelectorCardContent: {
+    flex: 1,
+  },
+  userListContainer: {
+    flex: 1,
+    minHeight: 0,
   },
   userModalHeader: {
     flexDirection: 'row',
@@ -2154,12 +2365,14 @@ const styles = StyleSheet.create({
   userModalHeaderContent: {
     flex: 1,
     marginRight: 16,
+    minWidth: 0,
   },
   userModalTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#1B1B1B',
     marginBottom: 4,
+    flex: 1,
   },
   userModalSubtitle: {
     fontSize: 14,
@@ -2174,10 +2387,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   userList: {
-    maxHeight: 400,
+    flex: 1,
   },
   userItem: {
     marginBottom: 12,
+    overflow: 'hidden',
   },
   userItemContent: {
     flexDirection: 'row',
@@ -2185,10 +2399,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
     borderRadius: 12,
     padding: 12,
+    overflow: 'hidden',
   },
   userItemAvatar: {
     backgroundColor: '#E8F5E8',
     marginRight: 12,
+    flexShrink: 0,
   },
   userItemAvatarLabel: {
     color: '#2E7D32',
@@ -2196,6 +2412,8 @@ const styles = StyleSheet.create({
   },
   userItemInfo: {
     flex: 1,
+    minWidth: 0,
+    marginRight: 8,
   },
   userItemName: {
     fontSize: 16,

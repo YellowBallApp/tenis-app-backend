@@ -39,6 +39,7 @@ const DefiLigScreen = ({ navigation }: any) => {
   const [currentPage, setCurrentPage] = useState(0);
   const leaguesPerPage = 2;
   const [selectedLeagueStats, setSelectedLeagueStats] = useState<any>(null);
+  const [showJoinConfirmDialog, setShowJoinConfirmDialog] = useState(false);
 
 
   useEffect(() => {
@@ -238,26 +239,42 @@ const DefiLigScreen = ({ navigation }: any) => {
           return;
         }
         
-        setLoading(true);
-        
-        // Başvuru yap
-        await leagueApplicationService.createApplication(selectedLig.id);
-        
-        Alert.alert(
-          'Başvuru Alındı',
-          'Başvurunuz alınmıştır. Onay bekleniyor.'
-        );
-        
-        // Ligleri yeniden yükle
-        await loadData();
-        setLoading(false);
-        setShowLigModal(false);
+        // Onay dialogu göster
+        setShowJoinConfirmDialog(true);
         return;
       }
       
       setShowLigModal(false);
       // Navigate to Lig Sıralama screen
       navigation.navigate('LigSiralama', { lig: selectedLig });
+    } catch (error: any) {
+      console.error('Lige başvuru hatası:', error);
+      const errorMessage = error.response?.data?.message || 'Başvuru yapılırken bir hata oluştu';
+      Alert.alert(t('common.error'), errorMessage);
+      setLoading(false);
+    }
+  };
+
+  const confirmJoinLeague = async () => {
+    if (!selectedLig) return;
+    
+    setShowJoinConfirmDialog(false);
+    
+    try {
+      setLoading(true);
+      
+      // Başvuru yap
+      await leagueApplicationService.createApplication(selectedLig.id);
+      
+      Alert.alert(
+        'Başvuru Alındı',
+        'Başvurunuz alınmıştır. Onay bekleniyor.'
+      );
+      
+      // Ligleri yeniden yükle
+      await loadData();
+      setLoading(false);
+      setShowLigModal(false);
     } catch (error: any) {
       console.error('Lige başvuru hatası:', error);
       const errorMessage = error.response?.data?.message || 'Başvuru yapılırken bir hata oluştu';
@@ -353,7 +370,6 @@ const DefiLigScreen = ({ navigation }: any) => {
         </View>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color="#54CE8F" />
-          <Text style={{ marginTop: 16, fontSize: 14, color: '#717182' }}>{t('defiLeague.loadingText') || 'Yükleniyor...'}</Text>
         </View>
       </View>
     );
@@ -788,6 +804,56 @@ const DefiLigScreen = ({ navigation }: any) => {
               )}
               </Card.Content>
             </ScrollView>
+          </Card>
+        </Modal>
+      </Portal>
+
+      {/* Join League Confirmation Modal */}
+      <Portal>
+        <Modal
+          visible={showJoinConfirmDialog}
+          onDismiss={() => {
+            setShowJoinConfirmDialog(false);
+          }}
+          contentContainerStyle={styles.joinConfirmModalContainer}
+          dismissable={true}
+        >
+          <Card style={styles.joinConfirmModalCard}>
+            <Card.Content style={styles.joinConfirmModalContent}>
+              <View style={styles.joinConfirmModalHeader}>
+                <View style={styles.joinConfirmModalIconContainer}>
+                  <MaterialCommunityIcons name="alert-circle" size={32} color="#54CE8F" />
+                </View>
+                <Text style={styles.joinConfirmModalTitle}>
+                  {t('defiLeague.alerts.joinConfirmTitle') || 'Emin misiniz?'}
+                </Text>
+              </View>
+              
+              <Text style={styles.joinConfirmModalText}>
+                {t('defiLeague.alerts.joinConfirmMessage') || 'Bu lige katılmak istediğinizden emin misiniz?'}
+              </Text>
+
+              <View style={styles.joinConfirmModalButtons}>
+                <TouchableOpacity
+                  style={styles.joinConfirmModalCancelButton}
+                  onPress={() => {
+                    setShowJoinConfirmDialog(false);
+                  }}
+                >
+                  <Text style={styles.joinConfirmModalCancelButtonText}>
+                    {t('common.cancel') || 'İptal'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.joinConfirmModalConfirmButton}
+                  onPress={confirmJoinLeague}
+                >
+                  <Text style={styles.joinConfirmModalConfirmButtonText}>
+                    {t('common.confirm') || 'Onayla'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </Card.Content>
           </Card>
         </Modal>
       </Portal>
@@ -1284,6 +1350,86 @@ const styles = StyleSheet.create({
     backgroundColor: '#54CE8F',
     width: 24,
     borderRadius: 4,
+  },
+  joinConfirmModalContainer: {
+    margin: 20,
+    justifyContent: 'center',
+  },
+  joinConfirmModalCard: {
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  joinConfirmModalContent: {
+    padding: 24,
+  },
+  joinConfirmModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  joinConfirmModalIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#ECFDF5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  joinConfirmModalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#030213',
+    flex: 1,
+  },
+  joinConfirmModalText: {
+    fontSize: 16,
+    color: '#717182',
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  joinConfirmModalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  joinConfirmModalCancelButton: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  joinConfirmModalCancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#717182',
+  },
+  joinConfirmModalConfirmButton: {
+    flex: 1,
+    borderRadius: 12,
+    backgroundColor: '#54CE8F',
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  joinConfirmModalConfirmButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 

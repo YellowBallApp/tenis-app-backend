@@ -160,7 +160,7 @@ const getApiBaseUrl = async (): Promise<string> => {
   if (NGROK_URL) {
     return `${NGROK_URL}/api`;
   }
-  
+
   // 2. Production build için (APK'da) direkt default production IP kullan
   // Gerçek telefonda production build çalıştığında bu IP kullanılacak
   if (!__DEV__) {
@@ -177,22 +177,36 @@ const getApiBaseUrl = async (): Promise<string> => {
     console.log('📱 Production build (APK) - API URL:', apiUrl);
     return apiUrl;
   }
-  
+
   // 3. Development build için
-  // Development modunda da production IP'sini kullan
-  const serverIP = await getCachedOrDiscoverServerIP();
-  if (serverIP) {
-    console.log(`🔧 Development - Server IP kullanılıyor: ${serverIP}`);
-    return `http://${serverIP}:${DEFAULT_PORT}/api`;
+  // Development modunda backend'e localhost üzerinden bağlan
+  // Android emülatörde ise özel IP (10.0.2.2) kullanılır
+  if (__DEV__) {
+    let devHost = 'localhost';
+
+    if (Platform.OS === 'android' && isAndroidEmulator()) {
+      devHost = EMULATOR_IP || '10.0.2.2';
+    }
+
+    const devUrl = `http://${devHost}:${DEFAULT_PORT}/api`;
+    console.log('🔧 Development build - API URL:', devUrl, '(Platform:', Platform.OS, ')');
+    return devUrl;
   }
-  
-  // Fallback: default production IP
-  console.warn(`⚠️ Server IP bulunamadı, default production IP kullanılıyor: ${DEFAULT_PRODUCTION_IP}`);
+
+  // Güvenli fallback: yine production IP'yi kullan
+  console.warn(`⚠️ Beklenmeyen durum - default production IP kullanılıyor: ${DEFAULT_PRODUCTION_IP}`);
   return `http://${DEFAULT_PRODUCTION_IP}:${DEFAULT_PORT}/api`;
 };
 
-// İlk başta base URL'i al (async) - Default production IP kullan
-const fallbackHost = process.env.EXPO_PUBLIC_FALLBACK_HOST || DEFAULT_PRODUCTION_IP;
+// İlk başta base URL'i al (async)
+// Development'ta localhost / emülatör IP'si, production'da ise production IP kullan
+const fallbackHost =
+  __DEV__
+    ? (Platform.OS === 'android' && isAndroidEmulator()
+        ? (EMULATOR_IP || '10.0.2.2')
+        : 'localhost')
+    : (process.env.EXPO_PUBLIC_FALLBACK_HOST || DEFAULT_PRODUCTION_IP);
+
 let API_BASE_URL: string = `http://${fallbackHost}:${DEFAULT_PORT}/api`;
 
 // Önceki ağ durumunu takip et

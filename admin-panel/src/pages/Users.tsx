@@ -71,7 +71,7 @@ const Users = () => {
       email: '',
       password: '',
       surname: '',
-      phone: '',
+      phone: '+90',
       userType: 'standard',
       title: '',
       birthDate: '',
@@ -81,12 +81,25 @@ const Users = () => {
 
   const handleEdit = (user: User) => {
     setEditingUser(user);
+    // Telefon numarası +90 ile başlamıyorsa ekle
+    let phoneValue = user.phone || '+90';
+    if (phoneValue && !phoneValue.startsWith('+90')) {
+      // Eğer sadece rakamlar varsa +90 ekle
+      if (/^[0-9]+$/.test(phoneValue)) {
+        phoneValue = '+90' + phoneValue;
+      } else {
+        phoneValue = '+90' + phoneValue.replace(/^\+90/, '');
+      }
+    }
+    if (!phoneValue) {
+      phoneValue = '+90';
+    }
     setFormData({
       name: user.name,
       email: user.email,
       password: '',
       surname: user.surname || '',
-      phone: user.phone || '',
+      phone: phoneValue,
       userType: user.userType,
       title: user.title || '',
       birthDate: (user as any).birthDate ? new Date((user as any).birthDate).toISOString().split('T')[0] : '',
@@ -493,12 +506,29 @@ const Users = () => {
                   <label className="block text-sm font-medium text-soft-white/90 mb-2">
                     Telefon
                   </label>
-                  <input
-                    type="text"
-                    className="glass w-full px-4 py-3 text-soft-white placeholder-soft-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  />
+                  <div className="flex items-center gap-2">
+                    {/* +90 Prefix Badge */}
+                    <div className="flex-shrink-0 px-3 py-3 glass rounded-lg border border-soft-purple/30 bg-soft-purple/10 text-soft-white font-medium text-sm">
+                      +90
+                    </div>
+                    {/* Phone Number Input */}
+                    <input
+                      type="text"
+                      className="glass flex-1 px-4 py-3 text-soft-white placeholder-soft-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all"
+                      placeholder="5XX XXX XX XX"
+                      value={formData.phone.startsWith('+90') ? formData.phone.substring(3) : formData.phone}
+                      onChange={(e) => {
+                        const text = e.target.value;
+                        // Sadece rakamlara izin ver
+                        const cleaned = text.replace(/[^0-9]/g, '');
+                        
+                        // Maksimum 10 haneli numara (5XX XXX XX XX)
+                        if (cleaned.length <= 10) {
+                          setFormData({ ...formData, phone: '+90' + cleaned });
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-soft-white/90 mb-2">

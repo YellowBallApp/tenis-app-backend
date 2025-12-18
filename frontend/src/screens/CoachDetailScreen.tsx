@@ -197,7 +197,6 @@ const CoachDetailScreen = () => {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="#54CE8F" />
-        <Text style={{ marginTop: 10, color: '#717182' }}>{t('common.loading')}</Text>
       </View>
     );
   }
