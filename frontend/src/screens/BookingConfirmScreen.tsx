@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useRoute, useNavigation, useFocusEffect, CommonActions } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Card,
@@ -58,10 +58,10 @@ const BookingConfirmScreen = () => {
     try {
       setIsConfirming(true);
 
-      // Tarih ve saati birleştir
+      // Tarih ve saati birleştir (yerel saat diliminde)
       const [hours, minutes] = params.selectedTime.split(':');
-      const startDateTime = new Date(params.selectedDate);
-      startDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      const [year, month, day] = params.selectedDate.split('-').map(Number);
+      const startDateTime = new Date(year, month - 1, day, parseInt(hours), parseInt(minutes), 0, 0);
 
       // Bitiş saatini hesapla (1 saat sonra)
       const endDateTime = new Date(startDateTime);
@@ -97,21 +97,56 @@ const BookingConfirmScreen = () => {
 
       setIsConfirming(false);
 
-      // Başarılı mesajını göster ve ana sayfaya yönlendir
-      Alert.alert(
-        t('common.success'),
-        t('reservation.success'),
-        [
-          {
-            text: t('common.ok'),
-            onPress: () => {
-              navigation.getParent()?.navigate('Home', { 
-                showReservationSuccess: true 
-              });
-            }
+      // Hemen ana sayfaya yönlendir
+      try {
+        // Parent navigator'ı al (Tab Navigator) ve Home'a navigate et
+        const parent = navigation.getParent();
+        
+        if (parent) {
+          // Tab Navigator üzerinden Home'a git
+          (parent as any).navigate('Home', { showReservationSuccess: true });
+        } else {
+          // Parent yoksa, root navigator'a eriş
+          const rootState = navigation.getRootState();
+          if (rootState) {
+            // Root state üzerinden Home'a navigate et
+            (navigation as any).navigate('Home' as never, { showReservationSuccess: true });
+          } else {
+            // Reset kullan
+            navigation.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [
+                  {
+                    name: 'Home' as never,
+                    params: { showReservationSuccess: true },
+                  },
+                ],
+              })
+            );
           }
-        ]
-      );
+        }
+      } catch (err) {
+        console.error('❌ Navigation hatası:', err);
+        // Hata durumunda: reset kullan
+        try {
+          navigation.dispatch(
+            CommonActions.reset({
+              index: 0,
+              routes: [
+                {
+                  name: 'Home' as never,
+                  params: { showReservationSuccess: true },
+                },
+              ],
+            })
+          );
+        } catch (resetErr) {
+          console.error('❌ Reset hatası:', resetErr);
+          // En son çare: sadece geri git
+          navigation.goBack();
+        }
+      }
     } catch (error: any) {
       setIsConfirming(false);
       
@@ -324,22 +359,41 @@ const BookingConfirmScreen = () => {
           <Card.Content style={styles.playersCardContent}>
             <Text style={styles.playersTitle}>{t('reservation.players')}</Text>
             
-            {/* Current User */}
-            {currentUser && (
-              <View style={styles.playerItem}>
-                <View style={styles.playerAvatarContainer}>
-                  <View style={styles.playerAvatar}>
-                    <Text style={styles.playerAvatarText}>
-                      {getInitials(currentUser.name)}
-                    </Text>
+            {/* Team 1: Current User + Partner (for doubles) */}
+            <View style={styles.teamContainer}>
+              {currentUser && (
+                <View style={styles.playerItem}>
+                  <View style={styles.playerAvatarContainer}>
+                    <View style={styles.playerAvatar}>
+                      <Text style={styles.playerAvatarText}>
+                        {getInitials(currentUser.name)}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.playerInfo}>
+                    <Text style={styles.playerLabel}>{t('reservation.you')}</Text>
+                    <Text style={styles.playerName}>{currentUser.name}</Text>
                   </View>
                 </View>
-                <View style={styles.playerInfo}>
-                  <Text style={styles.playerName}>{currentUser.name}</Text>
-                  <Text style={styles.playerLabel}>{t('reservation.you')}</Text>
+              )}
+
+              {/* Partner (for double) - same team as current user */}
+              {params.playerType === 'double' && params.selectedPartner && (
+                <View style={styles.playerItem}>
+                  <View style={styles.playerAvatarContainer}>
+                    <View style={styles.playerAvatar}>
+                      <Text style={styles.playerAvatarText}>
+                        {getInitials(params.selectedPartner.name)}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.playerInfo}>
+                    <Text style={styles.playerLabel}>{t('reservation.partner')}</Text>
+                    <Text style={styles.playerName}>{params.selectedPartner.name}</Text>
+                  </View>
                 </View>
-              </View>
-            )}
+              )}
+            </View>
 
             {/* VS Separator */}
             {((params.selectedPartner || params.selectedOpponents.length > 0) || currentUser) && (
@@ -348,55 +402,42 @@ const BookingConfirmScreen = () => {
               </View>
             )}
 
-            {/* Partner (for double) */}
-            {params.playerType === 'double' && params.selectedPartner && (
-              <View style={styles.playerItem}>
-                <View style={styles.playerAvatarContainer}>
-                  <View style={styles.playerAvatar}>
-                    <Text style={styles.playerAvatarText}>
-                      {getInitials(params.selectedPartner.name)}
-                    </Text>
+            {/* Team 2: Opponents */}
+            <View style={styles.teamContainer}>
+              {/* Single mode opponent */}
+              {params.playerType === 'single' && params.selectedPartner && (
+                <View style={styles.playerItem}>
+                  <View style={styles.playerAvatarContainer}>
+                    <View style={styles.playerAvatar}>
+                      <Text style={styles.playerAvatarText}>
+                        {getInitials(params.selectedPartner.name)}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.playerInfo}>
+                    <Text style={styles.playerLabel}>{t('reservation.opponent')}</Text>
+                    <Text style={styles.playerName}>{params.selectedPartner.name}</Text>
                   </View>
                 </View>
-                <View style={styles.playerInfo}>
-                  <Text style={styles.playerName}>{params.selectedPartner.name}</Text>
-                  <Text style={styles.playerLabel}>{t('reservation.partner')}</Text>
-                </View>
-              </View>
-            )}
+              )}
 
-            {/* Opponents */}
-            {params.playerType === 'single' && params.selectedPartner && (
-              <View style={styles.playerItem}>
-                <View style={styles.playerAvatarContainer}>
-                  <View style={styles.playerAvatar}>
-                    <Text style={styles.playerAvatarText}>
-                      {getInitials(params.selectedPartner.name)}
-                    </Text>
+              {/* Double mode opponents - same team */}
+              {params.playerType === 'double' && params.selectedOpponents.map((opponent, index) => (
+                <View key={opponent.id} style={styles.playerItem}>
+                  <View style={styles.playerAvatarContainer}>
+                    <View style={styles.playerAvatar}>
+                      <Text style={styles.playerAvatarText}>
+                        {getInitials(opponent.name)}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.playerInfo}>
+                    <Text style={styles.playerLabel}>{t('reservation.opponent')}</Text>
+                    <Text style={styles.playerName}>{opponent.name}</Text>
                   </View>
                 </View>
-                <View style={styles.playerInfo}>
-                  <Text style={styles.playerName}>{params.selectedPartner.name}</Text>
-                  <Text style={styles.playerLabel}>{t('reservation.opponent')}</Text>
-                </View>
-              </View>
-            )}
-
-            {params.playerType === 'double' && params.selectedOpponents.map((opponent, index) => (
-              <View key={opponent.id} style={styles.playerItem}>
-                <View style={styles.playerAvatarContainer}>
-                  <View style={styles.playerAvatar}>
-                    <Text style={styles.playerAvatarText}>
-                      {getInitials(opponent.name)}
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.playerInfo}>
-                  <Text style={styles.playerName}>{opponent.name}</Text>
-                  <Text style={styles.playerLabel}>{t('reservation.opponent')}</Text>
-                </View>
-              </View>
-            ))}
+              ))}
+            </View>
           </Card.Content>
         </Card>
       </ScrollView>
@@ -564,15 +605,18 @@ const styles = StyleSheet.create({
   playerInfo: {
     flex: 1,
   },
+  playerLabel: {
+    fontSize: 12, // text-xs
+    color: '#717182', // Medium gray
+    marginBottom: 4, // mb-1
+  },
   playerName: {
     fontSize: 16, // text-base
     fontWeight: '600',
     color: '#030213',
-    marginBottom: 4, // mb-1
   },
-  playerLabel: {
-    fontSize: 12, // text-xs
-    color: '#717182', // Medium gray
+  teamContainer: {
+    gap: 12,
   },
   vsContainer: {
     alignItems: 'center',

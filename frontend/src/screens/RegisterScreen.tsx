@@ -27,7 +27,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const { t } = useLanguage();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState('+90');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [age, setAge] = useState('');
@@ -36,6 +36,33 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+
+  const handlePhoneChange = (text: string) => {
+    // +90 ile başlamıyorsa, +90 ekle
+    if (!text.startsWith('+90')) {
+      // Eğer kullanıcı +90'ı silmeye çalışıyorsa, tekrar ekle
+      if (text === '' || text === '+') {
+        setPhone('+90');
+        return;
+      }
+      // Eğer sadece rakamlar varsa, +90 ekle
+      if (/^[0-9]+$/.test(text)) {
+        setPhone('+90' + text);
+        return;
+      }
+      // Diğer durumlarda +90 ekle
+      setPhone('+90' + text.replace(/^\+90/, ''));
+      return;
+    }
+    
+    // +90 ile başlıyorsa, sadece rakam ve + karakterine izin ver
+    const cleaned = text.replace(/[^0-9+]/g, '');
+    
+    // Maksimum uzunluk kontrolü (+90 + 10 haneli numara = 13 karakter)
+    if (cleaned.length <= 13) {
+      setPhone(cleaned);
+    }
+  };
 
   const handleRegister = async () => {
     if (!name || !email || !password || !confirmPassword) {
@@ -72,7 +99,9 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 
     try {
       const ageValue = age && age.trim() !== '' ? parseInt(age, 10) : undefined;
-      await register(name, email, password, ageValue);
+      // Telefon numarasını +90 ile başladığından emin ol
+      const phoneNumber = phone.startsWith('+90') ? phone : '+90' + phone.replace(/^\+90/, '');
+      await register(name, email, password, ageValue, phoneNumber);
       navigation.replace('Main');
     } catch (err: any) {
       setError(err.response?.data?.message || t('auth.registrationFailed'));
@@ -151,10 +180,10 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
               <MaterialCommunityIcons name="phone" size={20} color="#9CA3AF" style={styles.inputIcon} />
               <RNTextInput
                 style={styles.input}
-                placeholder={t('auth.enterPhoneNumber')}
+                placeholder="+90 5XX XXX XX XX"
                 placeholderTextColor="#9E9E9E"
                 value={phone}
-                onChangeText={setPhone}
+                onChangeText={handlePhoneChange}
                 keyboardType="phone-pad"
                 autoCapitalize="none"
                 autoCorrect={false}

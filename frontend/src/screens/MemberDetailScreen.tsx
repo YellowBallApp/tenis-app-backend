@@ -9,6 +9,8 @@ import {
   Linking,
   Dimensions,
   Image,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -254,7 +256,6 @@ const MemberDetailScreen = () => {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="#54CE8F" />
-        <Text style={{ marginTop: 10, color: '#717182' }}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -494,94 +495,104 @@ const MemberDetailScreen = () => {
           onDismiss={() => setShowReviewModal(false)}
           contentContainerStyle={styles.reviewModal}
         >
-          <Card style={styles.reviewCard}>
-            <Card.Content style={styles.reviewContent}>
-              <View style={styles.reviewModalHeader}>
-                <MaterialIcons name="star" size={32} color="#FFD700" />
-                <Text style={styles.reviewModalTitle}>{t('members.rateMember')}</Text>
-                <TouchableOpacity 
-                  onPress={() => setShowReviewModal(false)}
-                  style={styles.modalCloseButton}
-                >
-                  <MaterialCommunityIcons name="close" size={20} color="#9CA3AF" />
-                </TouchableOpacity>
-              </View>
-              
-              <Text style={styles.reviewModalSubtitle}>
-                {t('members.rateMemberSubtitle')} {member?.name}
-              </Text>
-              
-              <View style={styles.ratingSection}>
-                <Text style={styles.ratingLabel}>{t('members.yourRating')}</Text>
-                <View style={styles.starsContainer}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <TouchableOpacity
-                      key={star}
-                      onPress={() => setReviewRating(star)}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1 }}
+          >
+            <Card style={styles.reviewCard}>
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                <Card.Content style={styles.reviewContent}>
+                  <View style={styles.reviewModalHeader}>
+                    <MaterialIcons name="star" size={32} color="#FFD700" />
+                    <Text style={styles.reviewModalTitle}>{t('members.rateMember')}</Text>
+                    <TouchableOpacity 
+                      onPress={() => setShowReviewModal(false)}
+                      style={styles.modalCloseButton}
                     >
-                      <MaterialIcons
-                        name={star <= reviewRating ? 'star' : 'star-border'}
-                        size={32}
-                        color="#FFD700"
-                        style={styles.star}
-                      />
+                      <MaterialCommunityIcons name="close" size={20} color="#9CA3AF" />
                     </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-              
-              <TextInput
-                mode="outlined"
-                label={t('members.yourComment')}
-                placeholder={t('members.commentPlaceholder')}
-                value={reviewComment}
-                onChangeText={setReviewComment}
-                multiline
-                numberOfLines={4}
-                style={styles.commentInput}
-                outlineColor="#E5E7EB"
-                activeOutlineColor="#54CE8F"
-              />
+                  </View>
+                  
+                  <Text style={styles.reviewModalSubtitle}>
+                    {member?.name} {t('members.rateMemberSubtitle')}
+                  </Text>
+                  
+                  <View style={styles.ratingSection}>
+                    <Text style={styles.ratingLabel}>{t('members.yourRating')}</Text>
+                    <View style={styles.starsContainer}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <TouchableOpacity
+                          key={star}
+                          onPress={() => setReviewRating(star)}
+                        >
+                          <MaterialIcons
+                            name={star <= reviewRating ? 'star' : 'star-border'}
+                            size={32}
+                            color="#FFD700"
+                            style={styles.star}
+                          />
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                  
+                  <TextInput
+                    mode="outlined"
+                    label={t('members.yourComment')}
+                    placeholder={t('members.commentPlaceholder')}
+                    value={reviewComment}
+                    onChangeText={setReviewComment}
+                    multiline
+                    numberOfLines={4}
+                    style={styles.commentInput}
+                    outlineColor="#E5E7EB"
+                    activeOutlineColor="#54CE8F"
+                  />
 
-              <View style={styles.reviewModalButtons}>
-                <TouchableOpacity
-                  onPress={() => setShowReviewModal(false)}
-                  style={[styles.modalCancelButton, { paddingVertical: 16 }]}
-                >
-                  <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={async () => {
-                    if (reviewRating === 0) {
-                      Alert.alert(t('common.error'), t('members.ratingRequired'));
-                      return;
-                    }
-                    if (reviewComment.trim() === '') {
-                      Alert.alert(t('common.error'), t('members.commentRequired'));
-                      return;
-                    }
-                    try {
-                      console.log('📤 Yorum gönderiliyor:', { memberId, rating: reviewRating, comment: reviewComment.trim() });
-                      const newReview = await memberReviewService.createReview(memberId, reviewRating, reviewComment.trim());
-                      console.log('✅ Yorum gönderildi:', newReview);
-                      Alert.alert(t('common.success'), t('members.reviewSuccess'));
-                      setShowReviewModal(false);
-                      setReviewRating(0);
-                      setReviewComment('');
-                      // Yorumları yeniden yükle
-                      await loadMemberData();
-                    } catch (error: any) {
-                      console.error('❌ Yorum gönderme hatası:', error);
-                      Alert.alert(t('common.error'), error.response?.data?.message || error.message || 'Yorum kaydedilirken bir hata oluştu');
-                    }
-                  }}
-                  style={[styles.modalSubmitButton, { paddingVertical: 16 }]}
-                >
-                  <Text style={styles.saveButtonText}>{t('members.send')}</Text>
-                </TouchableOpacity>
-              </View>
-            </Card.Content>
-          </Card>
+                  <View style={styles.reviewModalButtons}>
+                    <TouchableOpacity
+                      onPress={() => setShowReviewModal(false)}
+                      style={[styles.modalCancelButton, { paddingVertical: 16 }]}
+                    >
+                      <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={async () => {
+                        if (reviewRating === 0) {
+                          Alert.alert(t('common.error'), t('members.ratingRequired'));
+                          return;
+                        }
+                        if (reviewComment.trim() === '') {
+                          Alert.alert(t('common.error'), t('members.commentRequired'));
+                          return;
+                        }
+                        try {
+                          console.log('📤 Yorum gönderiliyor:', { memberId, rating: reviewRating, comment: reviewComment.trim() });
+                          const newReview = await memberReviewService.createReview(memberId, reviewRating, reviewComment.trim());
+                          console.log('✅ Yorum gönderildi:', newReview);
+                          Alert.alert(t('common.success'), t('members.reviewSuccess'));
+                          setShowReviewModal(false);
+                          setReviewRating(0);
+                          setReviewComment('');
+                          // Yorumları yeniden yükle
+                          await loadMemberData();
+                        } catch (error: any) {
+                          console.error('❌ Yorum gönderme hatası:', error);
+                          Alert.alert(t('common.error'), error.response?.data?.message || error.message || 'Yorum kaydedilirken bir hata oluştu');
+                        }
+                      }}
+                      style={[styles.modalSubmitButton, { paddingVertical: 16 }]}
+                    >
+                      <Text style={styles.saveButtonText}>{t('members.send')}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </Card.Content>
+              </ScrollView>
+            </Card>
+          </KeyboardAvoidingView>
         </Modal>
       </Portal>
       </View>

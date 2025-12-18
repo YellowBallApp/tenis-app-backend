@@ -24,7 +24,7 @@ export type MainTabParamList = {
   DefiLig: undefined;
   Users: undefined;
   Profile: undefined;
-  Reservation: { opponentId?: string; opponentName?: string; matchChallengeId?: number } | undefined;
+  Reservation: { opponentId?: string; opponentName?: string; matchChallengeId?: number; courtId?: number; selectedDate?: string; selectedTime?: string } | undefined;
   ReservationsList: undefined;
   MyReservations: undefined;
   MatchHistory: { leagueId?: number; leagueName?: string } | undefined;
@@ -32,8 +32,12 @@ export type MainTabParamList = {
 };
 
 export type ReservationStackParamList = {
-  ReservationList: undefined;
-  CourtDetail: { courtId: number };
+  ReservationList: { courtId?: number; selectedDate?: string; selectedTime?: string } | undefined;
+  CourtDetail: {
+    courtId: number;
+    selectedDate?: string;
+    selectedTime?: string;
+  };
   BookingConfirm: {
     courtId: number;
     selectedDate: string;

@@ -356,7 +356,6 @@ const CoachesScreen = () => {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="#2E7D32" />
-        <Text style={{ marginTop: 10, color: '#9E9E9E' }}>{t('common.loading')}</Text>
       </View>
     );
   }

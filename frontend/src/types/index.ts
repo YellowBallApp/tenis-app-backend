@@ -31,6 +31,7 @@ export interface RegisterCredentials {
   email: string;
   password: string;
   birthDate?: string;
+  phone?: string;
 }
 
 export interface ApiResponse<T> {

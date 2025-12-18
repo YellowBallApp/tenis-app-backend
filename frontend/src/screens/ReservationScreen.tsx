@@ -6,6 +6,7 @@ import {
   Dimensions,
   Animated,
   TouchableOpacity,
+  Pressable,
   FlatList,
   Alert,
   ActivityIndicator,
@@ -123,6 +124,9 @@ const ReservationScreen = () => {
   const [checkingBlockStatus, setCheckingBlockStatus] = useState(true);
   const [blockedHours, setBlockedHours] = useState<Array<{hour: number, reason: string | null}>>([]);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [activeReservation, setActiveReservation] = useState<any | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [reservationToDelete, setReservationToDelete] = useState<any | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -130,6 +134,11 @@ const ReservationScreen = () => {
   const step2Ref = useRef<View>(null);
   const step3Ref = useRef<View>(null);
   const step4Ref = useRef<View>(null);
+  const previousRouteParamsRef = useRef<any>(null);
+  const hasProcessedParamsRef = useRef(false);
+  const isFirstMountRef = useRef(true);
+  const previousFocusTimeRef = useRef<number>(0);
+  const currentSelectionsRef = useRef<{date: string, time: string, court: string}>({date: '', time: '', court: ''});
 
   // Dil değiştiğinde takvim locale'ini ayarla
   useEffect(() => {
@@ -153,11 +162,20 @@ const ReservationScreen = () => {
             // Aktif rezervasyon kontrolü (hem owner hem participant olarak)
             const hasActive = await reservationService.hasActiveReservation();
             if (hasActive) {
+              // Aktif rezervasyonun detaylarını al
+              const allReservations = await reservationService.getMyReservations();
+              const now = new Date();
+              const activeRes = allReservations.find((reservation: any) => {
+                const endTime = new Date(reservation.endTime);
+                return endTime >= now;
+              });
+              setActiveReservation(activeRes || null);
               setReservationBlocked(true);
               setBlockReason('Şu anda aktif bir rezervasyonunuz var. Yeni rezervasyon oluşturmadan önce mevcut rezervasyonunuzun bitmesini bekleyin.');
               setCheckingBlockStatus(false);
               return;
             }
+            setActiveReservation(null);
 
             // Bekleyen maç sonucu kontrolü
             const notifications = await notificationService.getUserNotifications(1, 20);
@@ -248,39 +266,301 @@ const ReservationScreen = () => {
     loadCourts();
   }, [loadCourts]);
 
-  // Rezervasyon engeli kontrolü - sadece useFocusEffect içinde yapılıyor
-
-  // Sayfa her açıldığında tüm seçimleri resetle ve engel kontrolü yap
-  useFocusEffect(
-    React.useCallback(() => {
-      // ÖNEMLİ: State'leri hemen sıfırla, async işlemlerden önce
-      // Bugünün tarihini varsayılan olarak ayarla (court listesi için next available time hesaplaması için)
+  // Component mount olduğunda state'leri resetle (sadece ilk mount'ta)
+  useEffect(() => {
+    // Sadece eğer route params yoksa reset yap
+    const currentRouteParams = route.params as { courtId?: number; selectedDate?: string; selectedTime?: string } | undefined;
+    const paramsExists = currentRouteParams !== undefined && currentRouteParams !== null;
+    const hasValidParams = paramsExists && 
+      (currentRouteParams?.courtId !== undefined || 
+       (currentRouteParams?.selectedDate !== undefined && currentRouteParams?.selectedDate !== '') ||
+       (currentRouteParams?.selectedTime !== undefined && currentRouteParams?.selectedTime !== ''));
+    
+    if (!hasValidParams) {
       const todayDate = new Date().toISOString().split('T')[0];
-      
-      // Tüm state'leri sıfırla (ama selectedDate'i bugünün tarihi olarak ayarla)
       setSelectedDate(todayDate);
       setSelectedTime('');
       setSelectedCourt('');
-      setPlayerType('single');
-      setPartnerName('');
-      setSelectedPartner(null);
-      setSelectedOpponents([]);
       setCurrentStep(1);
-      setSearchQuery('');
-      setCourtSearchQuery('');
-      setCourtFilter('all');
-      setCurrentScrollY(0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Sadece mount'ta çalış
+
+  // Rezervasyon engeli kontrolü - sadece useFocusEffect içinde yapılıyor
+
+  // Navigation listener - route değişikliklerini dinle
+  // SADECE sayfa ilk açıldığında veya gerçekten params değiştiğinde çalışır
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      const currentRouteParams = route.params as { courtId?: number; selectedDate?: string; selectedTime?: string } | undefined;
+      
+      // Kullanıcı etkileşimlerini kontrol et - eğer varsa hiçbir şey yapma
+      // selectedDate, selectedTime, selectedCourt state'lerini direkt kontrol et (ref yerine)
+      if (selectedDate || selectedTime || selectedCourt) {
+        // Kullanıcı etkileşimleri var, sadece params'ları temizle ama state'leri resetleme
+        const paramsExists = currentRouteParams !== undefined && currentRouteParams !== null;
+        const hasValidParams = paramsExists && 
+          (currentRouteParams?.courtId !== undefined || 
+           (currentRouteParams?.selectedDate !== undefined && currentRouteParams?.selectedDate !== '') ||
+           (currentRouteParams?.selectedTime !== undefined && currentRouteParams?.selectedTime !== ''));
+        
+        // Eğer params varsa ama artık kullanılmıyorsa, sessizce temizle
+        if (hasValidParams) {
+          setTimeout(() => {
+            navigation.setParams({
+              courtId: undefined,
+              selectedDate: undefined,
+              selectedTime: undefined,
+            });
+          }, 0);
+        }
+        
+        // Route params'ı güncelle (değişiklik takibi için)
+        previousRouteParamsRef.current = currentRouteParams;
+        return; // Erken çık, state'leri resetleme
+      }
+      
+      // ÖNCE: Her zaman params kontrolü yap (değişiklik kontrolü yapmadan)
+      const paramsExists = currentRouteParams !== undefined && currentRouteParams !== null;
+      const hasValidParams = paramsExists && 
+        (currentRouteParams.courtId !== undefined || 
+         (currentRouteParams.selectedDate !== undefined && currentRouteParams.selectedDate !== '') ||
+         (currentRouteParams.selectedTime !== undefined && currentRouteParams.selectedTime !== ''));
+      
+    // Params yoksa VEYA route name ReservationList değilse state'leri resetle ve params'ları temizle
+    // ANCAK sadece state'ler boşsa reset yap
+    if (!hasValidParams || route.name !== 'ReservationList') {
+      // Sadece eğer state'ler zaten boşsa reset yap
+      if (!selectedDate && !selectedTime && !selectedCourt) {
+        const todayDate = new Date().toISOString().split('T')[0];
+        setSelectedDate(todayDate);
+        setSelectedTime('');
+        setSelectedCourt('');
+        setCurrentStep(1);
+      }
+      hasProcessedParamsRef.current = false;
+      
+      // Params varsa ama geçersizse veya route name ReservationList değilse, params'ları temizle
+      // ANCAK sadece gerçekten params varsa ve undefined değilse
+      if (paramsExists && (!hasValidParams || route.name !== 'ReservationList')) {
+        // setParams çağrısını setTimeout ile geciktir ki bu listener tekrar tetiklenmesin
+        setTimeout(() => {
+          navigation.setParams({
+            courtId: undefined,
+            selectedDate: undefined,
+            selectedTime: undefined,
+          });
+        }, 0);
+      }
+    }
+      
+      // Route params'ı güncelle (değişiklik takibi için)
+      previousRouteParamsRef.current = currentRouteParams;
+    });
+
+    return unsubscribe;
+  }, [navigation, route.params, selectedDate, selectedTime, selectedCourt]);
+
+  // Sayfa her açıldığında engel kontrolü yap (reset yapma, sadece route params kontrolü)
+  useFocusEffect(
+    React.useCallback(() => {
+      // Route params kontrol et
+      const currentRouteParams = route.params as { courtId?: number; selectedDate?: string; selectedTime?: string } | undefined;
+      const paramsExists = currentRouteParams !== undefined && currentRouteParams !== null;
+      const hasValidParams = paramsExists && 
+        (currentRouteParams?.courtId !== undefined || 
+         (currentRouteParams?.selectedDate !== undefined && currentRouteParams?.selectedDate !== '') ||
+         (currentRouteParams?.selectedTime !== undefined && currentRouteParams?.selectedTime !== ''));
+      
+      // Eğer kullanıcı zaten bir şeyler seçmişse ve params yoksa, state'leri koru
+      // Sadece gerçekten yeni params geldiğinde veya state'ler boşsa işlem yap
+      // DİREKT state kontrolü yap (ref yerine) çünkü ref güncellemesi asenkron olabilir
+      const hasUserSelections = selectedDate || selectedTime || selectedCourt;
+      if (!hasValidParams && hasUserSelections) {
+        // Kullanıcı etkileşimleri var, sadece modal state'lerini temizle ve verileri yenile
+        setShowCalendar(false);
+        setShowUserSelector(false);
+        setShowWeatherWarningModal(false);
+        setPendingTimeSelection(null);
+        
+        // Verileri yeniden yükle ama state'leri koru
+        const loadDataOnly = async () => {
+          try {
+            const courtsList = await courtService.getActiveCourts();
+            const normalizedCourts = courtsList.map((court: any) => ({
+              ...court,
+              closed: !!(court.closed),
+              indoors: !!(court.indoors),
+            }));
+            setCourts(normalizedCourts);
+            
+            // Rezervasyonları yükle
+            // DİREKT state kontrolü yap (ref yerine)
+            const dateToLoad = selectedDate || new Date().toISOString().split('T')[0];
+            if (dateToLoad) {
+              await loadReservationsForDate(dateToLoad, normalizedCourts);
+            }
+          } catch (error) {
+            console.error('Veriler yüklenirken hata:', error);
+          }
+        };
+        
+        // Rezervasyon engeli kontrolü
+        const checkReservationBlock = async () => {
+          try {
+            setCheckingBlockStatus(true);
+            setReservationBlocked(false);
+            
+            const profile = await authService.getProfile();
+            const userId = profile.id;
+            
+            if (!userId) {
+              setCheckingBlockStatus(false);
+              return;
+            }
+
+            const hasActive = await reservationService.hasActiveReservation();
+            if (hasActive) {
+              // Aktif rezervasyonun detaylarını al
+              const allReservations = await reservationService.getMyReservations();
+              const now = new Date();
+              const activeRes = allReservations.find((reservation: any) => {
+                const endTime = new Date(reservation.endTime);
+                return endTime >= now;
+              });
+              setActiveReservation(activeRes || null);
+              setReservationBlocked(true);
+              setBlockReason('Şu anda aktif bir rezervasyonunuz var. Yeni rezervasyon oluşturmadan önce mevcut rezervasyonunuzun bitmesini bekleyin.');
+              setCheckingBlockStatus(false);
+              return;
+            }
+            setActiveReservation(null);
+
+            const notifications = await notificationService.getUserNotifications(1, 20);
+            const pendingMatchResult = notifications.notifications.find(
+              (notif: any) => notif.type === NotificationType.MATCH_COMPLETED
+            );
+
+            if (pendingMatchResult) {
+              setReservationBlocked(true);
+              setBlockReason('Bekleyen maç sonucu girmeniz gereken bir maç var. Yeni rezervasyon oluşturmadan önce maç sonucunu girin.');
+              setCheckingBlockStatus(false);
+              return;
+            }
+
+            setReservationBlocked(false);
+            setBlockReason('');
+            setCheckingBlockStatus(false);
+          } catch (error) {
+            setCheckingBlockStatus(false);
+            setReservationBlocked(false);
+          }
+        };
+
+        Promise.all([loadDataOnly(), checkReservationBlock()]).then(() => {
+          setIsInitializing(false);
+        }).catch((error) => {
+          console.error('Sayfa yüklenirken hata:', error);
+          setIsInitializing(false);
+        });
+        
+        return; // Erken çık, state'leri resetleme
+      }
+
+      // Async işlemleri yapmak için IIFE kullan
+      (async () => {
+        let savedCourtId: number | null = null;
+        let savedDate: string | null = null;
+        let savedTime: string | null = null;
+        let hasParams = false;
+        
+        // Eğer kullanıcı zaten bir şeyler seçmişse, params'ları işleme (kullanıcı etkileşimlerini koru)
+        // DİREKT state kontrolü yap (ref yerine) çünkü ref güncellemesi asenkron olabilir
+        const hasUserSelections = selectedDate || selectedTime || selectedCourt;
+        
+        // Sadece eğer kullanıcı etkileşimleri YOKSA ve params varsa, state'leri güncelle
+        if (!hasUserSelections && hasValidParams && route.name === 'ReservationList') {
+          // Params varsa state'leri güncelle
+          hasParams = true;
+          savedCourtId = currentRouteParams!.courtId ? parseInt(String(currentRouteParams!.courtId)) : null;
+          savedDate = currentRouteParams!.selectedDate || null;
+          savedTime = currentRouteParams!.selectedTime || null;
+          
+          if (savedDate) setSelectedDate(savedDate);
+          if (savedTime) setSelectedTime(savedTime);
+          if (savedCourtId) {
+            setCurrentStep(2);
+          }
+          
+          // Route params kullanıldıktan sonra temizle
+          // setTimeout ile geciktir ki useFocusEffect tekrar tetiklenmesin
+          setTimeout(() => {
+            navigation.setParams({
+              courtId: undefined,
+              selectedDate: undefined,
+              selectedTime: undefined,
+            });
+          }, 0);
+          hasProcessedParamsRef.current = true;
+        } else {
+          // Params yoksa veya route name ReservationList değilse, params'ları temizle
+          // Bu, önceki navigation'lardan kalan params'ları temizler
+          // ANCAK sadece kullanıcı etkileşimleri yoksa
+          if (!hasUserSelections && paramsExists && (!hasValidParams || route.name !== 'ReservationList')) {
+            // Route params'ları açıkça temizle
+            // setTimeout ile geciktir ki useFocusEffect tekrar tetiklenmesin
+            setTimeout(() => {
+              navigation.setParams({
+                courtId: undefined,
+                selectedDate: undefined,
+                selectedTime: undefined,
+              });
+            }, 0);
+          }
+          // Kullanıcı etkileşimleri varsa, params'ları işleme
+          if (hasUserSelections) {
+            hasProcessedParamsRef.current = true;
+          } else {
+            hasProcessedParamsRef.current = false;
+          }
+        }
+        
+        // AsyncStorage kontrolü (sadece route params yoksa VE kullanıcı etkileşimleri yoksa)
+        if (!hasValidParams && !hasUserSelections) {
+          const paramsStr = await AsyncStorage.getItem('reservationParams');
+          
+          if (paramsStr) {
+            try {
+              const params = JSON.parse(paramsStr);
+              if (params.courtId || params.selectedDate || params.selectedTime) {
+                hasParams = true;
+                savedCourtId = params.courtId ? parseInt(String(params.courtId)) : null;
+                savedDate = params.selectedDate || null;
+                savedTime = params.selectedTime || null;
+                
+                // AsyncStorage'dan gelen params varsa state'leri güncelle
+                if (savedDate) setSelectedDate(savedDate);
+                if (savedTime) setSelectedTime(savedTime);
+                if (savedCourtId) {
+                  setCurrentStep(2);
+                }
+                hasProcessedParamsRef.current = true;
+              }
+              // Params'ları temizle
+              AsyncStorage.removeItem('reservationParams');
+            } catch (error) {
+              console.error('Reservation params parse error:', error);
+              AsyncStorage.removeItem('reservationParams');
+            }
+          }
+        }
+
+      // Ortak state'leri sıfırlama - sadece modal state'lerini temizle
       setShowCalendar(false);
       setShowUserSelector(false);
-      setShowSuccessSnackbar(false);
       setShowWeatherWarningModal(false);
       setPendingTimeSelection(null);
-      setWeatherCache({});
-      setCourtReservations([]);
-      setBlockedHours([]);
-      setAllReservationsForDate([]);
-      setAllBlockedHours({});
-      
+
       // İlk yükleme başladı
       setIsInitializing(true);
       
@@ -295,9 +575,23 @@ const ReservationScreen = () => {
           }));
           setCourts(normalizedCourts);
           
+          // Kortlar yüklendikten sonra, eğer params'tan courtId varsa VE kullanıcı etkileşimleri yoksa, seçili kortu set et
+          // DİREKT state kontrolü yap (ref yerine)
+          const hasUserSelectionsNow = selectedDate || selectedTime || selectedCourt;
+          if (savedCourtId && normalizedCourts.some((c: any) => c.id === savedCourtId) && !hasUserSelectionsNow) {
+            setSelectedCourt(savedCourtId.toString());
+          } else if (!hasParams && !selectedCourt && !hasUserSelectionsNow) {
+            // Params yoksa VE court seçimi de yoksa VE kullanıcı etkileşimleri yoksa, court seçimini temizle
+            // Eğer kullanıcı zaten bir court seçmişse, onu koru
+            setSelectedCourt('');
+          }
+          // Eğer kullanıcı etkileşimleri varsa, hiçbir şey yapma (mevcut seçimi koru)
+          
           // Kortlar yüklendikten sonra rezervasyonları da yükle
-          if (todayDate) {
-            await loadReservationsForDate(todayDate, normalizedCourts);
+          // DİREKT state kontrolü yap (ref yerine)
+          const dateToLoad = savedDate || selectedDate || new Date().toISOString().split('T')[0];
+          if (dateToLoad) {
+            await loadReservationsForDate(dateToLoad, normalizedCourts);
           }
         } catch (error) {
           console.error('Veriler yüklenirken hata:', error);
@@ -321,11 +615,20 @@ const ReservationScreen = () => {
           // Aktif rezervasyon kontrolü (hem owner hem participant olarak)
           const hasActive = await reservationService.hasActiveReservation();
           if (hasActive) {
+            // Aktif rezervasyonun detaylarını al
+            const allReservations = await reservationService.getMyReservations();
+            const now = new Date();
+            const activeRes = allReservations.find((reservation: any) => {
+              const endTime = new Date(reservation.endTime);
+              return endTime >= now;
+            });
+            setActiveReservation(activeRes || null);
             setReservationBlocked(true);
             setBlockReason('Şu anda aktif bir rezervasyonunuz var. Yeni rezervasyon oluşturmadan önce mevcut rezervasyonunuzun bitmesini bekleyin.');
             setCheckingBlockStatus(false);
             return;
           }
+          setActiveReservation(null);
 
           // Bekleyen maç sonucu kontrolü
           const notifications = await notificationService.getUserNotifications(1, 20);
@@ -353,10 +656,10 @@ const ReservationScreen = () => {
       // Paralel olarak verileri yükle ve engel kontrolü yap
       Promise.all([loadAllData(), checkReservationBlock()]).then(() => {
         setIsInitializing(false);
-        
+
         // Scroll'u en üste getir
         scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-        
+
         // Animasyonları başlat
         fadeAnim.setValue(0);
         slideAnim.setValue(50);
@@ -376,8 +679,100 @@ const ReservationScreen = () => {
         console.error('Sayfa yüklenirken hata:', error);
         setIsInitializing(false);
       });
-    }, [fadeAnim, slideAnim, loadCourts, loadReservationsForDate])
+      })(); // IIFE'yi çağır
+    }, [fadeAnim, slideAnim, loadCourts, loadReservationsForDate, navigation, selectedDate, selectedTime, selectedCourt, route.params, route.name])
   );
+
+
+  // Route params değiştiğinde state'leri kontrol et ve resetle
+  // SADECE yeni params geldiğinde çalışır, kullanıcı etkileşimlerinde reset yapmaz
+  useEffect(() => {
+    const currentRouteParams = route.params as { courtId?: number; selectedDate?: string; selectedTime?: string } | undefined;
+    
+    // Kullanıcı etkileşimlerini kontrol et - eğer varsa hiçbir şey yapma
+    // selectedDate, selectedTime, selectedCourt state'lerini direkt kontrol et (ref yerine)
+    // Çünkü ref güncellemesi asenkron olabilir
+    if (selectedDate || selectedTime || selectedCourt) {
+      // Kullanıcı etkileşimleri var, sadece params'ları temizle ama state'leri resetleme
+      const paramsExists = currentRouteParams !== undefined && currentRouteParams !== null;
+      const hasValidParams = paramsExists && 
+        (currentRouteParams?.courtId !== undefined || 
+         (currentRouteParams?.selectedDate !== undefined && currentRouteParams?.selectedDate !== '') ||
+         (currentRouteParams?.selectedTime !== undefined && currentRouteParams?.selectedTime !== ''));
+      
+      // Eğer params varsa ama artık kullanılmıyorsa, sessizce temizle
+      if (hasValidParams) {
+        setTimeout(() => {
+          navigation.setParams({
+            courtId: undefined,
+            selectedDate: undefined,
+            selectedTime: undefined,
+          });
+        }, 0);
+      }
+      
+      // Önceki params'ı güncelle
+      previousRouteParamsRef.current = currentRouteParams;
+      return; // Erken çık, state'leri resetleme
+    }
+    
+    // Önceki params ile karşılaştır - sadece gerçekten değiştiyse işlem yap
+    const previousParams = previousRouteParamsRef.current;
+    const paramsChanged = JSON.stringify(previousParams) !== JSON.stringify(currentRouteParams);
+    
+    // Eğer params değişmediyse, hiçbir şey yapma
+    if (!paramsChanged) {
+      return;
+    }
+    
+    // Route params'ı kontrol et - daha agresif kontrol
+    // route.params undefined, null, boş obje {} veya tüm değerler undefined/boş ise geçersiz say
+    const paramsExists = currentRouteParams !== undefined && currentRouteParams !== null;
+    const isEmptyObject = paramsExists && Object.keys(currentRouteParams).length === 0;
+    const hasValidParams = paramsExists && !isEmptyObject &&
+      (currentRouteParams.courtId !== undefined || 
+       (currentRouteParams.selectedDate !== undefined && currentRouteParams.selectedDate !== '') ||
+       (currentRouteParams.selectedTime !== undefined && currentRouteParams.selectedTime !== ''));
+    
+    // Params yoksa VEYA route name ReservationList değilse state'leri resetle ve params'ları temizle
+    // ANCAK sadece gerçekten params yoksa veya route name farklıysa
+    if (!hasValidParams || route.name !== 'ReservationList') {
+      // Sadece eğer state'ler zaten boşsa veya ilk yüklemedeyse reset yap
+      if (!selectedDate && !selectedTime && !selectedCourt) {
+        const todayDate = new Date().toISOString().split('T')[0];
+        setSelectedDate(todayDate);
+        setSelectedTime('');
+        setSelectedCourt('');
+        setCurrentStep(1);
+      }
+      
+      // Params varsa ama geçersizse veya route name ReservationList değilse, params'ları temizle
+      // ANCAK sadece gerçekten params varsa ve undefined değilse
+      if (paramsExists && (!hasValidParams || route.name !== 'ReservationList')) {
+        // setParams çağrısını setTimeout ile geciktir ki bu useEffect tekrar tetiklenmesin
+        setTimeout(() => {
+          navigation.setParams({
+            courtId: undefined,
+            selectedDate: undefined,
+            selectedTime: undefined,
+          });
+        }, 0);
+      }
+    }
+    
+    // Önceki params'ı güncelle
+    previousRouteParamsRef.current = currentRouteParams;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route.params, route.name, selectedDate, selectedTime, selectedCourt]);
+
+  // Seçimleri ref'te sakla (navigation listener için)
+  useEffect(() => {
+    currentSelectionsRef.current = {
+      date: selectedDate,
+      time: selectedTime,
+      court: selectedCourt,
+    };
+  }, [selectedDate, selectedTime, selectedCourt]);
 
   // Tarih veya saat değiştiğinde seçimleri sıfırla
   useEffect(() => {
@@ -510,7 +905,7 @@ const ReservationScreen = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, selectedCourt, courts]);
 
-  // Route params'tan opponent bilgisini al (sadece ilk yüklemede)
+  // Route params'tan opponent bilgisini al
   useEffect(() => {
     const params = route.params as { opponentId?: string; opponentName?: string; matchChallengeId?: number } | undefined;
     const opponentId = params?.opponentId;
@@ -520,7 +915,7 @@ const ReservationScreen = () => {
         setSelectedPartner(opponentUser);
       }
     }
-  }, [users, route.params]); // Sadece users ve route.params değiştiğinde çalış
+  }, [users, route.params]);
 
   // Zaman dilimlerini yükle
   const loadTimeSlots = React.useCallback(async () => {
@@ -597,10 +992,10 @@ const ReservationScreen = () => {
 
       // Tarih ve saat seçilmişse o saat aralığında müsait kullanıcıları yükle
       try {
-        // Tarih ve saati birleştir
+        // Tarih ve saati birleştir (yerel saat diliminde)
         const [hours, minutes] = selectedTime.split(':');
-        const startDateTime = new Date(selectedDate);
-        startDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+        const [year, month, day] = selectedDate.split('-').map(Number);
+        const startDateTime = new Date(year, month - 1, day, parseInt(hours), parseInt(minutes), 0, 0);
 
         // Bitiş saatini hesapla (1 saat sonra)
         const endDateTime = new Date(startDateTime);
@@ -640,18 +1035,16 @@ const ReservationScreen = () => {
     }
 
     const now = new Date();
-    const selectedDateObj = new Date(selectedDate);
+    const [year, month, day] = selectedDate.split('-').map(Number);
     const [hours, minutes] = timeSlot.split(':').map(Number);
     
-    // Seçilen tarih ve saati birleştir
-    const selectedDateTime = new Date(selectedDateObj);
-    selectedDateTime.setHours(hours, minutes, 0, 0);
+    // Seçilen tarih ve saati birleştir (yerel saat diliminde)
+    const selectedDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
 
     // Eğer seçilen tarih bugünden önceyse, tüm saatler geçmiş
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const selectedDateOnly = new Date(selectedDateObj);
-    selectedDateOnly.setHours(0, 0, 0, 0);
+    const selectedDateOnly = new Date(year, month - 1, day, 0, 0, 0, 0);
     
     if (selectedDateOnly < today) {
       return true; // Geçmiş bir tarih
@@ -908,10 +1301,10 @@ const ReservationScreen = () => {
         playerType,
       });
 
-      // Tarih ve saati birleştir
+      // Tarih ve saati birleştir (yerel saat diliminde)
       const [hours, minutes] = selectedTime.split(':');
-      const startDateTime = new Date(selectedDate);
-      startDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      const [year, month, day] = selectedDate.split('-').map(Number);
+      const startDateTime = new Date(year, month - 1, day, parseInt(hours), parseInt(minutes), 0, 0);
 
       // Bitiş saatini hesapla (1 saat sonra)
       const endDateTime = new Date(startDateTime);
@@ -965,7 +1358,19 @@ const ReservationScreen = () => {
 
       // 2 saniye sonra ana sayfaya yönlendir
       setTimeout(() => {
-        navigation.navigate('Home');
+        try {
+          (navigation as any).navigate('MainTabs', {
+            screen: 'Home',
+            params: { showReservationSuccess: true }
+          });
+        } catch (err) {
+          // Fallback: direkt Home'a git
+          try {
+            (navigation as any).navigate('Home', { showReservationSuccess: true });
+          } catch (err2) {
+            navigation.goBack();
+          }
+        }
       }, 2000);
     } catch (error: any) {
       setIsLoading(false);
@@ -1046,6 +1451,109 @@ const ReservationScreen = () => {
     });
   };
 
+  const formatTime = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleTimeString(language === 'tr' ? 'tr-TR' : 'en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  // Rezervasyon için takımları belirle
+  const getTeamsForReservation = (reservation: any) => {
+    const owner = reservation.user;
+    const participants = reservation.participants || [];
+    const notes = reservation.notes || '';
+    
+    // Notes'tan maç tipini anla
+    const isDoubles = notes.includes('Çiftler') || notes.includes('doubles') || notes.includes('Doubles');
+    
+    // Participants sayısına göre de anla
+    // 1 participant = tekler, 3 participant = çiftler
+    const participantCount = participants.length;
+    const isDoubleMatch = isDoubles || participantCount === 3;
+    
+    if (isDoubleMatch) {
+      // Çiftler: owner + partner vs 2 rakip
+      const partner = participants[0] || null;
+      const opponents = participants.slice(1) || [];
+      return {
+        team1: [owner, partner].filter(Boolean),
+        team2: opponents,
+        isDouble: true,
+      };
+    } else {
+      // Tekler: owner vs 1 rakip
+      const opponent = participants[0] || null;
+      return {
+        team1: [owner].filter(Boolean),
+        team2: opponent ? [opponent] : [],
+        isDouble: false,
+      };
+    }
+  };
+
+  const handleCancelReservation = (reservation: any) => {
+    console.log('handleCancelReservation çağrıldı, reservation:', reservation);
+    setReservationToDelete(reservation);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmCancelReservation = async () => {
+    if (!reservationToDelete) return;
+    
+    console.log('Sil butonu tıklandı, rezervasyon iptal ediliyor...');
+    setShowDeleteDialog(false);
+    
+    try {
+      await reservationService.cancelReservation(reservationToDelete.id);
+      console.log('Rezervasyon iptal edildi');
+      setActiveReservation(null);
+      setReservationBlocked(false);
+      setBlockReason('');
+      // Rezervasyon engeli kontrolünü yeniden yap
+      const checkReservationBlock = async () => {
+        try {
+          setCheckingBlockStatus(true);
+          const hasActive = await reservationService.hasActiveReservation();
+          if (hasActive) {
+            const allReservations = await reservationService.getMyReservations();
+            const now = new Date();
+            const activeRes = allReservations.find((reservation: any) => {
+              const endTime = new Date(reservation.endTime);
+              return endTime >= now;
+            });
+            setActiveReservation(activeRes || null);
+            setReservationBlocked(true);
+            setBlockReason('Şu anda aktif bir rezervasyonunuz var. Yeni rezervasyon oluşturmadan önce mevcut rezervasyonunuzun bitmesini bekleyin.');
+          } else {
+            setActiveReservation(null);
+            setReservationBlocked(false);
+            setBlockReason('');
+          }
+          setCheckingBlockStatus(false);
+        } catch (error) {
+          setCheckingBlockStatus(false);
+          setReservationBlocked(false);
+        }
+      };
+      await checkReservationBlock();
+      Alert.alert(
+        t('common.success') || 'Başarılı',
+        t('reservation.cancelled') || 'Rezervasyon iptal edildi'
+      );
+      setReservationToDelete(null);
+    } catch (error: any) {
+      console.error('Rezervasyon iptal hatası:', error);
+      Alert.alert(
+        t('common.error') || 'Hata',
+        error.response?.data?.message || t('reservation.cancelError') || 'Rezervasyon iptal edilemedi'
+      );
+      setReservationToDelete(null);
+    }
+  };
+
   return (
     <>
       <StatusBar style="light" />
@@ -1087,7 +1595,6 @@ const ReservationScreen = () => {
                     <View style={styles.blockIconContainer}>
                       <ActivityIndicator size="large" color="#54CE8F" />
                     </View>
-                    <Text style={styles.blockLoadingText}>{t('reservation.checking') || 'Kontrol ediliyor...'}</Text>
                   </View>
                 ) : reservationBlocked ? (
                   <View style={styles.blockContent}>
@@ -1115,12 +1622,109 @@ const ReservationScreen = () => {
           </View>
         )}
 
+        {/* Aktif Rezervasyon Detayları */}
+        {activeReservation && reservationBlocked && blockReason.includes('aktif bir rezervasyonunuz var') && (
+          <View style={styles.activeReservationWrapper}>
+            <View style={styles.activeReservationCardWrapper}>
+              <Card style={styles.activeReservationCard}>
+                <Card.Content style={styles.activeReservationContent}>
+                  {/* Header Row */}
+                  <View style={styles.activeReservationHeader}>
+                    <View style={styles.activeReservationDateTimeContainer}>
+                      <View style={styles.activeReservationDateRow}>
+                        <MaterialCommunityIcons name="calendar" size={20} color="#54CE8F" />
+                        <Text style={styles.activeReservationDateText}>{formatDate(activeReservation.startTime)}</Text>
+                      </View>
+                      <View style={styles.activeReservationTimeRow}>
+                        <MaterialCommunityIcons name="clock-outline" size={18} color="#717182" />
+                        <Text style={styles.activeReservationTimeText}>
+                          {formatTime(activeReservation.startTime)} - {formatTime(activeReservation.endTime)}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                {/* Divider */}
+                <View style={styles.activeReservationDivider} />
+
+                {/* Court Info */}
+                <View style={styles.activeReservationInfoRow}>
+                  <MaterialCommunityIcons name="tennis" size={18} color="#B4AEBD" />
+                  <Text style={styles.activeReservationInfoLabel}>{t('reservation.court') || 'Kort'}:</Text>
+                  <Text style={styles.activeReservationInfoValue}>{activeReservation.court?.name || '-'}</Text>
+                </View>
+
+                {/* Players - Teams Display */}
+                {(() => {
+                  const teams = getTeamsForReservation(activeReservation);
+                  const hasPlayers = teams.team1.length > 0 || teams.team2.length > 0;
+                  
+                  if (!hasPlayers) return null;
+                  
+                  return (
+                    <View style={styles.activeReservationPlayersContainer}>
+                      <View style={styles.activeReservationPlayersLabelRow}>
+                        <MaterialCommunityIcons name="account-group" size={18} color="#B4AEBD" />
+                        <Text style={styles.activeReservationPlayersLabel}>{t('reservation.players') || 'Oyuncular'}:</Text>
+                      </View>
+                      
+                      <View style={styles.activeReservationTeamsContainer}>
+                        {/* Team 1 */}
+                        <View style={styles.activeReservationTeamContainer}>
+                          {teams.team1.map((player: any, index: number) => (
+                            <View key={player?.id || index} style={styles.activeReservationPlayerNameContainer}>
+                              <MaterialCommunityIcons name="account" size={16} color="#54CE8F" />
+                              <Text style={styles.activeReservationPlayerName}>
+                                {player?.name || 'Bilinmiyor'}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
+
+                        {/* VS */}
+                        {teams.team2.length > 0 && (
+                          <Text style={styles.activeReservationVsText}>VS</Text>
+                        )}
+
+                        {/* Team 2 */}
+                        <View style={styles.activeReservationTeamContainer}>
+                          {teams.team2.map((player: any, index: number) => (
+                            <View key={player?.id || index} style={styles.activeReservationPlayerNameContainer}>
+                              <MaterialCommunityIcons name="account" size={16} color="#FF9800" />
+                              <Text style={styles.activeReservationPlayerName}>
+                                {player?.name || 'Bilinmiyor'}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })()}
+                </Card.Content>
+              </Card>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.activeReservationDeleteButtonAbsolute,
+                  pressed && styles.activeReservationDeleteButtonPressed
+                ]}
+                onPress={() => {
+                  console.log('Aktif rezervasyon silme butonu tıklandı:', activeReservation.id);
+                  handleCancelReservation(activeReservation);
+                }}
+                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+              >
+                <MaterialCommunityIcons name="delete-outline" size={22} color="#DC2626" />
+              </Pressable>
+            </View>
+          </View>
+        )}
+
         {isInitializing ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#54CE8F" />
-            <Text style={styles.loadingText}>{t('common.loading')}</Text>
           </View>
-        ) : (
+        ) : !reservationBlocked || !blockReason.includes('aktif bir rezervasyonunuz var') ? (
           <Animated.View 
             style={[
               styles.contentContainer,
@@ -1214,6 +1818,7 @@ const ReservationScreen = () => {
                         const displayCourt = getCourtDisplayInfo(court);
                         // selectedDate'i kullan (useFocusEffect'te bugünün tarihi olarak ayarlanıyor)
                         const nextAvailable = getNextAvailableTime(court.id, selectedDate);
+                        const isSelected = selectedCourt === court.id.toString();
                         return (
                           <TouchableOpacity
                             key={court.id}
@@ -1224,18 +1829,28 @@ const ReservationScreen = () => {
                             }}
                             style={[
                               styles.newCourtCardContainer,
-                              (reservationBlocked || checkingBlockStatus) && styles.newCourtCardContainerDisabled
+                              (reservationBlocked || checkingBlockStatus) && styles.newCourtCardContainerDisabled,
+                              isSelected && styles.newCourtCardContainerSelected
                             ]}
                             disabled={reservationBlocked || checkingBlockStatus}
                           >
-                            <View style={styles.newCourtCard}>
+                            <View style={[
+                              styles.newCourtCard,
+                              isSelected && styles.newCourtCardSelected
+                            ]}>
                               {/* Court Image Area */}
                               <LinearGradient
-                                colors={['#D1FAE5', '#ECFDF5']} // from-green-100 to-green-50
+                                colors={isSelected ? ['#54CE8F', '#4CAF50'] : ['#D1FAE5', '#ECFDF5']} // Selected: green, Default: from-green-100 to-green-50
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 1 }}
                                 style={styles.newCourtImageArea}
                               >
+                                {/* Seçili ikon */}
+                                {isSelected && (
+                                  <View style={styles.newCourtSelectedIcon}>
+                                    <MaterialCommunityIcons name="check-circle" size={24} color="#FFFFFF" />
+                                  </View>
+                                )}
                                 {/* Top Right Chips */}
                                 <View style={styles.newCourtChipsContainer}>
                                   <View style={styles.newCourtChip}>
@@ -1260,7 +1875,10 @@ const ReservationScreen = () => {
                               {/* Court Info Area */}
                               <View style={styles.newCourtInfoArea}>
                                 {/* Court Name */}
-                                <Text style={styles.newCourtName}>{displayCourt.name}</Text>
+                                <Text style={[
+                                  styles.newCourtName,
+                                  isSelected && styles.newCourtNameSelected
+                                ]}>{displayCourt.name}</Text>
 
                                 {/* Location and Type */}
                                 <View style={styles.newCourtLocationContainer}>
@@ -1317,7 +1935,7 @@ const ReservationScreen = () => {
           </View>
 
           </Animated.View>
-        )}
+        ) : null}
       </ScrollView>
 
       {/* Calendar Modal */}
@@ -1395,7 +2013,7 @@ const ReservationScreen = () => {
           contentContainerStyle={styles.userSelectorModal}
         >
           <Card style={styles.userSelectorCard}>
-            <Card.Content>
+            <Card.Content style={[styles.userSelectorCardContent, { paddingHorizontal: 16, paddingVertical: 16 }]}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>
                   {selectorMode === 'partner' 
@@ -1427,7 +2045,8 @@ const ReservationScreen = () => {
                 iconColor={selectorMode === 'opponents' ? "#FF9800" : "#2E7D32"}
               />
 
-              <FlatList
+              <View style={styles.userListContainer}>
+                <FlatList
                 data={filteredUsers}
                 keyExtractor={(item) => item.id.toString()}
                 style={styles.userList}
@@ -1472,24 +2091,35 @@ const ReservationScreen = () => {
                           } />
                         </View>
                         <View style={styles.userInfo}>
-                          <Text style={[
-                            styles.userName,
-                            isDisabled && styles.disabledText
-                          ]}>
+                          <Text 
+                            style={[
+                              styles.userName,
+                              isDisabled && styles.disabledText
+                            ]}
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                          >
                             {item.name}
                             {isDisabledInPartnerMode && ` ${t('reservation.selectedAsOpponent')}`}
                             {isDisabledInOpponentsMode && ` ${t('reservation.selectedAsPartner')}`}
                           </Text>
-                          <Text style={[
-                            styles.userEmail,
-                            isDisabled && styles.disabledText
-                          ]}>{item.email}</Text>
+                          <Text 
+                            style={[
+                              styles.userEmail,
+                              isDisabled && styles.disabledText
+                            ]}
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                          >
+                            {item.email}
+                          </Text>
                         </View>
                         {!!isSelected && (
                           <MaterialCommunityIcons 
                             name={selectorMode === 'opponents' ? "checkbox-marked-circle" : "check-circle"} 
                             size={24} 
-                            color={selectorMode === 'opponents' ? "#FF9800" : "#4CAF50"} 
+                            color={selectorMode === 'opponents' ? "#FF9800" : "#4CAF50"}
+                            style={{ flexShrink: 0 }}
                           />
                         )}
                       </View>
@@ -1502,7 +2132,8 @@ const ReservationScreen = () => {
                     <Text style={styles.emptyListText}>{t('reservation.noUsersFound')}</Text>
                   </View>
                 )}
-              />
+                />
+              </View>
 
               {selectorMode === 'opponents' && selectedOpponents.length > 0 && (
                 <TouchableOpacity
@@ -1605,6 +2236,60 @@ const ReservationScreen = () => {
                 >
                   <Text style={styles.weatherModalContinueButtonLabel}>
                     {t('reservation.weatherWarningContinue')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </Card.Content>
+          </Card>
+        </Modal>
+      </Portal>
+
+      {/* Delete Confirmation Modal */}
+      <Portal>
+        <Modal
+          visible={showDeleteDialog}
+          onDismiss={() => {
+            setShowDeleteDialog(false);
+            setReservationToDelete(null);
+          }}
+          contentContainerStyle={styles.deleteModalContainer}
+          dismissable={true}
+        >
+          <Card style={styles.deleteModalCard}>
+            <Card.Content style={styles.deleteModalContent}>
+              <View style={styles.deleteModalHeader}>
+                <View style={styles.deleteModalIconContainer}>
+                  <MaterialCommunityIcons name="alert-circle" size={32} color="#DC2626" />
+                </View>
+                <Text style={styles.deleteModalTitle}>
+                  {t('reservation.cancelReservation') || 'Rezervasyonu İptal Et'}
+                </Text>
+              </View>
+              
+              <Text style={styles.deleteModalText}>
+                {reservationToDelete
+                  ? (t('reservation.cancelConfirm') || `${formatDate(reservationToDelete.startTime)} tarihindeki rezervasyonunuzu iptal etmek istediğinizden emin misiniz?`)
+                  : ''}
+              </Text>
+
+              <View style={styles.deleteModalButtons}>
+                <TouchableOpacity
+                  style={styles.deleteModalCancelButton}
+                  onPress={() => {
+                    setShowDeleteDialog(false);
+                    setReservationToDelete(null);
+                  }}
+                >
+                  <Text style={styles.deleteModalCancelButtonText}>
+                    {t('common.cancel') || 'İptal'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.deleteModalConfirmButton}
+                  onPress={confirmCancelReservation}
+                >
+                  <Text style={styles.deleteModalConfirmButtonText}>
+                    {t('common.delete') || 'Sil'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -1938,7 +2623,15 @@ const styles = StyleSheet.create({
   userSelectorCard: {
     borderRadius: 20,
     backgroundColor: '#FFFFFF',
-    maxHeight: height * 0.7,
+    maxHeight: height * 0.8,
+    overflow: 'hidden',
+  },
+  userSelectorCardContent: {
+    flex: 1,
+  },
+  userListContainer: {
+    flex: 1,
+    minHeight: 0,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1950,6 +2643,16 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#1B1B1B',
+    flex: 1,
+    marginRight: 12,
+  },
+  modalCloseButton: {
+    width: 32, // w-8
+    height: 32, // h-8
+    borderRadius: 16, // rounded-full
+    backgroundColor: '#F3F4F6', // gray-100
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   searchbar: {
     marginBottom: 16,
@@ -1957,16 +2660,19 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   userList: {
-    maxHeight: height * 0.45,
+    flex: 1,
   },
   userItem: {
     paddingVertical: 12,
+    paddingHorizontal: 4,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
+    overflow: 'hidden',
   },
   userItemContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    overflow: 'hidden',
   },
   userAvatar: {
     width: 48,
@@ -1976,9 +2682,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+    flexShrink: 0,
   },
   userInfo: {
     flex: 1,
+    minWidth: 0,
+    marginRight: 8,
   },
   userName: {
     fontSize: 16,
@@ -2395,6 +3104,9 @@ const styles = StyleSheet.create({
   newCourtCardContainerDisabled: {
     opacity: 0.5,
   },
+  newCourtCardContainerSelected: {
+    // Seçili kort için özel stil
+  },
   newCourtCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16, // rounded-2xl
@@ -2410,12 +3122,28 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
+  newCourtCardSelected: {
+    borderWidth: 2,
+    borderColor: '#54CE8F', // Primary green
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
   newCourtImageArea: {
     height: 160, // h-40 equivalent
     backgroundColor: '#D1FAE5', // green-100 from design
     position: 'relative',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  newCourtSelectedIcon: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    zIndex: 2,
+    backgroundColor: 'rgba(84, 206, 143, 0.9)', // Primary green with opacity
+    borderRadius: 9999, // rounded-full
+    padding: 4,
   },
   newCourtChipsContainer: {
     position: 'absolute',
@@ -2451,6 +3179,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#030213', // Dark text from design
     marginBottom: 8,
+  },
+  newCourtNameSelected: {
+    color: '#54CE8F', // Primary green when selected
   },
   newCourtLocationContainer: {
     flexDirection: 'row',
@@ -2500,6 +3231,261 @@ const styles = StyleSheet.create({
   },
   newCourtBookTextDisabled: {
     color: '#BDBDBD',
+  },
+  activeReservationWrapper: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 24,
+  },
+  activeReservationCardWrapper: {
+    position: 'relative',
+  },
+  activeReservationCard: {
+    marginBottom: 16,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  activeReservationContent: {
+    padding: 20,
+  },
+  activeReservationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  activeReservationDateTimeContainer: {
+    flex: 1,
+  },
+  activeReservationDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  activeReservationDateText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#030213',
+  },
+  activeReservationTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  activeReservationTimeText: {
+    fontSize: 14,
+    color: '#717182',
+    fontWeight: '500',
+  },
+  activeReservationDeleteButton: {
+    padding: 8,
+    borderRadius: 8,
+    minWidth: 40,
+    minHeight: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  activeReservationDeleteButtonAbsolute: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    zIndex: 1000,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+  },
+  activeReservationDeleteButtonPressed: {
+    backgroundColor: '#FEE2E2',
+    transform: [{ scale: 0.95 }],
+  },
+  activeReservationDivider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 16,
+  },
+  activeReservationInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  activeReservationInfoLabel: {
+    fontSize: 14,
+    color: '#717182',
+    fontWeight: '500',
+  },
+  activeReservationInfoValue: {
+    fontSize: 14,
+    color: '#030213',
+    fontWeight: '400',
+    flex: 1,
+  },
+  activeReservationNotesContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    gap: 8,
+  },
+  activeReservationNotesText: {
+    fontSize: 13,
+    color: '#717182',
+    flex: 1,
+    fontStyle: 'italic',
+  },
+  activeReservationPlayersContainer: {
+    marginTop: 8,
+  },
+  activeReservationPlayersLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  activeReservationPlayersLabel: {
+    fontSize: 14,
+    color: '#717182',
+    fontWeight: '500',
+  },
+  activeReservationTeamsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  activeReservationTeamContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    flex: 1,
+    minWidth: '40%',
+  },
+  activeReservationPlayerNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+  },
+  activeReservationPlayerName: {
+    fontSize: 13,
+    color: '#030213',
+    fontWeight: '500',
+  },
+  activeReservationVsText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#717182',
+    marginHorizontal: 8,
+  },
+  deleteModalContainer: {
+    margin: 20,
+    justifyContent: 'center',
+  },
+  deleteModalCard: {
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  deleteModalContent: {
+    padding: 24,
+  },
+  deleteModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  deleteModalIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  deleteModalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#030213',
+    flex: 1,
+  },
+  deleteModalText: {
+    fontSize: 16,
+    color: '#717182',
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  deleteModalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  deleteModalCancelButton: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteModalCancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#717182',
+  },
+  deleteModalConfirmButton: {
+    flex: 1,
+    borderRadius: 12,
+    backgroundColor: '#DC2626',
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteModalConfirmButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 

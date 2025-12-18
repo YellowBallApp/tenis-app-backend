@@ -24,7 +24,7 @@ export const seedCoaches = async () => {
         bio: "Profesyonel tenis oyuncusu ve antrenör. ATP turnuvalarında oynamış, şimdi genç yetenekleri yetiştiriyor.",
         languages: ["Türkçe", "İngilizce"],
         certifications: ["ATP Coach", "ITF Intermediate"],
-        phone: "+90 532 123 45 67",
+        phone: "+905321234567",
       },
       {
         name: "Fatma Kaya",
@@ -36,7 +36,7 @@ export const seedCoaches = async () => {
         bio: "Çiftler oyununda uzmanlaşmış antrenör. Takım koordinasyonu ve strateji konularında deneyimli.",
         languages: ["Türkçe", "Almanca"],
         certifications: ["ITF Advanced", "Doubles Specialist"],
-        phone: "+90 535 987 65 43",
+        phone: "+905359876543",
       },
       {
         name: "Mehmet Demir",
@@ -48,7 +48,7 @@ export const seedCoaches = async () => {
         bio: "Yeni başlayanlar için ideal antrenör. Sabırlı ve anlayışlı yaklaşımıyla tanınıyor.",
         languages: ["Türkçe"],
         certifications: ["ITF Beginner", "Beginner Specialist"],
-        phone: "+90 505 234 56 78",
+        phone: "+905052345678",
       },
       {
         name: "Ayşe Özkan",
@@ -60,7 +60,7 @@ export const seedCoaches = async () => {
         bio: "Elite seviye oyuncular için antrenör. Grand Slam turnuvalarında oyuncular yetiştirmiş.",
         languages: ["Türkçe", "İngilizce", "Fransızca"],
         certifications: ["ATP Elite Coach", "Grand Slam Experience"],
-        phone: "+90 541 876 54 32",
+        phone: "+905418765432",
       },
     ];
 

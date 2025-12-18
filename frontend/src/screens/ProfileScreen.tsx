@@ -393,13 +393,6 @@ const ProfileScreen = () => {
     }
   };
 
-  const quickActions = [
-    { title: t('profile.editProfile'), icon: 'account-edit', action: openEditProfile },
-    { title: t('profile.changePassword'), icon: 'lock-reset', action: () => setShowChangePasswordModal(true) },
-    { title: t('profile.accountSettings'), icon: 'cog', action: () => setShowAccountSettingsModal(true) },
-    { title: t('profile.help'), icon: 'help-circle', action: () => setShowHelpModal(true) },
-  ];
-
   const getLevelColor = (level: string) => {
     switch (level) {
       case 'Başlangıç': return '#4CAF50';
@@ -429,7 +422,6 @@ const ProfileScreen = () => {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="#2E7D32" />
-        <Text style={{ marginTop: 10, color: '#6C757D' }}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -526,27 +518,6 @@ const ProfileScreen = () => {
               <Text style={styles.statNumber}>{user.joinYear}</Text>
               <Text style={styles.statLabel}>{t('profile.memberSince')}</Text>
             </View>
-          </View>
-        </View>
-
-        {/* Quick Actions Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('profile.quickActions')}</Text>
-          <View style={styles.quickActionsHorizontal}>
-            <TouchableOpacity 
-              style={styles.quickActionCard}
-              onPress={() => navigation.navigate('MyReservations' as any)}
-            >
-              <MaterialCommunityIcons name="calendar" size={24} color="#54CE8F" />
-              <Text style={styles.quickActionText}>{t('profile.myBookings')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.quickActionCard}
-              onPress={() => navigation.navigate('MatchHistory' as any)}
-            >
-              <MaterialCommunityIcons name="trophy" size={24} color="#B4AEBD" />
-              <Text style={styles.quickActionText}>{t('profile.myMatches')}</Text>
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -1747,7 +1718,6 @@ const styles = StyleSheet.create({
   modalCard: {
     borderRadius: 16, // rounded-2xl
     maxHeight: '85%',
-    minHeight: '60%',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E5E7EB', // gray-200

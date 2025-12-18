@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   TextInput,
+  KeyboardAvoidingView,
+  Dimensions,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -42,6 +44,8 @@ interface MatchHistory {
   };
 }
 
+const { height } = Dimensions.get('window');
+
 const MatchHistoryScreen = ({ navigation, route }: any) => {
   const { t, language } = useLanguage();
   const { themedStyles, theme } = useThemedStyles();
@@ -76,6 +80,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editingCommentText, setEditingCommentText] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
+  const commentScrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     loadData();
@@ -157,6 +162,15 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
     }
   };
 
+  // Yorumlar yüklendiğinde en alta kaydır
+  useEffect(() => {
+    if (showCommentModal && !loadingComments && comments.length > 0) {
+      setTimeout(() => {
+        commentScrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [showCommentModal, loadingComments, comments.length]);
+
   const closeCommentModal = () => {
     setShowCommentModal(false);
     setSelectedMatch(null);
@@ -184,6 +198,11 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
       setCommentCounts(prev => ({...prev, [selectedMatch.id]: count}));
       
       setNewComment('');
+      
+      // Yorum eklendikten sonra en alta kaydır
+      setTimeout(() => {
+        commentScrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
     } catch (error: any) {
       console.error('Yorum eklenirken hata:', error);
       alert(error.response?.data?.message || 'Yorum eklenirken bir hata oluştu');
@@ -363,7 +382,6 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="#54CE8F" />
-        <Text style={{ marginTop: 10, color: '#717182' }}>{t('matchHistory.loading')}</Text>
       </View>
     );
   }
@@ -609,7 +627,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
           contentContainerStyle={styles.modalContainer}
         >
           <Card style={styles.modalCard}>
-            <Card.Content>
+            <Card.Content style={styles.modalCardContent}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{t('matchHistory.filters')}</Text>
                 <TouchableOpacity 
@@ -620,9 +638,10 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                 </TouchableOpacity>
               </View>
 
-              <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
-                {/* Lig Maçı Filtresi */}
-                <View style={styles.filterGroup}>
+              <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+                <View style={styles.modalContent}>
+                  {/* Lig Maçı Filtresi */}
+                  <View style={styles.filterGroup}>
                   <Text style={styles.filterGroupLabel}>{t('matchHistory.matchType')}</Text>
                   <View style={styles.filterOptions}>
                     <TouchableOpacity
@@ -809,6 +828,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                     </TouchableOpacity>
                   </View>
                 </View>
+                </View>
               </ScrollView>
 
               <View style={styles.modalButtons}>
@@ -831,17 +851,17 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
 
         {/* Yorum Modalı */}
         <Modal
-        dismissable={false}
+          dismissable={false}
           visible={!!showCommentModal}
           onDismiss={closeCommentModal}
           contentContainerStyle={styles.commentModalContainer}
         >
-          <Card style={styles.commentModalCard}>
-            <ScrollView 
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-            >
-            <Card.Content style={styles.commentModalContent}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1 }}
+          >
+            <Card style={styles.commentModalCard}>
+              <Card.Content style={styles.commentModalCardContent}>
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>{t('matchHistory.matchComments')}</Text>
                   <TouchableOpacity 
@@ -852,133 +872,141 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                   </TouchableOpacity>
                 </View>
 
-              {/* Maç Bilgisi */}
-              {selectedMatch && (
-                <View style={styles.matchInfoBar}>
+                {/* Maç Bilgisi */}
+                {selectedMatch && (
+                  <View style={styles.matchInfoBar}>
                     <Text style={styles.matchInfoText}>
-                    {formatDate(selectedMatch.matchDate)} • {selectedMatch.score}
-                  </Text>
-                </View>
-              )}
-
-                {/* Yorumlar Listesi */}
-                {loadingComments ? (
-                  <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="small" color="#54CE8F" />
-                    <Text style={styles.loadingText}>{t('matchHistory.loadingComments')}</Text>
-                  </View>
-                ) : comments.length > 0 ? (
-                  <View style={styles.commentsListContainer}>
-                    {comments.map((comment) => (
-                    <View key={comment.id} style={styles.commentItem}>
-                      <View style={styles.commentHeader}>
-                        <View style={styles.commentUserInfo}>
-                          <View style={styles.commentUserAvatar}>
-                            <MaterialCommunityIcons name="account-circle" size={24} color="#B4AEBD" />
-                          </View>
-                          <View style={styles.commentUserDetails}>
-                              <Text style={styles.commentUserName}>{comment.user.name}</Text>
-                              <Text style={styles.commentDate}>{formatCommentDate(comment.created)}</Text>
-                          </View>
-                        </View>
-                        
-                        {/* Kullanıcının kendi yorumu ise edit/delete butonları */}
-                        {comment.user.id === currentUserId && (
-                          <View style={styles.commentActions}>
-                            <TouchableOpacity
-                              style={styles.commentActionButton}
-                              onPress={() => {
-                                setEditingCommentId(comment.id);
-                                setEditingCommentText(comment.comment);
-                              }}
-                            >
-                              <MaterialCommunityIcons name="pencil" size={18} color="#54CE8F" />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              style={styles.commentActionButton}
-                              onPress={() => handleDeleteComment(comment.id)}
-                            >
-                              <MaterialCommunityIcons name="delete" size={18} color="#EF4444" />
-                            </TouchableOpacity>
-                          </View>
-                        )}
-                      </View>
-
-                      {/* Yorum içeriği */}
-                      {editingCommentId === comment.id ? (
-                        <View style={styles.editCommentContainer}>
-                          <TextInput
-                            style={styles.editCommentInput}
-                            value={editingCommentText}
-                            onChangeText={setEditingCommentText}
-                            multiline
-                            placeholder={t('matchHistory.editComment')}
-                          />
-                          <View style={styles.editCommentButtons}>
-                            <TouchableOpacity
-                              style={styles.cancelEditButton}
-                              onPress={() => {
-                                setEditingCommentId(null);
-                                setEditingCommentText('');
-                              }}
-                            >
-                              <Text style={styles.cancelEditButtonText}>{t('matchHistory.cancel')}</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              style={styles.saveEditButton}
-                              onPress={() => handleEditComment(comment.id)}
-                            >
-                              <Text style={styles.saveEditButtonText}>{t('matchHistory.save')}</Text>
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                      ) : (
-                          <Text style={styles.commentText}>{comment.comment}</Text>
-                      )}
-                    </View>
-                    ))}
-                  </View>
-                ) : (
-                  <View style={styles.emptyCommentsContainer}>
-                    <MaterialCommunityIcons name="comment-off-outline" size={48} color="#9CA3AF" />
-                    <Text style={styles.emptyCommentsText}>{t('matchHistory.noComments')}</Text>
+                      {formatDate(selectedMatch.matchDate)} • {selectedMatch.score}
+                    </Text>
                   </View>
                 )}
 
-                {/* Yeni Yorum Ekleme */}
-              <View style={styles.addCommentContainer}>
-                <TextInput
-                  style={styles.commentInput}
-                  value={newComment}
-                  onChangeText={setNewComment}
-                  placeholder={t('matchHistory.writeComment')}
-                  multiline
-                  numberOfLines={3}
-                  placeholderTextColor="#9CA3AF"
-                />
-                <View style={styles.commentInputButtons}>
-                  <Button
-                    mode="outlined"
-                    onPress={closeCommentModal}
-                    style={styles.cancelCommentButton}
+                {/* Yorumlar Listesi */}
+                <ScrollView 
+                  ref={commentScrollViewRef}
+                  style={styles.commentScrollView}
+                  contentContainerStyle={styles.commentScrollViewContent}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {loadingComments ? (
+                    <View style={styles.loadingContainer}>
+                      <ActivityIndicator size="small" color="#54CE8F" />
+                      <Text style={styles.loadingText}>{t('matchHistory.loadingComments')}</Text>
+                    </View>
+                  ) : comments.length > 0 ? (
+                    <View style={styles.commentsListContainer}>
+                      {comments.map((comment) => (
+                        <View key={comment.id} style={styles.commentItem}>
+                          <View style={styles.commentHeader}>
+                            <View style={styles.commentUserInfo}>
+                              <View style={styles.commentUserAvatar}>
+                                <MaterialCommunityIcons name="account-circle" size={24} color="#B4AEBD" />
+                              </View>
+                              <View style={styles.commentUserDetails}>
+                                <Text style={styles.commentUserName}>{comment.user.name}</Text>
+                                <Text style={styles.commentDate}>{formatCommentDate(comment.created)}</Text>
+                              </View>
+                            </View>
+                            
+                            {/* Kullanıcının kendi yorumu ise edit/delete butonları */}
+                            {comment.user.id === currentUserId && (
+                              <View style={styles.commentActions}>
+                                <TouchableOpacity
+                                  style={styles.commentActionButton}
+                                  onPress={() => {
+                                    setEditingCommentId(comment.id);
+                                    setEditingCommentText(comment.comment);
+                                  }}
+                                >
+                                  <MaterialCommunityIcons name="pencil" size={18} color="#54CE8F" />
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  style={styles.commentActionButton}
+                                  onPress={() => handleDeleteComment(comment.id)}
+                                >
+                                  <MaterialCommunityIcons name="delete" size={18} color="#EF4444" />
+                                </TouchableOpacity>
+                              </View>
+                            )}
+                          </View>
+
+                          {/* Yorum içeriği */}
+                          {editingCommentId === comment.id ? (
+                            <View style={styles.editCommentContainer}>
+                              <TextInput
+                                style={styles.editCommentInput}
+                                value={editingCommentText}
+                                onChangeText={setEditingCommentText}
+                                multiline
+                                placeholder={t('matchHistory.editComment')}
+                              />
+                              <View style={styles.editCommentButtons}>
+                                <TouchableOpacity
+                                  style={styles.cancelEditButton}
+                                  onPress={() => {
+                                    setEditingCommentId(null);
+                                    setEditingCommentText('');
+                                  }}
+                                >
+                                  <Text style={styles.cancelEditButtonText}>{t('matchHistory.cancel')}</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  style={styles.saveEditButton}
+                                  onPress={() => handleEditComment(comment.id)}
+                                >
+                                  <Text style={styles.saveEditButtonText}>{t('matchHistory.save')}</Text>
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+                          ) : (
+                            <Text style={styles.commentText}>{comment.comment}</Text>
+                          )}
+                        </View>
+                      ))}
+                    </View>
+                  ) : (
+                    <View style={styles.emptyCommentsContainer}>
+                      <MaterialCommunityIcons name="comment-off-outline" size={48} color="#9CA3AF" />
+                      <Text style={styles.emptyCommentsText}>{t('matchHistory.noComments')}</Text>
+                    </View>
+                  )}
+                </ScrollView>
+
+                {/* Yeni Yorum Ekleme - Her zaman görünür */}
+                <View style={styles.addCommentContainer}>
+                  <TextInput
+                    style={styles.commentInput}
+                    value={newComment}
+                    onChangeText={setNewComment}
+                    placeholder={t('matchHistory.writeComment')}
+                    multiline
+                    numberOfLines={3}
+                    placeholderTextColor="#9CA3AF"
+                  />
+                  <View style={styles.commentInputButtons}>
+                    <Button
+                      mode="outlined"
+                      onPress={closeCommentModal}
+                      style={styles.cancelCommentButton}
                       textColor={theme.colors.text || '#757575'}
-                  >
-                    {t('matchHistory.cancel')}
-                  </Button>
-                  <Button
-                    mode="contained"
-                    onPress={handleAddComment}
-                    style={styles.sendCommentButton}
-                    buttonColor="#2E7D32"
-                    disabled={!!(!newComment.trim())}
-                  >
-                    {t('matchHistory.send')}
-                  </Button>
+                    >
+                      {t('matchHistory.cancel')}
+                    </Button>
+                    <Button
+                      mode="contained"
+                      onPress={handleAddComment}
+                      style={styles.sendCommentButton}
+                      buttonColor="#2E7D32"
+                      disabled={!!(!newComment.trim())}
+                    >
+                      {t('matchHistory.send')}
+                    </Button>
+                  </View>
                 </View>
-              </View>
-            </Card.Content>
-            </ScrollView>
-          </Card>
+              </Card.Content>
+            </Card>
+          </KeyboardAvoidingView>
         </Modal>
       </Portal>
     </View>
@@ -1295,14 +1323,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   modalContainer: {
-    margin: 10,
+    margin: 20,
     flex: 1,
     justifyContent: 'center',
   },
   modalCard: {
-    borderRadius: 16,
-    maxHeight: '90%',
+    borderRadius: 20,
+    maxHeight: height * 0.8,
     backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
     elevation: 12,
     shadowColor: '#000',
     shadowOffset: {
@@ -1312,12 +1341,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 16,
   },
+  modalCardContent: {
+    flex: 1,
+    minHeight: 0,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
   modalScrollView: {
-    flexGrow: 1,
+    flex: 1,
   },
   modalContent: {
-    padding: 24,
-    paddingBottom: 32,
+    paddingBottom: 16,
   },
   commentModalContainer: {
     margin: 20,
@@ -1327,7 +1361,8 @@ const styles = StyleSheet.create({
   commentModalCard: {
     borderRadius: 20,
     backgroundColor: '#FFFFFF',
-    maxHeight: '85%',
+    maxHeight: height * 0.8,
+    overflow: 'hidden',
     elevation: 12,
     shadowColor: '#000',
     shadowOffset: {
@@ -1336,6 +1371,19 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.4,
     shadowRadius: 16,
+  },
+  commentModalCardContent: {
+    flex: 1,
+    minHeight: 0,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  commentScrollView: {
+    flex: 1,
+    minHeight: 0,
+  },
+  commentScrollViewContent: {
+    paddingBottom: 16,
   },
   commentModalContent: {
     padding: 24,
@@ -1593,8 +1641,9 @@ const styles = StyleSheet.create({
   addCommentContainer: {
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB', // gray-200
-    paddingTop: 20, // pt-5
-    marginTop: 24, // mt-6
+    paddingTop: 16, // pt-4
+    marginTop: 16, // mt-4
+    backgroundColor: '#FFFFFF',
   },
   commentInput: {
     backgroundColor: '#FFFFFF',

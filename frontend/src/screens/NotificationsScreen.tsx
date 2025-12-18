@@ -587,7 +587,6 @@ const NotificationsScreen = ({ navigation }: any) => {
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#54CE8F" />
-          <Text style={styles.loadingText}>{t('notifications.loading')}</Text>
         </View>
       </>
     );

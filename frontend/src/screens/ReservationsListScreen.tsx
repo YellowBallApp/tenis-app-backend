@@ -10,17 +10,21 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import {
   Card,
   Text,
   Portal,
   Modal,
+  Button,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
-import { reservationService, courtService, reservationTemplateService, reservationTimeSlotService } from '../services/api';
+import { reservationService, courtService, reservationTemplateService, reservationTimeSlotService, authService } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { MainTabParamList } from '../navigation/MainTabNavigator';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Takvim için Türkçe locale ayarları
 LocaleConfig.locales['tr'] = {
@@ -49,7 +53,10 @@ LocaleConfig.defaultLocale = 'tr';
 
 const { width } = Dimensions.get('window');
 
-const ReservationsListScreen = ({ navigation }: any) => {
+type ReservationsListScreenNavigationProp = BottomTabNavigationProp<MainTabParamList>;
+
+const ReservationsListScreen = () => {
+  const navigation = useNavigation<ReservationsListScreenNavigationProp>();
   const { t, language } = useLanguage();
   const insets = useSafeAreaInsets();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -59,6 +66,12 @@ const ReservationsListScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState(false);
   const [blockedHours, setBlockedHours] = useState<{[courtId: number]: Array<{hour: number, reason: string | null}>}>({});
   const [timeSlots, setTimeSlots] = useState<string[]>([]);
+  const [showReservationModal, setShowReservationModal] = useState(false);
+  const [selectedCourtId, setSelectedCourtId] = useState<number | null>(null);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
+  const [showReservationDetailsModal, setShowReservationDetailsModal] = useState(false);
+  const [selectedReservation, setSelectedReservation] = useState<any | null>(null);
+  const [hasActiveReservation, setHasActiveReservation] = useState(false);
 
   // Dil değiştiğinde takvim locale'ini ayarla
   useEffect(() => {
@@ -145,13 +158,45 @@ const ReservationsListScreen = ({ navigation }: any) => {
     loadBlockedHours();
   }, [selectedDate, courts]);
 
-  // Sayfa her açıldığında rezervasyonları yenile
+  // Aktif rezervasyon kontrolü
+  useEffect(() => {
+    const checkActiveReservation = async () => {
+      try {
+        const hasActive = await reservationService.hasActiveReservation();
+        setHasActiveReservation(hasActive);
+      } catch (error) {
+        console.error('Aktif rezervasyon kontrolü yapılırken hata:', error);
+        setHasActiveReservation(false);
+      }
+    };
+    checkActiveReservation();
+  }, []);
+
+  // Sayfa her açıldığında rezervasyonları yenile ve seçimleri temizle
   useFocusEffect(
     React.useCallback(() => {
+      // Seçimleri temizle (modal açık değilse)
+      if (!showReservationModal) {
+        setSelectedCourtId(null);
+        setSelectedTimeSlot(null);
+      }
+      
       loadTimeSlots();
       loadReservations();
       loadBlockedHours();
-    }, [selectedDate, courts, loadTimeSlots])
+      
+      // Aktif rezervasyon kontrolünü de yenile
+      const checkActiveReservation = async () => {
+        try {
+          const hasActive = await reservationService.hasActiveReservation();
+          setHasActiveReservation(hasActive);
+        } catch (error) {
+          console.error('Aktif rezervasyon kontrolü yapılırken hata:', error);
+          setHasActiveReservation(false);
+        }
+      };
+      checkActiveReservation();
+    }, [selectedDate, courts, loadTimeSlots, showReservationModal])
   );
 
   const loadReservations = async () => {
@@ -233,17 +278,128 @@ const ReservationsListScreen = ({ navigation }: any) => {
     return blockedHour ? blockedHour.reason : null;
   };
 
+  // Geçmiş saatleri kontrol et
+  const isTimeSlotInPast = (timeSlot: string): boolean => {
+    if (!selectedDate) return false;
+
+    const now = new Date();
+    const selectedDateObj = new Date(selectedDate);
+    const [hours, minutes] = timeSlot.split(':').map(Number);
+    
+    const selectedDateTime = new Date(selectedDateObj);
+    selectedDateTime.setHours(hours, minutes, 0, 0);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDateOnly = new Date(selectedDateObj);
+    selectedDateOnly.setHours(0, 0, 0, 0);
+    
+    if (selectedDateOnly < today) {
+      return true; // Geçmiş bir tarih
+    }
+    
+    if (selectedDateOnly.getTime() === today.getTime()) {
+      return selectedDateTime < now; // Bugün ise şu anki saatten önceki saatler geçmiş
+    }
+    
+    return false;
+  };
+
+  // 1 hafta sonrasını kontrol et (sadece önümüzdeki 7 gün için)
+  const isDateOutOfRange = (date: string): boolean => {
+    if (!date) return false;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const maxDate = new Date(today);
+    maxDate.setDate(today.getDate() + 7); // 7 gün sonra
+    
+    const selectedDateObj = new Date(date);
+    selectedDateObj.setHours(0, 0, 0, 0);
+    
+    return selectedDateObj < today || selectedDateObj > maxDate;
+  };
+
+  const handleEmptyCellPress = (courtId: number, timeSlot: string) => {
+    // Geçmiş saatlere tıklanılamasın
+    if (isTimeSlotInPast(timeSlot)) {
+      return;
+    }
+    setSelectedCourtId(courtId);
+    setSelectedTimeSlot(timeSlot);
+    setShowReservationModal(true);
+  };
+
+  const handleDateChange = (direction: 'prev' | 'next') => {
+    const currentDate = new Date(selectedDate);
+    const newDate = new Date(currentDate);
+    
+    if (direction === 'prev') {
+      newDate.setDate(currentDate.getDate() - 1);
+    } else {
+      newDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    const newDateString = newDate.toISOString().split('T')[0];
+    
+    // 1 hafta sınırını kontrol et
+    if (!isDateOutOfRange(newDateString)) {
+      setSelectedDate(newDateString);
+    }
+  };
+
+  const handleReservationPress = async () => {
+    if (selectedCourtId && selectedTimeSlot) {
+      console.log('handleReservationPress called', { selectedCourtId, selectedTimeSlot, selectedDate });
+      
+      // State'leri temizle
+      setSelectedCourtId(null);
+      setSelectedTimeSlot(null);
+      setShowReservationModal(false);
+      
+      // CourtDetail sayfasına navigate et (Reservation stack içinde)
+      console.log('Navigating to CourtDetail');
+      (navigation as any).navigate('Reservation', {
+        screen: 'CourtDetail',
+        params: {
+          courtId: selectedCourtId,
+          selectedDate: selectedDate,
+          selectedTime: selectedTimeSlot,
+        }
+      });
+      console.log('Navigation completed');
+    } else {
+      console.log('handleReservationPress: missing params', { selectedCourtId, selectedTimeSlot });
+    }
+  };
+
+  const handleReservedCellPress = (reservation: any) => {
+    setSelectedReservation(reservation);
+    setShowReservationDetailsModal(true);
+  };
+
   const renderCell = (courtId: number, timeSlot: string) => {
     const reservation = getReservationForSlot(courtId, timeSlot);
     const isBlocked = isTimeSlotBlocked(courtId, timeSlot);
     const blockedReason = getBlockedReason(courtId, timeSlot);
+    const isPast = isTimeSlotInPast(timeSlot);
+    const isDateDisabled = isPast || isDateOutOfRange(selectedDate);
+    // Eğer kullanıcının aktif rezervasyonu varsa ve hücre boşsa, disabled yap
+    const isEmptyAndUserHasActive = !reservation && hasActiveReservation;
+    const isDisabled = isDateDisabled || isEmptyAndUserHasActive;
     
     if (reservation) {
+      // Rezerve edilmiş hücreler her zaman tıklanabilir (kimlerin oynadığını görmek için)
       return (
-        <View style={styles.reservedCell}>
+        <TouchableOpacity 
+          style={styles.reservedCell}
+          onPress={() => handleReservedCellPress(reservation)}
+          activeOpacity={0.7}
+        >
           <MaterialCommunityIcons name="account-check" size={16} color="#54CE8F" />
-          <Text style={styles.reservedText}>{reservation.user.name}</Text>
-        </View>
+          <Text style={styles.reservedText}>{reservation.user?.name || 'Bilinmiyor'}</Text>
+        </TouchableOpacity>
       );
     }
 
@@ -259,9 +415,22 @@ const ReservationsListScreen = ({ navigation }: any) => {
     }
     
     return (
-      <View style={styles.emptyCell}>
-        <Text style={styles.emptyText}>{t('reservationsList.empty')}</Text>
-      </View>
+      <TouchableOpacity 
+        style={[
+          styles.emptyCell,
+          isDisabled && styles.emptyCellDisabled
+        ]}
+        onPress={() => handleEmptyCellPress(courtId, timeSlot)}
+        activeOpacity={isDisabled ? 1 : 0.7}
+        disabled={isDisabled}
+      >
+        <Text style={[
+          styles.emptyText,
+          isDisabled && styles.emptyTextDisabled
+        ]}>
+          {t('reservationsList.empty')}
+        </Text>
+      </TouchableOpacity>
     );
   };
 
@@ -289,21 +458,64 @@ const ReservationsListScreen = ({ navigation }: any) => {
 
       {/* Date Selector */}
       <View style={styles.dateSection}>
-        <TouchableOpacity
-          style={styles.dateSelector}
-          onPress={() => setShowCalendar(true)}
-        >
-          <MaterialCommunityIcons name="calendar" size={20} color="#54CE8F" />
-          <Text style={styles.dateText}>{formatDate(selectedDate)}</Text>
-          <MaterialCommunityIcons name="chevron-down" size={20} color="#9CA3AF" />
-        </TouchableOpacity>
+        <View style={styles.dateSelectorContainer}>
+          {(() => {
+            const prevDate = new Date(selectedDate);
+            prevDate.setDate(prevDate.getDate() - 1);
+            const prevDateString = prevDate.toISOString().split('T')[0];
+            const isPrevDisabled = isDateOutOfRange(prevDateString);
+            
+            return (
+              <TouchableOpacity
+                style={[styles.dateNavButton, isPrevDisabled && styles.dateNavButtonDisabled]}
+                onPress={() => handleDateChange('prev')}
+                disabled={isPrevDisabled}
+              >
+                <MaterialCommunityIcons 
+                  name="chevron-left" 
+                  size={24} 
+                  color={isPrevDisabled ? "#D1D5DB" : "#54CE8F"} 
+                />
+              </TouchableOpacity>
+            );
+          })()}
+          
+          <TouchableOpacity
+            style={styles.dateSelector}
+            onPress={() => setShowCalendar(true)}
+          >
+            <MaterialCommunityIcons name="calendar" size={20} color="#54CE8F" />
+            <Text style={styles.dateText}>{formatDate(selectedDate)}</Text>
+            <MaterialCommunityIcons name="chevron-down" size={20} color="#9CA3AF" />
+          </TouchableOpacity>
+          
+          {(() => {
+            const nextDate = new Date(selectedDate);
+            nextDate.setDate(nextDate.getDate() + 1);
+            const nextDateString = nextDate.toISOString().split('T')[0];
+            const isNextDisabled = isDateOutOfRange(nextDateString);
+            
+            return (
+              <TouchableOpacity
+                style={[styles.dateNavButton, isNextDisabled && styles.dateNavButtonDisabled]}
+                onPress={() => handleDateChange('next')}
+                disabled={isNextDisabled}
+              >
+                <MaterialCommunityIcons 
+                  name="chevron-right" 
+                  size={24} 
+                  color={isNextDisabled ? "#D1D5DB" : "#54CE8F"} 
+                />
+              </TouchableOpacity>
+            );
+          })()}
+        </View>
       </View>
 
       {/* Reservations Table */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#54CE8F" />
-          <Text style={styles.loadingText}>{t('reservationsList.loading')}</Text>
         </View>
       ) : (
         <View style={styles.tableWrapper}>
@@ -420,8 +632,181 @@ const ReservationsListScreen = ({ navigation }: any) => {
                   textDayHeaderFontSize: 14
                 }}
                 minDate={new Date().toISOString().split('T')[0]}
+                maxDate={(() => {
+                  const maxDate = new Date();
+                  maxDate.setDate(maxDate.getDate() + 7); // Bugünden 7 gün sonra
+                  return maxDate.toISOString().split('T')[0];
+                })()}
                 firstDay={1}
               />
+            </Card.Content>
+          </Card>
+        </Modal>
+      </Portal>
+
+      {/* Rezervasyon Yap Modal */}
+      <Portal>
+        <Modal
+          visible={showReservationModal}
+          onDismiss={() => {
+            setShowReservationModal(false);
+            setSelectedCourtId(null);
+            setSelectedTimeSlot(null);
+          }}
+          contentContainerStyle={styles.reservationModal}
+        >
+          <Card style={styles.reservationModalCard}>
+            <Card.Content>
+              <View style={styles.reservationModalHeader}>
+                <Text style={styles.reservationModalTitle}>{t('reservation.bookNow')}</Text>
+                <TouchableOpacity 
+                  onPress={() => {
+                    setShowReservationModal(false);
+                    setSelectedCourtId(null);
+                    setSelectedTimeSlot(null);
+                  }}
+                  style={styles.modalCloseButton}
+                >
+                  <MaterialCommunityIcons name="close" size={20} color="#9CA3AF" />
+                </TouchableOpacity>
+              </View>
+              
+              {selectedCourtId && selectedTimeSlot && (
+                <>
+                  <View style={styles.reservationModalInfo}>
+                    <View style={styles.reservationModalInfoRow}>
+                      <MaterialCommunityIcons name="tennis" size={20} color="#54CE8F" />
+                      <Text style={styles.reservationModalInfoText}>
+                        {courts.find(c => c.id === selectedCourtId)?.name || 'Kort'}
+                      </Text>
+                    </View>
+                    <View style={styles.reservationModalInfoRow}>
+                      <MaterialCommunityIcons name="calendar" size={20} color="#54CE8F" />
+                      <Text style={styles.reservationModalInfoText}>
+                        {formatDate(selectedDate)}
+                      </Text>
+                    </View>
+                    <View style={styles.reservationModalInfoRow}>
+                      <MaterialCommunityIcons name="clock-outline" size={20} color="#54CE8F" />
+                      <Text style={styles.reservationModalInfoText}>
+                        {selectedTimeSlot}
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  <Button
+                    mode="contained"
+                    onPress={handleReservationPress}
+                    style={styles.reservationModalButton}
+                    buttonColor="#54CE8F"
+                    contentStyle={styles.reservationModalButtonContent}
+                    labelStyle={styles.reservationModalButtonLabel}
+                    icon="arrow-right"
+                  >
+                    {t('reservation.bookNow')}
+                  </Button>
+                </>
+              )}
+            </Card.Content>
+          </Card>
+        </Modal>
+      </Portal>
+
+      {/* Rezervasyon Detayları Modal */}
+      <Portal>
+        <Modal
+          visible={showReservationDetailsModal}
+          onDismiss={() => {
+            setShowReservationDetailsModal(false);
+            setSelectedReservation(null);
+          }}
+          contentContainerStyle={styles.reservationDetailsModal}
+        >
+          <Card style={styles.reservationDetailsModalCard}>
+            <Card.Content style={styles.reservationDetailsModalContent}>
+              {selectedReservation && (() => {
+                // Notes'tan partner ve rakip bilgisini çıkar
+                const notes = selectedReservation.notes || '';
+                const isDoubles = notes.includes('Çiftler') || notes.includes('doubles');
+                const participants = selectedReservation.participants || [];
+                
+                // Çiftler maçında: ilk participant partner, diğerleri rakip
+                // Tekler maçında: participant rakip
+                let partner: any = null;
+                let opponents: any[] = [];
+                
+                if (isDoubles && participants.length >= 3) {
+                  // 4 kişi: owner + partner + 2 rakip
+                  partner = participants[0];
+                  opponents = participants.slice(1);
+                } else if (isDoubles && participants.length === 1) {
+                  // 2 kişi: owner + partner (henüz rakip seçilmemiş)
+                  partner = participants[0];
+                } else if (!isDoubles && participants.length > 0) {
+                  // Tekler: participant rakip
+                  opponents = participants;
+                } else if (participants.length === 2) {
+                  // 3 kişi: muhtemelen owner + partner + 1 rakip (henüz 2. rakip seçilmemiş)
+                  partner = participants[0];
+                  opponents = participants.slice(1);
+                }
+                
+                return (
+                  <View style={styles.playersContainer}>
+                    {/* Team 1: Owner + Partner */}
+                    <View style={styles.teamContainer}>
+                      <View style={styles.playerNameContainer}>
+                        <MaterialCommunityIcons name="account" size={16} color="#54CE8F" />
+                        <Text style={styles.playerName}>
+                          {`${selectedReservation.user?.name || ''} ${selectedReservation.user?.surname || ''}`.trim() || 'Bilinmiyor'}
+                        </Text>
+                      </View>
+                      {partner && (
+                        <View style={styles.playerNameContainer}>
+                          <MaterialCommunityIcons name="account" size={16} color="#54CE8F" />
+                          <Text style={styles.playerName}>
+                            {`${partner.name || ''} ${partner.surname || ''}`.trim() || 'Bilinmiyor'}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* VS İkonu */}
+                    {(opponents.length > 0 || (!partner && participants.length > 0)) && (
+                      <Text style={styles.vsText}>
+                        {t('reservationsList.vs')}
+                      </Text>
+                    )}
+
+                    {/* Team 2: Opponents */}
+                    <View style={styles.teamContainer}>
+                      {opponents.length > 0 ? (
+                        opponents.map((opponent: any, index: number) => (
+                          <View key={opponent.id || index} style={styles.playerNameContainer}>
+                            <MaterialCommunityIcons name="account" size={16} color="#FF9800" />
+                            <Text style={styles.playerName}>
+                              {`${opponent.name || ''} ${opponent.surname || ''}`.trim() || 'Bilinmiyor'}
+                            </Text>
+                          </View>
+                        ))
+                      ) : !partner && participants.length > 0 ? (
+                        participants.map((participant: any, index: number) => (
+                          <View key={participant.id || index} style={styles.playerNameContainer}>
+                            <MaterialCommunityIcons name="account" size={16} color="#FF9800" />
+                            <Text style={styles.playerName}>
+                              {`${participant.name || ''} ${participant.surname || ''}`.trim() || 'Bilinmiyor'}
+                            </Text>
+                          </View>
+                        ))
+                      ) : (
+                        <Text style={styles.noOpponentText}>
+                          {t('reservationsList.empty')}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                );
+              })()}
             </Card.Content>
           </Card>
         </Modal>
@@ -469,7 +854,26 @@ const styles = StyleSheet.create({
     paddingBottom: 16, // pb-4
     backgroundColor: '#FAFCFB',
   },
+  dateSelectorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12, // gap-3
+  },
+  dateNavButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dateNavButtonDisabled: {
+    opacity: 0.5,
+  },
   dateSelector: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -613,10 +1017,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  emptyCellDisabled: {
+    opacity: 0.5,
+    backgroundColor: '#F9FAFB',
+  },
   emptyText: {
     fontSize: 11, // text-xs
     color: '#9CA3AF', // gray-400
     fontStyle: 'italic',
+  },
+  emptyTextDisabled: {
+    color: '#D1D5DB',
   },
   blockedCell: {
     flex: 1,
@@ -704,6 +1115,109 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6', // gray-100
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  reservationModal: {
+    margin: 20,
+    justifyContent: 'center',
+  },
+  reservationModalCard: {
+    borderRadius: 16, // rounded-2xl
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // gray-200
+  },
+  reservationModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB', // gray-200
+  },
+  reservationModalTitle: {
+    fontSize: 20, // text-xl
+    fontWeight: '600',
+    color: '#030213',
+    flex: 1,
+  },
+  reservationModalInfo: {
+    marginBottom: 24,
+    gap: 12,
+  },
+  reservationModalInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  reservationModalInfoText: {
+    fontSize: 16,
+    color: '#030213',
+    fontWeight: '500',
+  },
+  reservationModalButton: {
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  reservationModalButtonContent: {
+    paddingVertical: 8,
+  },
+  reservationModalButtonLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  reservationDetailsModal: {
+    margin: 20,
+    justifyContent: 'center',
+  },
+  reservationDetailsModalCard: {
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignSelf: 'center',
+    minWidth: 200,
+    maxWidth: '80%',
+  },
+  reservationDetailsModalContent: {
+    padding: 16,
+  },
+  playersContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  teamContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  playerNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+  },
+  playerName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#030213',
+  },
+  vsText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#717182',
+    marginHorizontal: 4,
+  },
+  noOpponentText: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    fontStyle: 'italic',
   },
 });
 
