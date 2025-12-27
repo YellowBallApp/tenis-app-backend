@@ -1666,17 +1666,20 @@ const CourtDetailScreen = () => {
           }}
           contentContainerStyle={styles.userSelectorModal}
         >
-          <Card style={styles.userSelectorCard}>
-            <Card.Content style={[styles.userSelectorCardContent, { paddingHorizontal: 16, paddingVertical: 16 }]}>
+          <View style={styles.userSelectorCard}>
+            {/* Bottom Sheet Handle */}
+            <View style={styles.modalHandle} />
+            
+            <View style={styles.userSelectorCardContent}>
               <View style={styles.userModalHeader}>
                 <View style={styles.userModalHeaderContent}>
-                  <Title style={styles.userModalTitle}>
+                  <Text style={styles.userModalTitle}>
                     {selectorMode === 'partner'
                       ? t('reservation.selectPartner')
                       : selectorMode === 'opponent'
                       ? t('reservation.selectOpponent')
                       : t('reservation.selectOpponents')}
-                  </Title>
+                  </Text>
                   <Text style={styles.userModalSubtitle}>
                     {selectorMode === 'partner'
                       ? t('reservation.selectPartnerForMatch')
@@ -1691,7 +1694,7 @@ const CourtDetailScreen = () => {
                   }}
                   style={styles.userModalCloseButton}
                 >
-                  <MaterialCommunityIcons name="close" size={24} color="#757575" />
+                  <MaterialCommunityIcons name="close" size={24} color="#6B7280" />
                 </TouchableOpacity>
               </View>
 
@@ -1700,7 +1703,8 @@ const CourtDetailScreen = () => {
                 onChangeText={setSearchQuery}
                 value={searchQuery}
                 style={styles.userSearchbar}
-                iconColor={selectorMode === 'opponents' ? "#FF9800" : "#2E7D32"}
+                iconColor={selectorMode === 'opponents' ? "#FF9800" : "#54CE8F"}
+                inputStyle={styles.userSearchbarInput}
               />
 
               <View style={styles.userListContainer}>
@@ -1708,6 +1712,8 @@ const CourtDetailScreen = () => {
                 data={filteredUsers}
                 keyExtractor={(item) => item.id.toString()}
                 style={styles.userList}
+                contentContainerStyle={styles.userListContent}
+                showsVerticalScrollIndicator={true}
                 renderItem={({ item }) => {
                   const isSelected = selectorMode === 'partner' || selectorMode === 'opponent'
                     ? selectedPartner?.id === item.id
@@ -1738,21 +1744,27 @@ const CourtDetailScreen = () => {
                       style={styles.userItem}
                       onPress={() => handleUserSelect(item)}
                       disabled={isDisabled}
+                      activeOpacity={0.7}
                     >
                       <View style={[
                         styles.userItemContent,
+                        isSelected && styles.userItemContentSelected,
                         isDisabled && styles.disabledUserItem
                       ]}>
                         <Avatar.Text
                           size={48}
                           label={getInitials(item.name)}
-                          style={styles.userItemAvatar}
+                          style={[
+                            styles.userItemAvatar,
+                            isSelected && styles.userItemAvatarSelected
+                          ]}
                           labelStyle={styles.userItemAvatarLabel}
                         />
                         <View style={styles.userItemInfo}>
                           <Text 
                             style={[
                               styles.userItemName,
+                              isSelected && styles.userItemNameSelected,
                               isDisabled && styles.disabledText
                             ]}
                             numberOfLines={1}
@@ -1763,6 +1775,7 @@ const CourtDetailScreen = () => {
                           <Text 
                             style={[
                               styles.userItemDetails,
+                              isSelected && styles.userItemDetailsSelected,
                               isDisabled && styles.disabledText
                             ]}
                             numberOfLines={1}
@@ -1772,12 +1785,13 @@ const CourtDetailScreen = () => {
                           </Text>
                         </View>
                         {isSelected && (
-                          <MaterialCommunityIcons 
-                            name={selectorMode === 'opponents' ? "checkbox-marked-circle" : "check-circle"} 
-                            size={24} 
-                            color={selectorMode === 'opponents' ? "#FF9800" : "#4CAF50"}
-                            style={{ flexShrink: 0 }}
-                          />
+                          <View style={styles.selectedIconContainer}>
+                            <MaterialCommunityIcons 
+                              name={selectorMode === 'opponents' ? "checkbox-marked-circle" : "check-circle"} 
+                              size={28} 
+                              color={selectorMode === 'opponents' ? "#FF9800" : "#54CE8F"}
+                            />
+                          </View>
                         )}
                       </View>
                     </TouchableOpacity>
@@ -1785,14 +1799,14 @@ const CourtDetailScreen = () => {
                 }}
                 ListEmptyComponent={() => (
                   <View style={styles.emptyUserList}>
-                    <MaterialCommunityIcons name="account-search" size={48} color="#BDBDBD" />
+                    <MaterialCommunityIcons name="account-search" size={64} color="#D1D5DB" />
                     <Text style={styles.emptyUserListText}>{t('reservation.noUsersFound')}</Text>
                   </View>
                 )}
                 />
               </View>
-            </Card.Content>
-          </Card>
+            </View>
+          </View>
         </Modal>
       </Portal>
 
@@ -2339,28 +2353,49 @@ const styles = StyleSheet.create({
   },
   // User Selector Modal Styles
   userSelectorModal: {
-    margin: 20,
+    margin: 0,
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   userSelectorCard: {
-    borderRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     backgroundColor: '#FFFFFF',
-    maxHeight: height * 0.8,
+    maxHeight: height * 0.85,
+    minHeight: height * 0.65,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#D1D5DB',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 8,
   },
   userSelectorCardContent: {
     flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 24,
   },
   userListContainer: {
     flex: 1,
-    minHeight: 0,
+    marginTop: 8,
   },
   userModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 20,
+    paddingTop: 8,
   },
   userModalHeaderContent: {
     flex: 1,
@@ -2368,47 +2403,70 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   userModalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
-    marginBottom: 4,
-    flex: 1,
+    fontSize: 22,
+    fontWeight: '600',
+    color: '#030213',
+    marginBottom: 6,
   },
   userModalSubtitle: {
     fontSize: 14,
-    color: '#666666',
+    color: '#717182',
+    lineHeight: 20,
   },
   userModalCloseButton: {
-    padding: 4,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   userSearchbar: {
     marginBottom: 16,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F9FAFB',
     borderRadius: 12,
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  userSearchbarInput: {
+    fontSize: 16,
+    color: '#1F2937',
   },
   userList: {
     flex: 1,
   },
+  userListContent: {
+    paddingBottom: 16,
+  },
   userItem: {
     marginBottom: 12,
-    overflow: 'hidden',
   },
   userItemContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 12,
-    overflow: 'hidden',
+    backgroundColor: '#FAFCFB',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+  },
+  userItemContentSelected: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#54CE8F',
   },
   userItemAvatar: {
-    backgroundColor: '#E8F5E8',
+    backgroundColor: '#D1FAE5',
     marginRight: 12,
     flexShrink: 0,
   },
+  userItemAvatarSelected: {
+    backgroundColor: '#54CE8F',
+  },
   userItemAvatarLabel: {
     color: '#2E7D32',
-    fontWeight: 'bold',
+    fontWeight: '600',
+    fontSize: 16,
   },
   userItemInfo: {
     flex: 1,
@@ -2417,29 +2475,42 @@ const styles = StyleSheet.create({
   },
   userItemName: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1B1B1B',
+    fontWeight: '600',
+    color: '#030213',
     marginBottom: 4,
+  },
+  userItemNameSelected: {
+    color: '#054F31',
   },
   userItemDetails: {
     fontSize: 14,
-    color: '#666666',
+    color: '#717182',
+  },
+  userItemDetailsSelected: {
+    color: '#2E7D32',
+  },
+  selectedIconContainer: {
+    flexShrink: 0,
+    marginLeft: 8,
   },
   disabledUserItem: {
     opacity: 0.5,
+    backgroundColor: '#F5F5F5',
   },
   disabledText: {
-    color: '#BDBDBD',
+    color: '#9CA3AF',
   },
   emptyUserList: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 40,
+    paddingVertical: 60,
+    paddingHorizontal: 20,
   },
   emptyUserListText: {
     fontSize: 16,
-    color: '#BDBDBD',
-    marginTop: 12,
+    color: '#9CA3AF',
+    marginTop: 16,
+    textAlign: 'center',
   },
   successSnackbar: {
     backgroundColor: '#4CAF50',
