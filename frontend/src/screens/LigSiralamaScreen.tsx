@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -2058,7 +2059,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   modalContainer: {
-    margin: 16,
+    margin: Platform.OS === 'ios' ? 10 : 16,
     flex: 1,
     justifyContent: 'center',
   },
@@ -2067,7 +2068,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    maxHeight: '85%',
+    maxHeight: Platform.OS === 'ios' ? '95%' : '85%',
+    width: Platform.OS === 'ios' ? '95%' : undefined,
+    alignSelf: Platform.OS === 'ios' ? 'center' : undefined,
   },
   modalScrollView: {
     maxHeight: '100%',

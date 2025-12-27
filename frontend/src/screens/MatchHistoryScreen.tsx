@@ -1323,13 +1323,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   modalContainer: {
-    margin: 20,
+    margin: Platform.OS === 'ios' ? 10 : 20,
     flex: 1,
     justifyContent: 'center',
   },
   modalCard: {
     borderRadius: 20,
-    maxHeight: height * 0.8,
+    maxHeight: Platform.OS === 'ios' ? height * 0.95 : height * 0.8,
+    width: Platform.OS === 'ios' ? '95%' : undefined,
+    alignSelf: Platform.OS === 'ios' ? 'center' : undefined,
     backgroundColor: '#FFFFFF',
     overflow: 'hidden',
     elevation: 12,

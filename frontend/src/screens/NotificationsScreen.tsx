@@ -1236,7 +1236,7 @@ const styles = StyleSheet.create({
   },
   // Reservation Match Result Modal Styles
   modalContainer: {
-    margin: 16,
+    margin: Platform.OS === 'ios' ? 10 : 16,
     flex: 1,
     justifyContent: 'center',
   },
@@ -1257,7 +1257,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
     shadowRadius: 0,
     elevation: 0,
-    maxHeight: '95%',
+    maxHeight: Platform.OS === 'ios' ? '98%' : '95%',
+    width: Platform.OS === 'ios' ? '95%' : undefined,
+    alignSelf: Platform.OS === 'ios' ? 'center' : undefined,
   },
   modalScrollView: {
     maxHeight: '100%',

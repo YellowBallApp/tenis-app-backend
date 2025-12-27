@@ -8,6 +8,7 @@ import {
   Dimensions,
   Alert,
   FlatList,
+  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -2362,8 +2363,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     backgroundColor: '#FFFFFF',
-    maxHeight: height * 0.85,
-    minHeight: height * 0.65,
+    maxHeight: Platform.OS === 'ios' ? height * 0.95 : height * 0.85,
+    minHeight: Platform.OS === 'ios' ? height * 0.75 : height * 0.65,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
