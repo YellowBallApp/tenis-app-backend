@@ -28,7 +28,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { userService, matchHistoryService, leagueStandingsService, memberReviewService } from '../services/api';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const MemberDetailScreen = () => {
   const route = useRoute();
@@ -985,23 +985,28 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   reviewModal: {
-    margin: 20,
+    margin: Platform.OS === 'ios' ? 20 : 20,
     flex: 1,
     justifyContent: 'center',
+    paddingHorizontal: Platform.OS === 'ios' ? 16 : 0,
   },
   reviewCard: {
-    borderRadius: 16, // rounded-2xl
+    borderRadius: Platform.OS === 'ios' ? 24 : 16,
     backgroundColor: '#FFFFFF',
+    maxHeight: Platform.OS === 'ios' ? height * 0.60 : height * 0.80,
+    minHeight: Platform.OS === 'ios' ? height * 0.50 : undefined,
+    width: Platform.OS === 'ios' ? '90%' : undefined,
+    alignSelf: Platform.OS === 'ios' ? 'center' : undefined,
     borderWidth: 1,
     borderColor: '#E5E7EB', // gray-200
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 0,
+      height: 4,
     },
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    elevation: 0,
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
   },
   reviewContent: {
     padding: 24, // px-6 py-6

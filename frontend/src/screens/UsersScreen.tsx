@@ -9,6 +9,8 @@ import {
   Linking,
   RefreshControl,
   Image,
+  Platform,
+  Dimensions,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -991,24 +993,28 @@ const styles = StyleSheet.create({
     marginHorizontal: 1,
   },
   reviewModal: {
-    margin: 20,
+    margin: Platform.OS === 'ios' ? 20 : 20,
     flex: 1,
     justifyContent: 'center',
+    paddingHorizontal: Platform.OS === 'ios' ? 16 : 0,
   },
   reviewCard: {
-    borderRadius: 16, // rounded-2xl
-    maxHeight: '80%',
+    borderRadius: Platform.OS === 'ios' ? 24 : 16, // rounded-2xl
+    maxHeight: Platform.OS === 'ios' ? Dimensions.get('window').height * 0.60 : '80%',
+    minHeight: Platform.OS === 'ios' ? Dimensions.get('window').height * 0.50 : undefined,
+    width: Platform.OS === 'ios' ? '90%' : undefined,
+    alignSelf: Platform.OS === 'ios' ? 'center' : undefined,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E5E7EB', // gray-200
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 0,
+      height: 4,
     },
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    elevation: 0,
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
   },
   reviewContent: {
     padding: 24, // px-6 py-6

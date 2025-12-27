@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Animated,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import {
@@ -981,16 +982,28 @@ const styles = StyleSheet.create({
     marginHorizontal: 1,
   },
   reviewModal: {
-    margin: 20,
+    margin: Platform.OS === 'ios' ? 20 : 20,
     flex: 1,
     justifyContent: 'center',
+    paddingHorizontal: Platform.OS === 'ios' ? 16 : 0,
   },
   reviewCard: {
-    borderRadius: 20,
-    maxHeight: '80%',
+    borderRadius: Platform.OS === 'ios' ? 24 : 20,
+    maxHeight: Platform.OS === 'ios' ? Dimensions.get('window').height * 0.60 : '80%',
+    minHeight: Platform.OS === 'ios' ? Dimensions.get('window').height * 0.50 : undefined,
+    width: Platform.OS === 'ios' ? '90%' : undefined,
+    alignSelf: Platform.OS === 'ios' ? 'center' : undefined,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#F0F0F0',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
   },
   reviewContent: {
     padding: 24,
