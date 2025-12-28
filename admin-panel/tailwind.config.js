@@ -4,6 +4,10 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  // Vercel build'de Tailwind'in tüm sınıfları bulabilmesi için
+  safelist: [
+    // Yaygın kullanılan sınıfları safelist'e ekle (gerekirse)
+  ],
   theme: {
     extend: {
       colors: {
@@ -25,5 +29,9 @@ export default {
     },
   },
   plugins: [],
+  // Vercel build'de CSS'in düzgün oluşturulması için
+  corePlugins: {
+    preflight: true,
+  },
 }
 

@@ -152,6 +152,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                       <div className="ml-4 mt-1 space-y-1">
                         {item.children.map((child) => {
                           const isChildActive = location.pathname === child.path;
+                          const badge = 'badge' in child ? child.badge : undefined;
                           return (
                             <Link
                               key={child.path}
@@ -163,9 +164,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                               }`}
                             >
                               <span>{child.label}</span>
-                              {child.badge !== undefined && child.badge > 0 && (
+                              {badge !== undefined && badge > 0 && (
                                 <span className="px-2 py-1 text-xs font-bold bg-soft-green text-soft-navy rounded-full min-w-[24px] text-center">
-                                  {child.badge}
+                                  {badge}
                                 </span>
                               )}
                             </Link>

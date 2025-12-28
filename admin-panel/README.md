@@ -11,11 +11,23 @@ Eğer "Network Error" alıyorsanız:
    ```
    Backend'in `http://localhost:3000` adresinde çalıştığını kontrol edin.
 
-2. **API URL'i kontrol edin:**
-   `.env` dosyasında şu satır olmalı:
+2. **API URL yapılandırması (KOLAY TEST):**
+   
+   `.env` dosyasında tek bir satırı değiştirerek localhost ve production server arasında geçiş yapabilirsiniz:
+   
+   ```bash
+   # Localhost'a bağlanmak için (development):
+   VITE_API_MODE=development
+   
+   # Production server'a bağlanmak için:
+   VITE_API_MODE=production
    ```
-   VITE_API_URL=http://localhost:3000/api
-   ```
+   
+   **Alternatif seçenekler:**
+   - `VITE_API_MODE=local` → localhost:3000/api
+   - `VITE_API_MODE=server` → production IP:3000/api
+   - `VITE_API_URL=http://localhost:3000/api` → Tam URL (en yüksek öncelik)
+   - `VITE_NGROK_URL=https://abc123.ngrok-free.app` → Ngrok URL
 
 3. **Tarayıcı konsolunu kontrol edin:**
    - F12 tuşuna basın
@@ -33,6 +45,8 @@ cd admin-panel
 npm install
 npm run dev
 ```
+
+**Not:** `.env` dosyası otomatik olarak oluşturulmuştur. İsterseniz `.env.example` dosyasını referans alarak kendi ayarlarınızı yapabilirsiniz.
 
 ## Giriş Bilgileri
 

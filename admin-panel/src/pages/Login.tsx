@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { IoTennisball } from 'react-icons/io5';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {

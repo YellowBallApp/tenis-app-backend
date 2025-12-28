@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { LayoutGrid, List } from 'lucide-react';
-import { HiUser, HiPencil, HiTrash, HiSearch, HiX, HiUserGroup } from 'react-icons/hi';
+import { HiUser, HiSearch, HiX, HiUserGroup } from 'react-icons/hi';
 import Layout from '../components/Layout';
 import api from '../utils/api';
 
