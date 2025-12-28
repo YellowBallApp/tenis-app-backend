@@ -5,7 +5,7 @@ import path from 'path'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/', // Vercel deploy için base path
+  base: '/', // Vercel deploy için base path - root domain için '/'
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -18,12 +18,14 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
-    // CSS ve asset path'lerinin doğru yüklenmesi için
+    // Tüm CSS'i tek bir dosyada topla
     cssCodeSplit: false,
+    // Sourcemap'i devre dışı bırak (production için)
+    sourcemap: false,
     rollupOptions: {
       output: {
-        // Asset dosyaları için mutlak path kullan
-        assetFileNames: 'assets/[name].[ext]',
+        // Asset dosyaları (CSS, images, vb.) için standard format
+        assetFileNames: 'assets/[name]-[hash][extname]',
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
       },
