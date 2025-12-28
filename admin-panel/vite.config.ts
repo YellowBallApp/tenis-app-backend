@@ -43,6 +43,6 @@ export default defineConfig({
   // CSS işleme için optimize et
   css: {
     devSourcemap: false,
-    postcss: './postcss.config.js',
+    // PostCSS config otomatik olarak bulunur, explicit path gerekmez
   },
 })
