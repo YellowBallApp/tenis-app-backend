@@ -33,11 +33,19 @@
 2. Backend'in çalıştığından emin olun:
    - Backend: `http://localhost:3000`
 
-3. .env dosyasının olduğundan emin olun:
-   ```powershell
-   Get-Content .env
+3. **API URL yapılandırması (KOLAY TEST):**
+   
+   `.env` dosyasında tek bir satırı değiştirerek localhost ve production server arasında geçiş yapabilirsiniz:
+   
+   ```bash
+   # Localhost'a bağlanmak için:
+   VITE_API_MODE=development
+   
+   # Production server'a bağlanmak için:
+   VITE_API_MODE=production
    ```
-   Şu satırı içermeli: `VITE_API_URL=http://localhost:3000/api`
+   
+   **Not:** `.env` dosyasını değiştirdikten sonra dev server'ı yeniden başlatın (`npm run dev`)
 
 ## Giriş Bilgileri
 

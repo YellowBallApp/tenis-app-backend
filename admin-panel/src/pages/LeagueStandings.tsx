@@ -7,6 +7,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  type DragEndEvent,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -154,14 +155,16 @@ const LeagueStandings = () => {
     }
   };
 
-  const getDisplayRanking = (standing: LeagueStanding, index: number) => {
-    if (pendingChanges[standing.id] === null) {
+  const getDisplayRanking = (standing: LeagueStanding, index: number): number | string => {
+    const pendingChange = pendingChanges[standing.id];
+    
+    if (pendingChange === null) {
       return ''; // Silme işlemi için boş göster
     }
     
     // Eğer pending changes'de varsa onu kullan
-    if (pendingChanges[standing.id] !== undefined && pendingChanges[standing.id] !== null) {
-      return pendingChanges[standing.id];
+    if (pendingChange !== undefined && pendingChange !== null) {
+      return pendingChange;
     }
     
     // Pending changes yoksa, mevcut standings'deki index'e göre hesapla
@@ -193,13 +196,13 @@ const LeagueStandings = () => {
   };
 
   // Drag and drop handler
-  const handleDragEnd = (event: { active: { id: number }; over: { id: number } | null }) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
       setStandings((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over.id);
+        const oldIndex = items.findIndex((item) => item.id === Number(active.id));
+        const newIndex = items.findIndex((item) => item.id === Number(over.id));
         
         if (oldIndex === -1 || newIndex === -1) {
           return items; // Geçersiz indeks, değişiklik yapma

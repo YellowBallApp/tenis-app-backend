@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { LayoutGrid, List } from 'lucide-react';
 import { IoTennisball } from 'react-icons/io5';
-import { HiPencil, HiTrash, HiCheckCircle, HiXCircle } from 'react-icons/hi';
+// Icons removed - using emoji instead
 import Layout from '../components/Layout';
 import api from '../utils/api';
 
