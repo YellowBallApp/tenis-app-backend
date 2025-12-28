@@ -40,7 +40,7 @@ function getApiBaseUrl(): string {
       return devUrl;
     }
     if (mode === 'production' || mode === 'server') {
-      const prodUrl = `http://${VITE_PRODUCTION_IP}:${DEFAULT_PORT}/api`;
+      const prodUrl = `https://${VITE_PRODUCTION_IP}:${DEFAULT_PORT}/api`;
       console.log('📱 API URL (VITE_API_MODE=production/server):', prodUrl);
       return prodUrl;
     }
@@ -61,7 +61,7 @@ function getApiBaseUrl(): string {
     console.log('🔧 API URL (Vite Development Mode):', devUrl);
     return devUrl;
   } else {
-    const prodUrl = `http://${VITE_PRODUCTION_IP}:${DEFAULT_PORT}/api`;
+    const prodUrl = `https://${VITE_PRODUCTION_IP}:${DEFAULT_PORT}/api`;
     console.log('📱 API URL (Vite Production Mode):', prodUrl);
     return prodUrl;
   }
