@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  Dimensions,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFocusEffect } from '@react-navigation/native';
@@ -714,16 +715,27 @@ const NotificationsScreen = ({ navigation }: any) => {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.keyboardAvoidingView}
           >
-            <Card style={styles.modalCard}>
+            <View style={styles.modalCard}>
+              {/* Bottom Sheet Handle */}
+              <View style={styles.modalHandle} />
+              
               <ScrollView showsVerticalScrollIndicator={true} style={styles.modalScrollView}>
-                <Card.Content>
+                <View style={styles.modalContent}>
                 <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>{t('notifications.enterMatchResult')}</Text>
+                  <View style={styles.modalHeaderContent}>
+                    <View style={styles.modalTitleRow}>
+                      <MaterialCommunityIcons name="trophy" size={28} color="#54CE8F" />
+                      <Text style={styles.modalTitle}>{t('notifications.enterMatchResult')}</Text>
+                    </View>
+                    <Text style={styles.modalSubtitle}>
+                      {t('notifications.enterMatchResultDescription')}
+                    </Text>
+                  </View>
                   <TouchableOpacity 
                     onPress={() => setShowReservationMatchResultModal(false)}
                     style={styles.modalCloseButton}
                   >
-                    <MaterialCommunityIcons name="close" size={20} color="#9CA3AF" />
+                    <MaterialCommunityIcons name="close" size={24} color="#6B7280" />
                   </TouchableOpacity>
                 </View>
 
@@ -734,10 +746,6 @@ const NotificationsScreen = ({ navigation }: any) => {
                   </View>
                 ) : currentUser && reservationForMatch ? (
                   <>
-                    <Text style={styles.modalSubtitle}>
-                      {t('notifications.enterMatchResultDescription')}
-                    </Text>
-
                     {/* Reservation Details */}
                     <View style={styles.reservationDetailsContainer}>
                       <View style={styles.reservationDetailRow}>
@@ -967,9 +975,9 @@ const NotificationsScreen = ({ navigation }: any) => {
                     </View>
                   </>
                 ) : null}
-                </Card.Content>
+                </View>
               </ScrollView>
-            </Card>
+            </View>
           </KeyboardAvoidingView>
         </Modal>
       </Portal>
@@ -1236,62 +1244,73 @@ const styles = StyleSheet.create({
   },
   // Reservation Match Result Modal Styles
   modalContainer: {
-    margin: Platform.OS === 'ios' ? 10 : 16,
+    margin: 0,
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   keyboardAvoidingView: {
-    flex: 1,
-    justifyContent: 'center',
+    width: '100%',
+    justifyContent: 'flex-end',
   },
   modalCard: {
-    borderRadius: 16, // rounded-2xl
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB', // gray-200
+    width: '100%',
+    height: Platform.OS === 'ios' ? Dimensions.get('window').height * 0.85 : Dimensions.get('window').height * 0.85,
+    maxHeight: Platform.OS === 'ios' ? Dimensions.get('window').height * 0.90 : Dimensions.get('window').height * 0.90,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 0,
-    },
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    elevation: 0,
-    maxHeight: Platform.OS === 'ios' ? '98%' : '95%',
-    width: Platform.OS === 'ios' ? '95%' : undefined,
-    alignSelf: Platform.OS === 'ios' ? 'center' : undefined,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#D1D5DB',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 8,
   },
   modalScrollView: {
-    maxHeight: '100%',
+    flex: 1,
+  },
+  modalContent: {
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 24,
+  },
+  modalHeaderContent: {
+    flex: 1,
+    marginRight: 16,
+    minWidth: 0,
+  },
+  modalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 6,
   },
   modalHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: 16, // mb-4
-    paddingBottom: 16, // pb-4
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB', // gray-200
+    marginBottom: 20,
+    paddingTop: 8,
   },
   modalTitle: {
-    fontSize: 20, // text-xl
+    fontSize: 22,
     fontWeight: '600',
     color: '#030213',
-    flex: 1,
-  },
-  modalCloseButton: {
-    width: 32, // w-8
-    height: 32, // h-8
-    borderRadius: 16, // rounded-full
-    backgroundColor: '#F3F4F6', // gray-100
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   modalSubtitle: {
-    fontSize: 14, // text-sm
-    color: '#717182', // Medium gray
-    marginBottom: 24, // mb-6
-    lineHeight: 22,
+    fontSize: 14,
+    color: '#717182',
+    lineHeight: 20,
   },
   modalLoadingContainer: {
     flex: 1,
@@ -1346,15 +1365,16 @@ const styles = StyleSheet.create({
   winnerOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 18, // p-4.5
-    borderRadius: 12, // rounded-xl
-    borderWidth: 1,
-    borderColor: '#E5E7EB', // gray-200
-    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FAFCFB',
+    marginBottom: 12,
   },
   winnerOptionSelected: {
-    borderColor: '#54CE8F', // Primary green
-    backgroundColor: '#F0FDF4', // green-50
+    borderColor: '#54CE8F',
+    backgroundColor: '#F0FDF4',
   },
   radioButton: {
     width: 20,
@@ -1452,20 +1472,30 @@ const styles = StyleSheet.create({
   addSetButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#D1FAE5',
   },
   addSetText: {
-    fontSize: 12, // text-xs
-    color: '#54CE8F', // Primary green
-    fontWeight: '500',
-    marginLeft: 4, // ml-1
+    fontSize: 13,
+    color: '#54CE8F',
+    fontWeight: '600',
   },
   scoresHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     alignItems: 'center',
     marginBottom: 20,
-    paddingHorizontal: 8,
+    paddingVertical: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   scorePlayerLabel: {
     fontSize: 14, // text-sm

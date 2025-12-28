@@ -179,17 +179,26 @@ const getApiBaseUrl = async (): Promise<string> => {
   }
 
   // 3. Development build için
-  // Development modunda backend'e localhost üzerinden bağlan
+  // Development modunda canlı server'ı kullan (213.238.172.217)
+  // Eğer EXPO_PUBLIC_SERVER_IP environment variable'ı varsa onu kullan
   // Android emülatörde ise özel IP (10.0.2.2) kullanılır
   if (__DEV__) {
-    let devHost = 'localhost';
+    // Environment variable'dan server IP al, yoksa default production IP kullan
+    const devServerIP = process.env.EXPO_PUBLIC_SERVER_IP || DEFAULT_PRODUCTION_IP;
+    
+    let devHost = devServerIP;
 
-    if (Platform.OS === 'android' && isAndroidEmulator()) {
-      devHost = EMULATOR_IP || '10.0.2.2';
+    // Android emülatör kontrolü - sadece gerçek emülatör ise özel IP kullan
+    // Ama kullanıcı canlı server kullanmak istiyorsa emülatörde de canlı server'ı kullan
+    if (Platform.OS === 'android' && isAndroidEmulator() && !process.env.EXPO_PUBLIC_SERVER_IP) {
+      // Eğer environment variable yoksa ve emülatördeyse, localhost yerine production IP kullan
+      // Çünkü kullanıcı canlı server'ı kullanmak istiyor
+      devHost = devServerIP;
     }
 
     const devUrl = `http://${devHost}:${DEFAULT_PORT}/api`;
     console.log('🔧 Development build - API URL:', devUrl, '(Platform:', Platform.OS, ')');
+    console.log('🌐 Canlı server kullanılıyor:', devHost);
     return devUrl;
   }
 
@@ -199,12 +208,10 @@ const getApiBaseUrl = async (): Promise<string> => {
 };
 
 // İlk başta base URL'i al (async)
-// Development'ta localhost / emülatör IP'si, production'da ise production IP kullan
+// Development'ta canlı server IP'si, production'da ise production IP kullan
 const fallbackHost =
   __DEV__
-    ? (Platform.OS === 'android' && isAndroidEmulator()
-        ? (EMULATOR_IP || '10.0.2.2')
-        : 'localhost')
+    ? (process.env.EXPO_PUBLIC_SERVER_IP || DEFAULT_PRODUCTION_IP)
     : (process.env.EXPO_PUBLIC_FALLBACK_HOST || DEFAULT_PRODUCTION_IP);
 
 let API_BASE_URL: string = `http://${fallbackHost}:${DEFAULT_PORT}/api`;

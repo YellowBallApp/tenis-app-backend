@@ -859,27 +859,29 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ flex: 1 }}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
           >
-            <Card style={styles.commentModalCard}>
-              <Card.Content style={styles.commentModalCardContent}>
+            <View style={styles.commentModalCard}>
+              {/* Bottom Sheet Handle */}
+              <View style={styles.modalHandle} />
+              
+              <View style={styles.commentModalCardContent}>
                 <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>{t('matchHistory.matchComments')}</Text>
+                  <View style={styles.modalHeaderContent}>
+                    <Text style={styles.modalTitle}>{t('matchHistory.matchComments')}</Text>
+                    {selectedMatch && (
+                      <Text style={styles.modalSubtitle}>
+                        {formatDate(selectedMatch.matchDate)} • {selectedMatch.score}
+                      </Text>
+                    )}
+                  </View>
                   <TouchableOpacity 
                     onPress={closeCommentModal}
                     style={styles.modalCloseButton}
                   >
-                    <MaterialCommunityIcons name="close" size={20} color="#9CA3AF" />
+                    <MaterialCommunityIcons name="close" size={24} color="#6B7280" />
                   </TouchableOpacity>
                 </View>
-
-                {/* Maç Bilgisi */}
-                {selectedMatch && (
-                  <View style={styles.matchInfoBar}>
-                    <Text style={styles.matchInfoText}>
-                      {formatDate(selectedMatch.matchDate)} • {selectedMatch.score}
-                    </Text>
-                  </View>
-                )}
 
                 {/* Yorumlar Listesi */}
                 <ScrollView 
@@ -901,7 +903,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                           <View style={styles.commentHeader}>
                             <View style={styles.commentUserInfo}>
                               <View style={styles.commentUserAvatar}>
-                                <MaterialCommunityIcons name="account-circle" size={24} color="#B4AEBD" />
+                                <MaterialCommunityIcons name="account-circle" size={24} color="#54CE8F" />
                               </View>
                               <View style={styles.commentUserDetails}>
                                 <Text style={styles.commentUserName}>{comment.user.name}</Text>
@@ -1004,8 +1006,8 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                     </Button>
                   </View>
                 </View>
-              </Card.Content>
-            </Card>
+              </View>
+            </View>
           </KeyboardAvoidingView>
         </Modal>
       </Portal>
@@ -1356,33 +1358,39 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   commentModalContainer: {
-    margin: Platform.OS === 'ios' ? 20 : 20,
+    margin: 0,
     flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: Platform.OS === 'ios' ? 16 : 0,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   commentModalCard: {
-    borderRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     backgroundColor: '#FFFFFF',
-    maxHeight: Platform.OS === 'ios' ? height * 0.60 : height * 0.8,
-    minHeight: Platform.OS === 'ios' ? height * 0.50 : undefined,
-    width: Platform.OS === 'ios' ? '90%' : undefined,
-    alignSelf: Platform.OS === 'ios' ? 'center' : undefined,
+    maxHeight: Platform.OS === 'ios' ? height * 0.85 : height * 0.85,
+    minHeight: Platform.OS === 'ios' ? height * 0.70 : undefined,
     overflow: 'hidden',
-    elevation: 12,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#D1D5DB',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 8,
   },
   commentModalCardContent: {
     flex: 1,
     minHeight: 0,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 24,
   },
   commentScrollView: {
     flex: 1,
@@ -1396,26 +1404,35 @@ const styles = StyleSheet.create({
   },
   modalHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: 16, // mb-4
-    paddingBottom: 16, // pb-4
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB', // gray-200
+    marginBottom: 20,
+    paddingTop: 8,
+  },
+  modalHeaderContent: {
+    flex: 1,
+    marginRight: 16,
+    minWidth: 0,
   },
   modalTitle: {
-    fontSize: 20, // text-xl
+    fontSize: 22,
     fontWeight: '600',
     color: '#030213',
-    flex: 1,
+    marginBottom: 6,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#717182',
+    lineHeight: 20,
   },
   modalCloseButton: {
-    width: 32, // w-8
-    height: 32, // h-8
-    borderRadius: 16, // rounded-full
-    backgroundColor: '#F3F4F6', // gray-100
-    justifyContent: 'center',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F3F4F6',
     alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   filterGroup: {
     marginBottom: 24, // mb-6
@@ -1513,10 +1530,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   commentUserAvatar: {
-    width: 32, // w-8
-    height: 32, // h-8
-    borderRadius: 16, // rounded-full
-    backgroundColor: '#F3F4F6', // gray-100
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#D1FAE5',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1534,20 +1551,12 @@ const styles = StyleSheet.create({
     marginTop: 10, // mt-2.5
   },
   commentItem: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16, // rounded-2xl
-    padding: 20, // p-5
-    marginBottom: 12, // mb-3
-    borderWidth: 1,
-    borderColor: '#F3F4F6', // gray-100
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    backgroundColor: '#FAFCFB',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
   },
   commentHeader: {
     flexDirection: 'row',
@@ -1579,14 +1588,15 @@ const styles = StyleSheet.create({
     gap: 8, // gap-2
   },
   commentActionButton: {
-    padding: 8, // p-2
-    borderRadius: 8, // rounded-lg
-    backgroundColor: '#F3F4F6', // gray-100
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
   },
   commentText: {
-    fontSize: 14, // text-sm
-    color: '#717182', // Medium gray
+    fontSize: 14,
+    color: '#030213',
     lineHeight: 20,
+    marginTop: 8,
   },
   editCommentContainer: {
     marginTop: 8,
@@ -1646,21 +1656,21 @@ const styles = StyleSheet.create({
   },
   addCommentContainer: {
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB', // gray-200
-    paddingTop: 16, // pt-4
-    marginTop: 16, // mt-4
+    borderTopColor: '#E5E7EB',
+    paddingTop: 20,
+    marginTop: 20,
     backgroundColor: '#FFFFFF',
   },
   commentInput: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12, // rounded-xl
-    padding: 12, // p-3
-    fontSize: 14, // text-sm
-    borderWidth: 1,
-    borderColor: '#E5E7EB', // gray-200
-    minHeight: 80,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    minHeight: 100,
     textAlignVertical: 'top',
-    marginBottom: 16, // mb-4
+    marginBottom: 16,
     color: '#030213',
   },
   commentInputButtons: {
@@ -1677,8 +1687,9 @@ const styles = StyleSheet.create({
   },
   sendCommentButton: {
     flex: 1,
-    borderRadius: 16, // rounded-2xl
-    backgroundColor: '#54CE8F', // Primary green
+    borderRadius: 16,
+    backgroundColor: '#54CE8F',
+    elevation: 0,
   },
   cancelButtonText: {
     fontSize: 16,

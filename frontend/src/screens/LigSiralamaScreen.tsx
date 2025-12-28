@@ -8,6 +8,7 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,7 +31,7 @@ import { ChallengeStatus } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Calendar } from 'react-native-calendars';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const LigSiralamaScreen = ({ route, navigation }: any) => {
   const { lig } = route.params;
@@ -1198,23 +1199,36 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
           onDismiss={() => setShowMatchResultModal(false)}
           contentContainerStyle={styles.modalContainer}
         >
-          <Card style={styles.modalCard}>
-            <ScrollView showsVerticalScrollIndicator={true} style={styles.modalScrollView}>
-              <Card.Content>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.keyboardAvoidingView}
+          >
+            <View style={styles.modalCard}>
+              {/* Bottom Sheet Handle */}
+              <View style={styles.modalHandle} />
+              
+              <ScrollView showsVerticalScrollIndicator={true} style={styles.modalScrollView}>
+                <View style={styles.modalContent}>
                 <View style={styles.modalHeader}>
-                  <MaterialCommunityIcons name="trophy" size={32} color="#FFD700" />
-                  <Text style={styles.modalTitle}>Maç Sonucu Gir</Text>
-                  <TouchableOpacity onPress={() => setShowMatchResultModal(false)}>
-                    <MaterialCommunityIcons name="close" size={24} color="#757575" />
+                  <View style={styles.modalHeaderContent}>
+                    <View style={styles.modalTitleRow}>
+                      <MaterialCommunityIcons name="trophy" size={28} color="#54CE8F" />
+                      <Text style={styles.modalTitle}>Maç Sonucu Gir</Text>
+                    </View>
+                    <Text style={styles.modalSubtitle}>
+                      Maç sonucunu ve set skorlarını girin
+                    </Text>
+                  </View>
+                  <TouchableOpacity 
+                    onPress={() => setShowMatchResultModal(false)}
+                    style={styles.modalCloseButton}
+                  >
+                    <MaterialCommunityIcons name="close" size={24} color="#6B7280" />
                   </TouchableOpacity>
                 </View>
 
                 {currentUser && acceptedChallenge && (
                   <>
-                    <Text style={styles.modalSubtitle}>
-                      Maç sonucunu ve set skorlarını girin
-                    </Text>
-
                     {/* Kazanan Seçimi */}
                     <Text style={styles.sectionLabel}>Kazanan Oyuncu</Text>
                     <View style={[
@@ -1423,9 +1437,10 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                     </View>
                   </>
                 )}
-              </Card.Content>
+              </View>
             </ScrollView>
-          </Card>
+          </View>
+          </KeyboardAvoidingView>
         </Modal>
       </Portal>
 
@@ -2059,30 +2074,63 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   modalContainer: {
-    margin: Platform.OS === 'ios' ? 10 : 16,
+    margin: 0,
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  keyboardAvoidingView: {
+    width: '100%',
+    justifyContent: 'flex-end',
   },
   modalCard: {
-    borderRadius: 16,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    maxHeight: Platform.OS === 'ios' ? '95%' : '85%',
-    width: Platform.OS === 'ios' ? '95%' : undefined,
-    alignSelf: Platform.OS === 'ios' ? 'center' : undefined,
+    width: '100%',
+    height: Platform.OS === 'ios' ? height * 0.85 : height * 0.85,
+    maxHeight: Platform.OS === 'ios' ? height * 0.90 : height * 0.90,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#D1D5DB',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 8,
   },
   modalScrollView: {
-    maxHeight: '100%',
+    flex: 1,
   },
   modalContent: {
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 24,
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     marginBottom: 20,
+    paddingTop: 8,
+  },
+  modalHeaderContent: {
+    flex: 1,
+    marginRight: 16,
+    minWidth: 0,
+  },
+  modalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 6,
   },
   modalHeaderLeft: {
     flexDirection: 'row',
@@ -2094,28 +2142,27 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#B4AEBD',
+    backgroundColor: '#D1FAE5',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalCloseButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
+    flexShrink: 0,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '600',
     color: '#030213',
-    flex: 1,
   },
   modalSubtitle: {
     fontSize: 14,
     color: '#717182',
-    marginBottom: 20,
     lineHeight: 20,
   },
   modalDivider: {
@@ -2296,6 +2343,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 8,
+    elevation: 0,
   },
   modalSaveButtonText: {
     fontSize: 16,
@@ -2358,11 +2406,11 @@ const styles = StyleSheet.create({
   winnerOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
+    padding: 16,
     borderRadius: 16,
     borderWidth: 2,
     borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAFCFB',
     marginBottom: 12,
   },
   winnerOptionSelected: {
@@ -2437,10 +2485,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     marginBottom: 16,
-    paddingVertical: 12,
-    backgroundColor: '#F3F4F6',
+    paddingVertical: 16,
+    backgroundColor: '#F9FAFB',
     borderRadius: 12,
     marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   scorePlayerLabel: {
     fontSize: 14,
