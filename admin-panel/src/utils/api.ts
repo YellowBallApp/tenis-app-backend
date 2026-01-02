@@ -40,7 +40,7 @@ function getApiBaseUrl(): string {
       return devUrl;
     }
     if (mode === 'production' || mode === 'server') {
-      const prodUrl = `https://${VITE_PRODUCTION_IP}:${DEFAULT_PORT}/api`;
+      const prodUrl = `${VITE_PRODUCTION_IP}`;
       console.log('📱 API URL (VITE_API_MODE=production/server):', prodUrl);
       return prodUrl;
     }
