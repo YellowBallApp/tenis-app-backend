@@ -118,13 +118,28 @@ export class ReservationService {
       // Kullanıcı tipi kontrolü - RESTRICTED kullanıcılar için zaman kısıtlaması (Admin için geçerli değil)
       if (!isAdmin && user.userType === UserType.RESTRICTED) {
         const startTime = new Date(data.startTime);
-        // Local saat kullan (frontend ile uyumlu olması için)
-        // Frontend'de local saat seçiliyor, backend'de de local saat kontrolü yapmalıyız
-        const dayOfWeek = startTime.getDay(); // 0 = Pazar, 6 = Cumartesi
-        const hour = startTime.getHours();
+        // Europe/Istanbul timezone'una göre saat ve gün bilgisini al
+        // Frontend'den gelen UTC string'i Europe/Istanbul timezone'una göre parse etmeliyiz
+        const hourFormatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'Europe/Istanbul',
+          hour: '2-digit',
+          hour12: false
+        });
+        
+        const weekdayFormatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'Europe/Istanbul',
+          weekday: 'short' // 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'
+        });
+        
+        const hourParts = hourFormatter.formatToParts(startTime);
+        const weekdayParts = weekdayFormatter.formatToParts(startTime);
+        
+        const hour = parseInt(hourParts.find(part => part.type === 'hour')?.value || '0', 10);
+        const weekday = weekdayParts.find(part => part.type === 'weekday')?.value || '';
         
         // Hafta sonu kontrolü (Cumartesi ve Pazar)
-        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        // weekday: 'Sat' veya 'Sun' formatında gelir
+        const isWeekend = weekday === 'Sat' || weekday === 'Sun';
         
         if (isWeekend) {
           // Hafta sonu: Sadece 18:00-24:00 arası
