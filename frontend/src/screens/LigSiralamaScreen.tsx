@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Platform,
   KeyboardAvoidingView,
+  Image,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,7 +27,7 @@ import {
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useLanguage } from '../context/LanguageContext';
-import { leagueStandingsService, authService, courtService, matchChallengeService, shieldService } from '../services/api';
+import { leagueStandingsService, authService, courtService, matchChallengeService, shieldService, userService } from '../services/api';
 import { ChallengeStatus } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Calendar } from 'react-native-calendars';
@@ -70,6 +71,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
   const [shieldStartDate, setShieldStartDate] = useState<string>('');
   const [shieldEndDate, setShieldEndDate] = useState<string>('');
   const [shieldLoading, setShieldLoading] = useState(false);
+  const [imageLoadErrors, setImageLoadErrors] = useState<{[key: string]: boolean}>({});
 
   // Sayfa her odaklandığında verileri yeniden yükle
   useFocusEffect(
@@ -240,12 +242,26 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
         const currentUserRanking = rankingsData.find((r: any) => r.user.id === profileData.id);
         
         if (currentUserRanking) {
-          setCurrentUser({
-            id: currentUserRanking.user.id,
-            name: currentUserRanking.user.name,
-            position: currentUserRanking.position,
-            email: currentUserRanking.user.email,
-          });
+          // Current user için de userService.getUserById() ile tam user bilgilerini al
+          try {
+            const fullCurrentUserData = await userService.getUserById(currentUserRanking.user.id);
+            setCurrentUser({
+              id: currentUserRanking.user.id,
+              name: currentUserRanking.user.name,
+              position: currentUserRanking.position,
+              email: currentUserRanking.user.email,
+              profilePhoto: fullCurrentUserData.profilePhoto, // Profil sayfasında kullanılan aynı servis
+            });
+          } catch (error) {
+            console.error('Current user profil fotoğrafı yüklenemedi:', error);
+            setCurrentUser({
+              id: currentUserRanking.user.id,
+              name: currentUserRanking.user.name,
+              position: currentUserRanking.position,
+              email: currentUserRanking.user.email,
+              profilePhoto: currentUserRanking.user.profilePhoto,
+            });
+          }
           
           // Kullanıcının olduğu sayfayı hesapla
           const userPage = Math.ceil(currentUserRanking.position / itemsPerPage);
@@ -262,7 +278,31 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
           setCurrentPage(1);
         }
         
-        setPlayers(rankingsData);
+        // Her player için profil fotoğraflarını çek (profil sayfasında kullanılan servis ile aynı)
+        if (rankingsData && rankingsData.length > 0) {
+          const playersWithPhotos = await Promise.all(
+            rankingsData.map(async (player: any) => {
+              try {
+                // Her player için userService.getUserById() ile tam user bilgilerini al
+                const fullUserData = await userService.getUserById(player.user.id);
+                return {
+                  ...player,
+                  user: {
+                    ...player.user,
+                    profilePhoto: fullUserData.profilePhoto, // Profil sayfasında kullanılan aynı servis
+                  },
+                };
+              } catch (error) {
+                console.error(`Player ${player.user?.name} için profil fotoğrafı yüklenemedi:`, error);
+                // Hata durumunda mevcut player verisini döndür
+                return player;
+              }
+            })
+          );
+          setPlayers(playersWithPhotos);
+        } else {
+          setPlayers(rankingsData);
+        }
       }
     } catch (error) {
       console.error('Sıralama yüklenirken hata:', error);
@@ -760,11 +800,44 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
               onPress={handleAvatarPress}
               disabled={isCurrentUser}
             >
-              <Avatar.Text 
-                size={45} 
-                label={player.user.name.charAt(0)} 
-                style={styles.playerAvatar}
-              />
+              {(() => {
+                const profilePhoto = player.user?.profilePhoto;
+                const hasPhoto = profilePhoto && typeof profilePhoto === 'string' && profilePhoto.trim() !== '';
+                const imageError = imageLoadErrors[player.user?.id];
+                
+                // Debug log
+                if (player.user?.name === 'Zeynep Yıldız' || player.user?.name?.includes('Zeynep')) {
+                  console.log('🔍 Zeynep veri kontrolü:', {
+                    name: player.user?.name,
+                    profilePhoto: profilePhoto,
+                    hasPhoto: hasPhoto,
+                    imageError: imageError,
+                    userObject: player.user
+                  });
+                }
+                
+                return hasPhoto && !imageError ? (
+                  <Image
+                    source={{ uri: profilePhoto }}
+                    style={styles.playerAvatarImage}
+                    resizeMode="cover"
+                    onError={(error) => {
+                      // Resim yüklenemezse fallback olarak Avatar.Text göster
+                      console.log('❌ Profil fotoğrafı yüklenemedi:', player.user?.name, profilePhoto, error);
+                      setImageLoadErrors(prev => ({ ...prev, [player.user?.id]: true }));
+                    }}
+                    onLoad={() => {
+                      console.log('✅ Profil fotoğrafı yüklendi:', player.user?.name, profilePhoto);
+                    }}
+                  />
+                ) : (
+                  <Avatar.Text 
+                    size={45} 
+                    label={player.user?.name?.charAt(0) || 'U'} 
+                    style={styles.playerAvatar}
+                  />
+                );
+              })()}
             </TouchableOpacity>
               
               <View style={styles.playerInfo}>
@@ -892,11 +965,30 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
           <Card style={styles.currentUserCard}>
             <Card.Content style={styles.currentUserCardContent}>
               <View style={styles.currentUserHeader}>
-                <Avatar.Text 
-                  size={64} 
-                  label={currentUser.name.charAt(0)} 
-                  style={styles.currentUserAvatar}
-                />
+                {(() => {
+                  const profilePhoto = currentUser?.profilePhoto;
+                  const hasPhoto = profilePhoto && typeof profilePhoto === 'string' && profilePhoto.trim() !== '';
+                  
+                  return hasPhoto ? (
+                    <Image
+                      source={{ uri: profilePhoto }}
+                      style={styles.currentUserAvatarImage}
+                      resizeMode="cover"
+                      onError={(error) => {
+                        console.log('❌ Current user profil fotoğrafı yüklenemedi:', currentUser?.name, profilePhoto, error);
+                      }}
+                      onLoad={() => {
+                        console.log('✅ Current user profil fotoğrafı yüklendi:', currentUser?.name, profilePhoto);
+                      }}
+                    />
+                  ) : (
+                    <Avatar.Text 
+                      size={64} 
+                      label={currentUser?.name?.charAt(0) || 'U'} 
+                      style={styles.currentUserAvatar}
+                    />
+                  );
+                })()}
                 <View style={styles.currentUserInfo}>
                   <Text style={styles.currentUserName}>{currentUser.name}</Text>
                   <Text style={styles.currentUserEmail}>{currentUser.email}</Text>
@@ -1108,12 +1200,19 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                   <View style={styles.opponentCard}>
                     <View style={styles.opponentCardContent}>
                       <View style={styles.opponentAvatarContainer}>
-                        <Avatar.Text 
-                          size={64} 
-                          label={selectedPlayer.user.name.charAt(0).toUpperCase()} 
-                          style={styles.opponentAvatar}
-                          labelStyle={styles.opponentAvatarLabel}
-                        />
+                        {selectedPlayer.user.profilePhoto ? (
+                          <Image
+                            source={{ uri: selectedPlayer.user.profilePhoto }}
+                            style={styles.opponentAvatarImage}
+                          />
+                        ) : (
+                          <Avatar.Text 
+                            size={64} 
+                            label={selectedPlayer.user.name.charAt(0).toUpperCase()} 
+                            style={styles.opponentAvatar}
+                            labelStyle={styles.opponentAvatarLabel}
+                          />
+                        )}
                         <View style={styles.opponentRankBadge}>
                           <MaterialCommunityIcons name="trophy" size={16} color="#FFFFFF" />
                           <Text style={styles.opponentRankText}>#{selectedPlayer.position}</Text>
@@ -1251,11 +1350,18 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                             <View style={styles.radioButtonInner} />
                           )}
                         </View>
-                        <Avatar.Text 
-                          size={36} 
-                          label={currentUser.name.charAt(0)} 
-                          style={styles.winnerAvatar}
-                        />
+                        {currentUser.profilePhoto ? (
+                          <Image
+                            source={{ uri: currentUser.profilePhoto }}
+                            style={styles.winnerAvatarImage}
+                          />
+                        ) : (
+                          <Avatar.Text 
+                            size={36} 
+                            label={currentUser.name.charAt(0)} 
+                            style={styles.winnerAvatar}
+                          />
+                        )}
                         <View style={styles.winnerInfo}>
                           <Text style={styles.winnerName}>{currentUser.name}</Text>
                           <Text style={styles.winnerLabel}>(Siz)</Text>
@@ -1283,11 +1389,18 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                                 <View style={styles.radioButtonInner} />
                               )}
                             </View>
-                            <Avatar.Text 
-                              size={36} 
-                              label={opponent.name.charAt(0)} 
-                              style={styles.winnerAvatar}
-                            />
+                            {opponent.profilePhoto ? (
+                              <Image
+                                source={{ uri: opponent.profilePhoto }}
+                                style={styles.winnerAvatarImage}
+                              />
+                            ) : (
+                              <Avatar.Text 
+                                size={36} 
+                                label={opponent.name.charAt(0)} 
+                                style={styles.winnerAvatar}
+                              />
+                            )}
                             <View style={styles.winnerInfo}>
                               <Text style={styles.winnerName}>{opponent.name}</Text>
                             </View>
@@ -1743,6 +1856,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#54CE8F',
     marginRight: 16,
   },
+  currentUserAvatarImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#54CE8F',
+    marginRight: 16,
+  },
   currentUserInfo: {
     flex: 1,
   },
@@ -1859,6 +1979,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   playerAvatar: {
+    backgroundColor: '#B4AEBD',
+  },
+  playerAvatarImage: {
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
     backgroundColor: '#B4AEBD',
   },
   playerInfo: {
@@ -2214,6 +2340,12 @@ const styles = StyleSheet.create({
   opponentAvatar: {
     backgroundColor: '#B4AEBD',
   },
+  opponentAvatarImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#B4AEBD',
+  },
   opponentAvatarLabel: {
     fontSize: 24,
     fontWeight: '600',
@@ -2434,6 +2566,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#54CE8F',
   },
   winnerAvatar: {
+    backgroundColor: '#54CE8F',
+    marginRight: 16,
+  },
+  winnerAvatarImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#54CE8F',
     marginRight: 16,
   },

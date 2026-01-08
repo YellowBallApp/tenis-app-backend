@@ -217,6 +217,7 @@ export class LeagueStandingsService {
             id: standing.user.id,
             name: standing.user.name,
             email: standing.user.email,
+            profilePhoto: standing.user.profilePhoto, // Profil fotoğrafı eklendi
           },
           league: standing.league ? {
             id: standing.league.id,

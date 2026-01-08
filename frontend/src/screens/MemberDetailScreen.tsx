@@ -136,7 +136,24 @@ const MemberDetailScreen = () => {
   };
 
   const handleMessage = () => {
-    Alert.alert('Bilgi', 'Mesaj özelliği yakında eklenecek');
+    if (!member?.phone) {
+      Alert.alert(t('common.error'), 'Telefon numarası bulunamadı');
+      return;
+    }
+    
+    // Telefon numarasını temizle (boşluk, tire, parantez gibi karakterleri kaldır)
+    const cleanPhone = member.phone.replace(/[\s\-\(\)]/g, '');
+    
+    // WhatsApp URL formatı: whatsapp://send?phone=PHONE_NUMBER veya https://wa.me/PHONE_NUMBER
+    const whatsappUrl = `https://wa.me/${cleanPhone}`;
+    
+    Linking.openURL(whatsappUrl).catch(() => {
+      // WhatsApp yüklü değilse veya açılamazsa, alternatif olarak web versiyonunu dene
+      const webWhatsappUrl = `https://web.whatsapp.com/send?phone=${cleanPhone}`;
+      Linking.openURL(webWhatsappUrl).catch(() => {
+        Alert.alert(t('common.error'), 'WhatsApp açılamadı. Lütfen WhatsApp\'ın yüklü olduğundan emin olun.');
+      });
+    });
   };
 
   const handleChallenge = () => {
@@ -337,12 +354,13 @@ const MemberDetailScreen = () => {
 
         {/* Action Buttons */}
         <View style={styles.actionButtonsContainer}>
-          <TouchableOpacity style={styles.actionButton} onPress={handleChallenge}>
+          {/* Meydan okuma butonu gizlendi */}
+          {/* <TouchableOpacity style={styles.actionButton} onPress={handleChallenge}>
             <View style={[styles.actionIcon, styles.actionIconGreen]}>
               <MaterialCommunityIcons name="sword-cross" size={24} color="#FFFFFF" />
             </View>
             <Text style={styles.actionButtonText}>{t('coaches.challenge')}</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           
           <TouchableOpacity style={styles.actionButton} onPress={handleMessage}>
             <View style={[styles.actionIcon, styles.actionIconGrey]}>
