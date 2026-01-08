@@ -24,7 +24,7 @@ import {
   Button,
 } from 'react-native-paper';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useLanguage } from '../context/LanguageContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -92,6 +92,29 @@ const UsersScreen = () => {
     
     initialLoad();
   }, [currentUserId]); // currentUserId değiştiğinde çalışır
+
+  // Ekran her görünür olduğunda kullanıcı listesini yeniden yükle (fotoğraf güncellemeleri için)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (currentUserId === null) return; // Mevcut kullanıcı ID'si yüklenene kadar bekle
+      
+      // Aktif sekmeye göre verileri yeniden yükle
+      const refreshData = async () => {
+        try {
+          if (activeTab === 'members') {
+            await loadMembers(false);
+          } else {
+            await loadCoaches(false);
+          }
+        } catch (error) {
+          console.error('Veri yenileme hatası:', error);
+        }
+      };
+      
+      refreshData();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentUserId, activeTab])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);

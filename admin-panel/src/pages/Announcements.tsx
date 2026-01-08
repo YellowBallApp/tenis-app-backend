@@ -14,6 +14,7 @@ interface Announcement {
     surname?: string;
   };
   createdAt: string;
+  updatedAt?: string;
 }
 
 const Announcements = () => {
@@ -187,11 +188,11 @@ const Announcements = () => {
                       </p>
                       <div className="flex items-center space-x-4 text-sm text-soft-white/60">
                         <span>
-                          👤 {announcement.author?.name} {announcement.author?.surname || ''}
+                          👤 {announcement.author?.name}{announcement.author?.surname ? ` ${announcement.author.surname}` : ''}
                         </span>
                         <span>•</span>
                         <span>
-                          📅 {formatDate(announcement.createdAt)}
+                          📅 {formatDate(announcement.updatedAt || announcement.createdAt)}
                         </span>
                       </div>
                     </div>
