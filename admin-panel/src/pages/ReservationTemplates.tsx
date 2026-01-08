@@ -169,18 +169,18 @@ const ReservationTemplates = () => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="glass-strong rounded-2xl p-6">
-          <h1 className="text-3xl font-bold text-soft-white mb-2">
+        <div className="glass-strong rounded-2xl p-4 md:p-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-soft-white mb-1 md:mb-2">
             Rezervasyon Şablonu Yönetimi
           </h1>
-          <p className="text-soft-white/70">
+          <p className="text-sm md:text-base text-soft-white/70">
             Haftanın her günü için farklı saat dilimleri tanımlayabilirsiniz
           </p>
         </div>
 
         {/* Day Selector */}
-        <div className="glass-strong rounded-2xl p-6">
-          <div className="grid grid-cols-7 gap-2">
+        <div className="glass-strong rounded-2xl p-4 md:p-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2 md:gap-3">
             {weekDays.map((day) => {
               const dayTemplates = getTemplatesForDay(day.value);
               const activeCount = dayTemplates.filter(t => t.isActive).length;
@@ -189,13 +189,13 @@ const ReservationTemplates = () => {
                 <button
                   key={day.value}
                   onClick={() => setSelectedDay(day.value)}
-                  className={`p-4 rounded-lg transition-all ${
+                  className={`p-3 md:p-4 rounded-lg transition-all ${
                     selectedDay === day.value
-                      ? 'bg-soft-green text-white shadow-lg'
+                      ? 'bg-soft-green text-white shadow-lg scale-105'
                       : 'glass hover:bg-white/10 text-soft-white'
                   }`}
                 >
-                  <div className="font-bold text-lg">{day.short}</div>
+                  <div className="font-bold text-base md:text-lg">{day.short}</div>
                   <div className="text-xs mt-1">
                     {activeCount} saat
                   </div>
@@ -206,9 +206,9 @@ const ReservationTemplates = () => {
         </div>
 
         {/* Time Slots for Selected Day */}
-        <div className="glass-strong rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-soft-white">
+        <div className="glass-strong rounded-2xl p-4 md:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <h2 className="text-lg md:text-xl font-bold text-soft-white">
               {weekDays.find(d => d.value === selectedDay)?.label} Günü Saat Dilimleri
             </h2>
             <button
@@ -217,9 +217,9 @@ const ReservationTemplates = () => {
                 setNewSlot({ time: '', order: 1, isActive: true });
                 setShowAddModal(true);
               }}
-              className="px-4 py-2 bg-soft-green hover:bg-soft-green/80 text-white rounded-lg font-medium transition-colors flex items-center space-x-2"
+              className="px-4 py-2 bg-soft-green hover:bg-soft-green/80 text-white rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 text-sm md:text-base whitespace-nowrap"
             >
-              <HiPlus className="text-lg" />
+              <HiPlus className="text-base md:text-lg" />
               <span>Saat Ekle</span>
             </button>
           </div>

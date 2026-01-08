@@ -129,80 +129,83 @@ const Announcements = () => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="glass-strong rounded-2xl p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-soft-white mb-2">
+        <div className="glass-strong rounded-2xl p-4 md:p-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            {/* Title Section */}
+            <div className="flex-1">
+              <h1 className="text-2xl md:text-3xl font-bold text-soft-white mb-1 md:mb-2">
                 Duyurular
               </h1>
-              <p className="text-soft-white/70">
+              <p className="text-sm md:text-base text-soft-white/70">
                 Yeni duyuru oluşturun ve tüm kullanıcılara bildirim gönderin
               </p>
             </div>
+
+            {/* New Announcement Button */}
             <button
               onClick={() => {
                 setEditingAnnouncement(null);
                 setNewAnnouncement({ title: '', content: '', isPinned: true });
                 setShowAddModal(true);
               }}
-              className="px-6 py-3 bg-soft-green hover:bg-soft-green/80 text-white rounded-lg font-medium transition-colors flex items-center space-x-2"
+              className="px-4 md:px-6 py-2 md:py-3 bg-soft-green hover:bg-soft-green/80 text-white rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 text-sm md:text-base whitespace-nowrap flex-shrink-0"
             >
-              <HiPlus className="text-lg" />
+              <HiPlus className="text-base md:text-lg" />
               <span>Yeni Duyuru</span>
             </button>
           </div>
         </div>
 
         {/* Announcements List */}
-        <div className="glass-strong rounded-2xl p-6">
-          <h2 className="text-xl font-bold text-soft-white mb-4">
+        <div className="glass-strong rounded-2xl p-4 md:p-6">
+          <h2 className="text-lg md:text-xl font-bold text-soft-white mb-4">
             Gönderilen Duyurular
           </h2>
 
           <div className="space-y-4">
             {announcements.length === 0 ? (
-              <div className="text-center py-8 text-soft-white/60">
+              <div className="text-center py-8 text-soft-white/60 text-sm md:text-base">
                 Henüz duyuru gönderilmemiş
               </div>
             ) : (
               announcements.map((announcement) => (
                 <div
                   key={announcement.id}
-                  className="p-4 bg-slate-800/50 rounded-lg hover:bg-slate-700/50 transition-colors"
+                  className="p-3 md:p-4 bg-slate-800/50 rounded-lg hover:bg-slate-700/50 transition-colors"
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <HiNewspaper className="text-soft-green text-lg" />
-                        <h3 className="text-lg font-bold text-soft-white">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <HiNewspaper className="text-soft-green text-base md:text-lg flex-shrink-0" />
+                        <h3 className="text-base md:text-lg font-bold text-soft-white break-words">
                           {announcement.title}
                         </h3>
                         {announcement.isPinned && (
-                          <span className="px-2 py-1 text-xs font-bold bg-soft-green text-white rounded-full">
+                          <span className="px-2 py-1 text-xs font-bold bg-soft-green text-white rounded-full whitespace-nowrap">
                             📌 Sabitlenmiş
                           </span>
                         )}
                       </div>
-                      <p className="text-soft-white/80 mb-3 whitespace-pre-wrap">
+                      <p className="text-soft-white/80 mb-3 whitespace-pre-wrap text-sm md:text-base break-words">
                         {announcement.content}
                       </p>
-                      <div className="flex items-center space-x-4 text-sm text-soft-white/60">
-                        <span>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs md:text-sm text-soft-white/60">
+                        <span className="break-words">
                           👤 {announcement.author?.name}{announcement.author?.surname ? ` ${announcement.author.surname}` : ''}
                         </span>
-                        <span>•</span>
-                        <span>
+                        <span className="hidden sm:inline">•</span>
+                        <span className="whitespace-nowrap">
                           📅 {formatDate(announcement.updatedAt || announcement.createdAt)}
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2 ml-4">
+                    <div className="flex items-center space-x-2 sm:ml-4 flex-shrink-0 sm:flex-col sm:space-x-0 sm:space-y-2">
                       <button
                         onClick={() => handleEditAnnouncement(announcement)}
                         className="p-2 text-soft-green hover:bg-soft-green/20 rounded transition-colors"
                         title="Düzenle"
                       >
-                        <HiPencil className="text-sm" />
+                        <HiPencil className="text-base md:text-lg" />
                       </button>
                       {announcement.id && (
                         <button
@@ -210,7 +213,7 @@ const Announcements = () => {
                           className="p-2 text-red-400 hover:bg-red-400/20 rounded transition-colors"
                           title="Sil"
                         >
-                          <HiTrash className="text-sm" />
+                          <HiTrash className="text-base md:text-lg" />
                         </button>
                       )}
                     </div>
@@ -224,8 +227,8 @@ const Announcements = () => {
         {/* Add/Edit Modal */}
         {showAddModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-            <div className="glass-strong rounded-2xl p-8 w-full max-w-2xl shadow-2xl border border-white/20">
-              <h3 className="text-2xl font-bold text-soft-white mb-6">
+            <div className="glass-strong rounded-2xl p-4 md:p-8 w-full max-w-2xl shadow-2xl border border-white/20">
+              <h3 className="text-xl md:text-2xl font-bold text-soft-white mb-4 md:mb-6">
                 {editingAnnouncement ? '✏️ Duyuru Düzenle' : '➕ Yeni Duyuru'}
               </h3>
               <form
@@ -280,16 +283,16 @@ const Announcements = () => {
                   </label>
                 </div>
                 {!editingAnnouncement && (
-                  <div className="bg-soft-green/20 border border-soft-green/50 rounded-lg p-3 text-sm text-soft-white/90">
+                  <div className="bg-soft-green/20 border border-soft-green/50 rounded-lg p-3 text-xs md:text-sm text-soft-white/90">
                     💡 Bu duyuru oluşturulduğunda tüm kullanıcılara otomatik olarak bildirim gönderilecektir. Yeni duyuru varsayılan olarak ana sayfada gösterilir.
                   </div>
                 )}
                 {editingAnnouncement && (
-                  <div className="bg-blue-500/20 border border-blue-500/50 rounded-lg p-3 text-sm text-soft-white/90">
+                  <div className="bg-blue-500/20 border border-blue-500/50 rounded-lg p-3 text-xs md:text-sm text-soft-white/90">
                     💡 Bu duyuruyu sabitlerseniz, diğer sabitlenmiş duyurular otomatik olarak sabitlenmemiş hale gelir.
                   </div>
                 )}
-                <div className="flex space-x-4 pt-4">
+                <div className="flex flex-col sm:flex-row gap-2 sm:space-x-4 pt-4">
                   <button
                     type="button"
                     onClick={() => {
@@ -297,13 +300,13 @@ const Announcements = () => {
                       setEditingAnnouncement(null);
                       setNewAnnouncement({ title: '', content: '', isPinned: true });
                     }}
-                    className="flex-1 px-4 py-3 glass hover:bg-white/10 text-soft-white/80 hover:text-soft-white font-medium rounded-lg transition-all"
+                    className="flex-1 px-4 py-2 md:py-3 glass hover:bg-white/10 text-soft-white/80 hover:text-soft-white font-medium rounded-lg transition-all text-sm md:text-base"
                   >
                     İptal
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-3 bg-soft-green hover:bg-soft-green/80 text-white font-medium rounded-lg transition-all"
+                    className="flex-1 px-4 py-2 md:py-3 bg-soft-green hover:bg-soft-green/80 text-white font-medium rounded-lg transition-all text-sm md:text-base"
                   >
                     {editingAnnouncement ? 'Güncelle' : 'Oluştur ve Gönder'}
                   </button>
