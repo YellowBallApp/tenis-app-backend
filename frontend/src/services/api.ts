@@ -39,9 +39,9 @@ const DEFAULT_PORT = parseInt(process.env.EXPO_PUBLIC_API_PORT || '3000', 10);
 
 // Production API URL - Gerçek telefonda kullanılacak URL
 // Bu URL'yi backend'inizin deploy edildiği yere göre ayarlayın
-const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || '';
+const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.egevteniskulubu.com/api';
 
-// Default production server IP - Build alındığında kullanılacak IP
+// Default production server IP - Build alındığında kullanılacak IP (fallback için)
 // Production sunucu IP'si: 213.238.172.217
 const DEFAULT_PRODUCTION_IP = process.env.EXPO_PUBLIC_SERVER_IP || '213.238.172.217';
 
@@ -162,19 +162,17 @@ const getApiBaseUrl = async (): Promise<string> => {
     return `${NGROK_URL}/api`;
   }
 
-  // 2. Production build için (APK'da) direkt default production IP kullan
-  // Gerçek telefonda production build çalıştığında bu IP kullanılacak
+  // 2. Production build için (APK/IPA'da) production domain kullan
+  // Gerçek telefonda production build çalıştığında bu domain kullanılacak
   if (!__DEV__) {
+    // Production API URL varsa onu kullan (https://api.egevteniskulubu.com/api)
     if (PRODUCTION_API_URL) {
       const prodUrl = PRODUCTION_API_URL.endsWith('/api') 
         ? PRODUCTION_API_URL 
         : `${PRODUCTION_API_URL}/api`;
       return prodUrl;
     }
-    // Production'da direkt default production IP'yi kullan (APK için)
-    const serverIP = process.env.EXPO_PUBLIC_SERVER_IP || DEFAULT_PRODUCTION_IP;
-    const apiUrl = `http://${serverIP}:${DEFAULT_PORT}/api`;
-    return apiUrl;
+    return 'https://api.egevteniskulubu.com/api';
   }
 
   // 3. Development build için
@@ -205,13 +203,17 @@ const getApiBaseUrl = async (): Promise<string> => {
 };
 
 // İlk başta base URL'i al (async)
-// Development'ta canlı server IP'si, production'da ise production IP kullan
+// Development'ta canlı server IP'si, production'da ise production domain kullan
 const fallbackHost =
   __DEV__
     ? (process.env.EXPO_PUBLIC_SERVER_IP || DEFAULT_PRODUCTION_IP)
-    : (process.env.EXPO_PUBLIC_FALLBACK_HOST || DEFAULT_PRODUCTION_IP);
+    : (process.env.EXPO_PUBLIC_FALLBACK_HOST || 'api.egevteniskulubu.com');
 
-let API_BASE_URL: string = `http://${fallbackHost}:${DEFAULT_PORT}/api`;
+// Production'da HTTPS, development'ta HTTP kullan
+const fallbackProtocol = __DEV__ ? 'http' : 'https';
+const fallbackPort = __DEV__ ? `:${DEFAULT_PORT}` : '';
+
+let API_BASE_URL: string = `${fallbackProtocol}://${fallbackHost}${fallbackPort}/api`;
 
 // Önceki ağ durumunu takip et
 let previousNetworkType: string | null = null;
