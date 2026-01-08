@@ -164,48 +164,59 @@ const Users = () => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="glass-strong rounded-2xl p-6 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-soft-white mb-2">Kullanıcı Yönetimi</h1>
-            <p className="text-soft-white/70">
-              {filteredUsers.length === users.length 
-                ? `Toplam ${users.length} kullanıcı`
-                : `${filteredUsers.length} / ${users.length} kullanıcı gösteriliyor`
-              }
-            </p>
-          </div>
-          <div className="flex space-x-3">
-            {/* View Toggle */}
-            <div className="glass rounded-xl p-1 flex space-x-1">
+        <div className="glass-strong rounded-2xl p-4 md:p-6">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+            {/* Title Section */}
+            <div className="flex-1">
+              <h1 className="text-2xl md:text-3xl font-bold text-soft-white mb-1 md:mb-2">
+                Kullanıcı Yönetimi
+              </h1>
+              <p className="text-sm md:text-base text-soft-white/70">
+                {filteredUsers.length === users.length 
+                  ? `Toplam ${users.length} kullanıcı`
+                  : `${filteredUsers.length} / ${users.length} kullanıcı gösteriliyor`
+                }
+              </p>
+            </div>
+
+            {/* Actions Section */}
+            <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+              {/* View Toggle */}
+              <div className="glass rounded-xl p-1 flex space-x-1">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`px-2 md:px-3 py-2 rounded-lg transition-all duration-300 ${
+                    viewMode === 'grid'
+                      ? 'bg-slate-700 text-soft-white font-bold shadow-lg'
+                      : 'text-soft-white/70 hover:text-soft-white'
+                  }`}
+                  title="Kare Görünüm"
+                  aria-label="Grid görünüm"
+                >
+                  <LayoutGrid size={18} className="md:w-5 md:h-5" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`px-2 md:px-3 py-2 rounded-lg transition-all duration-300 ${
+                    viewMode === 'list'
+                      ? 'bg-slate-600 text-soft-white font-bold shadow-lg'
+                      : 'text-soft-white/70 hover:text-soft-white'
+                  }`}
+                  title="Liste Görünüm"
+                  aria-label="Liste görünüm"
+                >
+                  <List size={18} className="md:w-5 md:h-5" />
+                </button>
+              </div>
+
+              {/* New User Button */}
               <button
-                onClick={() => setViewMode('grid')}
-                className={`px-3 py-2 rounded-lg transition-all duration-300 ${
-                  viewMode === 'grid'
-                    ? 'bg-slate-700 text-soft-white font-bold shadow-lg'
-                    : 'text-soft-white/70 hover:text-soft-white'
-                }`}
-                title="Kare Görünüm"
+                onClick={handleCreate}
+                className="px-4 md:px-6 py-2 md:py-3 bg-soft-green hover:bg-soft-green-light text-soft-navy font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-soft-green/50 text-sm md:text-base whitespace-nowrap"
               >
-                <LayoutGrid size={20} />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`px-3 py-2 rounded-lg transition-all duration-300 ${
-                  viewMode === 'list'
-                    ? 'bg-slate-600 text-soft-white font-bold shadow-lg'
-                    : 'text-soft-white/70 hover:text-soft-white'
-                }`}
-                title="Liste Görünüm"
-              >
-                <List size={20} />
+                + Yeni Kullanıcı
               </button>
             </div>
-            <button
-              onClick={handleCreate}
-              className="px-6 py-3 bg-soft-green hover:bg-soft-green-light text-soft-navy font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-soft-green/50"
-            >
-              + Yeni Kullanıcı
-            </button>
           </div>
         </div>
 

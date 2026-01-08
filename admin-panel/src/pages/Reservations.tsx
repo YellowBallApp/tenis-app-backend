@@ -643,59 +643,65 @@ const Reservations = () => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="glass-strong rounded-2xl p-6">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-soft-white mb-2">
+        <div className="glass-strong rounded-2xl p-4 md:p-6">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-4 md:mb-6">
+            {/* Title Section */}
+            <div className="flex-1">
+              <h1 className="text-2xl md:text-3xl font-bold text-soft-white mb-1 md:mb-2">
                 {activeTab === 'blocked' 
                   ? 'Rezervasyon Saatleri Yönetimi'
                   : 'Kullanıcı Rezervasyonları'
                 }
               </h1>
-              <p className="text-soft-white/70">
+              <p className="text-sm md:text-base text-soft-white/70">
                 {activeTab === 'blocked' 
                   ? `Toplam ${blockedSlots.length} bloke edilmiş saat`
                   : `${selectedDate.toLocaleDateString('tr-TR')} tarihinde ${userReservations.length} rezervasyon`
                 }
               </p>
             </div>
+
+            {/* Actions Section */}
             {activeTab === 'blocked' && (
-              <div className="flex space-x-3">
+              <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
                 {/* View Toggle */}
                 <div className="glass rounded-xl p-1 flex space-x-1">
                   <button
                     onClick={() => setViewMode('grid')}
-                    className={`px-3 py-2 rounded-lg transition-all duration-300 ${
+                    className={`px-2 md:px-3 py-2 rounded-lg transition-all duration-300 ${
                       viewMode === 'grid'
                         ? 'bg-slate-700 text-soft-white font-bold shadow-lg'
                         : 'text-soft-white/70 hover:text-soft-white'
                     }`}
                     title="Kare Görünüm"
+                    aria-label="Grid görünüm"
                   >
-                    <LayoutGrid size={20} />
+                    <LayoutGrid size={18} className="md:w-5 md:h-5" />
                   </button>
                   <button
                     onClick={() => setViewMode('list')}
-                    className={`px-3 py-2 rounded-lg transition-all duration-300 ${
+                    className={`px-2 md:px-3 py-2 rounded-lg transition-all duration-300 ${
                       viewMode === 'list'
                         ? 'bg-slate-600 text-soft-white font-bold shadow-lg'
                         : 'text-soft-white/70 hover:text-soft-white'
                     }`}
                     title="Liste Görünüm"
+                    aria-label="Liste görünüm"
                   >
-                    <List size={20} />
+                    <List size={18} className="md:w-5 md:h-5" />
                   </button>
                 </div>
+
+                {/* Block Hour Button */}
                 <button
                   onClick={handleCreate}
-                  className="px-6 py-3 bg-soft-green hover:bg-soft-green-light text-soft-navy font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-soft-green/50"
+                  className="px-4 md:px-6 py-2 md:py-3 bg-soft-green hover:bg-soft-green-light text-soft-navy font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-soft-green/50 text-sm md:text-base whitespace-nowrap"
                 >
                   + Saat Bloke Et
                 </button>
               </div>
             )}
           </div>
-
         </div>
 
         {/* Blocked Slots Tab Content */}
@@ -789,25 +795,25 @@ const Reservations = () => {
         {viewMode === 'list' && (
           <div className="glass-strong rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[700px]">
                 <thead className="glass-strong border-b border-white/10">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    <th className="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       Kort
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    <th className="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       Başlangıç
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    <th className="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       Bitiş
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    <th className="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       Neden
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    <th className="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       Durum
                     </th>
-                    <th className="px-6 py-4 text-right text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    <th className="px-4 md:px-6 py-3 md:py-4 text-right text-xs font-bold text-slate-300 uppercase tracking-wider">
                       İşlemler
                     </th>
                   </tr>
@@ -815,29 +821,29 @@ const Reservations = () => {
                 <tbody className="divide-y divide-white/10">
                   {blockedSlots.map((slot) => (
                     <tr key={slot.id} className="hover:bg-white/5 transition-colors duration-200">
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 rounded-lg bg-slate-600 flex items-center justify-center text-xl">
+                          <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-slate-600 flex items-center justify-center text-lg md:text-xl flex-shrink-0">
                             🎾
                           </div>
                           <div className="text-sm font-bold text-soft-white">{slot.court.name}</div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-soft-white/80">
+                      <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">
+                        <div className="text-xs md:text-sm text-soft-white/80">
                           {new Date(slot.startTime).toLocaleString('tr-TR')}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-soft-white/80">
+                      <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">
+                        <div className="text-xs md:text-sm text-soft-white/80">
                           {new Date(slot.endTime).toLocaleString('tr-TR')}
                         </div>
                       </td>
-                      <td className="px-6 py-4 max-w-xs">
-                        <div className="text-sm text-soft-white/80 truncate">{slot.reason || '-'}</div>
+                      <td className="px-4 md:px-6 py-3 md:py-4 max-w-[150px]">
+                        <div className="text-xs md:text-sm text-soft-white/80 truncate">{slot.reason || '-'}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1 text-xs font-bold rounded-full ${
+                      <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">
+                        <span className={`px-2 md:px-3 py-1 text-xs font-bold rounded-full ${
                           slot.isActive 
                             ? 'bg-slate-700 text-white'
                             : 'bg-slate-600 text-white'
@@ -845,27 +851,32 @@ const Reservations = () => {
                           {slot.isActive ? '🚫 Aktif' : '⏸️ Pasif'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => handleToggleActive(slot)}
-                        className={`mr-3 transition-colors ${
-                          slot.isActive ? 'text-slate-300 hover:text-slate-300-light' : 'text-slate-300 hover:text-slate-300-light'
-                        }`}
-                        >
-                          {slot.isActive ? '⏸️' : '▶️'}
-                        </button>
-                      <button
-                        onClick={() => handleEdit(slot)}
-                        className="text-slate-300 hover:text-slate-300-light mr-3 transition-colors"
-                      >
-                        ✏️
-                      </button>
-                        <button
-                          onClick={() => handleDelete(slot.id)}
-                          className="text-soft-white/70 hover:text-soft-white transition-colors"
-                        >
-                          🗑️
-                        </button>
+                      <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleToggleActive(slot)}
+                            className={`transition-colors text-lg ${
+                              slot.isActive ? 'text-slate-300 hover:text-slate-300-light' : 'text-slate-300 hover:text-slate-300-light'
+                            }`}
+                            title={slot.isActive ? 'Pasifleştir' : 'Aktifleştir'}
+                          >
+                            {slot.isActive ? '⏸️' : '▶️'}
+                          </button>
+                          <button
+                            onClick={() => handleEdit(slot)}
+                            className="text-slate-300 hover:text-slate-300-light transition-colors text-lg"
+                            title="Düzenle"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            onClick={() => handleDelete(slot.id)}
+                            className="text-soft-white/70 hover:text-soft-white transition-colors text-lg"
+                            title="Sil"
+                          >
+                            🗑️
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -887,17 +898,19 @@ const Reservations = () => {
         {activeTab === 'user-reservations' && (
           <div className="space-y-6">
             {/* Date Selector */}
-            <div className="glass-strong rounded-2xl p-6">
+            <div className="glass-strong rounded-2xl p-4 md:p-6">
               <div className="flex items-center justify-center">
-                <div className="flex items-center space-x-4">
-                  <label className="text-sm font-medium text-soft-white/90">
+                <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto">
+                  <label className="text-sm font-medium text-soft-white/90 whitespace-nowrap">
                     Tarih Seç:
                   </label>
-                  <DatePicker
-                    date={selectedDate}
-                    onDateChange={(date) => date && setSelectedDate(date)}
-                    placeholder="Tarih seçin"
-                  />
+                  <div className="w-full sm:w-auto">
+                    <DatePicker
+                      date={selectedDate}
+                      onDateChange={(date) => date && setSelectedDate(date)}
+                      placeholder="Tarih seçin"
+                    />
+                  </div>
                 </div>
               </div>
               <div className="mt-4 text-center">

@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { HiLogout, HiChevronDown, HiChevronRight } from 'react-icons/hi';
+import { HiLogout, HiChevronDown, HiChevronRight, HiMenu, HiX } from 'react-icons/hi';
 import { IoTennisball } from 'react-icons/io5';
 import { MdDashboard, MdPeople, MdEvent, MdRateReview, MdSportsTennis, MdEmojiEvents, MdNotifications } from 'react-icons/md';
 import { useAuth } from '../context/AuthContext';
@@ -18,6 +18,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [pendingApplicationsCount, setPendingApplicationsCount] = useState(0);
   const [reservationsExpanded, setReservationsExpanded] = useState(false);
   const [leaguesExpanded, setLeaguesExpanded] = useState(false);
+  // Sidebar state: expanded (desktop) ve mobile menu state
+  const [sidebarExpanded, setSidebarExpanded] = useState(true); // Desktop için default expanded
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // Mobil için menu açık mı
 
   useEffect(() => {
     fetchPendingReviewsCount();
@@ -63,6 +66,32 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     }
   }, [location.pathname]);
 
+  // Mobil menüyü route değiştiğinde kapat
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  // Desktop'ta window resize kontrolü
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        // Desktop: mobil menu'yu kapat
+        setMobileMenuOpen(false);
+        // Desktop'ta sidebar her zaman açık olsun (toggle butonu yok)
+        setSidebarExpanded(true);
+      } else {
+        // Mobile: sidebar'ı kapalı tut (overlay olarak açılacak)
+        setMobileMenuOpen(false);
+        // Mobilde her zaman expanded modda göster
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // İlk yüklemede kontrol et
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: MdDashboard },
     { path: '/users', label: 'Kullanıcılar', icon: MdPeople },
@@ -94,16 +123,55 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   ];
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen relative">
+      {/* Mobil Overlay/Backdrop */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Hamburger Menu Button - Sadece mobilde görünür */}
+      <button
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        className="fixed top-4 left-4 z-50 lg:hidden p-2 glass rounded-lg text-soft-white hover:bg-white/10 transition-all duration-300"
+        aria-label="Toggle menu"
+      >
+        {mobileMenuOpen ? (
+          <HiX className="text-2xl" />
+        ) : (
+          <HiMenu className="text-2xl" />
+        )}
+      </button>
+
       {/* Sidebar */}
-      <div className="fixed inset-y-0 left-0 w-64 glass-strong border-r border-white/10">
+      <aside
+        className={`fixed inset-y-0 left-0 glass-strong border-r border-white/10 z-50 lg:z-auto
+          transition-all duration-300 ease-in-out
+          ${
+            mobileMenuOpen
+              ? 'translate-x-0'
+              : '-translate-x-full lg:translate-x-0'
+          }
+          ${
+            sidebarExpanded
+              ? 'w-64'
+              : 'w-20 lg:w-64'
+          }
+        `}
+      >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-center h-20 border-b border-white/10">
-            <div className="flex items-center space-x-3">
-              <IoTennisball className="text-4xl text-soft-green" />
-              <h1 className="text-soft-white text-xl font-bold">Admin Panel</h1>
-            </div>
+          <div className="flex items-center justify-center h-20 border-b border-white/10 px-4">
+            {sidebarExpanded ? (
+              <div className="flex items-center space-x-3">
+                <IoTennisball className="text-4xl text-soft-green flex-shrink-0" />
+                <h1 className="text-soft-white text-xl font-bold whitespace-nowrap">Admin Panel</h1>
+              </div>
+            ) : (
+              <IoTennisball className="text-4xl text-soft-green flex-shrink-0" />
+            )}
           </div>
           
           {/* Navigation */}
@@ -129,26 +197,49 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                           setLeaguesExpanded(!leaguesExpanded);
                         }
                       }}
-                      className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-300 ${
+                      className={`w-full flex items-center ${
+                        sidebarExpanded ? 'justify-between' : 'justify-center'
+                      } px-4 py-3 text-sm font-medium rounded-xl transition-all duration-300 group ${
                         isActive
                           ? 'bg-soft-purple text-soft-white shadow-lg'
                           : 'text-soft-white/80 hover:bg-white/10 hover:text-soft-white'
                       }`}
+                      title={!sidebarExpanded ? item.label : undefined}
                     >
                       <div className="flex items-center">
                         <IconComponent 
                           style={{ fontSize: '24px', minWidth: '24px' }}
-                          className="mr-3 flex-shrink-0 text-white"
+                          className="flex-shrink-0 text-white"
                         />
-                        <span>{item.label}</span>
+                        {sidebarExpanded && (
+                          <>
+                            <span className="ml-3 whitespace-nowrap">{item.label}</span>
+                            {item.badge !== undefined && item.badge > 0 && (
+                              <span className="ml-2 px-2 py-1 text-xs font-bold bg-soft-green text-soft-navy rounded-full min-w-[24px] text-center">
+                                {item.badge}
+                              </span>
+                            )}
+                          </>
+                        )}
                       </div>
-                      {isExpanded ? (
-                        <HiChevronDown className="text-white" />
-                      ) : (
-                        <HiChevronRight className="text-white" />
+                      {sidebarExpanded && (
+                        <>
+                          {isExpanded ? (
+                            <HiChevronDown className="text-white flex-shrink-0" />
+                          ) : (
+                            <HiChevronRight className="text-white flex-shrink-0" />
+                          )}
+                        </>
+                      )}
+                      {/* Tooltip for collapsed state */}
+                      {!sidebarExpanded && (
+                        <div className="absolute left-full ml-2 px-2 py-1 bg-soft-navy text-soft-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-nowrap z-50">
+                          {item.label}
+                          {item.badge !== undefined && item.badge > 0 && ` (${item.badge})`}
+                        </div>
                       )}
                     </button>
-                    {isExpanded && item.children && (
+                    {sidebarExpanded && isExpanded && item.children && (
                       <div className="ml-4 mt-1 space-y-1">
                         {item.children.map((child) => {
                           const isChildActive = location.pathname === child.path;
@@ -157,6 +248,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                             <Link
                               key={child.path}
                               to={child.path}
+                              onClick={() => setMobileMenuOpen(false)}
                               className={`flex items-center justify-between px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 ${
                                 isChildActive
                                   ? 'bg-soft-purple/50 text-soft-white shadow-md'
@@ -182,25 +274,38 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-300 ${
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`w-full flex items-center ${
+                    sidebarExpanded ? 'justify-between' : 'justify-center'
+                  } px-4 py-3 text-sm font-medium rounded-xl transition-all duration-300 group relative ${
                     isActive
                       ? 'bg-soft-purple text-soft-white shadow-lg'
                       : 'text-soft-white/80 hover:bg-white/10 hover:text-soft-white'
                   }`}
+                  title={!sidebarExpanded ? item.label : undefined}
                 >
                   <div className="flex items-center">
                     <IconComponent 
                       style={{ fontSize: '24px', minWidth: '24px' }}
-                      className={`mr-3 flex-shrink-0 ${
-                        isActive ? 'text-white' : 'text-white'
-                      }`} 
+                      className="flex-shrink-0 text-white"
                     />
-                    <span>{item.label}</span>
+                    {sidebarExpanded && (
+                      <>
+                        <span className="ml-3 whitespace-nowrap">{item.label}</span>
+                      </>
+                    )}
                   </div>
-                  {item.badge !== undefined && item.badge > 0 && (
+                  {sidebarExpanded && item.badge !== undefined && item.badge > 0 && (
                     <span className="px-2 py-1 text-xs font-bold bg-soft-green text-soft-navy rounded-full min-w-[24px] text-center">
                       {item.badge}
                     </span>
+                  )}
+                  {/* Tooltip for collapsed state */}
+                  {!sidebarExpanded && (
+                    <div className="absolute left-full ml-2 px-2 py-1 bg-soft-navy text-soft-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-nowrap z-50">
+                      {item.label}
+                      {item.badge !== undefined && item.badge > 0 && ` (${item.badge})`}
+                    </div>
                   )}
                 </Link>
               );
@@ -209,25 +314,45 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           
           {/* User Info & Logout */}
           <div className="p-4 border-t border-white/10">
-            <div className="glass rounded-xl p-4 mb-3">
-              <div className="text-sm text-soft-white">
-                <div className="font-bold mb-1">{user?.name}</div>
-                <div className="text-xs text-soft-white/60 truncate">{user?.email}</div>
+            {sidebarExpanded ? (
+              <>
+                <div className="glass rounded-xl p-4 mb-3">
+                  <div className="text-sm text-soft-white">
+                    <div className="font-bold mb-1 truncate">{user?.name}</div>
+                    <div className="text-xs text-soft-white/60 truncate">{user?.email}</div>
+                  </div>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="w-full px-4 py-3 text-sm font-bold text-soft-white bg-slate-600 hover:bg-slate-700 rounded-xl transition-all duration-300 shadow-lg flex items-center justify-center"
+                >
+                  <HiLogout className="mr-2" />
+                  Çıkış Yap
+                </button>
+              </>
+            ) : (
+              <div className="flex flex-col items-center space-y-3">
+                <button
+                  onClick={handleLogout}
+                  className="w-full p-3 text-soft-white bg-slate-600 hover:bg-slate-700 rounded-xl transition-all duration-300 shadow-lg flex items-center justify-center"
+                  title="Çıkış Yap"
+                >
+                  <HiLogout className="text-xl" />
+                </button>
               </div>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="w-full px-4 py-3 text-sm font-bold text-soft-white bg-slate-600 hover:bg-slate-700 rounded-xl transition-all duration-300 shadow-lg flex items-center justify-center"
-            >
-              <HiLogout className="mr-2" />
-              Çıkış Yap
-            </button>
+            )}
           </div>
         </div>
-      </div>
+      </aside>
 
       {/* Main content */}
-      <div className="ml-64 p-8">
+      <div
+        className={`min-h-screen transition-all duration-300 ease-in-out ${
+          sidebarExpanded
+            ? 'lg:ml-64'
+            : 'lg:ml-64'
+        } pt-16 lg:pt-8 p-4 lg:p-8`}
+      >
         {children}
       </div>
     </div>

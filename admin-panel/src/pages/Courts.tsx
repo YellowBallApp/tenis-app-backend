@@ -115,43 +115,56 @@ const Courts = () => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="glass-strong rounded-2xl p-6 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-soft-white mb-2">Kort Yönetimi</h1>
-            <p className="text-soft-white/70">Toplam {courts.length} kort</p>
-          </div>
-          <div className="flex space-x-3">
-            {/* View Toggle */}
-            <div className="glass rounded-xl p-1 flex space-x-1">
+        <div className="glass-strong rounded-2xl p-4 md:p-6">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+            {/* Title Section */}
+            <div className="flex-1">
+              <h1 className="text-2xl md:text-3xl font-bold text-soft-white mb-1 md:mb-2">
+                Kort Yönetimi
+              </h1>
+              <p className="text-sm md:text-base text-soft-white/70">
+                Toplam {courts.length} kort
+              </p>
+            </div>
+
+            {/* Actions Section */}
+            <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+              {/* View Toggle */}
+              <div className="glass rounded-xl p-1 flex space-x-1">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`px-2 md:px-3 py-2 rounded-lg transition-all duration-300 ${
+                    viewMode === 'grid'
+                      ? 'bg-slate-700 text-soft-white font-bold shadow-lg'
+                      : 'text-soft-white/70 hover:text-soft-white'
+                  }`}
+                  title="Kare Görünüm"
+                  aria-label="Grid görünüm"
+                >
+                  <LayoutGrid size={18} className="md:w-5 md:h-5" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`px-2 md:px-3 py-2 rounded-lg transition-all duration-300 ${
+                    viewMode === 'list'
+                      ? 'bg-slate-600 text-soft-white font-bold shadow-lg'
+                      : 'text-soft-white/70 hover:text-soft-white'
+                  }`}
+                  title="Liste Görünüm"
+                  aria-label="Liste görünüm"
+                >
+                  <List size={18} className="md:w-5 md:h-5" />
+                </button>
+              </div>
+
+              {/* New Court Button */}
               <button
-                onClick={() => setViewMode('grid')}
-                className={`px-3 py-2 rounded-lg transition-all duration-300 ${
-                  viewMode === 'grid'
-                    ? 'bg-slate-700 text-soft-white font-bold shadow-lg'
-                    : 'text-soft-white/70 hover:text-soft-white'
-                }`}
-                title="Kare Görünüm"
+                onClick={handleCreate}
+                className="px-4 md:px-6 py-2 md:py-3 bg-soft-green hover:bg-soft-green-light text-soft-navy font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-soft-green/50 text-sm md:text-base whitespace-nowrap"
               >
-                <LayoutGrid size={20} />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`px-3 py-2 rounded-lg transition-all duration-300 ${
-                  viewMode === 'list'
-                    ? 'bg-slate-600 text-soft-white font-bold shadow-lg'
-                    : 'text-soft-white/70 hover:text-soft-white'
-                }`}
-                title="Liste Görünüm"
-              >
-                <List size={20} />
+                + Yeni Kort
               </button>
             </div>
-            <button
-              onClick={handleCreate}
-              className="px-6 py-3 bg-soft-green hover:bg-soft-green-light text-soft-navy font-bold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-soft-green/50"
-            >
-              + Yeni Kort
-            </button>
           </div>
         </div>
 
@@ -222,22 +235,22 @@ const Courts = () => {
         {viewMode === 'list' && (
           <div className="glass-strong rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[600px]">
                 <thead className="glass-strong border-b border-white/10">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    <th className="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       Kort Adı
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    <th className="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       Kort Tipi
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    <th className="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       Konum
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    <th className="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       Durum
                     </th>
-                    <th className="px-6 py-4 text-right text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    <th className="px-4 md:px-6 py-3 md:py-4 text-right text-xs font-bold text-slate-300 uppercase tracking-wider">
                       İşlemler
                     </th>
                   </tr>
@@ -245,26 +258,26 @@ const Courts = () => {
                 <tbody className="divide-y divide-white/10">
                   {courts.map((court) => (
                     <tr key={court.id} className="hover:bg-white/5 transition-colors duration-200">
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 rounded-lg bg-slate-600 flex items-center justify-center text-xl">
+                          <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-slate-600 flex items-center justify-center text-lg md:text-xl flex-shrink-0">
                             🎾
                           </div>
                           <div className="text-sm font-bold text-soft-white">{court.name}</div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">
                         <div className="text-sm text-soft-white/80">
                           {groundTypeLabels[court.groundType]}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">
                         <div className="text-sm text-soft-white/80">
                           {court.indoors ? '🏠 Kapalı Alan' : '🌳 Açık Alan'}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1 text-xs font-bold rounded-full ${
+                      <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">
+                        <span className={`px-2 md:px-3 py-1 text-xs font-bold rounded-full ${
                           court.closed 
                             ? 'bg-red-500/20 text-red-200 border border-red-400/30'
                             : 'bg-soft-green/20 text-soft-green border border-soft-green/30'
@@ -272,19 +285,21 @@ const Courts = () => {
                           {court.closed ? '🔒 Kapalı' : '✅ Açık'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => handleEdit(court)}
-                          className="px-3 py-1.5 glass hover:bg-soft-green/20 hover:border-soft-green text-soft-white/80 hover:text-soft-white mr-3 transition-all rounded-lg hover:shadow-lg"
-                        >
-                          ✏️ Düzenle
-                        </button>
-                        <button
-                          onClick={() => handleDelete(court.id)}
-                          className="px-3 py-1.5 glass hover:bg-red-500/20 hover:border-red-400 text-soft-white/70 hover:text-red-200 transition-all rounded-lg hover:shadow-lg"
-                        >
-                          🗑️ Sil
-                        </button>
+                      <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleEdit(court)}
+                            className="px-2 md:px-3 py-1.5 glass hover:bg-soft-green/20 hover:border-soft-green text-soft-white/80 hover:text-soft-white transition-all rounded-lg hover:shadow-lg text-xs md:text-sm"
+                          >
+                            ✏️ Düzenle
+                          </button>
+                          <button
+                            onClick={() => handleDelete(court.id)}
+                            className="px-2 md:px-3 py-1.5 glass hover:bg-red-500/20 hover:border-red-400 text-soft-white/70 hover:text-red-200 transition-all rounded-lg hover:shadow-lg text-xs md:text-sm"
+                          >
+                            🗑️ Sil
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
