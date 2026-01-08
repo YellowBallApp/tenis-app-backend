@@ -95,7 +95,7 @@ const HomeScreen = () => {
     loadData();
   }, []);
 
-  // Ekran her görünür olduğunda scroll pozisyonunu sıfırla ve okunmamış bildirim sayısını güncelle
+  // Ekran her görünür olduğunda scroll pozisyonunu sıfırla ve verileri güncelle
   useFocusEffect(
     React.useCallback(() => {
       // Scroll pozisyonunu en üste al
@@ -105,6 +105,17 @@ const HomeScreen = () => {
       
       // Okunmamış bildirim sayısını güncelle
       loadUnreadCount();
+      
+      // Profil bilgisini yeniden yükle (fotoğraf güncellemeleri için)
+      const refreshProfile = async () => {
+        try {
+          const profileData = await authService.getProfile();
+          setCurrentUser(profileData);
+        } catch (error) {
+          console.error('Profil yenileme hatası:', error);
+        }
+      };
+      refreshProfile();
       
       // Route params'tan rezervasyon başarı mesajını kontrol et
       const params = route.params as { showReservationSuccess?: boolean } | undefined;
@@ -158,16 +169,27 @@ const HomeScreen = () => {
         } : reservation.court,
       }));
       
-      // Sadece isPinned olan duyuruları göster (birden fazla olabilir)
-      const pinnedAnnouncements = (announcementsData || [])
+      // Tüm duyuruları normalize et ve sırala
+      // Backend'ten zaten doğru sırada gelecek, ama frontend'te de kontrol edelim
+      const normalizedAnnouncements = (announcementsData || [])
         .map((announcement: any) => ({
           ...announcement,
           isPinned: !!(announcement.isPinned),
         }))
-        .filter((announcement: any) => announcement.isPinned);
+        .sort((a: any, b: any) => {
+          // Önce pinned durumuna göre sırala (pinned olanlar üstte)
+          if (a.isPinned !== b.isPinned) {
+            return a.isPinned ? -1 : 1;
+          }
+          
+          // Aynı pinned durumundaysa, updatedAt veya createdAt'e göre sırala (yeni olanlar üstte)
+          const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : new Date(a.createdAt).getTime();
+          const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : new Date(b.createdAt).getTime();
+          return dateB - dateA;
+        });
       
       setReservations(normalizedReservations);
-      setAnnouncements(pinnedAnnouncements);
+      setAnnouncements(normalizedAnnouncements);
       
       // Kullanıcı istatistiklerini güncelle
       const wins = matchStats.wins || 0;
@@ -416,7 +438,7 @@ const HomeScreen = () => {
                   {announcement.content}
                 </Text>
                 <Text style={[styles.newsAuthor, themedStyles.subtitle]}>
-                  👤                   {announcement.author.name} • {new Date(announcement.createdAt).toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US')}
+                  👤                   {announcement.author.name}{announcement.author.surname ? ` ${announcement.author.surname}` : ''} • {new Date(announcement.updatedAt || announcement.createdAt).toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US')}
                 </Text>
               </View>
             </View>

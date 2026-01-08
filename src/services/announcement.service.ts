@@ -16,12 +16,25 @@ export class AnnouncementService {
   // Tüm duyuruları getir
   async getAllAnnouncements() {
     try {
+      // Önce tüm duyuruları çek
       const announcements = await this.announcementRepository.find({
         relations: ['author'],
-        order: {
-          isPinned: 'DESC',
-          createdAt: 'DESC',
-        },
+      });
+
+      // Sıralama mantığı:
+      // 1. Sabitlenmiş duyurular en üstte (isPinned: true)
+      // 2. Sabitlenmiş duyurular kendi aralarında updatedAt'e göre DESC sıralanır
+      // 3. Sabitlenmemiş duyurular updatedAt'e göre DESC sıralanır
+      announcements.sort((a, b) => {
+        // Önce pinned durumuna göre sırala (pinned olanlar üstte)
+        if (a.isPinned !== b.isPinned) {
+          return a.isPinned ? -1 : 1;
+        }
+        
+        // Aynı pinned durumundaysa, updatedAt'e göre sırala (yeni olanlar üstte)
+        const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : new Date(a.createdAt).getTime();
+        const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : new Date(b.createdAt).getTime();
+        return dateB - dateA;
       });
 
       return announcements;
