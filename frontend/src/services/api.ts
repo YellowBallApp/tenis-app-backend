@@ -42,8 +42,8 @@ const DEFAULT_PORT = parseInt(process.env.EXPO_PUBLIC_API_PORT || '3000', 10);
 const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || '';
 
 // Default production server IP - Build alındığında kullanılacak IP
-// Local development için localhost kullan, production için environment variable'dan al
-const DEFAULT_PRODUCTION_IP = process.env.EXPO_PUBLIC_SERVER_IP || 'localhost';
+// Production sunucu IP'si: 213.238.172.217
+const DEFAULT_PRODUCTION_IP = process.env.EXPO_PUBLIC_SERVER_IP || '213.238.172.217';
 
 // Yaygın local network IP aralıkları (fallback için)
 const COMMON_IP_RANGES = [
@@ -240,13 +240,26 @@ export const initializeAPI = async (): Promise<void> => {
   apiInitializationPromise = (async () => {
     try {
       API_BASE_URL = await getApiBaseUrl();
+      console.log('🌐 API Base URL:', API_BASE_URL);
       
       // İlk ağ durumunu kaydet (sadece native platformlarda)
+      // Timeout ile - Android'de NetInfo.fetch() takılabiliyor
       if (NetInfo && Platform.OS !== 'web') {
         try {
-          const netInfoState = await NetInfo.fetch();
-          previousNetworkType = netInfoState.type;
-          previousNetworkSSID = (netInfoState as any).details?.ssid || null;
+          const netInfoPromise = NetInfo.fetch();
+          const timeoutPromise = new Promise((resolve) => {
+            setTimeout(() => {
+              console.warn('⚠️ NetInfo fetch timeout - Devam ediliyor');
+              resolve(null);
+            }, 3000); // 3 saniye timeout
+          });
+          
+          const netInfoState = await Promise.race([netInfoPromise, timeoutPromise]);
+          
+          if (netInfoState) {
+            previousNetworkType = (netInfoState as any).type;
+            previousNetworkSSID = (netInfoState as any).details?.ssid || null;
+          }
         } catch (error) {
           console.warn('NetInfo fetch hatası:', error);
         }

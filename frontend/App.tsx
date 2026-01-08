@@ -41,7 +41,20 @@ export default function App() {
     const setupAPI = async () => {
       try {
         console.log('📱 Uygulama başlatılıyor - IP keşfi yapılıyor...');
-        await initializeAPI();
+        
+        // Timeout ile API başlatma - 5 saniye içinde tamamlanmazsa devam et
+        const timeoutPromise = new Promise((resolve) => {
+          setTimeout(() => {
+            console.warn('⚠️ API başlatma timeout - Uygulama devam ediyor');
+            resolve(null);
+          }, 5000); // 5 saniye timeout
+        });
+        
+        const apiPromise = initializeAPI();
+        
+        // İlk tamamlanan promise'i bekle
+        await Promise.race([apiPromise, timeoutPromise]);
+        
         console.log('✅ IP keşfi tamamlandı - Uygulama hazır');
         setIsAPIReady(true);
       } catch (error: any) {
@@ -57,11 +70,12 @@ export default function App() {
 
   // Splash screen göster - API hazır olana kadar
   useEffect(() => {
-    // API hazır olduğunda ve minimum 2 saniye geçtiğinde splash'i kapat
+    // API hazır olduğunda hemen splash'i kapat (minimum gösterim süresi kaldırıldı)
     if (isAPIReady && !isSplashReady) {
+      // Kısa bir delay ile smooth geçiş için (100ms)
       const timer = setTimeout(() => {
         setIsSplashReady(true);
-      }, 2000); // Minimum 2 saniye göster
+      }, 100);
 
       return () => clearTimeout(timer);
     }

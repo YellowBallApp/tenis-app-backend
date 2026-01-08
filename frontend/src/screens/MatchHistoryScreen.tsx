@@ -859,9 +859,9 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ flex: 1 }}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : insets.bottom}
           >
-            <View style={styles.commentModalCard}>
+            <View style={[styles.commentModalCard, { paddingBottom: insets.bottom }]}>
               {/* Bottom Sheet Handle */}
               <View style={styles.modalHandle} />
               
@@ -1362,13 +1362,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    ...(Platform.OS === 'android' && {
+      paddingTop: 0,
+      paddingBottom: 0,
+    }),
   },
   commentModalCard: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     backgroundColor: '#FFFFFF',
-    maxHeight: Platform.OS === 'ios' ? height * 0.85 : height * 0.85,
-    minHeight: Platform.OS === 'ios' ? height * 0.70 : undefined,
+    height: Platform.OS === 'ios' ? height * 0.85 : height * 0.9,
+    maxHeight: Platform.OS === 'ios' ? height * 0.85 : height * 0.9,
+    minHeight: Platform.OS === 'ios' ? height * 0.70 : height * 0.8,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
