@@ -1325,15 +1325,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   modalContainer: {
-    margin: Platform.OS === 'ios' ? 10 : 20,
+    margin: Platform.OS === 'ios' ? 8 : 12,
     flex: 1,
     justifyContent: 'center',
   },
   modalCard: {
     borderRadius: 20,
-    maxHeight: Platform.OS === 'ios' ? height * 0.95 : height * 0.8,
-    width: Platform.OS === 'ios' ? '95%' : undefined,
-    alignSelf: Platform.OS === 'ios' ? 'center' : undefined,
+    maxHeight: Platform.OS === 'ios' ? height * 0.98 : height * 0.95,
+    minHeight: Platform.OS === 'ios' ? height * 0.70 : height * 0.75,
+    width: Platform.OS === 'ios' ? '98%' : '96%',
+    alignSelf: 'center',
     backgroundColor: '#FFFFFF',
     overflow: 'hidden',
     elevation: 12,
@@ -1346,16 +1347,16 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
   },
   modalCardContent: {
-    flex: 1,
-    minHeight: 0,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    height: '100%',
   },
   modalScrollView: {
-    flex: 1,
+    maxHeight: '100%',
+    paddingHorizontal: 20,
   },
   modalContent: {
-    paddingBottom: 16,
+    paddingBottom: 20,
   },
   commentModalContainer: {
     margin: 0,
@@ -1412,7 +1413,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     marginBottom: 20,
-    paddingTop: 8,
+    paddingTop: 20,
+    paddingHorizontal: 20,
   },
   modalHeaderContent: {
     flex: 1,
@@ -1478,6 +1480,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 20, // mt-5
     gap: 12, // gap-3
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   modalClearButton: {
     flex: 1,

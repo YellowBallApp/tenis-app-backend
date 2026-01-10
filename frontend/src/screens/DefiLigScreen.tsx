@@ -393,7 +393,7 @@ const DefiLigScreen = ({ navigation }: any) => {
         showsVerticalScrollIndicator={false}
       >
 
-        {/* Boş alan - dışarı tıklandığında seçimi kaldır */}
+        {/* Current User Card */}
         <TouchableWithoutFeedback
           onPress={() => {
             if (selectedLeagueId) {
@@ -403,11 +403,8 @@ const DefiLigScreen = ({ navigation }: any) => {
             }
           }}
         >
-          <View style={styles.touchableArea} />
-        </TouchableWithoutFeedback>
-
-        {/* Current User Card */}
-        <View style={styles.currentUserSection}>
+          <View>
+            <View style={styles.currentUserSection}>
           <View style={styles.sectionHeader}>
             <MaterialCommunityIcons name="account-circle" size={20} color="#54CE8F" />
             <Text style={styles.sectionTitle}>{t('defiLeague.you') || 'Siz'}</Text>
@@ -469,6 +466,8 @@ const DefiLigScreen = ({ navigation }: any) => {
             </Card.Content>
           </Card>
         </View>
+          </View>
+        </TouchableWithoutFeedback>
 
         {/* Ligler Listesi */}
         <View style={styles.leaguesSection}>
@@ -911,9 +910,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 40,
   },
-  touchableArea: {
-    minHeight: 1,
-  },
   currentUserSection: {
     padding: 24,
     paddingBottom: 8,
@@ -1102,24 +1098,33 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   modalContainer: {
-    margin: Platform.OS === 'ios' ? 10 : 16,
+    margin: Platform.OS === 'ios' ? 6 : 10,
     flex: 1,
     justifyContent: 'center',
   },
   modalCard: {
-    borderRadius: 16,
+    borderRadius: 20,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    maxHeight: Platform.OS === 'ios' ? '95%' : '85%',
-    width: Platform.OS === 'ios' ? '95%' : undefined,
-    alignSelf: Platform.OS === 'ios' ? 'center' : undefined,
+    borderWidth: 0,
+    maxHeight: Platform.OS === 'ios' ? '99%' : '94%',
+    width: Platform.OS === 'ios' ? '99%' : '96%',
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 5,
   },
   modalScrollView: {
     maxHeight: '100%',
   },
   modalContent: {
-    padding: 24,
+    paddingTop: 20,
+    paddingHorizontal: 24,
+    paddingBottom: 24,
   },
   modalHeader: {
     flexDirection: 'row',

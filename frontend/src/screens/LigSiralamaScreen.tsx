@@ -245,11 +245,11 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
           // Current user için de userService.getUserById() ile tam user bilgilerini al
           try {
             const fullCurrentUserData = await userService.getUserById(currentUserRanking.user.id);
-            setCurrentUser({
-              id: currentUserRanking.user.id,
-              name: currentUserRanking.user.name,
-              position: currentUserRanking.position,
-              email: currentUserRanking.user.email,
+          setCurrentUser({
+            id: currentUserRanking.user.id,
+            name: currentUserRanking.user.name,
+            position: currentUserRanking.position,
+            email: currentUserRanking.user.email,
               profilePhoto: fullCurrentUserData.profilePhoto, // Profil sayfasında kullanılan aynı servis
             });
           } catch (error) {
@@ -260,7 +260,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
               position: currentUserRanking.position,
               email: currentUserRanking.user.email,
               profilePhoto: currentUserRanking.user.profilePhoto,
-            });
+          });
           }
           
           // Kullanıcının olduğu sayfayı hesapla
@@ -301,7 +301,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
           );
           setPlayers(playersWithPhotos);
         } else {
-          setPlayers(rankingsData);
+        setPlayers(rankingsData);
         }
       }
     } catch (error) {
@@ -831,11 +831,11 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                     }}
                   />
                 ) : (
-                  <Avatar.Text 
-                    size={45} 
+              <Avatar.Text 
+                size={45} 
                     label={player.user?.name?.charAt(0) || 'U'} 
-                    style={styles.playerAvatar}
-                  />
+                style={styles.playerAvatar}
+              />
                 );
               })()}
             </TouchableOpacity>
@@ -982,11 +982,11 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                       }}
                     />
                   ) : (
-                    <Avatar.Text 
-                      size={64} 
+                <Avatar.Text 
+                  size={64} 
                       label={currentUser?.name?.charAt(0) || 'U'} 
-                      style={styles.currentUserAvatar}
-                    />
+                  style={styles.currentUserAvatar}
+                />
                   );
                 })()}
                 <View style={styles.currentUserInfo}>
@@ -1206,12 +1206,12 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                             style={styles.opponentAvatarImage}
                           />
                         ) : (
-                          <Avatar.Text 
-                            size={64} 
-                            label={selectedPlayer.user.name.charAt(0).toUpperCase()} 
-                            style={styles.opponentAvatar}
-                            labelStyle={styles.opponentAvatarLabel}
-                          />
+                        <Avatar.Text 
+                          size={64} 
+                          label={selectedPlayer.user.name.charAt(0).toUpperCase()} 
+                          style={styles.opponentAvatar}
+                          labelStyle={styles.opponentAvatarLabel}
+                        />
                         )}
                         <View style={styles.opponentRankBadge}>
                           <MaterialCommunityIcons name="trophy" size={16} color="#FFFFFF" />
@@ -1356,11 +1356,11 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                             style={styles.winnerAvatarImage}
                           />
                         ) : (
-                          <Avatar.Text 
-                            size={36} 
-                            label={currentUser.name.charAt(0)} 
-                            style={styles.winnerAvatar}
-                          />
+                        <Avatar.Text 
+                          size={36} 
+                          label={currentUser.name.charAt(0)} 
+                          style={styles.winnerAvatar}
+                        />
                         )}
                         <View style={styles.winnerInfo}>
                           <Text style={styles.winnerName}>{currentUser.name}</Text>
@@ -1395,11 +1395,11 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                                 style={styles.winnerAvatarImage}
                               />
                             ) : (
-                              <Avatar.Text 
-                                size={36} 
-                                label={opponent.name.charAt(0)} 
-                                style={styles.winnerAvatar}
-                              />
+                            <Avatar.Text 
+                              size={36} 
+                              label={opponent.name.charAt(0)} 
+                              style={styles.winnerAvatar}
+                            />
                             )}
                             <View style={styles.winnerInfo}>
                               <Text style={styles.winnerName}>{opponent.name}</Text>

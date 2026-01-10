@@ -1711,14 +1711,14 @@ const styles = StyleSheet.create({
     color: '#DC2626', // red-600
   },
   modalContainer: {
-    margin: Platform.OS === 'ios' ? 10 : 20,
+    margin: Platform.OS === 'ios' ? 8 : 12,
     flex: 1,
     justifyContent: 'center',
   },
   modalCard: {
     borderRadius: 16, // rounded-2xl
-    maxHeight: Platform.OS === 'ios' ? '95%' : '85%',
-    width: Platform.OS === 'ios' ? '95%' : undefined,
+    maxHeight: Platform.OS === 'ios' ? '98%' : '92%',
+    width: Platform.OS === 'ios' ? '98%' : undefined,
     alignSelf: Platform.OS === 'ios' ? 'center' : undefined,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,

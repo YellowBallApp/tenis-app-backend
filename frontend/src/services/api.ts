@@ -260,7 +260,7 @@ export const initializeAPI = async (): Promise<void> => {
           
           if (netInfoState) {
             previousNetworkType = (netInfoState as any).type;
-            previousNetworkSSID = (netInfoState as any).details?.ssid || null;
+          previousNetworkSSID = (netInfoState as any).details?.ssid || null;
           }
         } catch (error) {
           console.warn('NetInfo fetch hatası:', error);
