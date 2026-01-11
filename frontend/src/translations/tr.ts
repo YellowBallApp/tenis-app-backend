@@ -14,12 +14,14 @@ export default {
     search: 'Ara...',
     error: 'Hata',
     success: 'Başarılı',
+    info: 'Bilgi',
     clear: 'Temizle',
     today: 'Bugün',
     yesterday: 'Dün',
     daysAgo: 'gün önce',
     weeksAgo: 'hafta önce',
     monthsAgo: 'ay önce',
+    close: 'Kapat',
   },
   
   auth: {
@@ -30,6 +32,7 @@ export default {
     name: 'Ad Soyad',
     phone: 'Telefon',
     forgotPassword: 'Şifremi Unuttum',
+    rememberMe: 'Beni Hatırla',
     dontHaveAccount: 'Hesabınız yok mu?',
     alreadyHaveAccount: 'Zaten hesabınız var mı?',
     logout: 'Çıkış Yap',
@@ -103,7 +106,7 @@ export default {
   },
   
   reservation: {
-    title: 'Kort Rezervasyonu',
+    title: 'Rezervasyon',
     subtitle: 'Mükemmel tenis deneyimi için rezervasyon yapın',
     selectDate: 'Tarih Seçin',
     selectCourt: 'Kort Seçin',
@@ -207,6 +210,12 @@ export default {
     singlesMatch: 'Tekler Maçı',
     doublesMatch: 'Çiftler Maçı',
     noReservations: 'Mevcut rezervasyonunuz bulunmamaktadır.',
+    matchDetails: 'Maç Detayları',
+    unknownCourt: 'Bilinmeyen Kort',
+    loadingResult: 'Maç sonucu yükleniyor...',
+    matchResult: 'Maç Sonucu',
+    set: 'Set',
+    winners: 'Kazananlar',
   },
 
   notifications: {
@@ -219,6 +228,7 @@ export default {
     challengeIdMissing: 'Challenge ID bulunamadı',
     challengeAcceptSuccess: 'Meydan okuma kabul edildi',
     challengeRejectSuccess: 'Meydan okuma reddedildi',
+    challengeAlreadyProcessed: 'Bu meydan okuma zaten işleme alınmış. Bildirim kaldırılıyor.',
     actionError: 'İşlem başarısız oldu',
     challengeTitle: 'Yeni Meydan Okuma',
     systemTitle: 'Sistem Bildirimi',

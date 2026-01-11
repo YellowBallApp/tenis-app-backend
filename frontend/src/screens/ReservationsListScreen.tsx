@@ -20,7 +20,7 @@ import {
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
-import { reservationService, courtService, reservationTemplateService, reservationTimeSlotService, authService } from '../services/api';
+import { reservationService, courtService, reservationTemplateService, reservationTimeSlotService, authService, matchHistoryService } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { MainTabParamList } from '../navigation/MainTabNavigator';
@@ -51,7 +51,7 @@ LocaleConfig.locales['en'] = {
 };
 LocaleConfig.defaultLocale = 'tr';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 type ReservationsListScreenNavigationProp = BottomTabNavigationProp<MainTabParamList>;
 
@@ -72,6 +72,8 @@ const ReservationsListScreen = () => {
   const [showReservationDetailsModal, setShowReservationDetailsModal] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState<any | null>(null);
   const [hasActiveReservation, setHasActiveReservation] = useState(false);
+  const [matchResult, setMatchResult] = useState<any | null>(null);
+  const [loadingMatchResult, setLoadingMatchResult] = useState(false);
 
   // Dil değiştiğinde takvim locale'ini ayarla
   useEffect(() => {
@@ -374,9 +376,44 @@ const ReservationsListScreen = () => {
     }
   };
 
-  const handleReservedCellPress = (reservation: any) => {
+  const handleReservedCellPress = async (reservation: any) => {
     setSelectedReservation(reservation);
+    setMatchResult(null);
     setShowReservationDetailsModal(true);
+    
+    // Maç sonucunu yükle (eğer varsa)
+    try {
+      setLoadingMatchResult(true);
+      const allMatches = await matchHistoryService.getAllMatches();
+      
+      // Rezervasyon tarihine göre maç bul
+      const reservationDate = new Date(reservation.startTime).toISOString().split('T')[0];
+      const reservationUserId = reservation.user?.id;
+      const participantIds = (reservation.participants || []).map((p: any) => p.id);
+      const allPlayerIds = [reservationUserId, ...participantIds].filter(Boolean);
+      
+      // Aynı tarihte, aynı oyuncularla yapılmış maçı bul
+      const match = allMatches.find((m: any) => {
+        const matchDate = new Date(m.matchDate).toISOString().split('T')[0];
+        if (matchDate !== reservationDate) return false;
+        
+        const matchPlayerIds = [
+          ...(m.winners || []).map((w: any) => w.id),
+          ...(m.losers || []).map((l: any) => l.id),
+        ];
+        
+        // En az bir oyuncu eşleşmeli
+        return allPlayerIds.some((id: string) => matchPlayerIds.includes(id));
+      });
+      
+      if (match) {
+        setMatchResult(match);
+      }
+    } catch (error) {
+      console.error('Maç sonucu yüklenirken hata:', error);
+    } finally {
+      setLoadingMatchResult(false);
+    }
   };
 
   const renderCell = (courtId: number, timeSlot: string) => {
@@ -719,11 +756,31 @@ const ReservationsListScreen = () => {
           onDismiss={() => {
             setShowReservationDetailsModal(false);
             setSelectedReservation(null);
+            setMatchResult(null);
           }}
           contentContainerStyle={styles.reservationDetailsModal}
         >
-          <Card style={styles.reservationDetailsModalCard}>
-            <Card.Content style={styles.reservationDetailsModalContent}>
+          <View style={styles.reservationDetailsModalCard}>
+            {/* Close Button */}
+            <TouchableOpacity 
+              style={styles.modalCloseIcon}
+              onPress={() => {
+                setShowReservationDetailsModal(false);
+                setSelectedReservation(null);
+                setMatchResult(null);
+              }}
+            >
+              <MaterialCommunityIcons name="close" size={24} color="#717182" />
+            </TouchableOpacity>
+
+            {/* Modal Handle */}
+            <View style={styles.modalHandle} />
+            
+            <ScrollView 
+              style={styles.modalScrollView}
+              contentContainerStyle={styles.modalContent}
+              showsVerticalScrollIndicator={false}
+            >
               {selectedReservation && (() => {
                 // Notes'tan partner ve rakip bilgisini çıkar
                 const notes = selectedReservation.notes || '';
@@ -752,63 +809,154 @@ const ReservationsListScreen = () => {
                 }
                 
                 return (
-                  <View style={styles.playersContainer}>
-                    {/* Team 1: Owner + Partner */}
-                    <View style={styles.teamContainer}>
-                      <View style={styles.playerNameContainer}>
-                        <MaterialCommunityIcons name="account" size={16} color="#54CE8F" />
-                        <Text style={styles.playerName}>
-                          {`${selectedReservation.user?.name || ''} ${selectedReservation.user?.surname || ''}`.trim() || 'Bilinmiyor'}
+                  <View style={styles.detailsContent}>
+                    {/* Header */}
+                    <View style={styles.modalHeaderContent}>
+                      <View style={styles.modalTitleRow}>
+                        <MaterialCommunityIcons name="tennis" size={24} color="#54CE8F" />
+                        <Text style={styles.modalTitle}>
+                          {t('reservationsList.matchDetails')}
                         </Text>
                       </View>
-                      {partner && (
+                      <Text style={styles.modalSubtitle}>
+                        {new Date(selectedReservation.startTime).toLocaleDateString('tr-TR', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </Text>
+                      <Text style={styles.modalSubtitle}>
+                        {selectedReservation.court?.name || t('reservationsList.unknownCourt')}
+                      </Text>
+                    </View>
+
+                    {/* Players */}
+                    <View style={styles.playersContainer}>
+                      {/* Team 1: Owner + Partner */}
+                      <View style={styles.teamContainer}>
                         <View style={styles.playerNameContainer}>
                           <MaterialCommunityIcons name="account" size={16} color="#54CE8F" />
                           <Text style={styles.playerName}>
-                            {`${partner.name || ''} ${partner.surname || ''}`.trim() || 'Bilinmiyor'}
+                            {`${selectedReservation.user?.name || ''} ${selectedReservation.user?.surname || ''}`.trim() || 'Bilinmiyor'}
                           </Text>
                         </View>
-                      )}
-                    </View>
-
-                    {/* VS İkonu */}
-                    {(opponents.length > 0 || (!partner && participants.length > 0)) && (
-                      <Text style={styles.vsText}>
-                        {t('reservationsList.vs')}
-                      </Text>
-                    )}
-
-                    {/* Team 2: Opponents */}
-                    <View style={styles.teamContainer}>
-                      {opponents.length > 0 ? (
-                        opponents.map((opponent: any, index: number) => (
-                          <View key={opponent.id || index} style={styles.playerNameContainer}>
-                            <MaterialCommunityIcons name="account" size={16} color="#FF9800" />
+                        {partner && (
+                          <View style={styles.playerNameContainer}>
+                            <MaterialCommunityIcons name="account" size={16} color="#54CE8F" />
                             <Text style={styles.playerName}>
-                              {`${opponent.name || ''} ${opponent.surname || ''}`.trim() || 'Bilinmiyor'}
+                              {`${partner.name || ''} ${partner.surname || ''}`.trim() || 'Bilinmiyor'}
                             </Text>
                           </View>
-                        ))
-                      ) : !partner && participants.length > 0 ? (
-                        participants.map((participant: any, index: number) => (
-                          <View key={participant.id || index} style={styles.playerNameContainer}>
-                            <MaterialCommunityIcons name="account" size={16} color="#FF9800" />
-                            <Text style={styles.playerName}>
-                              {`${participant.name || ''} ${participant.surname || ''}`.trim() || 'Bilinmiyor'}
-                            </Text>
-                          </View>
-                        ))
-                      ) : (
-                        <Text style={styles.noOpponentText}>
-                          {t('reservationsList.empty')}
+                        )}
+                      </View>
+
+                      {/* VS İkonu */}
+                      {(opponents.length > 0 || (!partner && participants.length > 0)) && (
+                        <Text style={styles.vsText}>
+                          {t('reservationsList.vs')}
                         </Text>
                       )}
+
+                      {/* Team 2: Opponents */}
+                      <View style={styles.teamContainer}>
+                        {opponents.length > 0 ? (
+                          opponents.map((opponent: any, index: number) => (
+                            <View key={opponent.id || index} style={styles.playerNameContainer}>
+                              <MaterialCommunityIcons name="account" size={16} color="#FF9800" />
+                              <Text style={styles.playerName}>
+                                {`${opponent.name || ''} ${opponent.surname || ''}`.trim() || 'Bilinmiyor'}
+                              </Text>
+                            </View>
+                          ))
+                        ) : !partner && participants.length > 0 ? (
+                          participants.map((participant: any, index: number) => (
+                            <View key={participant.id || index} style={styles.playerNameContainer}>
+                              <MaterialCommunityIcons name="account" size={16} color="#FF9800" />
+                              <Text style={styles.playerName}>
+                                {`${participant.name || ''} ${participant.surname || ''}`.trim() || 'Bilinmiyor'}
+                              </Text>
+                            </View>
+                          ))
+                        ) : (
+                          <Text style={styles.noOpponentText}>
+                            {t('reservationsList.empty')}
+                          </Text>
+                        )}
+                      </View>
                     </View>
+
+                    {/* Match Result Section */}
+                    {loadingMatchResult ? (
+                      <View style={styles.matchResultSection}>
+                        <ActivityIndicator size="small" color="#54CE8F" />
+                        <Text style={styles.loadingText}>{t('reservationsList.loadingResult')}</Text>
+                      </View>
+                    ) : matchResult ? (
+                      <View style={styles.matchResultSection}>
+                        <View style={styles.resultHeader}>
+                          <MaterialCommunityIcons name="trophy" size={20} color="#FFD700" />
+                          <Text style={styles.resultTitle}>{t('reservationsList.matchResult')}</Text>
+                        </View>
+                        
+                        {/* Score Display */}
+                        {matchResult.score && (
+                          <View style={styles.scoreContainer}>
+                            {(() => {
+                              // Parse score (örn: "6-4, 6-3" veya "6-4 6-3")
+                              const sets = matchResult.score
+                                .split(/[,\s]+/)
+                                .map((s: string) => s.trim())
+                                .filter((s: string) => s.length > 0);
+                              
+                              return (
+                                <View style={styles.setsContainer}>
+                                  {sets.map((set: string, index: number) => {
+                                    const [score1, score2] = set.split('-').map(s => s.trim());
+                                    return (
+                                      <View key={index} style={styles.setScore}>
+                                        <Text style={styles.setLabel}>
+                                          {t('reservationsList.set')} {index + 1}
+                                        </Text>
+                                        <Text style={styles.setScoreText}>
+                                          {score1} - {score2}
+                                        </Text>
+                                      </View>
+                                    );
+                                  })}
+                                </View>
+                              );
+                            })()}
+                          </View>
+                        )}
+
+                        {/* Winners */}
+                        {matchResult.winners && matchResult.winners.length > 0 && (
+                          <View style={styles.winnersSection}>
+                            <View style={styles.winnerLabelContainer}>
+                              <MaterialCommunityIcons name="crown" size={18} color="#FFD700" />
+                              <Text style={styles.winnerLabel}>{t('reservationsList.winners')}</Text>
+                            </View>
+                            <View style={styles.winnersList}>
+                              {matchResult.winners.map((winner: any, index: number) => (
+                                <View key={winner.id || index} style={styles.winnerItem}>
+                                  <MaterialCommunityIcons name="check-circle" size={16} color="#54CE8F" />
+                                  <Text style={styles.winnerName}>
+                                    {`${winner.name || ''} ${winner.surname || ''}`.trim() || 'Bilinmiyor'}
+                                  </Text>
+                                </View>
+                              ))}
+                            </View>
+                          </View>
+                        )}
+                      </View>
+                    ) : null}
                   </View>
                 );
               })()}
-            </Card.Content>
-          </Card>
+            </ScrollView>
+          </View>
         </Modal>
       </Portal>
     </View>
@@ -1167,25 +1315,84 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   reservationDetailsModal: {
-    margin: 20,
+    flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+    padding: 20,
   },
   reservationDetailsModalCard: {
-    borderRadius: 12,
+    borderRadius: 24,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    alignSelf: 'center',
-    minWidth: 200,
-    maxWidth: '80%',
+    maxHeight: Platform.OS === 'ios' ? height * 0.75 : height * 0.70,
+    minHeight: Platform.OS === 'ios' ? height * 0.58 : height * 0.55,
+    width: Platform.OS === 'ios' ? '92%' : '95%',
+    maxWidth: 500,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  reservationDetailsModalContent: {
-    padding: 16,
+  modalCloseIcon: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    zIndex: 10,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 20,
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#D1D5DB',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  modalScrollView: {
+    flex: 1,
+  },
+  modalContent: {
+    paddingHorizontal: 22,
+    paddingTop: 6,
+    paddingBottom: 22,
+  },
+  detailsContent: {
+    gap: 18,
+  },
+  modalHeaderContent: {
+    alignItems: 'center',
+    gap: 8,
+    paddingTop: 10,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#030213',
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    color: '#717182',
+    fontWeight: '500',
   },
   playersContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
+    gap: 12,
+    paddingVertical: 8,
   },
   teamContainer: {
     flexDirection: 'row',
@@ -1198,26 +1405,125 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     backgroundColor: '#F3F4F6',
-    borderRadius: 8,
+    borderRadius: 12,
   },
   playerName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#030213',
+  },
+  vsText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#717182',
+    marginHorizontal: 8,
+    textAlign: 'center',
+  },
+  noOpponentText: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    fontStyle: 'italic',
+  },
+  matchResultSection: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 14,
+    padding: 14,
+    gap: 14,
+  },
+  resultHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  resultTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#030213',
+  },
+  scoreContainer: {
+    alignItems: 'center',
+  },
+  setsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  setScore: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
+    minWidth: 75,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  setLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#717182',
+    marginBottom: 4,
+  },
+  setScoreText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#030213',
+  },
+  winnersSection: {
+    gap: 8,
+  },
+  winnerLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  winnerLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#030213',
+  },
+  winnersList: {
+    gap: 8,
+  },
+  winnerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+  },
+  winnerName: {
     fontSize: 14,
     fontWeight: '500',
     color: '#030213',
   },
-  vsText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#717182',
-    marginHorizontal: 4,
+  closeButton: {
+    backgroundColor: '#54CE8F',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 8,
+    shadowColor: '#54CE8F',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  noOpponentText: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    fontStyle: 'italic',
+  closeButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
 
