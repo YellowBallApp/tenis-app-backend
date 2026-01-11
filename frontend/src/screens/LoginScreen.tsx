@@ -19,6 +19,10 @@ import { clearAuthTokens } from '../utils/clearStorage';
 
 const { width } = Dimensions.get('window');
 
+const REMEMBERED_EMAIL_KEY = 'rememberedEmail';
+const REMEMBERED_PASSWORD_KEY = 'rememberedPassword';
+const REMEMBER_ME_KEY = 'rememberMe';
+
 const LoginScreen = ({ navigation }: any) => {
   const { login } = useAuth();
   const { t } = useLanguage();
@@ -27,15 +31,37 @@ const LoginScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
-  // Sayfa açıldığında token'ları kontrol et ve gerekirse temizle
+  // Sayfa açıldığında kaydedilmiş bilgileri yükle
   React.useEffect(() => {
     const initializeLogin = async () => {
+      // Token kontrolü
       const hasToken = await AsyncStorage.getItem('accessToken');
       if (hasToken) {
         console.log('⚠️  Login ekranında ama token var - muhtemelen geçersiz, temizleniyor...');
         await clearAuthTokens();
         setError(t('auth.sessionExpired'));
+      }
+
+      // Remember Me ve kaydedilmiş bilgileri yükle
+      try {
+        const savedRememberMe = await AsyncStorage.getItem(REMEMBER_ME_KEY);
+        if (savedRememberMe === 'true') {
+          setRememberMe(true);
+          
+          const savedEmail = await AsyncStorage.getItem(REMEMBERED_EMAIL_KEY);
+          const savedPassword = await AsyncStorage.getItem(REMEMBERED_PASSWORD_KEY);
+          
+          if (savedEmail) {
+            setEmail(savedEmail);
+          }
+          if (savedPassword) {
+            setPassword(savedPassword);
+          }
+        }
+      } catch (error) {
+        console.error('Remember me bilgileri yüklenirken hata:', error);
       }
     };
     
@@ -53,6 +79,21 @@ const LoginScreen = ({ navigation }: any) => {
 
     try {
       await login(email, password);
+      
+      // Remember Me seçiliyse bilgileri kaydet, değilse temizle
+      try {
+        if (rememberMe) {
+          await AsyncStorage.setItem(REMEMBER_ME_KEY, 'true');
+          await AsyncStorage.setItem(REMEMBERED_EMAIL_KEY, email);
+          await AsyncStorage.setItem(REMEMBERED_PASSWORD_KEY, password);
+        } else {
+          await AsyncStorage.setItem(REMEMBER_ME_KEY, 'false');
+          await AsyncStorage.multiRemove([REMEMBERED_EMAIL_KEY, REMEMBERED_PASSWORD_KEY]);
+        }
+      } catch (storageError) {
+        console.error('Remember me bilgileri kaydedilirken hata:', storageError);
+      }
+      
       navigation.replace('Main');
     } catch (err: any) {
       console.error('Login error:', err);
@@ -152,6 +193,20 @@ const LoginScreen = ({ navigation }: any) => {
           {error ? (
             <Text style={styles.errorText}>{error}</Text>
           ) : null}
+
+          {/* Remember Me Checkbox */}
+          <TouchableOpacity 
+            style={styles.rememberMeContainer}
+            onPress={() => setRememberMe(!rememberMe)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+              {rememberMe && (
+                <MaterialCommunityIcons name="check" size={18} color="#FFFFFF" />
+              )}
+            </View>
+            <Text style={styles.rememberMeText}>{t('auth.rememberMe')}</Text>
+          </TouchableOpacity>
 
           {/* Forgot Password Link */}
           <TouchableOpacity style={styles.forgotPasswordContainer}>
@@ -267,6 +322,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 16,
     textAlign: 'center',
+  },
+  rememberMeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#FFFFFF',
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#54CE8F',
+    borderColor: '#54CE8F',
+  },
+  rememberMeText: {
+    fontSize: 14,
+    color: '#374151',
+    fontWeight: '500',
   },
   forgotPasswordContainer: {
     alignItems: 'flex-end',

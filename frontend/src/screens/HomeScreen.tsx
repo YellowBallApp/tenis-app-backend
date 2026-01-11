@@ -9,6 +9,7 @@ import {
   Alert,
   Platform,
   Image,
+  RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect, CommonActions, useRoute } from '@react-navigation/native';
@@ -52,6 +53,7 @@ const HomeScreen = () => {
   });
   const [unreadCount, setUnreadCount] = useState(0);
   const [showReservationSuccess, setShowReservationSuccess] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   
   // Scroll animation kaldırıldı - header artık collapsible değil
   const scrollViewRef = useRef<any>(null);
@@ -133,6 +135,18 @@ const HomeScreen = () => {
       setUnreadCount(count);
     } catch (error) {
       console.error('Okunmamış bildirim sayısı yüklenirken hata:', error);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadData();
+      await loadUnreadCount();
+    } catch (error) {
+      console.error('Yenileme hatası:', error);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -342,6 +356,14 @@ const HomeScreen = () => {
         ref={scrollViewRef}
         style={styles.scrollView}
         contentContainerStyle={{ paddingTop: 20 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#54CE8F"
+            colors={["#54CE8F"]}
+          />
+        }
       >
 
       {/* Quick Actions */}

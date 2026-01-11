@@ -10,6 +10,8 @@ import {
   Alert,
   StatusBar,
   Platform,
+  Image,
+  RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -22,7 +24,7 @@ import {
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLanguage } from '../context/LanguageContext';
-import { authService, leagueService, leagueStandingsService, matchHistoryService, leagueApplicationService } from '../services/api';
+import { authService, leagueService, leagueStandingsService, matchHistoryService, leagueApplicationService, userService } from '../services/api';
 import { User } from '../types';
 import { calculateAge } from '../utils/age.utils';
 
@@ -41,11 +43,23 @@ const DefiLigScreen = ({ navigation }: any) => {
   const leaguesPerPage = 2;
   const [selectedLeagueStats, setSelectedLeagueStats] = useState<any>(null);
   const [showJoinConfirmDialog, setShowJoinConfirmDialog] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
 
   useEffect(() => {
     loadData();
   }, [language]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadData();
+    } catch (error) {
+      console.error('Yenileme hatası:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     // Seçili lig değiştiğinde sadece sıralamayı yükle
@@ -82,6 +96,16 @@ const DefiLigScreen = ({ navigation }: any) => {
       const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
       
       // Backend'den gelen profil verisini UI formatına dönüştür
+      // Profil fotoğrafını userService.getUserById() ile al
+      let profilePhoto = null;
+      try {
+        const fullUserData = await userService.getUserById(profileData.id);
+        profilePhoto = fullUserData.profilePhoto;
+      } catch (error) {
+        console.error('Current user profil fotoğrafı yüklenemedi:', error);
+        profilePhoto = (profileData as any).profilePhoto;
+      }
+      
       const formattedUser = {
         id: profileData.id,
         name: profileData.name || t('defiLeague.defaultPlayerName'),
@@ -98,6 +122,7 @@ const DefiLigScreen = ({ navigation }: any) => {
         leagueWins: leagueWins,
         totalLeagueMatches: totalLeagueMatches,
         leagueWinRate: leagueWinRate,
+        profilePhoto: profilePhoto, // Profil fotoğrafı eklendi
       };
       
       setCurrentUser(formattedUser);
@@ -391,6 +416,14 @@ const DefiLigScreen = ({ navigation }: any) => {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#54CE8F"
+            colors={["#54CE8F"]}
+          />
+        }
       >
 
         {/* Current User Card */}
@@ -412,11 +445,30 @@ const DefiLigScreen = ({ navigation }: any) => {
           <Card style={styles.currentUserCard}>
             <Card.Content style={styles.currentUserCardContent}>
               <View style={styles.currentUserHeader}>
-                <Avatar.Text 
-                  size={64} 
-                  label={currentUser.name.charAt(0)} 
-                  style={styles.currentUserAvatar}
-                />
+                {(() => {
+                  const profilePhoto = currentUser?.profilePhoto;
+                  const hasPhoto = profilePhoto && typeof profilePhoto === 'string' && profilePhoto.trim() !== '';
+                  
+                  return hasPhoto ? (
+                    <Image
+                      source={{ uri: profilePhoto }}
+                      style={styles.currentUserAvatarImage}
+                      resizeMode="cover"
+                      onError={(error) => {
+                        console.log('❌ Current user profil fotoğrafı yüklenemedi:', currentUser?.name, profilePhoto, error);
+                      }}
+                      onLoad={() => {
+                        console.log('✅ Current user profil fotoğrafı yüklendi:', currentUser?.name, profilePhoto);
+                      }}
+                    />
+                  ) : (
+                    <Avatar.Text 
+                      size={64} 
+                      label={currentUser?.name?.charAt(0) || 'U'} 
+                      style={styles.currentUserAvatar}
+                    />
+                  );
+                })()}
                 <View style={styles.currentUserInfo}>
                   <Text style={styles.currentUserName}>{currentUser.name}</Text>
                   <View style={styles.currentUserBadges}>
@@ -941,6 +993,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   currentUserAvatar: {
+    backgroundColor: '#54CE8F',
+    marginRight: 16,
+  },
+  currentUserAvatarImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: '#54CE8F',
     marginRight: 16,
   },

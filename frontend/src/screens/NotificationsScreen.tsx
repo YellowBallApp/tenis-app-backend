@@ -189,7 +189,34 @@ const NotificationsScreen = ({ navigation }: any) => {
       
       Alert.alert(t('common.success'), t('notifications.challengeAcceptSuccess'));
     } catch (error: any) {
-      Alert.alert(t('common.error'), error.response?.data?.message || t('notifications.actionError'));
+      const errorData = error.response?.data?.data || error.response?.data;
+      const errorKey = errorData?.errorKey;
+      
+      // Challenge zaten işleme alınmışsa (başka bir sayfadan kabul/reddedilmiş)
+      if (errorKey === 'CHALLENGE_NOT_PENDING') {
+        // Kullanıcıya bilgi ver ve bildirimi listeden kaldır
+        Alert.alert(
+          t('common.info'), 
+          t('notifications.challengeAlreadyProcessed'),
+          [
+            {
+              text: t('common.ok'),
+              onPress: async () => {
+                // Bildirimi backend'den silmeyi dene (başarısız olsa bile listeden kaldır)
+                try {
+                  await notificationService.deleteNotification(notification.id);
+                } catch (deleteError) {
+                  // Silme hatası olsa bile devam et
+                }
+                // Listeyi güncelle
+                setNotifications((prev) => prev.filter((notif) => notif.id !== notification.id));
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert(t('common.error'), error.response?.data?.message || t('notifications.actionError'));
+      }
     } finally {
       setProcessingNotification(null);
     }
@@ -220,7 +247,34 @@ const NotificationsScreen = ({ navigation }: any) => {
       
       Alert.alert(t('common.success'), t('notifications.challengeRejectSuccess'));
     } catch (error: any) {
-      Alert.alert(t('common.error'), error.response?.data?.message || t('notifications.actionError'));
+      const errorData = error.response?.data?.data || error.response?.data;
+      const errorKey = errorData?.errorKey;
+      
+      // Challenge zaten işleme alınmışsa (başka bir sayfadan kabul/reddedilmiş)
+      if (errorKey === 'CHALLENGE_NOT_PENDING') {
+        // Kullanıcıya bilgi ver ve bildirimi listeden kaldır
+        Alert.alert(
+          t('common.info'), 
+          t('notifications.challengeAlreadyProcessed'),
+          [
+            {
+              text: t('common.ok'),
+              onPress: async () => {
+                // Bildirimi backend'den silmeyi dene (başarısız olsa bile listeden kaldır)
+                try {
+                  await notificationService.deleteNotification(notification.id);
+                } catch (deleteError) {
+                  // Silme hatası olsa bile devam et
+                }
+                // Listeyi güncelle
+                setNotifications((prev) => prev.filter((notif) => notif.id !== notification.id));
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert(t('common.error'), error.response?.data?.message || t('notifications.actionError'));
+      }
     } finally {
       setProcessingNotification(null);
     }

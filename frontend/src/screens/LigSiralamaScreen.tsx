@@ -10,6 +10,7 @@ import {
   Platform,
   KeyboardAvoidingView,
   Image,
+  RefreshControl,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -46,6 +47,7 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [acceptedChallenge, setAcceptedChallenge] = useState<any>(null); // Kabul edilmiş challenge
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [showMatchResultModal, setShowMatchResultModal] = useState(false);
@@ -82,6 +84,22 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
       loadShieldStatus();
     }, [])
   );
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        loadRankings(),
+        loadCourts(),
+        loadUserChallenges(),
+        loadShieldStatus(),
+      ]);
+    } catch (error) {
+      console.error('Yenileme hatası:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Route params'tan modal açma işlemi (sadece route params değiştiğinde)
   useEffect(() => {
@@ -954,6 +972,14 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#54CE8F"
+            colors={["#54CE8F"]}
+          />
+        }
       >
 
         {/* Current User Card */}
@@ -1165,14 +1191,17 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
         dismissable={false}
           visible={!!showChallengeModal}
           onDismiss={() => setShowChallengeModal(false)}
-          contentContainerStyle={styles.modalContainer}
+          contentContainerStyle={styles.challengeModalContainer}
         >
-          <Card style={styles.modalCard}>
+          <View style={styles.challengeModalCard}>
+            {/* Bottom Sheet Handle */}
+            <View style={styles.modalHandle} />
+            
             <ScrollView 
               showsVerticalScrollIndicator={true}
               style={styles.modalScrollView}
             >
-              <Card.Content style={styles.modalContent}>
+              <View style={styles.modalContent}>
                   <View style={styles.modalHeader}>
                     <View style={styles.modalHeaderLeft}>
                       <View style={styles.modalIconContainer}>
@@ -1184,11 +1213,11 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                       onPress={() => setShowChallengeModal(false)}
                       style={styles.modalCloseButton}
                     >
-                      <MaterialCommunityIcons name="close" size={20} color="#9CA3AF" />
+                      <MaterialCommunityIcons name="close" size={24} color="#6B7280" />
                     </TouchableOpacity>
                   </View>
 
-                  <Divider style={styles.modalDivider} />
+                  <View style={styles.modalDivider} />
               
               {selectedPlayer && (
                 <>
@@ -1284,9 +1313,9 @@ const LigSiralamaScreen = ({ route, navigation }: any) => {
                   </View>
                 </>
               )}
-              </Card.Content>
+              </View>
             </ScrollView>
-          </Card>
+          </View>
         </Modal>
       </Portal>
 
@@ -2205,6 +2234,26 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
+  challengeModalContainer: {
+    margin: 0,
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  challengeModalCard: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    backgroundColor: '#FFFFFF',
+    width: '100%',
+    maxHeight: Platform.OS === 'ios' ? height * 0.90 : height * 0.90,
+    minHeight: Platform.OS === 'ios' ? height * 0.70 : height * 0.70,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
   keyboardAvoidingView: {
     width: '100%',
     justifyContent: 'flex-end',
@@ -2295,6 +2344,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E7EB',
     marginVertical: 20,
     height: 1,
+    width: '100%',
   },
   reservationInfoBox: {
     backgroundColor: '#F0FDF4',

@@ -2313,6 +2313,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24, // px-6 equivalent
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
+    position: 'relative',
+    minHeight: 120, // Minimum yükseklik (dikey ortalama için)
+    justifyContent: 'center', // Dikey ortalama
   },
   backButton: {
     position: 'absolute',
@@ -2328,12 +2331,17 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    paddingLeft: 40, // Back button için sol padding
+    paddingRight: 40, // Simetri için sağ padding
+    paddingTop: 8, // Biraz daha aşağı indirmek için
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 20,
+    marginBottom: 0, // marginBottom kaldırıldı
     textAlign: 'center',
   },
   progressContainer: {

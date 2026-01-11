@@ -1787,11 +1787,11 @@ const CourtDetailScreen = () => {
                         </View>
                         {isSelected && (
                           <View style={styles.selectedIconContainer}>
-                            <MaterialCommunityIcons 
-                              name={selectorMode === 'opponents' ? "checkbox-marked-circle" : "check-circle"} 
+                          <MaterialCommunityIcons 
+                            name={selectorMode === 'opponents' ? "checkbox-marked-circle" : "check-circle"} 
                               size={28} 
                               color={selectorMode === 'opponents' ? "#FF9800" : "#54CE8F"}
-                            />
+                          />
                           </View>
                         )}
                       </View>

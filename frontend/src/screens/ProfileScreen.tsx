@@ -8,6 +8,7 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
+  RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -53,6 +54,7 @@ const ProfileScreen = () => {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [userStandings, setUserStandings] = useState<any[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
   
   
   // Modal states
@@ -83,6 +85,17 @@ const ProfileScreen = () => {
   useEffect(() => {
     loadProfile();
   }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadProfile();
+    } catch (error) {
+      console.error('Yenileme hatası:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Date picker modal açıldığında scroll yap
   useEffect(() => {
@@ -429,7 +442,18 @@ const ProfileScreen = () => {
   return (
     <>
     <View style={[styles.container, { backgroundColor: '#FAFCFB' }]}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#54CE8F"
+            colors={["#54CE8F"]}
+          />
+        }
+      >
         {/* Profile Header Card - Light Purple */}
         <View style={[styles.profileHeaderCard, { paddingTop: insets.top + 20 }]}>
           <View style={styles.profileHeaderContent}>
