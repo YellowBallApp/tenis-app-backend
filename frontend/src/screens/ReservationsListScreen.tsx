@@ -386,35 +386,38 @@ const ReservationsListScreen = () => {
       setLoadingMatchResult(true);
       const allMatches = await matchHistoryService.getAllMatches();
       
-      // Rezervasyon tarih ve saat bilgisi
+      // Rezervasyon bilgileri
       const reservationDate = new Date(reservation.startTime);
-      const reservationDateStr = reservationDate.toISOString().split('T')[0];
-      const reservationHour = reservationDate.getHours();
+      const reservationEndDate = new Date(reservation.endTime);
       
       const reservationUserId = reservation.user?.id;
       const participantIds = (reservation.participants || []).map((p: any) => p.id);
       const allPlayerIds = [reservationUserId, ...participantIds].filter(Boolean);
       
-      // Aynı tarihte, aynı saatte, aynı oyuncularla yapılmış maçı bul
+      // Aynı tarihte, aynı saat aralığında, AYNI OYUNCULARLA (TÜM OYUNCULAR) yapılmış maçı bul
       const match = allMatches.find((m: any) => {
         const matchDate = new Date(m.matchDate);
-        const matchDateStr = matchDate.toISOString().split('T')[0];
-        const matchHour = matchDate.getHours();
         
-        // Tarih kontrolü
-        if (matchDateStr !== reservationDateStr) return false;
+        // 1. Maç tarihi, rezervasyon başlangıç ve bitiş saati arasında mı kontrol et
+        if (matchDate < reservationDate || matchDate > reservationEndDate) {
+          return false;
+        }
         
-        // Saat kontrolü (aynı saat veya 1-2 saat tolerans)
-        const hourDiff = Math.abs(matchHour - reservationHour);
-        if (hourDiff > 2) return false;
-        
+        // 2. Maçtaki tüm oyuncuları al
         const matchPlayerIds = [
           ...(m.winners || []).map((w: any) => w.id),
           ...(m.losers || []).map((l: any) => l.id),
         ];
         
-        // En az bir oyuncu eşleşmeli
-        return allPlayerIds.some((id: string) => matchPlayerIds.includes(id));
+        // 3. Rezervasyondaki TÜM oyuncular maçta var mı kontrol et
+        // Eğer rezervasyonda 2 oyuncu varsa (tekler), maçta da 2 oyuncu olmalı
+        // Eğer rezervasyonda 4 oyuncu varsa (çiftler), maçta da 4 oyuncu olmalı
+        if (matchPlayerIds.length !== allPlayerIds.length) {
+          return false;
+        }
+        
+        // 4. Tüm oyuncuların eşleştiğinden emin ol
+        return allPlayerIds.every((id: string) => matchPlayerIds.includes(id));
       });
       
       if (match) {
