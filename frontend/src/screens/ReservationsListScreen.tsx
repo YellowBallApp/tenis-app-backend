@@ -386,16 +386,27 @@ const ReservationsListScreen = () => {
       setLoadingMatchResult(true);
       const allMatches = await matchHistoryService.getAllMatches();
       
-      // Rezervasyon tarihine göre maç bul
-      const reservationDate = new Date(reservation.startTime).toISOString().split('T')[0];
+      // Rezervasyon tarih ve saat bilgisi
+      const reservationDate = new Date(reservation.startTime);
+      const reservationDateStr = reservationDate.toISOString().split('T')[0];
+      const reservationHour = reservationDate.getHours();
+      
       const reservationUserId = reservation.user?.id;
       const participantIds = (reservation.participants || []).map((p: any) => p.id);
       const allPlayerIds = [reservationUserId, ...participantIds].filter(Boolean);
       
-      // Aynı tarihte, aynı oyuncularla yapılmış maçı bul
+      // Aynı tarihte, aynı saatte, aynı oyuncularla yapılmış maçı bul
       const match = allMatches.find((m: any) => {
-        const matchDate = new Date(m.matchDate).toISOString().split('T')[0];
-        if (matchDate !== reservationDate) return false;
+        const matchDate = new Date(m.matchDate);
+        const matchDateStr = matchDate.toISOString().split('T')[0];
+        const matchHour = matchDate.getHours();
+        
+        // Tarih kontrolü
+        if (matchDateStr !== reservationDateStr) return false;
+        
+        // Saat kontrolü (aynı saat veya 1-2 saat tolerans)
+        const hourDiff = Math.abs(matchHour - reservationHour);
+        if (hourDiff > 2) return false;
         
         const matchPlayerIds = [
           ...(m.winners || []).map((w: any) => w.id),
