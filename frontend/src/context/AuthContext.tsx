@@ -7,8 +7,8 @@ import { AppState } from 'react-native';
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string, age?: number, phone?: string) => Promise<void>;
+  login: (userName: string, password: string) => Promise<void>;
+  register: (name: string, userName: string, email: string | null | undefined, password: string, age?: number, phone?: string) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
 }
@@ -70,10 +70,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (userName: string, password: string) => {
     try {
-      console.log('🔐 Login başlatılıyor:', { email });
-      const tokens = await authService.login({ email, password });
+      console.log('🔐 Login başlatılıyor:', { userName });
+      const tokens = await authService.login({ userName, password });
       console.log('✅ Login başarılı, token kaydediliyor');
       await AsyncStorage.setItem('accessToken', tokens.accessToken);
       await AsyncStorage.setItem('refreshToken', tokens.refreshToken);
@@ -89,7 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (name: string, email: string, password: string, age?: number, phone?: string) => {
+  const register = async (name: string, userName: string, email: string | null | undefined, password: string, age?: number, phone?: string) => {
     try {
       // Age'i birthDate'e çevir
       let birthDate: string | undefined;
@@ -99,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         birthDate = new Date(birthYear, today.getMonth(), today.getDate()).toISOString();
       }
       
-      const tokens = await authService.register({ name, email, password, birthDate, phone });
+      const tokens = await authService.register({ name, userName, email: email || null, password, birthDate, phone });
       await AsyncStorage.setItem('accessToken', tokens.accessToken);
       await AsyncStorage.setItem('refreshToken', tokens.refreshToken);
       setIsAuthenticated(true);

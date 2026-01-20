@@ -19,14 +19,14 @@ import { clearAuthTokens } from '../utils/clearStorage';
 
 const { width } = Dimensions.get('window');
 
-const REMEMBERED_EMAIL_KEY = 'rememberedEmail';
+const REMEMBERED_USERNAME_KEY = 'rememberedUserName';
 const REMEMBERED_PASSWORD_KEY = 'rememberedPassword';
 const REMEMBER_ME_KEY = 'rememberMe';
 
 const LoginScreen = ({ navigation }: any) => {
   const { login } = useAuth();
   const { t } = useLanguage();
-  const [email, setEmail] = useState('');
+  const [userName, setUserName] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -50,11 +50,11 @@ const LoginScreen = ({ navigation }: any) => {
         if (savedRememberMe === 'true') {
           setRememberMe(true);
           
-          const savedEmail = await AsyncStorage.getItem(REMEMBERED_EMAIL_KEY);
+          const savedUserName = await AsyncStorage.getItem(REMEMBERED_USERNAME_KEY);
           const savedPassword = await AsyncStorage.getItem(REMEMBERED_PASSWORD_KEY);
           
-          if (savedEmail) {
-            setEmail(savedEmail);
+          if (savedUserName) {
+            setUserName(savedUserName);
           }
           if (savedPassword) {
             setPassword(savedPassword);
@@ -69,7 +69,7 @@ const LoginScreen = ({ navigation }: any) => {
   }, []);
 
   const handleLogin = async () => {
-    if (!email || !password) {
+    if (!userName || !password) {
       setError(t('auth.fillAllFields'));
       return;
     }
@@ -78,17 +78,17 @@ const LoginScreen = ({ navigation }: any) => {
     setError('');
 
     try {
-      await login(email, password);
+      await login(userName, password);
       
       // Remember Me seçiliyse bilgileri kaydet, değilse temizle
       try {
         if (rememberMe) {
           await AsyncStorage.setItem(REMEMBER_ME_KEY, 'true');
-          await AsyncStorage.setItem(REMEMBERED_EMAIL_KEY, email);
+          await AsyncStorage.setItem(REMEMBERED_USERNAME_KEY, userName);
           await AsyncStorage.setItem(REMEMBERED_PASSWORD_KEY, password);
         } else {
           await AsyncStorage.setItem(REMEMBER_ME_KEY, 'false');
-          await AsyncStorage.multiRemove([REMEMBERED_EMAIL_KEY, REMEMBERED_PASSWORD_KEY]);
+          await AsyncStorage.multiRemove([REMEMBERED_USERNAME_KEY, REMEMBERED_PASSWORD_KEY]);
         }
       } catch (storageError) {
         console.error('Remember me bilgileri kaydedilirken hata:', storageError);
@@ -143,18 +143,17 @@ const LoginScreen = ({ navigation }: any) => {
 
         {/* Form Section */}
         <View style={styles.formSection}>
-          {/* Email or Phone Input */}
+          {/* UserName Input */}
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>{t('auth.emailOrPhone')}</Text>
+            <Text style={styles.inputLabel}>{t('auth.userName')}</Text>
             <View style={styles.inputWrapper}>
-              <MaterialCommunityIcons name="email" size={20} color="#9CA3AF" style={styles.inputIcon} />
+              <MaterialCommunityIcons name="account" size={20} color="#9CA3AF" style={styles.inputIcon} />
               <RNTextInput
                 style={styles.input}
-                placeholder={t('auth.enterEmailOrPhone')}
+                placeholder={t('auth.enterUserName')}
                 placeholderTextColor="#9E9E9E"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
+                value={userName}
+                onChangeText={setUserName}
                 autoCapitalize="none"
                 autoCorrect={false}
               />

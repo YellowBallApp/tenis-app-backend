@@ -26,6 +26,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const { register } = useAuth();
   const { t } = useLanguage();
   const [name, setName] = useState('');
+  const [userName, setUserName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('+90');
   const [password, setPassword] = useState('');
@@ -65,7 +66,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleRegister = async () => {
-    if (!name || !email || !password || !confirmPassword) {
+    if (!name || !userName || !password || !confirmPassword) {
       setError(t('auth.fillAllFields'));
       return;
     }
@@ -101,7 +102,9 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       const ageValue = age && age.trim() !== '' ? parseInt(age, 10) : undefined;
       // Telefon numarasını +90 ile başladığından emin ol
       const phoneNumber = phone.startsWith('+90') ? phone : '+90' + phone.replace(/^\+90/, '');
-      await register(name, email, password, ageValue, phoneNumber);
+      // Email boşsa null gönder
+      const emailValue = email.trim() || null;
+      await register(name, userName, emailValue, password, ageValue, phoneNumber);
       navigation.replace('Main');
     } catch (err: any) {
       setError(err.response?.data?.message || t('auth.registrationFailed'));
@@ -155,9 +158,26 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           </View>
 
-          {/* Email Input */}
+          {/* UserName Input */}
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>{t('auth.email')}</Text>
+            <Text style={styles.inputLabel}>{t('auth.userName')}</Text>
+            <View style={styles.inputWrapper}>
+              <MaterialCommunityIcons name="account-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+              <RNTextInput
+                style={styles.input}
+                placeholder={t('auth.enterUserName')}
+                placeholderTextColor="#9E9E9E"
+                value={userName}
+                onChangeText={setUserName}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+          </View>
+
+          {/* Email Input (Optional) */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>{t('auth.email')} ({t('auth.optional')})</Text>
             <View style={styles.inputWrapper}>
               <MaterialCommunityIcons name="email" size={20} color="#9CA3AF" style={styles.inputIcon} />
               <RNTextInput

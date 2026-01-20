@@ -22,13 +22,14 @@ export interface AuthTokens {
 }
 
 export interface LoginCredentials {
-  email: string;
+  userName: string;
   password: string;
 }
 
 export interface RegisterCredentials {
   name: string;
-  email: string;
+  userName: string;
+  email?: string | null;
   password: string;
   birthDate?: string;
   phone?: string;

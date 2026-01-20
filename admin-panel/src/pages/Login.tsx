@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [userName, setUserName] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,7 +16,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      await login(email, password);
+      await login(userName, password);
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Giriş başarısız');
@@ -51,19 +51,19 @@ const Login = () => {
           
           <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-soft-white/90 mb-2">
-                Email Adresi
+              <label htmlFor="userName" className="block text-sm font-medium text-soft-white/90 mb-2">
+                Kullanıcı Adı
               </label>
               <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
+                id="userName"
+                name="userName"
+                type="text"
+                autoComplete="username"
                 required
                 className="glass appearance-none relative block w-full px-4 py-3 text-soft-white placeholder-soft-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple focus:border-transparent transition-all duration-300"
-                placeholder="admin@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
               />
             </div>
             
