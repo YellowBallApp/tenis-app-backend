@@ -12,16 +12,16 @@ import {
   @Column({ unique: true })
   userName: string;
   
-  @Column({ unique: true, nullable: true })
+  @Column({ type: 'varchar', unique: true, nullable: true })
   email: string | null;
   
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   phone: string;
   
     @Column()
     name: string;
   
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   surname: string;
 
   @Column({ type: "text", nullable: true })

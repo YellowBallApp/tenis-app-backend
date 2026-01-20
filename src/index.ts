@@ -142,6 +142,24 @@ AppDataSource.initialize()
     try {
       await queryRunner.connect();
       
+      // Reservation tablosundaki geçersiz userId'leri temizle (foreign key hatalarını önlemek için)
+      try {
+        const hasReservationTable = await queryRunner.hasTable("reservation");
+        const hasUserTable = await queryRunner.hasTable("user");
+        if (hasReservationTable && hasUserTable) {
+          // Geçersiz userId'lere sahip reservation'ları temizle
+          const result = await queryRunner.query(`
+            DELETE FROM "reservation" 
+            WHERE "userId" IS NOT NULL 
+            AND "userId" NOT IN (SELECT id FROM "user")
+          `);
+          console.log("🧹 Geçersiz reservation kayıtları temizlendi");
+        }
+      } catch (error) {
+        // Reservation tablosu yoksa veya hata varsa devam et
+        console.log("ℹ️  Reservation tablosu kontrolü atlandı:", error);
+      }
+      
       // Synchronize aktifse, tabloların oluşmasını beklemek için retry mekanizması
       let hasTables = false;
       let retries = 0;
