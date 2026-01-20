@@ -6,14 +6,17 @@ import {
   
   @Entity("user")
   export class User {
-    @PrimaryGeneratedColumn("uuid")
-    id: string;
+  @PrimaryGeneratedColumn("uuid")
+  id: string;
   
-    @Column({ unique: true })
-    email: string;
+  @Column({ unique: true })
+  userName: string;
   
-    @Column({ nullable: true })
-    phone: string;
+  @Column({ unique: true, nullable: true })
+  email: string | null;
+  
+  @Column({ nullable: true })
+  phone: string;
   
     @Column()
     name: string;

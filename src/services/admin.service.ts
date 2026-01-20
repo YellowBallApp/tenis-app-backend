@@ -12,7 +12,8 @@ const adminService = {
   // Kullanıcı oluştur
   createUser: async (userData: {
     name: string;
-    email: string;
+    userName: string;
+    email?: string | null;
     password: string;
     surname?: string;
     phone?: string;
@@ -21,9 +22,9 @@ const adminService = {
     userType?: UserType;
     title?: string;
   }): Promise<User> => {
-    // Email kontrolü
+    // UserName kontrolü (zorunlu ve unique)
     try {
-      await userRepository.findByEmail(userData.email);
+      await userRepository.findByUserName(userData.userName);
       throw new AppError("USER_ALREADY_EXISTS");
     } catch (error: any) {
       if (error.errorKey === "USER_ALREADY_EXISTS") {
@@ -32,10 +33,24 @@ const adminService = {
       // USER_NOT_FOUND ise devam et, kullanıcı yok demektir
     }
 
+    // Email kontrolü (email varsa ve unique olmalı)
+    if (userData.email) {
+      try {
+        await userRepository.findByEmail(userData.email);
+        throw new AppError("USER_ALREADY_EXISTS");
+      } catch (error: any) {
+        if (error.errorKey === "USER_ALREADY_EXISTS") {
+          throw error;
+        }
+        // USER_NOT_FOUND ise devam et, kullanıcı yok demektir
+      }
+    }
+
     const hashedPassword = await hash(userData.password, 10);
     
     const user = await userRepository.create({
       ...userData,
+      email: userData.email || null,
       password: hashedPassword,
     });
 

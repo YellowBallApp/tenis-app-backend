@@ -8,7 +8,8 @@ import { EloService } from "./elo.service";
 const userService = {
   create: async (userData: { 
     name: string; 
-    email: string; 
+    userName: string;
+    email?: string | null; 
     password: string;
     surname?: string;
     phone?: string;
@@ -27,6 +28,14 @@ const userService = {
   },
   findByEmail: async (email: string, relations?: string[]): Promise<User> => {
     const user = await userRepository.findByEmail(email, relations);
+
+    if (!user) {
+      throw new AppError('USER_NOT_FOUND');
+    }
+    return user;
+  },
+  findByUserName: async (userName: string, relations?: string[]): Promise<User> => {
+    const user = await userRepository.findByUserName(userName, relations);
 
     if (!user) {
       throw new AppError('USER_NOT_FOUND');

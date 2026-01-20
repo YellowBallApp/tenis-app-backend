@@ -8,7 +8,8 @@ const repository = AppDataSource.getRepository(User);
 const userRepository = {
   create: async (userData: { 
     name: string; 
-    email: string; 
+    userName: string;
+    email?: string | null; 
     password: string;
     surname?: string;
     phone?: string;
@@ -22,6 +23,15 @@ const userRepository = {
   findByEmail: async (email: string,relations?: string[]): Promise<User> => {
     const user = await repository.findOne({
       where: { email },
+      relations
+    });
+    if (!user) throw new AppError("USER_NOT_FOUND");
+    return user;
+  },
+
+  findByUserName: async (userName: string,relations?: string[]): Promise<User> => {
+    const user = await repository.findOne({
+      where: { userName },
       relations
     });
     if (!user) throw new AppError("USER_NOT_FOUND");

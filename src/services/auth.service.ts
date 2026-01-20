@@ -10,15 +10,16 @@ const authService = {
   
   register: async (
     name: string,
-    email: string,
+    userName: string,
     password: string,
     birthDate: Date,
+    email?: string | null,
     surname?: string,
     phone?: string,
     gender?: string
   ): Promise<{ accessToken: string; refreshToken: string }> => {
     // Check if user already exists
-    const existingUser = await userService.findByEmail(email).catch(() => null);
+    const existingUser = await userService.findByUserName(userName).catch(() => null);
     if (existingUser) {
       throw new AppError("USER_ALREADY_EXISTS");
     }
@@ -29,7 +30,8 @@ const authService = {
     // Create new user
     const newUser = await userService.create({
       name,
-      email,
+      userName,
+      email: email || null,
       password: hashedPassword,
       surname,
       phone,
@@ -64,12 +66,12 @@ const authService = {
   },
 
   login: async (
-  email: string,
+  userName: string,
   password: string,
   ipAddress: string,
   userAgent: string
 ): Promise<{ accessToken: string; refreshToken: string }> => {
-  const user = await userService.findByEmail(email);
+  const user = await userService.findByUserName(userName);
 
   const isValidPassword = await compare(password, user.password);
   if (!isValidPassword) throw new AppError("INVALID_CREDENTIALS");

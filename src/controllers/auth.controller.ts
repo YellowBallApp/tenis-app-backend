@@ -12,9 +12,9 @@ const authController = {
         throw new AppError("VALIDATION_ERROR");
       }
 
-      const { name, email, password, surname, phone, gender, birthDate } = value;
+      const { name, userName, email, password, surname, phone, gender, birthDate } = value;
 
-      const tokens = await authService.register(name, email, password, birthDate, surname, phone, gender);
+      const tokens = await authService.register(name, userName, password, birthDate, email, surname, phone, gender);
 
       return res.status(201).json({
         data: {
@@ -43,11 +43,11 @@ const authController = {
         throw new AppError("VALIDATION_ERROR");
       }
 
-      const { email, password } = value;
+      const { userName, password } = value;
    const ipAddress: string = req.ip || 'unknown';
       const userAgent = req.headers['user-agent'] || '';
 
-      const tokens = await authService.login(email, password, ipAddress, userAgent);
+      const tokens = await authService.login(userName, password, ipAddress, userAgent);
 
       return res.status(200).json({
         data: {
