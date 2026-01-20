@@ -7,7 +7,8 @@ import api from '../utils/api';
 interface User {
   id: string;
   name: string;
-  email: string;
+  userName: string;
+  email?: string | null;
   surname?: string;
   phone?: string;
   userType: string;
@@ -24,6 +25,7 @@ const Users = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [formData, setFormData] = useState({
     name: '',
+    userName: '',
     email: '',
     password: '',
     surname: '',
@@ -68,6 +70,7 @@ const Users = () => {
     setEditingUser(null);
     setFormData({
       name: '',
+      userName: '',
       email: '',
       password: '',
       surname: '',
@@ -96,7 +99,8 @@ const Users = () => {
     }
     setFormData({
       name: user.name,
-      email: user.email,
+      userName: user.userName,
+      email: user.email || '',
       password: '',
       surname: user.surname || '',
       phone: phoneValue,
@@ -315,9 +319,15 @@ const Users = () => {
                   {/* User Info */}
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center space-x-2 text-soft-white/80">
-                      <span className="text-sm">📧</span>
-                      <span className="text-sm truncate">{user.email}</span>
+                      <span className="text-sm">👤</span>
+                      <span className="text-sm truncate">{user.userName}</span>
                     </div>
+                    {user.email && (
+                      <div className="flex items-center space-x-2 text-soft-white/80">
+                        <span className="text-sm">📧</span>
+                        <span className="text-sm truncate">{user.email}</span>
+                      </div>
+                    )}
                     {user.phone && (
                       <div className="flex items-center space-x-2 text-soft-white/80">
                         <span className="text-sm">📱</span>
@@ -364,6 +374,9 @@ const Users = () => {
                       Kullanıcı
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
+                      Kullanıcı Adı
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       Email
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
@@ -398,7 +411,10 @@ const Users = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-soft-white/80">{user.email}</div>
+                          <div className="text-sm text-soft-white/80">{user.userName}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-soft-white/80">{user.email || '-'}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-soft-white/80">{user.phone || '-'}</div>
@@ -489,14 +505,27 @@ const Users = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-soft-white/90 mb-2">
-                    Email *
+                    Kullanıcı Adı *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    className="glass w-full px-4 py-3 text-soft-white placeholder-soft-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all"
+                    value={formData.userName}
+                    onChange={(e) => setFormData({ ...formData, userName: e.target.value })}
+                    placeholder="örn: johndoe"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-soft-white/90 mb-2">
+                    Email
                   </label>
                   <input
                     type="email"
-                    required
                     className="glass w-full px-4 py-3 text-soft-white placeholder-soft-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-soft-purple transition-all"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="opsiyonel"
                   />
                 </div>
                 {!editingUser && (

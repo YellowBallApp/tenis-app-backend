@@ -10,6 +10,7 @@ const adminController = {
     try {
       const {
         name,
+        userName,
         email,
         password,
         surname,
@@ -20,16 +21,17 @@ const adminController = {
         title,
       } = req.body;
 
-      if (!name || !email || !password || !birthDate) {
+      if (!name || !userName || !password || !birthDate) {
         return res.status(400).json({
           success: false,
-          message: "İsim, email, şifre ve doğum tarihi gereklidir",
+          message: "İsim, kullanıcı adı, şifre ve doğum tarihi gereklidir",
         });
       }
 
       const user = await adminService.createUser({
         name,
-        email,
+        userName,
+        email: email || null,
         password,
         surname,
         phone,
