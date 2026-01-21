@@ -489,6 +489,8 @@ export default {
     updatePasswordForSecurity: 'Update your password for security',
     manageAccountPreferences: 'Manage your account preferences',
     howCanWeHelp: 'How can we help you?',
+    passwordChanged: 'Your password has been changed successfully',
+    passwordChangeError: 'An error occurred while changing password. Please try again.',
   },
   
   navigation: {

@@ -4,6 +4,7 @@ import { AppError } from "../utils/error/app.error";
 import { AppDataSource } from "../config/data-source";
 import { Reservation } from "../entities/reservation.entity";
 import { EloService } from "./elo.service";
+import { compare, hash } from "bcryptjs";
 
 const userService = {
   create: async (userData: { 
@@ -184,6 +185,26 @@ const userService = {
     await userRepo.save(user);
 
     return user;
+  },
+
+  changePassword: async (userId: string, currentPassword: string, newPassword: string): Promise<void> => {
+    const user = await userRepository.findById(userId);
+    if (!user) {
+      throw new AppError('USER_NOT_FOUND');
+    }
+
+    // Mevcut şifreyi kontrol et
+    const isValidPassword = await compare(currentPassword, user.password);
+    if (!isValidPassword) {
+      throw new AppError('INVALID_PASSWORD');
+    }
+
+    // Yeni şifreyi hashle ve kaydet
+    const hashedPassword = await hash(newPassword, 12);
+    user.password = hashedPassword;
+
+    const userRepo = AppDataSource.getRepository(User);
+    await userRepo.save(user);
   }
 };
 

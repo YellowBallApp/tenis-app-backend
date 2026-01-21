@@ -68,6 +68,54 @@ router.put("/profile", authMiddleware, userController.updateProfile);
 
 /**
  * @swagger
+ * /api/user/change-password:
+ *   post:
+ *     summary: Kullanıcı şifresini değiştir
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 description: Mevcut şifre
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 6
+ *                 description: Yeni şifre (en az 6 karakter)
+ *     responses:
+ *       200:
+ *         description: Şifre başarıyla değiştirildi
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Şifre başarıyla değiştirildi
+ *       400:
+ *         description: Geçersiz istek veya validasyon hatası
+ *       401:
+ *         description: Yetkisiz erişim
+ *       400:
+ *         description: Mevcut şifre hatalı
+ */
+router.post("/change-password", authMiddleware, userController.changePassword);
+
+/**
+ * @swagger
  * /api/user/all:
  *   get:
  *     summary: Tüm kullanıcıları listele

@@ -241,6 +241,11 @@ const rawErrors = {
         code: 1046,
         key: "SHIELD_ALREADY_ACTIVE",
         message: "Zaten aktif bir shield'iniz var."
+    },
+    INVALID_PASSWORD: {
+        code: 1049,
+        key: "INVALID_PASSWORD",
+        message: "Mevcut şifre hatalı"
     }
 } as const;
 

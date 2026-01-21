@@ -493,6 +493,8 @@ export default {
     updatePasswordForSecurity: 'Güvenliğiniz için şifrenizi güncelleyin',
     manageAccountPreferences: 'Hesap tercihlerinizi yönetin',
     howCanWeHelp: 'Size nasıl yardımcı olabiliriz?',
+    passwordChanged: 'Şifreniz başarıyla güncellendi',
+    passwordChangeError: 'Şifre değiştirilirken bir hata oluştu. Lütfen tekrar deneyin.',
   },
   
   navigation: {

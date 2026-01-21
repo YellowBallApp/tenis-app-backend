@@ -3,6 +3,7 @@ import { AppError } from "../utils/error/app.error";
 import userService from "../services/user.service";
 import leagueStandingsRepository from "../repositories/leagueStandings.repository";
 import { calculateAge } from "../utils/age.utils";
+import { changePasswordSchema } from "../validations/authJoi.schema";
 
 const userController = {
   getProfile: async (req: Request, res: Response) => {
@@ -224,6 +225,41 @@ const userController = {
           age: calculateAge(updatedUser.birthDate),
           birthDate: updatedUser.birthDate,
         },
+      });
+    } catch (err) {
+      const error = err instanceof AppError
+        ? err
+        : new AppError("UNKNOWN_ERROR");
+
+      console.error(err);
+      return res.status(error.status).json({
+        errorKey: error.errorKey,
+        errorCode: error.errorCode,
+        message: error.message,
+      });
+    }
+  },
+
+  changePassword: async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user.id;
+      const { error, value } = changePasswordSchema.validate(req.body);
+
+      if (error) {
+        return res.status(400).json({
+          errorKey: 'VALIDATION_ERROR',
+          errorCode: 'VALIDATION_ERROR',
+          message: error.details[0].message,
+        });
+      }
+
+      const { currentPassword, newPassword } = value;
+
+      await userService.changePassword(userId, currentPassword, newPassword);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Şifre başarıyla değiştirildi',
       });
     } catch (err) {
       const error = err instanceof AppError
