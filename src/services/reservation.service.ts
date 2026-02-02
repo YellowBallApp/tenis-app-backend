@@ -4,6 +4,7 @@ import { User } from '../entities/user.entity';
 import { Court } from '../entities/court.entity';
 import { UserType } from '../enum/userType.enum';
 import notificationRepository from '../repositories/notification.repository';
+import notificationService from './notification.service';
 import blockedTimeSlotRepository from '../repositories/blockedTimeSlot.repository';
 import { NotificationType } from '../enum/notificationType.enum';
 
@@ -28,7 +29,7 @@ export class ReservationService {
         .leftJoinAndSelect('reservation.user', 'user')
         .leftJoinAndSelect('reservation.court', 'court')
         .leftJoinAndSelect('reservation.participants', 'participants')
-        .where('reservation.user.id = :userId', { userId })
+        .where('(user.id = :userId OR participants.id = :userId)', { userId })
         .andWhere('reservation.startTime >= :now', { now })
         .orderBy('reservation.startTime', 'ASC')
         .limit(limit)
@@ -196,20 +197,56 @@ export class ReservationService {
         notes: data.notes,
       });
 
-      return await this.reservationRepository.save(reservation);
+      const savedReservation = await this.reservationRepository.save(reservation);
+
+      // Oluşturan ve tüm katılımcılara bildirim gönder
+      try {
+        const summary = this.formatReservationSummary(court.name, data.startTime, data.endTime);
+        const message = `Rezervasyon oluşturuldu: ${summary}`;
+        const recipients: User[] = [user, ...participants];
+        await Promise.all(
+          recipients.map((recipient) =>
+            notificationService.createNotification({
+              recipientId: recipient.id,
+              type: NotificationType.RESERVATION_CREATED,
+              message,
+              relatedEntityId: savedReservation.id,
+              relatedEntityType: 'reservation',
+            }).catch((err) => {
+              console.error(`Rezervasyon bildirimi gönderilemedi (${recipient.id}):`, err);
+              return null;
+            })
+          )
+        );
+      } catch (notificationError) {
+        console.error('Rezervasyon oluşturma bildirimi hatası:', notificationError);
+      }
+
+      return savedReservation;
     } catch (error: any) {
       throw new Error(error.message || 'Rezervasyon oluşturulurken bir hata oluştu');
     }
   }
 
-  // Kullanıcının rezervasyonlarını getir
+  private formatReservationSummary(courtName: string, startTime: Date, endTime: Date): string {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const dateStr = start.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+    const timeStr = `${start.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}-${end.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`;
+    return `${courtName}, ${dateStr} ${timeStr}`;
+  }
+
+  // Kullanıcının rezervasyonlarını getir (oluşturduğu + katılımcı olduğu)
   async getUserReservations(userId: string) {
     try {
-      const reservations = await this.reservationRepository.find({
-        where: { user: { id: userId } },
-        relations: ['user', 'participants'],
-        order: { startTime: 'DESC' },
-      });
+      const reservations = await this.reservationRepository
+        .createQueryBuilder('reservation')
+        .leftJoinAndSelect('reservation.user', 'user')
+        .leftJoinAndSelect('reservation.court', 'court')
+        .leftJoinAndSelect('reservation.participants', 'participants')
+        .where('user.id = :userId OR participants.id = :userId', { userId })
+        .orderBy('reservation.startTime', 'DESC')
+        .getMany();
 
       return reservations;
     } catch (error) {
@@ -365,25 +402,56 @@ export class ReservationService {
     }
   }
 
-  // Rezervasyon iptal et
+  // Rezervasyon iptal et (oluşturan veya katılımcılardan biri iptal edebilir)
   async cancelReservation(reservationId: number, userId: string, isAdmin: boolean = false) {
     try {
       const reservation = await this.reservationRepository.findOne({
         where: { id: reservationId },
-        relations: ['user'],
+        relations: ['user', 'participants', 'court'],
       });
 
       if (!reservation) {
         throw new Error('Rezervasyon bulunamadı');
       }
 
-      // Admin değilse, sadece kendi rezervasyonunu silebilir
-      if (!isAdmin && reservation.user.id !== userId) {
+      // Admin değilse: sadece oluşturan veya katılımcılardan biri iptal edebilir
+      const isOwner = reservation.user.id === userId;
+      const isParticipant = reservation.participants?.some((p) => p.id === userId) ?? false;
+      if (!isAdmin && !isOwner && !isParticipant) {
         throw new Error('Bu rezervasyonu iptal etme yetkiniz yok');
       }
 
+      // İptal bildirimi için bilgileri al (remove'dan önce)
+      const summary = this.formatReservationSummary(
+        reservation.court.name,
+        reservation.startTime,
+        reservation.endTime
+      );
+      const message = `Rezervasyon iptal edildi: ${summary}`;
+      const recipients: User[] = [reservation.user, ...(reservation.participants || [])];
+
       await this.reservationRepository.remove(reservation);
-      
+
+      // Oluşturan ve tüm katılımcılara bildirim gönder
+      try {
+        await Promise.all(
+          recipients.map((recipient) =>
+            notificationService.createNotification({
+              recipientId: recipient.id,
+              type: NotificationType.RESERVATION_CANCELLED,
+              message,
+              relatedEntityId: reservationId,
+              relatedEntityType: 'reservation',
+            }).catch((err) => {
+              console.error(`Rezervasyon iptal bildirimi gönderilemedi (${recipient.id}):`, err);
+              return null;
+            })
+          )
+        );
+      } catch (notificationError) {
+        console.error('Rezervasyon iptal bildirimi hatası:', notificationError);
+      }
+
       return { message: 'Rezervasyon iptal edildi' };
     } catch (error: any) {
       throw new Error(error.message || 'Rezervasyon iptal edilirken bir hata oluştu');
