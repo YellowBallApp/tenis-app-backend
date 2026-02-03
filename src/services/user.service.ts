@@ -5,6 +5,8 @@ import { AppDataSource } from "../config/data-source";
 import { Reservation } from "../entities/reservation.entity";
 import { EloService } from "./elo.service";
 import { compare, hash } from "bcryptjs";
+import { UserType } from "../enum/userType.enum";
+import { isSlotAllowedForRestrictedUser } from "../utils/restrictedHours.utils";
 
 const userService = {
   create: async (userData: { 
@@ -95,7 +97,13 @@ const userService = {
     const allUsers = await userRepository.findAll();
 
     // Meşgul olmayan kullanıcıları filtrele
-    const availableUsers = allUsers.filter(user => !busyUserIds.has(user.id));
+    let availableUsers = allUsers.filter(user => !busyUserIds.has(user.id));
+
+    // Kısıtlı saatte (RESTRICTED kullanıcıların rezervasyon yapamadığı saatlerde) RESTRICTED kullanıcıları listeden çıkar.
+    // Full user bu saatte rezervasyon yaparken RESTRICTED kullanıcıyı participant olarak seçemesin.
+    if (!isSlotAllowedForRestrictedUser(requestedStart)) {
+      availableUsers = availableUsers.filter(user => user.userType !== UserType.RESTRICTED);
+    }
 
     return availableUsers;
     } catch (error) {

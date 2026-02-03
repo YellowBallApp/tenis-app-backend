@@ -172,6 +172,7 @@ export default {
     standardSession: 'Standart seans: 60 dakika (1 saat). Kendi raketlerinizi ve toplarınızı getirin veya kulüp masasından kiralayın.',
     availableTimeSlots: 'Müsait Zaman Dilimleri',
     noAvailableSlots: 'Bu tarih için müsait zaman dilimi bulunmamaktadır.',
+    restrictedMemberSlotNotAllowed: 'Kısıtlı üye için uygun değil',
     continueToBooking: 'Rezervasyona Devam Et',
     gameType: 'Oyun Tipi',
     yourPartner: 'Partneriniz',

@@ -127,6 +127,9 @@ const ReservationScreen = () => {
   const [activeReservation, setActiveReservation] = useState<any | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [reservationToDelete, setReservationToDelete] = useState<any | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [reservationToReject, setReservationToReject] = useState<any | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -1460,6 +1463,12 @@ const ReservationScreen = () => {
     });
   };
 
+  // PENDING rezervasyonda kullanıcının kendi yanıt kaydı (participant ise ve bekliyorsa butonlar gösterilir)
+  const getMyResponse = (reservation: any) => {
+    if (!currentUserId || !reservation.participantResponses?.length) return null;
+    return reservation.participantResponses.find((r: any) => r.userId === currentUserId) ?? null;
+  };
+
   // Rezervasyon için takımları belirle
   const getTeamsForReservation = (reservation: any) => {
     const owner = reservation.user;
@@ -1554,6 +1563,50 @@ const ReservationScreen = () => {
     }
   };
 
+  const handleAcceptReservation = async (reservation: any) => {
+    try {
+      setActionLoading(true);
+      await reservationService.acceptReservation(reservation.id);
+      const allReservations = await reservationService.getMyReservations();
+      const now = new Date();
+      const activeRes = allReservations.find((r: any) => new Date(r.endTime) >= now);
+      setActiveReservation(activeRes || null);
+      if (!activeRes) {
+        setReservationBlocked(false);
+        setBlockReason('');
+      }
+      Alert.alert(t('common.success') || 'Başarılı', t('reservation.acceptSuccess') || 'Rezervasyon kabul edildi');
+    } catch (error: any) {
+      Alert.alert(t('common.error') || 'Hata', error.response?.data?.message || t('reservation.acceptError') || 'Kabul işlemi başarısız');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRejectReservation = (reservation: any) => {
+    setReservationToReject(reservation);
+    setShowRejectDialog(true);
+  };
+
+  const confirmRejectReservation = async () => {
+    if (!reservationToReject) return;
+    setShowRejectDialog(false);
+    try {
+      setActionLoading(true);
+      await reservationService.rejectReservation(reservationToReject.id);
+      setActiveReservation(null);
+      setReservationBlocked(false);
+      setBlockReason('');
+      setReservationToReject(null);
+      Alert.alert(t('common.success') || 'Başarılı', t('reservation.rejected') || 'Rezervasyon reddedildi ve iptal edildi');
+    } catch (error: any) {
+      Alert.alert(t('common.error') || 'Hata', error.response?.data?.message || t('reservation.rejectError') || 'Red işlemi başarısız');
+      setReservationToReject(null);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   return (
     <>
       <StatusBar style="light" />
@@ -1622,103 +1675,146 @@ const ReservationScreen = () => {
           </View>
         )}
 
-        {/* Aktif Rezervasyon Detayları */}
-        {activeReservation && reservationBlocked && blockReason.includes('aktif bir rezervasyonunuz var') && (
-          <View style={styles.activeReservationWrapper}>
-            <View style={styles.activeReservationCardWrapper}>
-              <Card style={styles.activeReservationCard}>
-                <Card.Content style={styles.activeReservationContent}>
-                  {/* Header Row */}
-                  <View style={styles.activeReservationHeader}>
-                    <View style={styles.activeReservationDateTimeContainer}>
-                      <View style={styles.activeReservationDateRow}>
-                        <MaterialCommunityIcons name="calendar" size={20} color="#54CE8F" />
-                        <Text style={styles.activeReservationDateText}>{formatDate(activeReservation.startTime)}</Text>
-                      </View>
-                      <View style={styles.activeReservationTimeRow}>
-                        <MaterialCommunityIcons name="clock-outline" size={18} color="#717182" />
-                        <Text style={styles.activeReservationTimeText}>
-                          {formatTime(activeReservation.startTime)} - {formatTime(activeReservation.endTime)}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-
-                {/* Divider */}
-                <View style={styles.activeReservationDivider} />
-
-                {/* Court Info */}
-                <View style={styles.activeReservationInfoRow}>
-                  <MaterialCommunityIcons name="tennis" size={18} color="#B4AEBD" />
-                  <Text style={styles.activeReservationInfoLabel}>{t('reservation.court') || 'Kort'}:</Text>
-                  <Text style={styles.activeReservationInfoValue}>{activeReservation.court?.name || '-'}</Text>
+        {/* Aktif Rezervasyon Detayları - Rezervasyonlarım sayfasındaki ile aynı yapı (pending badge, yanıt durumları, kabul/red) */}
+        {activeReservation && reservationBlocked && blockReason.includes('aktif bir rezervasyonunuz var') && (() => {
+          const isPending = activeReservation.status === 'pending';
+          const myResponse = getMyResponse(activeReservation);
+          const canAcceptReject = myResponse && myResponse.acceptanceStatus === 'pending';
+          const formatPlayerName = (player: any) => [player?.name, player?.surname].filter(Boolean).join(' ') || 'Bilinmiyor';
+          const teams = getTeamsForReservation(activeReservation);
+          const hasPlayers = teams.team1.length > 0 || teams.team2.length > 0;
+          return (
+            <View style={styles.activeReservationWrapper}>
+              {isPending && (
+                <View style={styles.pendingBadge}>
+                  <MaterialCommunityIcons name="clock-outline" size={14} color="#B45309" />
+                  <Text style={styles.pendingBadgeText}>{t('reservation.pendingBadge')}</Text>
                 </View>
-
-                {/* Players - Teams Display */}
-                {(() => {
-                  const teams = getTeamsForReservation(activeReservation);
-                  const hasPlayers = teams.team1.length > 0 || teams.team2.length > 0;
-                  
-                  if (!hasPlayers) return null;
-                  
-                  return (
-                    <View style={styles.activeReservationPlayersContainer}>
-                      <View style={styles.activeReservationPlayersLabelRow}>
-                        <MaterialCommunityIcons name="account-group" size={18} color="#B4AEBD" />
-                        <Text style={styles.activeReservationPlayersLabel}>{t('reservation.players') || 'Oyuncular'}:</Text>
-                      </View>
-                      
-                      <View style={styles.activeReservationTeamsContainer}>
-                        {/* Team 1 */}
-                        <View style={styles.activeReservationTeamContainer}>
-                          {teams.team1.map((player: any, index: number) => (
-                            <View key={player?.id || index} style={styles.activeReservationPlayerNameContainer}>
-                              <MaterialCommunityIcons name="account" size={16} color="#54CE8F" />
-                              <Text style={styles.activeReservationPlayerName}>
-                                {player?.name || 'Bilinmiyor'}
-                              </Text>
-                            </View>
-                          ))}
+              )}
+              <View style={styles.activeReservationCardWrapper}>
+                <Card style={[styles.activeReservationCard, isPending && styles.reservationCardPending]}>
+                  <Card.Content style={styles.activeReservationContent}>
+                    <View style={styles.activeReservationHeader}>
+                      <View style={styles.activeReservationDateTimeContainer}>
+                        <View style={styles.activeReservationDateRow}>
+                          <MaterialCommunityIcons name="calendar" size={20} color="#54CE8F" />
+                          <Text style={styles.activeReservationDateText}>{formatDate(activeReservation.startTime)}</Text>
                         </View>
-
-                        {/* VS */}
-                        {teams.team2.length > 0 && (
-                          <Text style={styles.activeReservationVsText}>VS</Text>
-                        )}
-
-                        {/* Team 2 */}
-                        <View style={styles.activeReservationTeamContainer}>
-                          {teams.team2.map((player: any, index: number) => (
-                            <View key={player?.id || index} style={styles.activeReservationPlayerNameContainer}>
-                              <MaterialCommunityIcons name="account" size={16} color="#FF9800" />
-                              <Text style={styles.activeReservationPlayerName}>
-                                {player?.name || 'Bilinmiyor'}
-                              </Text>
-                            </View>
-                          ))}
+                        <View style={styles.activeReservationTimeRow}>
+                          <MaterialCommunityIcons name="clock-outline" size={18} color="#717182" />
+                          <Text style={styles.activeReservationTimeText}>
+                            {formatTime(activeReservation.startTime)} - {formatTime(activeReservation.endTime)}
+                          </Text>
                         </View>
                       </View>
                     </View>
-                  );
-                })()}
-                </Card.Content>
-              </Card>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.activeReservationDeleteButtonAbsolute,
-                  pressed && styles.activeReservationDeleteButtonPressed
-                ]}
-                onPress={() => {
-                  console.log('Aktif rezervasyon silme butonu tıklandı:', activeReservation.id);
-                  handleCancelReservation(activeReservation);
-                }}
-                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-              >
-                <MaterialCommunityIcons name="delete-outline" size={22} color="#DC2626" />
-              </Pressable>
+                    <View style={styles.activeReservationDivider} />
+                    <View style={styles.activeReservationInfoRow}>
+                      <MaterialCommunityIcons name="tennis" size={18} color="#B4AEBD" />
+                      <Text style={styles.activeReservationInfoLabel}>{t('reservation.court') || 'Kort'}:</Text>
+                      <Text style={styles.activeReservationInfoValue}>{activeReservation.court?.name || '-'}</Text>
+                    </View>
+                    {/* PENDING: Yanıt durumları (Kabul etti / Beklemede) */}
+                    {isPending && activeReservation.participantResponses?.length > 0 && (
+                      <>
+                        <View style={styles.activeReservationDivider} />
+                        <View style={styles.responseStatusContainer}>
+                          <Text style={styles.responseStatusLabel}>{t('reservation.responseStatus')}:</Text>
+                          {activeReservation.participantResponses.map((resp: any) => (
+                            <View key={resp.id} style={styles.responseStatusRow}>
+                              <Text style={styles.responseUserName}>
+                                {resp.user?.name} {resp.user?.surname || ''}
+                              </Text>
+                              <View style={[styles.responseStatusBadge, resp.acceptanceStatus === 'accepted' ? styles.responseStatusAccepted : styles.responseStatusWaiting]}>
+                                <MaterialCommunityIcons
+                                  name={resp.acceptanceStatus === 'accepted' ? 'check-circle' : 'clock-outline'}
+                                  size={14}
+                                  color={resp.acceptanceStatus === 'accepted' ? '#059669' : '#B45309'}
+                                />
+                                <Text style={[styles.responseStatusText, resp.acceptanceStatus === 'accepted' ? styles.responseStatusTextAccepted : styles.responseStatusTextWaiting]}>
+                                  {resp.acceptanceStatus === 'accepted' ? t('reservation.accepted') : t('reservation.waiting')}
+                                </Text>
+                              </View>
+                            </View>
+                          ))}
+                        </View>
+                      </>
+                    )}
+                    {/* Davetli bekleyen: Kabul Et / Reddet butonları */}
+                    {canAcceptReject && (
+                      <>
+                        <View style={styles.activeReservationDivider} />
+                        <View style={styles.acceptRejectRow}>
+                          <TouchableOpacity
+                            style={[styles.acceptRejectButton, styles.acceptButton]}
+                            onPress={() => handleAcceptReservation(activeReservation)}
+                            disabled={actionLoading}
+                          >
+                            <MaterialCommunityIcons name="check" size={20} color="#FFFFFF" />
+                            <Text style={styles.acceptRejectButtonText}>{t('reservation.accept')}</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.acceptRejectButton, styles.rejectButton]}
+                            onPress={() => handleRejectReservation(activeReservation)}
+                            disabled={actionLoading}
+                          >
+                            <MaterialCommunityIcons name="close" size={20} color="#FFFFFF" />
+                            <Text style={styles.acceptRejectButtonText}>{t('reservation.reject')}</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </>
+                    )}
+                    {/* Oyuncular */}
+                    {hasPlayers && (
+                      <>
+                        <View style={styles.activeReservationDivider} />
+                        <View style={styles.activeReservationPlayersContainer}>
+                          <View style={styles.activeReservationPlayersLabelRow}>
+                            <MaterialCommunityIcons name="account-group" size={18} color="#B4AEBD" />
+                            <Text style={styles.activeReservationPlayersLabel}>{t('reservation.players') || 'Oyuncular'}:</Text>
+                          </View>
+                          <View style={styles.activeReservationTeamsContainer}>
+                            <View style={styles.activeReservationTeamContainer}>
+                              {teams.team1.map((player: any, index: number) => (
+                                <View key={player?.id || index} style={styles.activeReservationPlayerNameContainer}>
+                                  <MaterialCommunityIcons name="account" size={16} color="#54CE8F" />
+                                  <Text style={styles.activeReservationPlayerName}>{formatPlayerName(player)}</Text>
+                                </View>
+                              ))}
+                            </View>
+                            {teams.team2.length > 0 && (
+                              <Text style={styles.activeReservationVsText}>VS</Text>
+                            )}
+                            <View style={styles.activeReservationTeamContainer}>
+                              {teams.team2.map((player: any, index: number) => (
+                                <View key={player?.id || index} style={styles.activeReservationPlayerNameContainer}>
+                                  <MaterialCommunityIcons name="account" size={16} color="#FF9800" />
+                                  <Text style={styles.activeReservationPlayerName}>{formatPlayerName(player)}</Text>
+                                </View>
+                              ))}
+                            </View>
+                          </View>
+                        </View>
+                      </>
+                    )}
+                  </Card.Content>
+                </Card>
+                {!isPending && (
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.activeReservationDeleteButtonAbsolute,
+                      pressed && styles.activeReservationDeleteButtonPressed
+                    ]}
+                    onPress={() => handleCancelReservation(activeReservation)}
+                    hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+                  >
+                    <MaterialCommunityIcons name="delete-outline" size={22} color="#DC2626" />
+                  </Pressable>
+                )}
+              </View>
             </View>
-          </View>
-        )}
+          );
+        })()}
 
         {isInitializing ? (
           <View style={styles.loadingContainer}>
@@ -2290,6 +2386,56 @@ const ReservationScreen = () => {
                 >
                   <Text style={styles.deleteModalConfirmButtonText}>
                     {t('common.delete') || 'Sil'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </Card.Content>
+          </Card>
+        </Modal>
+      </Portal>
+
+      {/* Reject Reservation Confirmation Modal */}
+      <Portal>
+        <Modal
+          visible={showRejectDialog}
+          onDismiss={() => {
+            setShowRejectDialog(false);
+            setReservationToReject(null);
+          }}
+          contentContainerStyle={styles.deleteModalContainer}
+          dismissable={true}
+        >
+          <Card style={styles.deleteModalCard}>
+            <Card.Content style={styles.deleteModalContent}>
+              <View style={styles.deleteModalHeader}>
+                <View style={styles.deleteModalIconContainer}>
+                  <MaterialCommunityIcons name="alert-circle" size={32} color="#DC2626" />
+                </View>
+                <Text style={styles.deleteModalTitle}>
+                  {t('reservation.reject')}
+                </Text>
+              </View>
+              <Text style={styles.deleteModalText}>
+                {t('reservation.rejectConfirm')}
+              </Text>
+              <View style={styles.deleteModalButtons}>
+                <TouchableOpacity
+                  style={styles.deleteModalCancelButton}
+                  onPress={() => {
+                    setShowRejectDialog(false);
+                    setReservationToReject(null);
+                  }}
+                >
+                  <Text style={styles.deleteModalCancelButtonText}>
+                    {t('common.cancel') || 'İptal'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.deleteModalConfirmButton}
+                  onPress={confirmRejectReservation}
+                >
+                  <Text style={styles.deleteModalConfirmButtonText}>
+                    {t('reservation.reject')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -3241,9 +3387,101 @@ const styles = StyleSheet.create({
     color: '#BDBDBD',
   },
   activeReservationWrapper: {
+    position: 'relative',
     paddingHorizontal: 24,
     paddingTop: 16,
     paddingBottom: 24,
+  },
+  pendingBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 48,
+    zIndex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 6,
+  },
+  pendingBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#B45309',
+  },
+  reservationCardPending: {
+    borderColor: '#FDE68A',
+    borderLeftWidth: 4,
+  },
+  responseStatusContainer: {
+    marginTop: 8,
+  },
+  responseStatusLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#717182',
+    marginBottom: 8,
+  },
+  responseStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  responseUserName: {
+    fontSize: 14,
+    color: '#374151',
+    flex: 1,
+  },
+  responseStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  responseStatusAccepted: {
+    backgroundColor: '#D1FAE5',
+  },
+  responseStatusWaiting: {
+    backgroundColor: '#FEF3C7',
+  },
+  responseStatusText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  responseStatusTextAccepted: {
+    color: '#059669',
+  },
+  responseStatusTextWaiting: {
+    color: '#B45309',
+  },
+  acceptRejectRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 12,
+  },
+  acceptRejectButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  acceptButton: {
+    backgroundColor: '#059669',
+  },
+  rejectButton: {
+    backgroundColor: '#DC2626',
+  },
+  acceptRejectButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   activeReservationCardWrapper: {
     position: 'relative',

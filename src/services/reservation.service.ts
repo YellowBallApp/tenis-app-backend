@@ -11,6 +11,7 @@ import notificationRepository from '../repositories/notification.repository';
 import notificationService from './notification.service';
 import blockedTimeSlotRepository from '../repositories/blockedTimeSlot.repository';
 import { NotificationType } from '../enum/notificationType.enum';
+import { isSlotAllowedForRestrictedUser } from '../utils/restrictedHours.utils';
 
 export class ReservationService {
   private reservationRepository;
@@ -192,6 +193,17 @@ export class ReservationService {
           .createQueryBuilder('user')
           .where('user.id IN (:...ids)', { ids: data.participantIds })
           .getMany();
+
+        // Kısıtlı saatte RESTRICTED kullanıcı participant olarak eklenemez (full user bile olsa)
+        const slotStart = new Date(data.startTime);
+        if (!isSlotAllowedForRestrictedUser(slotStart)) {
+          const restrictedParticipant = participants.find((p) => p.userType === UserType.RESTRICTED);
+          if (restrictedParticipant) {
+            throw new Error(
+              'Bu saatte kısıtlı kullanıcılar rezervasyona eklenemez. Kısıtlı kullanıcılar hafta içi 09:00-18:00, hafta sonu 18:00-24:00 arası eklenebilir.'
+            );
+          }
+        }
       }
 
       const hasParticipants = participants.length > 0;

@@ -20,7 +20,7 @@ import NotificationsScreen from '../screens/NotificationsScreen';
 import BookingConfirmScreen from '../screens/BookingConfirmScreen';
 
 export type MainTabParamList = {
-  Home: undefined;
+  Home: { showReservationSuccess?: boolean } | undefined;
   DefiLig: undefined;
   Users: undefined;
   Profile: undefined;
