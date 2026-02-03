@@ -25,6 +25,9 @@ const MyReservationsScreen = ({ navigation }: any) => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [reservationToDelete, setReservationToDelete] = useState<any | null>(null);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [reservationToReject, setReservationToReject] = useState<any | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     const loadCurrentUser = async () => {
@@ -92,38 +95,94 @@ const MyReservationsScreen = ({ navigation }: any) => {
     });
   };
 
-  // Rezervasyon için takımları belirle
+  // PENDING rezervasyonda kullanıcının kendi yanıt kaydı (participant ise ve bekliyorsa butonlar gösterilir)
+  const getMyResponse = (reservation: any) => {
+    if (!currentUserId || !reservation.participantResponses?.length) return null;
+    return reservation.participantResponses.find((r: any) => r.userId === currentUserId) ?? null;
+  };
+
+  const handleAcceptReservation = async (reservation: any) => {
+    try {
+      setActionLoading(true);
+      await reservationService.acceptReservation(reservation.id);
+      await loadMyReservations();
+      Alert.alert(t('common.success') || 'Başarılı', t('reservation.acceptSuccess') || 'Rezervasyon kabul edildi');
+    } catch (error: any) {
+      Alert.alert(t('common.error') || 'Hata', error.response?.data?.message || t('reservation.acceptError') || 'Kabul işlemi başarısız');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRejectReservation = (reservation: any) => {
+    setReservationToReject(reservation);
+    setShowRejectDialog(true);
+  };
+
+  const confirmRejectReservation = async () => {
+    if (!reservationToReject) return;
+    setShowRejectDialog(false);
+    try {
+      setActionLoading(true);
+      await reservationService.rejectReservation(reservationToReject.id);
+      await loadMyReservations();
+      Alert.alert(t('common.success') || 'Başarılı', t('reservation.rejected') || 'Rezervasyon reddedildi ve iptal edildi');
+      setReservationToReject(null);
+    } catch (error: any) {
+      Alert.alert(t('common.error') || 'Hata', error.response?.data?.message || t('reservation.rejectError') || 'Red işlemi başarısız');
+      setReservationToReject(null);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Rezervasyon için takımları belirle (çiftlerde 4 oyuncu, takımlı gösterim)
   const getTeamsForReservation = (reservation: any) => {
     const owner = reservation.user;
     const participants = reservation.participants || [];
     const notes = reservation.notes || '';
-    
-    // Notes'tan maç tipini anla
-    const isDoubles = notes.includes('Çiftler') || notes.includes('doubles') || notes.includes('Doubles');
-    
-    // Participants sayısına göre de anla
-    // 1 participant = tekler, 3 participant = çiftler
-    const participantCount = participants.length;
-    const isDoubleMatch = isDoubles || participantCount === 3;
-    
-    if (isDoubleMatch) {
-      // Çiftler: owner + partner vs 2 rakip
-      const partner = participants[0] || null;
-      const opponents = participants.slice(1) || [];
+    const responses = reservation.participantResponses || [];
+
+    // Tam oyuncu listesi: participantResponses varsa sırayla (creator + participants), yoksa owner + participants
+    let allPlayers: any[] = [];
+    if (responses.length >= 4) {
+      allPlayers = responses.map((r: any) => r.user).filter(Boolean);
+    } else if (responses.length > 0) {
+      allPlayers = responses.map((r: any) => r.user).filter(Boolean);
+    }
+    if (allPlayers.length < 4) {
+      allPlayers = [owner, ...participants].filter(Boolean);
+    }
+
+    const totalCount = allPlayers.length;
+    const isDoublesFromNotes = notes.includes('Çiftler') || notes.includes('doubles') || notes.includes('Doubles');
+    const isDoubleMatch = isDoublesFromNotes || totalCount === 4;
+
+    if (isDoubleMatch && totalCount >= 4) {
+      // Çiftler: Takım 1 (ilk 2 oyuncu) vs Takım 2 (son 2 oyuncu)
+      const team1 = allPlayers.slice(0, 2);
+      const team2 = allPlayers.slice(2, 4);
       return {
-        team1: [owner, partner].filter(Boolean),
-        team2: opponents,
+        team1,
+        team2,
         isDouble: true,
       };
-    } else {
-      // Tekler: owner vs 1 rakip
-      const opponent = participants[0] || null;
+    }
+    if (isDoubleMatch && totalCount === 3) {
+      // Eksik liste: 3 kişi var, yine de takımlı göster (2 vs 1)
       return {
-        team1: [owner].filter(Boolean),
-        team2: opponent ? [opponent] : [],
-        isDouble: false,
+        team1: allPlayers.slice(0, 2),
+        team2: allPlayers.slice(2, 3),
+        isDouble: true,
       };
     }
+    // Tekler: 1 vs 1
+    const opponent = allPlayers[1] || null;
+    return {
+      team1: [allPlayers[0]].filter(Boolean),
+      team2: opponent ? [opponent] : [],
+      isDouble: false,
+    };
   };
 
   const handleDeleteReservation = (reservation: any) => {
@@ -197,9 +256,19 @@ const MyReservationsScreen = ({ navigation }: any) => {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {myReservations.map((reservation: any) => (
+          {myReservations.map((reservation: any) => {
+            const isPending = reservation.status === 'pending';
+            const myResponse = getMyResponse(reservation);
+            const canAcceptReject = myResponse && myResponse.acceptanceStatus === 'pending';
+            return (
             <View key={reservation.id} style={styles.cardWrapper}>
-              <Card style={styles.reservationCard}>
+              {isPending && (
+                <View style={styles.pendingBadge}>
+                  <MaterialCommunityIcons name="clock-outline" size={14} color="#B45309" />
+                  <Text style={styles.pendingBadgeText}>{t('reservation.pendingBadge')}</Text>
+                </View>
+              )}
+              <Card style={[styles.reservationCard, isPending && styles.reservationCardPending]}>
                 <Card.Content style={styles.cardContent}>
                   {/* Header Row */}
                   <View style={styles.cardHeader}>
@@ -227,6 +296,58 @@ const MyReservationsScreen = ({ navigation }: any) => {
                   <Text style={styles.infoValue}>{reservation.court?.name || '-'}</Text>
                 </View>
 
+                {/* PENDING: Yanıt durumları (Kabul etti / Beklemede) */}
+                {isPending && reservation.participantResponses?.length > 0 && (
+                  <>
+                    <View style={styles.divider} />
+                    <View style={styles.responseStatusContainer}>
+                      <Text style={styles.responseStatusLabel}>{t('reservation.responseStatus')}:</Text>
+                      {reservation.participantResponses.map((resp: any) => (
+                        <View key={resp.id} style={styles.responseStatusRow}>
+                          <Text style={styles.responseUserName}>
+                            {resp.user?.name} {resp.user?.surname || ''}
+                          </Text>
+                          <View style={[styles.responseStatusBadge, resp.acceptanceStatus === 'accepted' ? styles.responseStatusAccepted : styles.responseStatusWaiting]}>
+                            <MaterialCommunityIcons
+                              name={resp.acceptanceStatus === 'accepted' ? 'check-circle' : 'clock-outline'}
+                              size={14}
+                              color={resp.acceptanceStatus === 'accepted' ? '#059669' : '#B45309'}
+                            />
+                            <Text style={[styles.responseStatusText, resp.acceptanceStatus === 'accepted' ? styles.responseStatusTextAccepted : styles.responseStatusTextWaiting]}>
+                              {resp.acceptanceStatus === 'accepted' ? t('reservation.accepted') : t('reservation.waiting')}
+                            </Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  </>
+                )}
+
+                {/* Davetli bekleyen: Kabul Et / Reddet butonları */}
+                {canAcceptReject && (
+                  <>
+                    <View style={styles.divider} />
+                    <View style={styles.acceptRejectRow}>
+                      <TouchableOpacity
+                        style={[styles.acceptRejectButton, styles.acceptButton]}
+                        onPress={() => handleAcceptReservation(reservation)}
+                        disabled={actionLoading}
+                      >
+                        <MaterialCommunityIcons name="check" size={20} color="#FFFFFF" />
+                        <Text style={styles.acceptRejectButtonText}>{t('reservation.accept')}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.acceptRejectButton, styles.rejectButton]}
+                        onPress={() => handleRejectReservation(reservation)}
+                        disabled={actionLoading}
+                      >
+                        <MaterialCommunityIcons name="close" size={20} color="#FFFFFF" />
+                        <Text style={styles.acceptRejectButtonText}>{t('reservation.reject')}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
+
                 {/* Players - Teams Display */}
                 {(() => {
                   const teams = getTeamsForReservation(reservation);
@@ -234,39 +355,45 @@ const MyReservationsScreen = ({ navigation }: any) => {
                   
                   if (!hasPlayers) return null;
                   
+                  const formatPlayerName = (player: any) =>
+                    [player?.name, player?.surname].filter(Boolean).join(' ') || 'Bilinmiyor';
+
                   return (
                     <View style={styles.playersContainer}>
                       <View style={styles.playersLabelRow}>
                         <MaterialCommunityIcons name="account-group" size={18} color="#B4AEBD" />
-                        <Text style={styles.playersLabel}>{t('reservation.players') || 'Oyuncular'}:</Text>
+                        <Text style={styles.playersLabel}>
+                          {teams.isDouble ? (t('reservationsList.doublesMatch') || 'Çiftler Maçı') : (t('reservation.players') || 'Oyuncular')}:
+                        </Text>
                       </View>
                       
                       <View style={styles.teamsContainer}>
-                        {/* Team 1 */}
-                        <View style={styles.teamContainer}>
+                        {/* Takım 1 */}
+                        <View style={[styles.teamContainer, teams.isDouble && styles.teamBlock]}>
+                          {teams.isDouble && (
+                            <Text style={[styles.teamLabel, styles.team1Label]}>{t('reservation.team1') || 'Takım 1'}</Text>
+                          )}
                           {teams.team1.map((player: any, index: number) => (
                             <View key={player?.id || index} style={styles.playerNameContainer}>
                               <MaterialCommunityIcons name="account" size={16} color="#54CE8F" />
-                              <Text style={styles.playerName}>
-                                {player?.name || 'Bilinmiyor'}
-                              </Text>
+                              <Text style={styles.playerName}>{formatPlayerName(player)}</Text>
                             </View>
                           ))}
                         </View>
 
-                        {/* VS */}
                         {teams.team2.length > 0 && (
                           <Text style={styles.vsText}>VS</Text>
                         )}
 
-                        {/* Team 2 */}
-                        <View style={styles.teamContainer}>
+                        {/* Takım 2 */}
+                        <View style={[styles.teamContainer, teams.isDouble && styles.teamBlock]}>
+                          {teams.isDouble && (
+                            <Text style={[styles.teamLabel, styles.team2Label]}>{t('reservation.team2') || 'Takım 2'}</Text>
+                          )}
                           {teams.team2.map((player: any, index: number) => (
                             <View key={player?.id || index} style={styles.playerNameContainer}>
                               <MaterialCommunityIcons name="account" size={16} color="#FF9800" />
-                              <Text style={styles.playerName}>
-                                {player?.name || 'Bilinmiyor'}
-                              </Text>
+                              <Text style={styles.playerName}>{formatPlayerName(player)}</Text>
                             </View>
                           ))}
                         </View>
@@ -276,21 +403,21 @@ const MyReservationsScreen = ({ navigation }: any) => {
                 })()}
                 </Card.Content>
               </Card>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.deleteButtonAbsolute,
-                  pressed && styles.deleteButtonPressed
-                ]}
-                onPress={() => {
-                  console.log('Silme butonu tıklandı:', reservation.id);
-                  handleDeleteReservation(reservation);
-                }}
-                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-              >
-                <MaterialCommunityIcons name="delete-outline" size={22} color="#DC2626" />
-              </Pressable>
+              {!isPending && (
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.deleteButtonAbsolute,
+                    pressed && styles.deleteButtonPressed
+                  ]}
+                  onPress={() => handleDeleteReservation(reservation)}
+                  hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+                >
+                  <MaterialCommunityIcons name="delete-outline" size={22} color="#DC2626" />
+                </Pressable>
+              )}
             </View>
-          ))}
+            );
+          })}
         </ScrollView>
       )}
 
@@ -340,6 +467,60 @@ const MyReservationsScreen = ({ navigation }: any) => {
                 >
                   <Text style={styles.deleteModalConfirmButtonText}>
                     {t('common.delete') || 'Sil'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </Card.Content>
+          </Card>
+        </Modal>
+      </Portal>
+
+      {/* Reject Confirmation Modal */}
+      <Portal>
+        <Modal
+          visible={showRejectDialog}
+          onDismiss={() => {
+            setShowRejectDialog(false);
+            setReservationToReject(null);
+          }}
+          contentContainerStyle={styles.deleteModalContainer}
+          dismissable={true}
+        >
+          <Card style={styles.deleteModalCard}>
+            <Card.Content style={styles.deleteModalContent}>
+              <View style={styles.deleteModalHeader}>
+                <View style={[styles.deleteModalIconContainer, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+                  <MaterialCommunityIcons name="close-circle" size={32} color="#B45309" />
+                </View>
+                <Text style={styles.deleteModalTitle}>
+                  {t('reservation.reject')}
+                </Text>
+              </View>
+              
+              <Text style={styles.deleteModalText}>
+                {reservationToReject
+                  ? (t('reservation.rejectConfirm') || 'Bu rezervasyonu reddedeceksiniz; rezervasyon iptal edilecek. Emin misiniz?')
+                  : ''}
+              </Text>
+
+              <View style={styles.deleteModalButtons}>
+                <TouchableOpacity
+                  style={styles.deleteModalCancelButton}
+                  onPress={() => {
+                    setShowRejectDialog(false);
+                    setReservationToReject(null);
+                  }}
+                >
+                  <Text style={styles.deleteModalCancelButtonText}>
+                    {t('common.cancel') || 'İptal'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.deleteModalConfirmButton, { backgroundColor: '#B45309' }]}
+                  onPress={confirmRejectReservation}
+                >
+                  <Text style={styles.deleteModalConfirmButtonText}>
+                    {t('reservation.reject')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -419,6 +600,24 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginBottom: 16,
   },
+  pendingBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 48,
+    zIndex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 6,
+  },
+  pendingBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#B45309',
+  },
   reservationCard: {
     borderRadius: 16,
     backgroundColor: '#FFFFFF',
@@ -433,8 +632,81 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
+  reservationCardPending: {
+    borderColor: '#FDE68A',
+    borderLeftWidth: 4,
+  },
   cardContent: {
     padding: 20,
+  },
+  responseStatusContainer: {
+    marginTop: 8,
+  },
+  responseStatusLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#717182',
+    marginBottom: 8,
+  },
+  responseStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  responseUserName: {
+    fontSize: 14,
+    color: '#374151',
+    flex: 1,
+  },
+  responseStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  responseStatusAccepted: {
+    backgroundColor: '#D1FAE5',
+  },
+  responseStatusWaiting: {
+    backgroundColor: '#FEF3C7',
+  },
+  responseStatusText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  responseStatusTextAccepted: {
+    color: '#059669',
+  },
+  responseStatusTextWaiting: {
+    color: '#B45309',
+  },
+  acceptRejectRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 12,
+  },
+  acceptRejectButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  acceptButton: {
+    backgroundColor: '#059669',
+  },
+  rejectButton: {
+    backgroundColor: '#DC2626',
+  },
+  acceptRejectButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -564,6 +836,23 @@ const styles = StyleSheet.create({
     gap: 8,
     flex: 1,
     minWidth: '40%',
+  },
+  teamBlock: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    minWidth: 0,
+    flex: 1,
+  },
+  teamLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  team1Label: {
+    color: '#059669',
+  },
+  team2Label: {
+    color: '#EA580C',
   },
   playerNameContainer: {
     flexDirection: 'row',

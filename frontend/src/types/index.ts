@@ -108,3 +108,30 @@ export interface Notification {
   relatedEntityId?: number;
   relatedEntityType?: string;
 }
+
+export type ReservationStatus = 'pending' | 'confirmed';
+export type ParticipantRole = 'creator' | 'participant';
+export type AcceptanceStatus = 'pending' | 'accepted';
+
+export interface ReservationParticipantResponse {
+  id: number;
+  userId: string;
+  user: User;
+  role: ParticipantRole;
+  acceptanceStatus: AcceptanceStatus;
+  respondedAt: string | null;
+  createdAt: string;
+}
+
+export interface Reservation {
+  id: number;
+  user: User;
+  court: { id: number; name: string; [key: string]: unknown };
+  startTime: string;
+  endTime: string;
+  status?: ReservationStatus;
+  participants?: User[];
+  participantResponses?: ReservationParticipantResponse[];
+  notes?: string | null;
+  createdAt: string;
+}

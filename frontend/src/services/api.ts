@@ -991,6 +991,18 @@ export const reservationService = {
     return response.data;
   },
 
+  // PENDING rezervasyonu kabul et (davetli)
+  acceptReservation: async (reservationId: number) => {
+    const response = await api.post(`/reservations/${reservationId}/accept`);
+    return response.data;
+  },
+
+  // PENDING rezervasyonu reddet (davetli); rezervasyon silinir, iptal bildirimi gider
+  rejectReservation: async (reservationId: number) => {
+    const response = await api.post(`/reservations/${reservationId}/reject`);
+    return response.data;
+  },
+
   // Belirli bir kort ve tarih için bloke edilmiş saatleri getir (public endpoint)
   getBlockedHours: async (courtId: number, date: string) => {
     const response = await api.get('/reservations/blocked-hours', { 

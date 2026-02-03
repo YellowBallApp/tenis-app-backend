@@ -486,7 +486,7 @@ const HomeScreen = () => {
       >
         <View style={styles.snackbarContent}>
           <MaterialCommunityIcons name="check-circle" size={24} color="#FFFFFF" />
-          <Text style={styles.snackbarText}>{t('reservation.reservationCreated')}</Text>
+          <Text style={styles.snackbarText}>{t('reservation.reservationInvitationSent')}</Text>
         </View>
       </Snackbar>
     </View>

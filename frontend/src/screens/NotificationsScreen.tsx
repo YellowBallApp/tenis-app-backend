@@ -513,12 +513,27 @@ const NotificationsScreen = ({ navigation }: any) => {
     }
   };
 
+  const getReservationNotificationTitle = (type: string) => {
+    switch (type) {
+      case NotificationType.RESERVATION_CONFIRMED:
+        return t('notifications.reservationConfirmed');
+      case NotificationType.RESERVATION_CANCELLED:
+        return t('notifications.reservationCancelled');
+      case NotificationType.RESERVATION_REQUEST:
+        return t('notifications.reservationRequest');
+      default:
+        return t('notifications.reservationConfirmed');
+    }
+  };
+
   const renderNotification = (notification: Notification) => {
     const isPendingMatch = notification.type === NotificationType.PENDING_MATCH_REQUEST || notification.type === NotificationType.MATCH_CHALLENGE;
     const isMatchCompleted = notification.type === NotificationType.MATCH_COMPLETED;
     const isProcessing = processingNotification === notification.id;
     const challenge = challengeDetails[notification.id];
     const challengeFailed = failedChallengeIds.has(notification.id);
+    const isReservation = notification.relatedEntityType === 'reservation';
+    const reservationTitle = isReservation ? getReservationNotificationTitle(notification.type) : null;
 
     return (
       <TouchableOpacity
@@ -533,7 +548,7 @@ const NotificationsScreen = ({ navigation }: any) => {
         <View style={styles.cardContent}>
           <View style={styles.notificationIconContainer}>
             <MaterialCommunityIcons
-              name={isPendingMatch ? 'sword-cross' : isMatchCompleted ? 'trophy' : notification.relatedEntityType === 'reservation' ? 'calendar' : 'bell'}
+              name={isPendingMatch ? 'sword-cross' : isMatchCompleted ? 'trophy' : isReservation ? 'calendar' : 'bell'}
               size={24}
               color="#54CE8F"
             />
@@ -541,7 +556,7 @@ const NotificationsScreen = ({ navigation }: any) => {
           <View style={styles.notificationContent}>
             <View style={styles.notificationHeader}>
               <Text style={styles.notificationTitle}>
-                {isPendingMatch ? t('notifications.newChallengeReceived') : isMatchCompleted ? t('notifications.matchReminder') : notification.relatedEntityType === 'reservation' ? t('notifications.reservationConfirmed') : t('notifications.newMessage')}
+                {isPendingMatch ? t('notifications.newChallengeReceived') : isMatchCompleted ? t('notifications.matchReminder') : reservationTitle ?? t('notifications.newMessage')}
               </Text>
               {!notification.isRead && (
                 <View style={styles.unreadDot} />
