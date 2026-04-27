@@ -12,6 +12,7 @@ import notificationService from './notification.service';
 import blockedTimeSlotRepository from '../repositories/blockedTimeSlot.repository';
 import { NotificationType } from '../enum/notificationType.enum';
 import { isSlotAllowedForRestrictedUser } from '../utils/restrictedHours.utils';
+import { maskToBlockedHours, parseMask } from '../utils/timeSlotMask.utils';
 
 export class ReservationService {
   private reservationRepository;
@@ -683,23 +684,16 @@ export class ReservationService {
         endDate: endOfDay,
       });
 
-      // Her bloke edilmiş saat için saat ve reason bilgisini döndür
-      const blockedHoursMap = new Map<number, string | null>();
+      // Her satır artık tek bir günü temsil eder; mask'ı decode ederek saatleri çıkar
+      const result: { hour: number; reason: string | null }[] = [];
       blockedSlots.forEach(slot => {
-        const startTime = new Date(slot.startTime);
-        const hour = startTime.getHours();
-        // Eğer aynı saat için birden fazla reason varsa, ilkini kullan
-        // (genelde aynı saatte tek bir bloklama olur)
-        if (!blockedHoursMap.has(hour) || !blockedHoursMap.get(hour)) {
-          blockedHoursMap.set(hour, slot.reason || null);
-        }
+        const hours = maskToBlockedHours(parseMask(slot.busyMask));
+        hours.forEach(hour => {
+          result.push({ hour, reason: slot.reason || null });
+        });
       });
 
-      // Map'i array'e çevir ve sırala
-      const result = Array.from(blockedHoursMap.entries())
-        .map(([hour, reason]) => ({ hour, reason }))
-        .sort((a, b) => a.hour - b.hour);
-
+      result.sort((a, b) => a.hour - b.hour);
       return result;
     } catch (error) {
       throw new Error('Bloke edilmiş saatler alınırken bir hata oluştu');

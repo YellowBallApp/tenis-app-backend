@@ -252,15 +252,13 @@ const adminController = {
     }
   },
 
-  // Blocked time slot güncelle
+  // Blocked time slot güncelle (yalnızca reason ve isActive değiştirilebilir)
   updateBlockedTimeSlot: async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      const { startTime, endTime, reason, isActive } = req.body;
+      const { reason, isActive } = req.body;
 
-      const updateData: any = {};
-      if (startTime) updateData.startTime = new Date(startTime);
-      if (endTime) updateData.endTime = new Date(endTime);
+      const updateData: { reason?: string; isActive?: boolean } = {};
       if (reason !== undefined) updateData.reason = reason;
       if (isActive !== undefined) updateData.isActive = isActive;
 

@@ -39,4 +39,3 @@ ormconfig.ts
 # Diğer
 tmp/
 temp/
-migrations/

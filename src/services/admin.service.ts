@@ -7,6 +7,7 @@ import { UserType } from "../enum/userType.enum";
 import { hash } from "bcryptjs";
 import { AppDataSource } from "../config/data-source";
 import { Court } from "../entities/court.entity";
+import { buildHourMask, serializeMask } from "../utils/timeSlotMask.utils";
 
 const adminService = {
   // Kullanıcı oluştur
@@ -180,12 +181,10 @@ const adminService = {
     });
   },
 
-  // Blocked time slot güncelle
+  // Blocked time slot güncelle (reason / isActive değiştirilebilir)
   updateBlockedTimeSlot: async (
     id: number,
     updateData: {
-      startTime?: Date;
-      endTime?: Date;
       reason?: string;
       isActive?: boolean;
     }
@@ -251,51 +250,36 @@ const adminService = {
       throw new Error("Bitiş tarihi başlangıç tarihinden önce olamaz");
     }
 
+    // Seçilen tüm saatlerin bitmask'ini önceden hesapla (her gün için aynı)
+    const dayMask = data.hours
+      .filter(h => h >= 0 && h <= 23)
+      .reduce((acc, h) => acc | buildHourMask(h), 0n);
+
     const slots: BlockedTimeSlot[] = [];
     const startDate = new Date(data.startDate);
     startDate.setHours(0, 0, 0, 0);
     const endDate = new Date(data.endDate);
     endDate.setHours(23, 59, 59, 999);
 
-    // Her gün için döngü
+    // Her gün için tek bir upsert — eski yaklaşımdaki saat başına insert yerine
     const currentDate = new Date(startDate);
     while (currentDate <= endDate) {
-      // Haftanın gününü al (0=Pazar, 1=Pazartesi, ..., 6=Cumartesi)
       const dayOfWeek = currentDate.getDay();
-      
-      // Eğer daysOfWeek belirtilmişse ve bu gün listede yoksa, atla
+
       if (data.daysOfWeek && data.daysOfWeek.length > 0 && !data.daysOfWeek.includes(dayOfWeek)) {
         currentDate.setDate(currentDate.getDate() + 1);
         continue;
       }
 
-      // Her seçilen saat için bloklama oluştur
-      for (const hour of data.hours) {
-        if (hour < 0 || hour > 23) {
-          continue; // Geçersiz saatleri atla
-        }
+      const slot = await blockedTimeSlotRepository.upsertMask({
+        courtId: data.courtId,
+        date: new Date(currentDate),
+        mask: dayMask,
+        reason: data.reason || `Toplu bloklama`,
+        blockedByUserId: adminUserId,
+      });
 
-        // Her saat için 1 saatlik blok oluştur (örn: 13:00-14:00)
-        const startTime = new Date(currentDate);
-        startTime.setHours(hour, 0, 0, 0);
-
-        const endTime = new Date(currentDate);
-        endTime.setHours(hour + 1, 0, 0, 0);
-
-        // Bloklama oluştur
-        const slot = await blockedTimeSlotRepository.create({
-          courtId: data.courtId,
-          startTime,
-          endTime,
-          reason: data.reason || `Toplu bloklama - ${hour}:00-${hour + 1}:00`,
-          blockedByUserId: adminUserId,
-          isActive: true,
-        });
-
-        slots.push(slot);
-      }
-
-      // Bir sonraki güne geç
+      slots.push(slot);
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
