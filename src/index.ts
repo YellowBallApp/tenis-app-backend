@@ -47,12 +47,12 @@ app.use(helmet({
 // Gzip sıkıştırma
 app.use(compression());
 
-// Development için esnek CORS ayarları - tüm local network IP'lerine izin ver
+// CORS: allowedHeaders verme — axios'un gönderdiği X-Client-*, X-Request-Timestamp vb.
+// preflight'ta Access-Control-Request-Headers ile aynen yansıtılır. Dar liste CORS hatası üretirdi.
 const corsOptions = {
   origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   exposedHeaders: ['Authorization'],
   optionsSuccessStatus: 200, // Bazı eski tarayıcılar (IE11) için
 };

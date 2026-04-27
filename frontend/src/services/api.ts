@@ -37,6 +37,13 @@ const NGROK_URL = process.env.EXPO_PUBLIC_NGROK_URL || ''; // Örnek: 'https://a
 const EMULATOR_IP = process.env.EXPO_PUBLIC_EMULATOR_IP || '10.0.2.2'; // Android emülatör için özel IP
 const DEFAULT_PORT = parseInt(process.env.EXPO_PUBLIC_API_PORT || '3000', 10);
 
+/** EXPO_PUBLIC_API_URL örn. http://localhost:3000 → http://localhost:3000/api */
+const normalizeExpoApiUrlToBase = (url: string): string => {
+  const t = url.trim().replace(/\/$/, '');
+  if (!t) return `http://127.0.0.1:${DEFAULT_PORT}/api`;
+  return t.endsWith('/api') ? t : `${t}/api`;
+};
+
 // Production API URL - Gerçek telefonda kullanılacak URL
 // Bu URL'yi backend'inizin deploy edildiği yere göre ayarlayın
 const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.egevteniskulubu.com/api';
@@ -60,7 +67,7 @@ const COMMON_IP_RANGES = [
 async function getServerIP(): Promise<string | null> {
   try {
     // Environment variable'dan IP al, yoksa default production IP kullan
-    const serverIP = process.env.EXPO_PUBLIC_SERVER_IP || DEFAULT_PRODUCTION_IP;
+    const serverIP = "http://localhost:3000";
     if (__DEV__) {
       console.log('🔧 Development - Server IP:', serverIP);
     } else {
@@ -176,11 +183,13 @@ const getApiBaseUrl = async (): Promise<string> => {
   }
 
   // 3. Development build için
-  // Development modunda canlı server'ı kullan (213.238.172.217)
-  // Eğer EXPO_PUBLIC_SERVER_IP environment variable'ı varsa onu kullan
-  // Android emülatörde ise özel IP (10.0.2.2) kullanılır
+  // Önce EXPO_PUBLIC_API_URL (örn. http://localhost:3000), yoksa canlı / EXPO_PUBLIC_SERVER_IP
   if (__DEV__) {
-    // Environment variable'dan server IP al, yoksa default production IP kullan
+    const devApiFromEnv = process.env.EXPO_PUBLIC_API_URL;
+    if (devApiFromEnv && devApiFromEnv.trim() !== '') {
+      return normalizeExpoApiUrlToBase(devApiFromEnv);
+    }
+
     const devServerIP = process.env.EXPO_PUBLIC_SERVER_IP || DEFAULT_PRODUCTION_IP;
     
     let devHost = devServerIP;
@@ -202,18 +211,24 @@ const getApiBaseUrl = async (): Promise<string> => {
   return `http://${DEFAULT_PRODUCTION_IP}:${DEFAULT_PORT}/api`;
 };
 
-// İlk başta base URL'i al (async)
-// Development'ta canlı server IP'si, production'da ise production domain kullan
-const fallbackHost =
-  __DEV__
-    ? (process.env.EXPO_PUBLIC_SERVER_IP || DEFAULT_PRODUCTION_IP)
-    : (process.env.EXPO_PUBLIC_FALLBACK_HOST || 'api.egevteniskulubu.com');
-
-// Production'da HTTPS, development'ta HTTP kullan
+// İlk başta base URL (async initializeAPI öncesi senkron fallback)
+// __DEV__: EXPO_PUBLIC_API_URL varsa onu kullan, yoksa canlı IP / EXPO_PUBLIC_SERVER_IP
+const fallbackHost = process.env.EXPO_PUBLIC_FALLBACK_HOST || 'api.egevteniskulubu.com';
 const fallbackProtocol = __DEV__ ? 'http' : 'https';
 const fallbackPort = __DEV__ ? `:${DEFAULT_PORT}` : '';
 
-let API_BASE_URL: string = `${fallbackProtocol}://${fallbackHost}${fallbackPort}/api`;
+let API_BASE_URL: string;
+if (__DEV__) {
+  const devApi = process.env.EXPO_PUBLIC_API_URL;
+  if (devApi && devApi.trim() !== '') {
+    API_BASE_URL = normalizeExpoApiUrlToBase(devApi);
+  } else {
+    const devServerIP = process.env.EXPO_PUBLIC_SERVER_IP || DEFAULT_PRODUCTION_IP;
+    API_BASE_URL = `${fallbackProtocol}://${devServerIP}${fallbackPort}/api`;
+  }
+} else {
+  API_BASE_URL = `${fallbackProtocol}://${fallbackHost}${fallbackPort}/api`;
+}
 
 // Önceki ağ durumunu takip et
 let previousNetworkType: string | null = null;

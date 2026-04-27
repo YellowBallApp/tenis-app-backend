@@ -9,15 +9,10 @@ import api from '../utils/api';
 import { DatePicker } from '@/components/ui/date-picker';
 import { format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
+import { normalizeBlockedSlotsFromApi, type NormalizedBlockedSlot } from '../utils/timeSlotMask';
+import { BlockedSlotScheduleBlock } from '../components/BlockedSlotScheduleBlock';
 
-interface BlockedSlot {
-  id: number;
-  court: { id: number; name: string };
-  startTime: string;
-  endTime: string;
-  reason?: string;
-  isActive: boolean;
-}
+type BlockedSlot = NormalizedBlockedSlot;
 
 interface Court {
   id: number;
@@ -325,7 +320,9 @@ const Reservations = () => {
         api.get('/admin/blocked-time-slots'),
         api.get('/courts'),
       ]);
-      setBlockedSlots(blockedRes.data.data || []);
+      setBlockedSlots(
+        normalizeBlockedSlotsFromApi(blockedRes.data.data || [])
+      );
       setCourts(courtsRes.data.data || []);
     } catch (error) {
       console.error('Data fetch error:', error);
@@ -734,26 +731,9 @@ const Reservations = () => {
                   </div>
                 </div>
 
-                {/* Time Info */}
+                {/* Tarih + saat aralıkları (çoklu mask: açılır alt kart) */}
                 <div className="space-y-3 mb-4">
-                  <div className="glass rounded-lg p-3">
-                    <div className="flex items-center space-x-2 text-soft-white/80 mb-1">
-                      <HiClock className="text-sm" />
-                      <span className="text-xs text-soft-white/60">Başlangıç</span>
-                    </div>
-                    <span className="text-soft-white font-medium">
-                      {new Date(slot.startTime).toLocaleString('tr-TR')}
-                    </span>
-                  </div>
-                  <div className="glass rounded-lg p-3">
-                    <div className="flex items-center space-x-2 text-soft-white/80 mb-1">
-                      <HiClock className="text-sm" />
-                      <span className="text-xs text-soft-white/60">Bitiş</span>
-                    </div>
-                    <span className="text-soft-white font-medium">
-                      {new Date(slot.endTime).toLocaleString('tr-TR')}
-                    </span>
-                  </div>
+                  <BlockedSlotScheduleBlock slot={slot} />
                   {slot.reason && (
                     <div className="glass rounded-lg p-3">
                       <div className="flex items-center space-x-2 text-soft-white/80 mb-1">
@@ -801,11 +781,8 @@ const Reservations = () => {
                     <th className="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       Kort
                     </th>
-                    <th className="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
-                      Başlangıç
-                    </th>
-                    <th className="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
-                      Bitiş
+                    <th className="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider min-w-[200px]">
+                      Tarih / saat
                     </th>
                     <th className="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       Neden
@@ -829,15 +806,8 @@ const Reservations = () => {
                           <div className="text-sm font-bold text-soft-white">{slot.court.name}</div>
                         </div>
                       </td>
-                      <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">
-                        <div className="text-xs md:text-sm text-soft-white/80">
-                          {new Date(slot.startTime).toLocaleString('tr-TR')}
-                        </div>
-                      </td>
-                      <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">
-                        <div className="text-xs md:text-sm text-soft-white/80">
-                          {new Date(slot.endTime).toLocaleString('tr-TR')}
-                        </div>
+                      <td className="px-4 md:px-6 py-3 md:py-4 align-top max-w-[min(100vw,280px)] md:max-w-xs">
+                        <BlockedSlotScheduleBlock slot={slot} compact />
                       </td>
                       <td className="px-4 md:px-6 py-3 md:py-4 max-w-[150px]">
                         <div className="text-xs md:text-sm text-soft-white/80 truncate">{slot.reason || '-'}</div>
