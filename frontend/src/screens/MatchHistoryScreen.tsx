@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   TextInput,
-  KeyboardAvoidingView,
+  Keyboard,
   Dimensions,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -80,10 +80,32 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editingCommentText, setEditingCommentText] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const commentScrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     loadData();
+  }, []);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardWillShow', (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const showSubDid = Keyboard.addListener('keyboardDidShow', (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener('keyboardWillHide', () => {
+      setKeyboardHeight(0);
+    });
+    const hideSubDid = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardHeight(0);
+    });
+    return () => {
+      showSub.remove();
+      showSubDid.remove();
+      hideSub.remove();
+      hideSubDid.remove();
+    };
   }, []);
 
   // Lig parametresi ile açıldıysa otomatik filtrele
@@ -856,12 +878,8 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
           onDismiss={closeCommentModal}
           contentContainerStyle={styles.commentModalContainer}
         >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={{ flex: 1 }}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : insets.bottom}
-          >
-            <View style={[styles.commentModalCard, { paddingBottom: insets.bottom }]}>
+          <View style={[styles.keyboardAvoidingView, { marginBottom: keyboardHeight }]}>
+            <View style={[styles.commentModalCard, { paddingBottom: keyboardHeight > 0 ? 8 : insets.bottom }]}>
               {/* Bottom Sheet Handle */}
               <View style={styles.modalHandle} />
               
@@ -985,6 +1003,11 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                     multiline
                     numberOfLines={3}
                     placeholderTextColor="#9CA3AF"
+                    onFocus={() => {
+                      setTimeout(() => {
+                        commentScrollViewRef.current?.scrollToEnd({ animated: true });
+                      }, 300);
+                    }}
                   />
                   <View style={styles.commentInputButtons}>
                     <Button
@@ -1008,7 +1031,7 @@ const MatchHistoryScreen = ({ navigation, route }: any) => {
                 </View>
               </View>
             </View>
-          </KeyboardAvoidingView>
+          </View>
         </Modal>
       </Portal>
     </View>
@@ -1363,18 +1386,16 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    ...(Platform.OS === 'android' && {
-      paddingTop: 0,
-      paddingBottom: 0,
-    }),
+  },
+  keyboardAvoidingView: {
+    justifyContent: 'flex-end',
   },
   commentModalCard: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     backgroundColor: '#FFFFFF',
-    height: Platform.OS === 'ios' ? height * 0.85 : height * 0.9,
     maxHeight: Platform.OS === 'ios' ? height * 0.85 : height * 0.9,
-    minHeight: Platform.OS === 'ios' ? height * 0.70 : height * 0.8,
+    minHeight: Platform.OS === 'ios' ? height * 0.78 : height * 0.78,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },

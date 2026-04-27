@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   StyleSheet,
+  FlatList,
   ScrollView,
   ActivityIndicator,
   Alert,
@@ -33,6 +34,8 @@ import { UsersStackParamList } from '../navigation/MainTabNavigator';
 
 type UsersScreenNavigationProp = StackNavigationProp<UsersStackParamList, 'UsersList'>;
 
+const PAGE_SIZE = 15;
+
 const UsersScreen = () => {
   const navigation = useNavigation<UsersScreenNavigationProp>();
   const { t } = useLanguage();
@@ -46,6 +49,12 @@ const UsersScreen = () => {
   const [membersLoaded, setMembersLoaded] = useState(false);
   const [coachesLoaded, setCoachesLoaded] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+
+  // Pagination state
+  const [memberPage, setMemberPage] = useState(1);
+  const [coachPage, setCoachPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const flatListRef = useRef<FlatList>(null);
   
   // Review modal states
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -130,70 +139,55 @@ const UsersScreen = () => {
   const loadMembers = async (showLoading = false) => {
     try {
       if (showLoading) setLoading(true);
-      const usersData = await userService.getAllUsers();
-      
-      // Coach ve admin kullanıcılarını filtrele - sadece admin ve coach olmayan kullanıcıları göster
-      // Ayrıca mevcut kullanıcıyı da listeden çıkar
+
+      // Kullanıcılar ve tüm maç geçmişini paralel çek
+      const [usersData, allMatches] = await Promise.all([
+        userService.getAllUsers(),
+        matchHistoryService.getAllMatches(),
+      ]);
+
+      // Coach ve admin kullanıcılarını filtrele
       const filteredUsers = usersData.filter((user: any) => {
         const userType = user.userType?.toLowerCase();
-        return user.id !== currentUserId && 
-               userType !== 'coach' && 
+        return user.id !== currentUserId &&
+               userType !== 'coach' &&
                userType !== 'admin';
       });
-      
-      // Her kullanıcı için maç istatistiklerini çek
-      const membersWithStats = await Promise.all(
-        filteredUsers.map(async (user: any) => {
-          try {
-            // Kullanıcının maç geçmişini çek
-            const matchHistory = await matchHistoryService.getUserMatchHistory(user.id);
-            
-            // Kazanılan ve kaybedilen maçları hesapla
-            // winners array'ini kullan (winners bir User object array'i)
-            const wins = matchHistory.filter((match: any) => {
-              if (match.winners && Array.isArray(match.winners)) {
-                return match.winners.some((winner: any) => winner.id === user.id);
-              }
-              // Fallback: winnerIds varsa onu kullan
-              if (match.winnerIds && Array.isArray(match.winnerIds)) {
-                return match.winnerIds.includes(user.id);
-              }
-              return false;
-            }).length;
-            
-            const totalMatches = matchHistory.length;
-            const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
-            
-            return {
-              id: user.id,
-              name: user.name + (user.surname ? ` ${user.surname}` : ''),
-              level: user.title || t('members.member'),
-              currentRank: user.currentRank || 0,
-              matchesPlayed: totalMatches,
-              winRate: winRate,
-              email: user.email,
-              phone: user.phone,
-              gender: user.gender,
-              profilePhoto: user.profilePhoto,
-            };
-          } catch (error) {
-            // Maç geçmişi çekilemezse default değerlerle döndür
-            return {
-              id: user.id,
-              name: user.name + (user.surname ? ` ${user.surname}` : ''),
-              level: user.title || t('members.member'),
-              currentRank: user.currentRank || 0,
-              matchesPlayed: 0,
-              winRate: 0,
-              email: user.email,
-              phone: user.phone,
-              gender: user.gender,
-              profilePhoto: user.profilePhoto,
-            };
-          }
-        })
+
+      // Her kullanıcı için istatistikleri tek seferde hesapla (API çağrısı yok)
+      const membersWithStats = filteredUsers.map((user: any) => {
+        const userMatches = allMatches.filter((match: any) => {
+          const winnerIds = (match.winners || []).map((w: any) => w.id);
+          const loserIds = (match.losers || []).map((l: any) => l.id);
+          return winnerIds.includes(user.id) || loserIds.includes(user.id);
+        });
+
+        const wins = userMatches.filter((match: any) =>
+          (match.winners || []).some((w: any) => w.id === user.id)
+        ).length;
+
+        const totalMatches = userMatches.length;
+        const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
+
+        return {
+          id: user.id,
+          name: user.name + (user.surname ? ` ${user.surname}` : ''),
+          level: user.title || t('members.member'),
+          currentRank: user.currentRank || 0,
+          matchesPlayed: totalMatches,
+          winRate: winRate,
+          email: user.email,
+          phone: user.phone,
+          gender: user.gender,
+          profilePhoto: user.profilePhoto,
+        };
+      });
+
+      // Alfabetik sıralama (ada göre)
+      membersWithStats.sort((a: any, b: any) =>
+        a.name.localeCompare(b.name, 'tr', { sensitivity: 'base' })
       );
-      
+
       setMembers(membersWithStats);
       setMembersLoaded(true);
     } catch (error: any) {
@@ -242,6 +236,11 @@ const UsersScreen = () => {
         })
       );
       
+      // Alfabetik sıralama
+      coachesWithReviewCounts.sort((a: any, b: any) =>
+        a.name.localeCompare(b.name, 'tr', { sensitivity: 'base' })
+      );
+
       setCoaches(coachesWithReviewCounts);
       setCoachesLoaded(true);
     } catch (error) {
@@ -410,19 +409,51 @@ const UsersScreen = () => {
     }
   };
 
-  const filteredData = activeTab === 'members' 
-    ? members.filter(member =>
-        member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        member.level.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : coaches.filter(coach =>
-        coach.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        coach.specialty.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+  // Filtrelenmiş tam liste
+  const filteredMembers = members.filter(member =>
+    member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    member.level.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const filteredCoaches = coaches.filter(coach =>
+    coach.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (coach.specialty || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Sayfalı görüntülenen liste
+  const displayedMembers = filteredMembers.slice(0, memberPage * PAGE_SIZE);
+  const displayedCoaches = filteredCoaches.slice(0, coachPage * PAGE_SIZE);
+  const hasMoreMembers = displayedMembers.length < filteredMembers.length;
+  const hasMoreCoaches = displayedCoaches.length < filteredCoaches.length;
+
+  const listData = activeTab === 'members' ? displayedMembers : displayedCoaches;
+
+  // Arama veya sekme değişince sayfayı sıfırla
+  useEffect(() => {
+    setMemberPage(1);
+    setCoachPage(1);
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+  }, [searchQuery, activeTab]);
+
+  const loadMore = useCallback(() => {
+    if (loadingMore) return;
+    if (activeTab === 'members' && hasMoreMembers) {
+      setLoadingMore(true);
+      setTimeout(() => {
+        setMemberPage(prev => prev + 1);
+        setLoadingMore(false);
+      }, 200);
+    } else if (activeTab === 'coaches' && hasMoreCoaches) {
+      setLoadingMore(true);
+      setTimeout(() => {
+        setCoachPage(prev => prev + 1);
+        setLoadingMore(false);
+      }, 200);
+    }
+  }, [loadingMore, activeTab, hasMoreMembers, hasMoreCoaches]);
 
   // Sadece ilk yüklemede ve veriler yoksa loading göster
-  const showLoading = loading && 
-    ((activeTab === 'members' && !membersLoaded) || 
+  const showLoading = loading &&
+    ((activeTab === 'members' && !membersLoaded) ||
      (activeTab === 'coaches' && !coachesLoaded));
 
   if (showLoading) {
@@ -433,181 +464,183 @@ const UsersScreen = () => {
     );
   }
 
+  const renderMemberItem = ({ item: member }: { item: any }) => (
+    <TouchableOpacity
+      onPress={() => navigation.navigate('MemberDetail', { memberId: member.id })}
+      activeOpacity={0.7}
+    >
+      <Card style={styles.card}>
+        <Card.Content style={styles.cardContent}>
+          <View style={styles.cardHeader}>
+            {member.profilePhoto ? (
+              <Image
+                source={{ uri: member.profilePhoto }}
+                style={styles.avatarImage}
+              />
+            ) : (
+              <Avatar.Text
+                size={56}
+                label={getInitials(member.name)}
+                style={styles.avatar}
+                labelStyle={{ color: '#FFFFFF' }}
+              />
+            )}
+            <View style={styles.cardInfo}>
+              <Text style={styles.cardName}>{member.name}</Text>
+              <View style={styles.badgesRow}>
+                <View style={[styles.levelBadge, { backgroundColor: getLevelColor(member.level) }]}>
+                  <Text style={styles.levelBadgeText}>{member.level}</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+          <View style={styles.statsRow}>
+            <Text style={styles.statText}>
+              {t('users.matches')} <Text style={styles.statValue}>{member.matchesPlayed || 0}</Text>
+            </Text>
+            <Text style={styles.statText}>
+              {t('users.winRate')} <Text style={styles.statValueGreen}>{member.winRate || 0}%</Text>
+            </Text>
+          </View>
+        </Card.Content>
+      </Card>
+    </TouchableOpacity>
+  );
+
+  const renderCoachItem = ({ item: coach }: { item: any }) => (
+    <TouchableOpacity
+      onPress={() => navigation.navigate('CoachDetail', { coachId: coach.id })}
+      activeOpacity={0.7}
+    >
+      <Card style={styles.card}>
+        <Card.Content style={styles.cardContent}>
+          <View style={styles.cardHeader}>
+            {coach.profilePhoto ? (
+              <Image
+                source={{ uri: coach.profilePhoto }}
+                style={styles.coachAvatarImage}
+              />
+            ) : (
+              <Avatar.Text
+                size={72}
+                label={getInitials(coach.name)}
+                style={styles.coachAvatar}
+                labelStyle={{ color: '#FFFFFF', fontSize: 28, fontWeight: '600' }}
+              />
+            )}
+            <View style={styles.cardInfo}>
+              <Text style={styles.coachCardName}>{coach.name}</Text>
+              <Text style={styles.coachCardRole}>{translateSpecialty(coach.specialty)}</Text>
+              <View style={styles.badgesRow}>
+                <View style={styles.coachBadge}>
+                  <Text style={styles.coachBadgeText}>Coach</Text>
+                </View>
+                {coach.experience && (
+                  <Text style={styles.experienceText}>{coach.experience}</Text>
+                )}
+              </View>
+              <View style={styles.ratingRow}>
+                <MaterialIcons name="star" size={20} color="#FFD700" />
+                <Text style={styles.ratingText}>
+                  {coach.rating && typeof coach.rating === 'number' ? coach.rating.toFixed(1) : '0.0'}
+                </Text>
+                <Text style={styles.reviewsText}>({coach.reviewCount || 0} {t('users.reviews')})</Text>
+              </View>
+            </View>
+          </View>
+        </Card.Content>
+      </Card>
+    </TouchableOpacity>
+  );
+
+  const ListFooterComponent = loadingMore ? (
+    <View style={styles.loadingMoreContainer}>
+      <ActivityIndicator size="small" color="#54CE8F" />
+    </View>
+  ) : null;
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      
-      <ScrollView
-        style={styles.scrollView}
+
+      {/* Header - sabit kalır, scroll olmaz */}
+      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+        <Text style={styles.headerTitle}>{t('users.directory')}</Text>
+      </View>
+
+      {/* Search Bar - sabit */}
+      <View style={styles.searchContainer}>
+        <Searchbar
+          placeholder={t('users.searchPlaceholder')}
+          onChangeText={setSearchQuery}
+          value={searchQuery}
+          style={styles.searchBar}
+          iconColor="#666666"
+          inputStyle={styles.searchInput}
+        />
+      </View>
+
+      {/* Toggle Buttons - sabit */}
+      <View style={styles.toggleContainer}>
+        <TouchableOpacity
+          style={[styles.toggleButton, activeTab === 'members' && styles.toggleButtonActive]}
+          onPress={() => setActiveTab('members')}
+        >
+          <MaterialCommunityIcons
+            name="account-group"
+            size={20}
+            color={activeTab === 'members' ? '#FFFFFF' : '#666666'}
+          />
+          <Text style={[styles.toggleButtonText, activeTab === 'members' && styles.toggleButtonTextActive]}>
+            {t('users.members')}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.toggleButton, activeTab === 'coaches' && styles.toggleButtonActive]}
+          onPress={() => setActiveTab('coaches')}
+        >
+          <MaterialCommunityIcons
+            name="medal"
+            size={20}
+            color={activeTab === 'coaches' ? '#FFFFFF' : '#666666'}
+          />
+          <Text style={[styles.toggleButtonText, activeTab === 'coaches' && styles.toggleButtonTextActive]}>
+            {t('users.coaches')}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Liste - sadece bu kısım scroll olur */}
+      <FlatList
+        ref={flatListRef}
+        data={listData}
+        keyExtractor={(item) => String(item.id)}
+        renderItem={activeTab === 'members' ? renderMemberItem : renderCoachItem}
+        ListFooterComponent={ListFooterComponent}
+        contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.3}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor="#54CE8F"
-            colors={["#54CE8F"]}
+            colors={['#54CE8F']}
           />
         }
-      >
-        {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
-          <Text style={styles.headerTitle}>{t('users.directory')}</Text>
-        </View>
-
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Searchbar
-            placeholder={t('users.searchPlaceholder')}
-            onChangeText={setSearchQuery}
-            value={searchQuery}
-            style={styles.searchBar}
-            iconColor="#666666"
-            inputStyle={styles.searchInput}
-          />
-        </View>
-
-        {/* Toggle Buttons */}
-        <View style={styles.toggleContainer}>
-          <TouchableOpacity
-            style={[
-              styles.toggleButton,
-              activeTab === 'members' && styles.toggleButtonActive
-            ]}
-            onPress={() => setActiveTab('members')}
-          >
-            <MaterialCommunityIcons
-              name="account-group"
-              size={20}
-              color={activeTab === 'members' ? '#FFFFFF' : '#666666'}
-            />
-            <Text style={[
-              styles.toggleButtonText,
-              activeTab === 'members' && styles.toggleButtonTextActive
-            ]}>
-              {t('users.members')}
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[
-              styles.toggleButton,
-              activeTab === 'coaches' && styles.toggleButtonActive
-            ]}
-            onPress={() => setActiveTab('coaches')}
-          >
-            <MaterialCommunityIcons
-              name="medal"
-              size={20}
-              color={activeTab === 'coaches' ? '#FFFFFF' : '#666666'}
-            />
-            <Text style={[
-              styles.toggleButtonText,
-              activeTab === 'coaches' && styles.toggleButtonTextActive
-            ]}>
-              {t('users.coaches')}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* List */}
-        <View style={styles.listContainer}>
-          {activeTab === 'members' ? (
-            filteredData.map((member: any) => (
-              <TouchableOpacity
-                key={member.id}
-                onPress={() => navigation.navigate('MemberDetail', { memberId: member.id })}
-                activeOpacity={0.7}
-              >
-                <Card style={styles.card}>
-                  <Card.Content style={styles.cardContent}>
-                  <View style={styles.cardHeader}>
-                    {member.profilePhoto ? (
-                      <Image
-                        source={{ uri: member.profilePhoto }}
-                        style={styles.avatarImage}
-                        onError={(e) => {
-                          console.log('Image load error for', member.name, e.nativeEvent.error);
-                        }}
-                      />
-                    ) : (
-                      <Avatar.Text
-                        size={56}
-                        label={getInitials(member.name)}
-                        style={styles.avatar}
-                        labelStyle={{ color: '#FFFFFF' }}
-                      />
-                    )}
-                    <View style={styles.cardInfo}>
-                      <Text style={styles.cardName}>{member.name}</Text>
-                      <View style={styles.badgesRow}>
-                        <View style={[styles.levelBadge, { backgroundColor: getLevelColor(member.level) }]}>
-                          <Text style={styles.levelBadgeText}>{member.level}</Text>
-                        </View>
-                      </View>
-                    </View>
-                  </View>
-                  <View style={styles.statsRow}>
-                    <Text style={styles.statText}>
-                      {t('users.matches')} <Text style={styles.statValue}>{member.matchesPlayed || 0}</Text>
-                    </Text>
-                    <Text style={styles.statText}>
-                      {t('users.winRate')} <Text style={styles.statValueGreen}>{member.winRate || 0}%</Text>
-                    </Text>
-                  </View>
-                </Card.Content>
-              </Card>
-              </TouchableOpacity>
-            ))
-          ) : (
-            filteredData.map((coach: any) => (
-              <TouchableOpacity
-                key={coach.id}
-                onPress={() => navigation.navigate('CoachDetail', { coachId: coach.id })}
-                activeOpacity={0.7}
-              >
-                <Card style={styles.card}>
-                  <Card.Content style={styles.cardContent}>
-                  <View style={styles.cardHeader}>
-                    {coach.profilePhoto ? (
-                      <Image
-                        source={{ uri: coach.profilePhoto }}
-                        style={styles.coachAvatarImage}
-                      />
-                    ) : (
-                      <Avatar.Text
-                        size={72}
-                        label={getInitials(coach.name)}
-                        style={styles.coachAvatar}
-                        labelStyle={{ color: '#FFFFFF', fontSize: 28, fontWeight: '600' }}
-                      />
-                    )}
-                    <View style={styles.cardInfo}>
-                      <Text style={styles.coachCardName}>{coach.name}</Text>
-                      <Text style={styles.coachCardRole}>{translateSpecialty(coach.specialty)}</Text>
-                      <View style={styles.badgesRow}>
-                        <View style={styles.coachBadge}>
-                          <Text style={styles.coachBadgeText}>Coach</Text>
-                        </View>
-                        {coach.experience && (
-                          <Text style={styles.experienceText}>{coach.experience}</Text>
-                        )}
-                      </View>
-                      <View style={styles.ratingRow}>
-                        <MaterialIcons name="star" size={20} color="#FFD700" />
-                        <Text style={styles.ratingText}>
-                          {coach.rating && typeof coach.rating === 'number' ? coach.rating.toFixed(1) : '0.0'}
-                        </Text>
-                        <Text style={styles.reviewsText}>({coach.reviewCount || 0} {t('users.reviews')})</Text>
-                      </View>
-                    </View>
-                  </View>
-                </Card.Content>
-              </Card>
-              </TouchableOpacity>
-            ))
-          )}
-        </View>
-      </ScrollView>
+        ListEmptyComponent={
+          !loading ? (
+            <View style={styles.emptyContainer}>
+              <MaterialCommunityIcons name="account-search" size={48} color="#D1D5DB" />
+              <Text style={styles.emptyText}>
+                {searchQuery ? t('users.noResults') : t('users.noUsers')}
+              </Text>
+            </View>
+          ) : null
+        }
+      />
 
       {/* Reviews List Modal */}
       <Portal>
@@ -827,9 +860,25 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   listContainer: {
-    paddingHorizontal: 24, // px-6
-    paddingBottom: 24, // pb-6
+    paddingHorizontal: 24,
+    paddingBottom: 24,
     backgroundColor: '#FAFCFB',
+    flexGrow: 1,
+  },
+  loadingMoreContainer: {
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 60,
+    gap: 12,
+  },
+  emptyText: {
+    fontSize: 15,
+    color: '#9CA3AF',
+    textAlign: 'center',
   },
   card: {
     backgroundColor: '#FFFFFF',
