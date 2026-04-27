@@ -97,53 +97,34 @@ const BookingConfirmScreen = () => {
 
       setIsConfirming(false);
 
-      // Hemen ana sayfaya yönlendir
+      // Hemen ana sayfaya yönlendir (snackbar Ana Sayfada gösterilir)
       try {
-        // Parent navigator'ı al (Tab Navigator) ve Home'a navigate et
         const parent = navigation.getParent();
-        
         if (parent) {
-          // Tab Navigator üzerinden Home'a git
           (parent as any).navigate('Home', { showReservationSuccess: true });
         } else {
-          // Parent yoksa, root navigator'a eriş
           const rootState = navigation.getRootState();
           if (rootState) {
-            // Root state üzerinden Home'a navigate et
             (navigation as any).navigate('Home' as never, { showReservationSuccess: true });
           } else {
-            // Reset kullan
             navigation.dispatch(
               CommonActions.reset({
                 index: 0,
-                routes: [
-                  {
-                    name: 'Home' as never,
-                    params: { showReservationSuccess: true },
-                  },
-                ],
+                routes: [{ name: 'Home' as never, params: { showReservationSuccess: true } }],
               })
             );
           }
         }
       } catch (err) {
         console.error('❌ Navigation hatası:', err);
-        // Hata durumunda: reset kullan
         try {
           navigation.dispatch(
             CommonActions.reset({
               index: 0,
-              routes: [
-                {
-                  name: 'Home' as never,
-                  params: { showReservationSuccess: true },
-                },
-              ],
+              routes: [{ name: 'Home' as never, params: { showReservationSuccess: true } }],
             })
           );
         } catch (resetErr) {
-          console.error('❌ Reset hatası:', resetErr);
-          // En son çare: sadece geri git
           navigation.goBack();
         }
       }

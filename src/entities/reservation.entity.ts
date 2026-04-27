@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, ManyToMany, JoinTable, CreateDateColumn, JoinColumn } from 'typeorm';
 import { User } from './user.entity';
 import { Court } from './court.entity';
+import { ReservationStatus } from '../enum/reservationStatus.enum';
 
 @Entity('reservation')
 export class Reservation {
@@ -20,6 +21,13 @@ export class Reservation {
 
   @Column({ type: 'timestamp' })
   endTime: Date;
+
+  @Column({
+    type: 'enum',
+    enum: ReservationStatus,
+    default: ReservationStatus.CONFIRMED,
+  })
+  status: ReservationStatus;
 
   @ManyToMany(() => User, { nullable: true })
   @JoinTable({

@@ -234,7 +234,48 @@ export class ReservationController {
     }
   };
 
-  // Rezervasyon iptal et
+  // PENDING rezervasyonu kabul et (participant)
+  acceptReservation = async (req: Request, res: Response) => {
+    try {
+      const userId = req.currentUser.id;
+      const reservationId = parseInt(req.params.id);
+
+      const result = await this.reservationService.acceptReservation(reservationId, userId);
+
+      return res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.reservation,
+      });
+    } catch (error: any) {
+      return res.status(400).json({
+        success: false,
+        message: error.message || 'Kabul işlemi sırasında bir hata oluştu',
+      });
+    }
+  };
+
+  // PENDING rezervasyonu reddet (participant); rezervasyon silinir, iptal bildirimi gider
+  rejectReservation = async (req: Request, res: Response) => {
+    try {
+      const userId = req.currentUser.id;
+      const reservationId = parseInt(req.params.id);
+
+      const result = await this.reservationService.rejectReservation(reservationId, userId);
+
+      return res.status(200).json({
+        success: true,
+        message: result.message,
+      });
+    } catch (error: any) {
+      return res.status(400).json({
+        success: false,
+        message: error.message || 'Red işlemi sırasında bir hata oluştu',
+      });
+    }
+  };
+
+  // Rezervasyon iptal et (oluşturan veya katılımcılardan biri iptal edebilir)
   cancelReservation = async (req: Request, res: Response) => {
     try {
       const userId = req.currentUser.id;
@@ -242,7 +283,7 @@ export class ReservationController {
       const reservationId = parseInt(req.params.id);
 
       const result = await this.reservationService.cancelReservation(reservationId, userId, isAdmin);
-      
+
       return res.status(200).json({
         success: true,
         message: result.message,

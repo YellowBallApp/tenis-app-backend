@@ -1,19 +1,27 @@
+import { In } from 'typeorm';
 import { AppDataSource } from '../config/data-source';
 import { Reservation } from '../entities/reservation.entity';
+import { ReservationParticipantResponse } from '../entities/reservationParticipantResponse.entity';
 import { User } from '../entities/user.entity';
 import { Court } from '../entities/court.entity';
 import { UserType } from '../enum/userType.enum';
+import { ReservationStatus } from '../enum/reservationStatus.enum';
+import { ParticipantRole, AcceptanceStatus } from '../enum/participantResponse.enum';
 import notificationRepository from '../repositories/notification.repository';
+import notificationService from './notification.service';
 import blockedTimeSlotRepository from '../repositories/blockedTimeSlot.repository';
 import { NotificationType } from '../enum/notificationType.enum';
+import { isSlotAllowedForRestrictedUser } from '../utils/restrictedHours.utils';
 
 export class ReservationService {
   private reservationRepository;
+  private responseRepository;
   private userRepository;
   private courtRepository;
 
   constructor() {
     this.reservationRepository = AppDataSource.getRepository(Reservation);
+    this.responseRepository = AppDataSource.getRepository(ReservationParticipantResponse);
     this.userRepository = AppDataSource.getRepository(User);
     this.courtRepository = AppDataSource.getRepository(Court);
   }
@@ -28,7 +36,7 @@ export class ReservationService {
         .leftJoinAndSelect('reservation.user', 'user')
         .leftJoinAndSelect('reservation.court', 'court')
         .leftJoinAndSelect('reservation.participants', 'participants')
-        .where('reservation.user.id = :userId', { userId })
+        .where('(user.id = :userId OR participants.id = :userId)', { userId })
         .andWhere('reservation.startTime >= :now', { now })
         .orderBy('reservation.startTime', 'ASC')
         .limit(limit)
@@ -185,39 +193,192 @@ export class ReservationService {
           .createQueryBuilder('user')
           .where('user.id IN (:...ids)', { ids: data.participantIds })
           .getMany();
+
+        // Kısıtlı saatte RESTRICTED kullanıcı participant olarak eklenemez (full user bile olsa)
+        const slotStart = new Date(data.startTime);
+        if (!isSlotAllowedForRestrictedUser(slotStart)) {
+          const restrictedParticipant = participants.find((p) => p.userType === UserType.RESTRICTED);
+          if (restrictedParticipant) {
+            throw new Error(
+              'Bu saatte kısıtlı kullanıcılar rezervasyona eklenemez. Kısıtlı kullanıcılar hafta içi 09:00-18:00, hafta sonu 18:00-24:00 arası eklenebilir.'
+            );
+          }
+        }
       }
+
+      const hasParticipants = participants.length > 0;
+      const status = hasParticipants ? ReservationStatus.PENDING : ReservationStatus.CONFIRMED;
 
       const reservation = this.reservationRepository.create({
         user,
         court,
         startTime: data.startTime,
         endTime: data.endTime,
-        participants: participants,
+        participants,
         notes: data.notes,
+        status,
       });
 
-      return await this.reservationRepository.save(reservation);
+      const savedReservation = await this.reservationRepository.save(reservation);
+
+      if (hasParticipants) {
+        const now = new Date();
+        await this.responseRepository.save(
+          this.responseRepository.create({
+            reservation: savedReservation,
+            user,
+            role: ParticipantRole.CREATOR,
+            acceptanceStatus: AcceptanceStatus.ACCEPTED,
+            respondedAt: now,
+          })
+        );
+        for (const p of participants) {
+          await this.responseRepository.save(
+            this.responseRepository.create({
+              reservation: savedReservation,
+              user: p,
+              role: ParticipantRole.PARTICIPANT,
+              acceptanceStatus: AcceptanceStatus.PENDING,
+              respondedAt: null,
+            })
+          );
+        }
+      }
+
+      // Participantlara rezervasyon isteği bildirimi gönder (oluşturana değil; oluşturan popup ile bilgilendirilir)
+      try {
+        const summary = this.formatReservationSummary(court.name, data.startTime, data.endTime);
+        const creatorName = this.formatUserDisplayName(user);
+        const playersStr = this.formatPlayersList(user, participants);
+        const requestMessage = `Rezervasyon isteği: ${summary}. Oluşturan: ${creatorName}. Oyuncular: ${playersStr}. Kabul veya reddetmek için Rezervasyonlarım sayfasına gidin.`;
+        if (hasParticipants) {
+          await Promise.all(
+            participants.map((recipient) =>
+              notificationService.createNotification({
+                recipientId: recipient.id,
+                type: NotificationType.RESERVATION_REQUEST,
+                message: requestMessage,
+                relatedEntityId: savedReservation.id,
+                relatedEntityType: 'reservation',
+              }).catch((err) => {
+                console.error(`Rezervasyon isteği bildirimi gönderilemedi (${recipient.id}):`, err);
+                return null;
+              })
+            )
+          );
+        }
+      } catch (notificationError) {
+        console.error('Rezervasyon isteği bildirimi hatası:', notificationError);
+      }
+
+      return savedReservation;
     } catch (error: any) {
       throw new Error(error.message || 'Rezervasyon oluşturulurken bir hata oluştu');
     }
   }
 
-  // Kullanıcının rezervasyonlarını getir
+  private formatReservationSummary(courtName: string, startTime: Date, endTime: Date): string {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const dateStr = start.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+    const timeStr = `${start.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}-${end.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`;
+    return `${courtName}, ${dateStr} ${timeStr}`;
+  }
+
+  private formatUserDisplayName(user: User): string {
+    const parts = [user.name, user.surname].filter(Boolean);
+    return parts.length ? parts.join(' ').trim() : 'Bilinmiyor';
+  }
+
+  /** Oluşturan + katılımcılar = tüm oyuncular listesi (virgülle ayrılmış) */
+  private formatPlayersList(owner: User, participants: User[]): string {
+    const allPlayers = [owner, ...(participants || [])];
+    if (!allPlayers.length) return 'Yok';
+    return allPlayers.map((p) => this.formatUserDisplayName(p)).join(', ');
+  }
+
+  /** Rezervasyon iptal bildirimi: tüm oyunculara (oluşturan + participants) aynı mesajı gönderir */
+  private async sendReservationCancelledNotification(
+    reservationId: number,
+    reservation: { court: { name: string }; startTime: Date; endTime: Date; user: User; participants: User[] },
+    cancellerUserId: string
+  ): Promise<void> {
+    const summary = this.formatReservationSummary(
+      reservation.court.name,
+      reservation.startTime,
+      reservation.endTime
+    );
+    let canceller: User | undefined =
+      reservation.user.id === cancellerUserId
+        ? reservation.user
+        : (reservation.participants || []).find((p) => p.id === cancellerUserId);
+    if (!canceller) {
+      canceller = await this.userRepository.findOne({ where: { id: cancellerUserId } }) ?? undefined;
+    }
+    const cancellerName = canceller ? this.formatUserDisplayName(canceller) : 'Bilinmiyor';
+    const playersStr = this.formatPlayersList(reservation.user, reservation.participants || []);
+    const message = `Rezervasyon iptal edildi: ${summary}. İptal eden: ${cancellerName}. Oyuncular: ${playersStr}.`;
+    const recipients: User[] = [reservation.user, ...(reservation.participants || [])];
+    await Promise.all(
+      recipients.map((recipient) =>
+        notificationService.createNotification({
+          recipientId: recipient.id,
+          type: NotificationType.RESERVATION_CANCELLED,
+          message,
+          relatedEntityId: reservationId,
+          relatedEntityType: 'reservation',
+        }).catch((err) => {
+          console.error(`Rezervasyon iptal bildirimi gönderilemedi (${recipient.id}):`, err);
+          return null;
+        })
+      )
+    );
+  }
+
+  // Kullanıcının rezervasyonlarını getir (oluşturduğu + katılımcı olduğu); PENDING için participantResponses dahil
   async getUserReservations(userId: string) {
     try {
-      const reservations = await this.reservationRepository.find({
-        where: { user: { id: userId } },
-        relations: ['user', 'participants'],
-        order: { startTime: 'DESC' },
-      });
+      const reservations = await this.reservationRepository
+        .createQueryBuilder('reservation')
+        .leftJoinAndSelect('reservation.user', 'user')
+        .leftJoinAndSelect('reservation.court', 'court')
+        .leftJoinAndSelect('reservation.participants', 'participants')
+        .where('user.id = :userId OR participants.id = :userId', { userId })
+        .orderBy('reservation.startTime', 'DESC')
+        .getMany();
 
+      if (reservations.length === 0) return reservations;
+
+      const ids = reservations.map((r) => r.id);
+      const responses = await this.responseRepository.find({
+        where: { reservation: { id: In(ids) } },
+        relations: ['user', 'reservation'],
+      });
+      const byResId = new Map<number, typeof responses>();
+      for (const r of responses) {
+        const resId = r.reservation?.id ?? (r as any).reservationId;
+        if (resId == null) continue;
+        if (!byResId.has(resId)) byResId.set(resId, []);
+        byResId.get(resId)!.push(r);
+      }
+      for (const r of reservations) {
+        (r as any).participantResponses = (byResId.get(r.id) || []).map((resp) => ({
+          id: resp.id,
+          userId: resp.user.id,
+          user: resp.user,
+          role: resp.role,
+          acceptanceStatus: resp.acceptanceStatus,
+          respondedAt: resp.respondedAt,
+          createdAt: resp.createdAt,
+        }));
+      }
       return reservations;
     } catch (error) {
       throw new Error('Kullanıcı rezervasyonları alınırken bir hata oluştu');
     }
   }
 
-  // ID'ye göre rezervasyon getir
+  // ID'ye göre rezervasyon getir (participantResponses dahil)
   async getReservationById(reservationId: number) {
     try {
       const reservation = await this.reservationRepository.findOne({
@@ -228,6 +389,20 @@ export class ReservationService {
       if (!reservation) {
         throw new Error('Rezervasyon bulunamadı');
       }
+
+      const responses = await this.responseRepository.find({
+        where: { reservation: { id: reservationId } },
+        relations: ['user'],
+      });
+      (reservation as any).participantResponses = responses.map((r) => ({
+        id: r.id,
+        userId: r.user.id,
+        user: r.user,
+        role: r.role,
+        acceptanceStatus: r.acceptanceStatus,
+        respondedAt: r.respondedAt,
+        createdAt: r.createdAt,
+      }));
 
       return reservation;
     } catch (error: any) {
@@ -365,25 +540,127 @@ export class ReservationService {
     }
   }
 
-  // Rezervasyon iptal et
+  // PENDING rezervasyonda participant kabul eder; hepsi kabul edince status CONFIRMED olur
+  async acceptReservation(reservationId: number, userId: string) {
+    try {
+      const reservation = await this.reservationRepository.findOne({
+        where: { id: reservationId, status: ReservationStatus.PENDING },
+        relations: ['user', 'court', 'participants'],
+      });
+      if (!reservation) throw new Error('Rezervasyon bulunamadı veya zaten onaylanmış');
+
+      const response = await this.responseRepository.findOne({
+        where: { reservation: { id: reservationId }, user: { id: userId } },
+        relations: ['reservation'],
+      });
+      if (!response) throw new Error('Bu rezervasyon için davet bulunamadı');
+      if (response.role === ParticipantRole.CREATOR) throw new Error('Oluşturan zaten kabul etmiş sayılır');
+      if (response.acceptanceStatus === AcceptanceStatus.ACCEPTED) throw new Error('Zaten kabul ettiniz');
+
+      response.acceptanceStatus = AcceptanceStatus.ACCEPTED;
+      response.respondedAt = new Date();
+      await this.responseRepository.save(response);
+
+      const allResponses = await this.responseRepository.find({
+        where: { reservation: { id: reservationId } },
+      });
+      const allAccepted = allResponses.every((r) => r.acceptanceStatus === AcceptanceStatus.ACCEPTED);
+      if (allAccepted) {
+        reservation.status = ReservationStatus.CONFIRMED;
+        await this.reservationRepository.save(reservation);
+
+        // Rezervasyon onaylandı bildirimi: oluşturan + tüm katılımcılara
+        try {
+          const summary = this.formatReservationSummary(
+            reservation.court.name,
+            reservation.startTime,
+            reservation.endTime
+          );
+          const playersStr = this.formatPlayersList(reservation.user, reservation.participants || []);
+          const message = `Rezervasyon onaylandı: ${summary}. Oyuncular: ${playersStr}.`;
+          const recipients: User[] = [reservation.user, ...(reservation.participants || [])];
+          await Promise.all(
+            recipients.map((recipient) =>
+              notificationService.createNotification({
+                recipientId: recipient.id,
+                type: NotificationType.RESERVATION_CONFIRMED,
+                message,
+                relatedEntityId: reservationId,
+                relatedEntityType: 'reservation',
+              }).catch((err) => {
+                console.error(`Rezervasyon onaylandı bildirimi gönderilemedi (${recipient.id}):`, err);
+                return null;
+              })
+            )
+          );
+        } catch (notificationError) {
+          console.error('Rezervasyon onaylandı bildirimi hatası:', notificationError);
+        }
+      }
+
+      return { message: 'Rezervasyon kabul edildi', reservation: await this.getReservationById(reservationId) };
+    } catch (error: any) {
+      throw new Error(error.message || 'Kabul işlemi sırasında bir hata oluştu');
+    }
+  }
+
+  // PENDING rezervasyonda participant reddeder; rezervasyon silinir, iptal bildirimi gider
+  async rejectReservation(reservationId: number, userId: string) {
+    try {
+      const reservation = await this.reservationRepository.findOne({
+        where: { id: reservationId, status: ReservationStatus.PENDING },
+        relations: ['user', 'participants', 'court'],
+      });
+      if (!reservation) throw new Error('Rezervasyon bulunamadı veya zaten iptal/onaylanmış');
+
+      const response = await this.responseRepository.findOne({
+        where: { reservation: { id: reservationId }, user: { id: userId } },
+      });
+      if (!response) throw new Error('Bu rezervasyon için davet bulunamadı');
+      if (response.role === ParticipantRole.CREATOR) throw new Error('Oluşturan reddedemez; iptal etmek için rezervasyonu iptal edin');
+      if (response.acceptanceStatus !== AcceptanceStatus.PENDING) throw new Error('Zaten yanıt verdiniz');
+
+      await this.reservationRepository.remove(reservation);
+
+      try {
+        await this.sendReservationCancelledNotification(reservationId, reservation, userId);
+      } catch (notificationError) {
+        console.error('Rezervasyon red bildirimi hatası:', notificationError);
+      }
+
+      return { message: 'Rezervasyon reddedildi ve iptal edildi' };
+    } catch (error: any) {
+      throw new Error(error.message || 'Red işlemi sırasında bir hata oluştu');
+    }
+  }
+
+  // Rezervasyon iptal et (oluşturan veya katılımcılardan biri iptal edebilir)
   async cancelReservation(reservationId: number, userId: string, isAdmin: boolean = false) {
     try {
       const reservation = await this.reservationRepository.findOne({
         where: { id: reservationId },
-        relations: ['user'],
+        relations: ['user', 'participants', 'court'],
       });
 
       if (!reservation) {
         throw new Error('Rezervasyon bulunamadı');
       }
 
-      // Admin değilse, sadece kendi rezervasyonunu silebilir
-      if (!isAdmin && reservation.user.id !== userId) {
+      // Admin değilse: sadece oluşturan veya katılımcılardan biri iptal edebilir
+      const isOwner = reservation.user.id === userId;
+      const isParticipant = reservation.participants?.some((p) => p.id === userId) ?? false;
+      if (!isAdmin && !isOwner && !isParticipant) {
         throw new Error('Bu rezervasyonu iptal etme yetkiniz yok');
       }
 
       await this.reservationRepository.remove(reservation);
-      
+
+      try {
+        await this.sendReservationCancelledNotification(reservationId, reservation, userId);
+      } catch (notificationError) {
+        console.error('Rezervasyon iptal bildirimi hatası:', notificationError);
+      }
+
       return { message: 'Rezervasyon iptal edildi' };
     } catch (error: any) {
       throw new Error(error.message || 'Rezervasyon iptal edilirken bir hata oluştu');

@@ -30,6 +30,7 @@ import type { ReservationStackParamList, MainTabParamList } from '../navigation/
 import { useLanguage } from '../context/LanguageContext';
 import { courtService, reservationService, weatherService, userService, authService, matchChallengeService, leagueStandingsService, reservationTemplateService, reservationTimeSlotService, notificationService } from '../services/api';
 import { NotificationType } from '../types';
+import { isSlotAllowedForRestrictedUser } from '../utils/restrictedHours';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const { width, height } = Dimensions.get('window');
@@ -379,7 +380,16 @@ const CourtDetailScreen = () => {
     if (court && selectedDate) {
       loadReservationsForDate();
     }
-  }, [court, selectedDate, currentUserType]);
+  }, [court, selectedDate, currentUserType, selectedPartner, selectedOpponents]);
+
+  // Seçilen partner/rakiplerden biri RESTRICTED olduğunda, seçili saat kısıtlı saatteyse temizle
+  useEffect(() => {
+    const participants = [selectedPartner, ...selectedOpponents].filter(Boolean);
+    const hasRestricted = participants.some((u: any) => u?.userType?.toLowerCase() === 'restricted');
+    if (hasRestricted && selectedDate && selectedTime && !isSlotAllowedForRestrictedUser(selectedDate, selectedTime)) {
+      setSelectedTime('');
+    }
+  }, [selectedPartner, selectedOpponents, selectedDate, selectedTime]);
 
   // Hava durumu yükle (availableTimes ve allTimes değiştiğinde - tüm saatler için)
   useEffect(() => {
@@ -535,13 +545,18 @@ const CourtDetailScreen = () => {
         if (timeDate < now) return false;
       }
 
+      // Seçilen partner/rakiplerden biri RESTRICTED ise, kısıtlı saatleri gösterme (teklerde rakip, çiftlerde partner veya rakipler)
+      const selectedParticipants = [selectedPartner, ...selectedOpponents].filter(Boolean);
+      const hasRestrictedParticipant = selectedParticipants.some((u: any) => u?.userType?.toLowerCase() === 'restricted');
+      if (hasRestrictedParticipant && !isSlotAllowedForRestrictedUser(selectedDate, time)) return false;
+
       return true;
     });
 
     setAvailableTimes(available);
   };
 
-  // RESTRICTED kullanıcılar için saatin disabled olup olmadığını kontrol et
+  // RESTRICTED kullanıcılar için saatin disabled olup olmadığını kontrol et (giriş yapan kullanıcı)
   const isTimeSlotDisabledForUser = (timeSlot: string): boolean => {
     if (currentUserType?.toLowerCase() !== 'restricted') {
       return false;
@@ -563,6 +578,15 @@ const CourtDetailScreen = () => {
       // Hafta içi: Sadece 9:00-18:00 arası izinli
       return hour < 9 || hour >= 18;
     }
+  };
+
+  // Seçilen partner/rakiplerden biri RESTRICTED ise, kısıtlı saatlerde bu slot devre dışı
+  const isTimeSlotDisabledForRestrictedParticipants = (timeSlot: string): boolean => {
+    if (!selectedDate) return false;
+    const selectedParticipants = [selectedPartner, ...selectedOpponents].filter(Boolean);
+    const hasRestricted = selectedParticipants.some((u: any) => u?.userType?.toLowerCase() === 'restricted');
+    if (!hasRestricted) return false;
+    return !isSlotAllowedForRestrictedUser(selectedDate, timeSlot);
   };
 
   const getCourtDisplayInfo = (court: any) => {
@@ -679,6 +703,7 @@ const CourtDetailScreen = () => {
         email: user.email,
         currentRank: user.currentRank || 0,
         title: user.title || t('reservation.intermediate'),
+        userType: user.userType,
       }));
       
       setUsers(filteredUsers);
@@ -1427,8 +1452,10 @@ const CourtDetailScreen = () => {
               // Rezerve edilmiş veya bloke edilmiş saatler disabled olmalı
               const isDisabled = isReserved || isBlocked;
               
-              // RESTRICTED kullanıcı kontrolü
+              // RESTRICTED kullanıcı kontrolü (giriş yapan kullanıcı)
               const isDisabledForUser = isTimeSlotDisabledForUser(time);
+              // Seçilen partner/rakiplerden biri RESTRICTED ise bu saatte eklenemez
+              const isDisabledForRestrictedParticipant = isTimeSlotDisabledForRestrictedParticipants(time);
               
               // Bugün ise geçmiş saatleri kontrol et
               const now = new Date();
@@ -1447,7 +1474,7 @@ const CourtDetailScreen = () => {
                 isPastTime = timeDate < now;
               }
               
-              const finalDisabled = isDisabled || isPastTime || isDisabledForUser;
+              const finalDisabled = isDisabled || isPastTime || isDisabledForUser || isDisabledForRestrictedParticipant;
               
               // Hava durumu bilgisini al (sadece müsait saatler için)
               const weatherInfo = weatherCache[time];
@@ -1526,10 +1553,15 @@ const CourtDetailScreen = () => {
                               const dayOfWeek = new Date(selectedDate).getDay();
                               const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
                               return isWeekend 
-                                ? 'Hafta sonu 18:00-24:00 arası' 
-                                : 'Hafta içi 09:00-18:00 arası';
+                                ? (language === 'tr' ? 'Hafta sonu 18:00-24:00' : 'Weekend 18:00-24:00')
+                                : (language === 'tr' ? 'Hafta içi 09:00-18:00' : 'Weekdays 09:00-18:00');
                             })()
                           : ''}
+                      </Text>
+                    )}
+                    {isDisabledForRestrictedParticipant && !isBlocked && !isDisabledForUser && (
+                      <Text style={styles.timeSlotBlockedReason} numberOfLines={1}>
+                        {t('reservation.restrictedMemberSlotNotAllowed')}
                       </Text>
                     )}
                   </View>
@@ -1555,35 +1587,40 @@ const CourtDetailScreen = () => {
 
       {/* Continue to Booking Button - Fixed at bottom */}
       {(() => {
-        // Tüm gerekli seçimlerin yapılıp yapılmadığını kontrol et
         const hasDate = !!selectedDate;
         const hasTime = !!selectedTime;
-        const hasPlayers = playerType === 'single' 
-          ? !!selectedPartner  // Single için opponent seçilmeli
-          : (!!selectedPartner && selectedOpponents.length === 2); // Double için partner + 2 opponent
-        
-        return hasDate && hasTime && hasPlayers;
-      })() && (
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[
-              styles.continueButton,
-              (reservationBlocked || checkingBlockStatus || isCreatingReservation) && styles.continueButtonDisabled
-            ]}
-            onPress={handleReservation}
-            disabled={reservationBlocked || checkingBlockStatus}
-          >
-            <View style={[
-              styles.continueButtonGradient,
-              (reservationBlocked || checkingBlockStatus) && { backgroundColor: '#BDBDBD' }
-            ]}>
-              <Text style={styles.continueButtonText}>
-                {t('reservation.continueToBooking')}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-      )}
+        const hasPlayers = playerType === 'single'
+          ? !!selectedPartner
+          : (!!selectedPartner && selectedOpponents.length === 2);
+        const selectedParticipants = [selectedPartner, ...selectedOpponents].filter(Boolean);
+        const hasRestrictedParticipant = selectedParticipants.some((u: any) => u?.userType?.toLowerCase() === 'restricted');
+        const invalidTimeForRestricted = hasRestrictedParticipant && !!selectedDate && !!selectedTime && !isSlotAllowedForRestrictedUser(selectedDate, selectedTime);
+        const isContinueDisabled = reservationBlocked || checkingBlockStatus || invalidTimeForRestricted;
+
+        if (!hasDate || !hasTime || !hasPlayers) return null;
+
+        return (
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={[
+                styles.continueButton,
+                (reservationBlocked || checkingBlockStatus || isCreatingReservation || invalidTimeForRestricted) && styles.continueButtonDisabled
+              ]}
+              onPress={handleReservation}
+              disabled={isContinueDisabled}
+            >
+              <View style={[
+                styles.continueButtonGradient,
+                (reservationBlocked || checkingBlockStatus || invalidTimeForRestricted) && { backgroundColor: '#BDBDBD' }
+              ]}>
+                <Text style={styles.continueButtonText}>
+                  {t('reservation.continueToBooking')}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        );
+      })()}
 
       {/* Weather Warning Modal */}
       <Portal>

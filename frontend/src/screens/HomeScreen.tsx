@@ -123,7 +123,6 @@ const HomeScreen = () => {
       const params = route.params as { showReservationSuccess?: boolean } | undefined;
       if (params?.showReservationSuccess) {
         setShowReservationSuccess(true);
-        // Params'ı temizle (bir sonraki açılışta tekrar göstermemek için)
         navigation.setParams({ showReservationSuccess: false } as any);
       }
     }, [route.params, navigation])
@@ -486,7 +485,7 @@ const HomeScreen = () => {
       >
         <View style={styles.snackbarContent}>
           <MaterialCommunityIcons name="check-circle" size={24} color="#FFFFFF" />
-          <Text style={styles.snackbarText}>{t('reservation.reservationCreated')}</Text>
+          <Text style={styles.snackbarText}>{t('reservation.reservationCreated') || t('reservation.success')}</Text>
         </View>
       </Snackbar>
     </View>

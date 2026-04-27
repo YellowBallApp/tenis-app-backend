@@ -148,6 +148,46 @@ router.post('/', reservationController.createReservation);
 
 /**
  * @swagger
+ * /api/reservations/{id}/accept:
+ *   post:
+ *     summary: PENDING rezervasyonu kabul et (davetli)
+ *     tags: [Reservations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: number
+ *     responses:
+ *       200:
+ *         description: Rezervasyon kabul edildi
+ */
+router.post('/:id/accept', reservationController.acceptReservation);
+
+/**
+ * @swagger
+ * /api/reservations/{id}/reject:
+ *   post:
+ *     summary: PENDING rezervasyonu reddet (davetli); rezervasyon silinir, iptal bildirimi gider
+ *     tags: [Reservations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: number
+ *     responses:
+ *       200:
+ *         description: Rezervasyon reddedildi ve iptal edildi
+ */
+router.post('/:id/reject', reservationController.rejectReservation);
+
+/**
+ * @swagger
  * /api/reservations/{id}:
  *   get:
  *     summary: ID'ye göre rezervasyon getir
